@@ -20,6 +20,7 @@
     "jquery": "^3.6.0",
     "jquery-confirm": "^3.3.4",
     "lodash": "^4.17.21",
+    "predictionary": "^1.6.0",
     "vditor": "^3.8.4"
   }
 }

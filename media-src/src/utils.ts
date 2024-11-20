@@ -1,7 +1,8 @@
-import { keyboard } from '@testing-library/user-event/dist/keyboard'
-import $ from 'jquery'
-require('jquery-confirm')(window, $)
-import 'jquery-confirm/css/jquery-confirm.css'
+import { keyboard } from '@testing-library/user-event/dist/keyboard';
+import {Webview} from 'vscode'
+import $ from 'jquery';
+require('jquery-confirm')(window, $);
+import 'jquery-confirm/css/jquery-confirm.css';
 
 import _ from 'lodash'
 import Vditor from 'vditor'
@@ -11,10 +12,10 @@ window.vscode =
 
 declare global {
   export const vditor: Vditor
-  export const vscode: any
+  export const vscode: Webview
   interface Window {
     vditor: Vditor
-    vscode: any
+    vscode: Webview
     global: Window
   }
 }
@@ -104,11 +105,11 @@ export function handleToolbarClick() {
 }
 
 export function fixLinkClick() {
-  const openLink = (url: string) => {
+  const openLink = async (url: string) => {
     vscode.postMessage({ command: 'open-link', href: url })
   }
   document.addEventListener('click', e=> {
-    let el = e.target as HTMLAnchorElement
+    const el = e.target as HTMLAnchorElement
     if (el.tagName === 'A') {
       openLink(el.href)
     }

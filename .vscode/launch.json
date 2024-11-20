@@ -12,8 +12,9 @@
 			"request": "launch",
 			"runtimeExecutable": "${execPath}",
 			"args": ["--extensionDevelopmentPath=${workspaceRoot}"],
-			"outFiles": ["${workspaceFolder}/out/**/*.js"],
-			"preLaunchTask": "npm: watch"
+			"outFiles": ["${workspaceFolder}/out/**/*.js", "${workspaceFolder}/media/**/*.js"],
+			"preLaunchTask": "npm: watch",
+			"sourceMaps": true
 		}
 	]
 }

@@ -3,8 +3,8 @@
   "displayName": "Markdown Editor",
   "icon": "media/logo.png",
   "description": "A full-featured WYSIWYG editor for markdown.",
-  "version": "0.1.10",
-  "publisher": "zaaack",
+  "version": "0.2.14",
+  "publisher": "phfsantos",
   "private": true,
   "engines": {
     "vscode": "^1.47.0"
@@ -28,7 +28,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/zaaack/vscode-markdown-editor.git"
+    "url": "https://github.com/phfsantos/vscode-markdown-editor.git"
   },
   "files": [
     "./media",
@@ -43,7 +43,26 @@
         "category": "markdown-editor"
       }
     ],
+    "customEditors": [
+      {
+        "viewType": "markdown-editor",
+        "displayName": "Markdown Editor",
+        "selector": [
+          {
+            "filenamePattern": "*.{md,markdown,mdown,mkdn,mkd,rmd,qmd}"
+          }
+        ],
+        "priority": "option"
+      }
+    ],
     "menus": {
+      "editor/context": [
+        {
+          "when": "editorLangId == markdown",
+          "command": "markdown-editor.openEditor",
+          "group": "markdown-editor"
+        }
+      ],
       "explorer/context": [
         {
           "when": "resourceLangId == markdown",
@@ -51,7 +70,7 @@
           "group": "navigation"
         }
       ],
-      "editor/title/context": [
+      "editor/title": [
         {
           "when": "resourceLangId == markdown",
           "command": "markdown-editor.openEditor",
@@ -92,7 +111,9 @@
     "pub": "npm version patch; git push origin master --tags",
     "test": "echo 0"
   },
-  "dependencies": {},
+  "dependencies": {
+    "async-mutex": "^0.5.0"
+  },
   "devDependencies": {
     "@types/node": "^12.12.0",
     "@types/vscode": "^1.47.0",

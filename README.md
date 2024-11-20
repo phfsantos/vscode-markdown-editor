@@ -1,7 +1,5 @@
 # Markdown Editor — A full-featured WYSIWYG editor for markdown
 
-[![](https://vsmarketplacebadge.apphb.com/version-short/zaaack.markdown-editor.svg)](https://marketplace.visualstudio.com/items?itemName=zaaack.markdown-editor) [![](https://vsmarketplacebadge.apphb.com/installs-short/zaaack.markdown-editor.svg)](https://marketplace.visualstudio.com/items?itemName=zaaack.markdown-editor) [![](https://vsmarketplacebadge.apphb.com/downloads-short/zaaack.markdown-editor.svg)](https://marketplace.visualstudio.com/items?itemName=zaaack.markdown-editor) [![](https://vsmarketplacebadge.apphb.com/rating-short/zaaack.markdown-editor.svg)](https://marketplace.visualstudio.com/items?itemName=zaaack.markdown-editor)
-
 ## Demo
 
 ![demo](./demo.gif)
@@ -54,6 +52,7 @@
 
 * [vscode](https://github.com/microsoft/vscode)
 * [vditor](https://github.com/Vanessa219/vditor)
+* [phfsantos](https://github.com/phfsantos)
 
 ## Todo
 
