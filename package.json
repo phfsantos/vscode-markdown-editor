@@ -3,7 +3,7 @@
   "displayName": "Markdown Editor",
   "icon": "media/logo.png",
   "description": "A full-featured WYSIWYG editor for markdown.",
-  "version": "0.1.10",
+  "version": "0.1.12",
   "publisher": "zaaack",
   "private": true,
   "engines": {
@@ -71,6 +71,10 @@
           "type": "boolean",
           "default": true,
           "description": "Use vscode theme's background color as the markdown editor's background color."
+        },
+        "markdown-editor.customCss": {
+          "type": "string",
+          "default": ""
         }
       }
     },
@@ -85,20 +89,14 @@
   },
   "scripts": {
     "vscode:prepublish": "yarn foy build",
-    "preversion": "yarn foy build",
-    "lint": "eslint . --ext .ts,.tsx",
     "watch": "yarn foy watch",
     "start": "yarn foy watch",
-    "pub": "npm version patch; git push origin master --tags",
+    "pub": "yarn foy build && npm version patch && git push origin master --tags && vsce package && vsce publish",
     "test": "echo 0"
   },
-  "dependencies": {},
   "devDependencies": {
     "@types/node": "^12.12.0",
     "@types/vscode": "^1.47.0",
-    "@typescript-eslint/eslint-plugin": "^4.16.0",
-    "@typescript-eslint/parser": "^4.16.0",
-    "eslint": "^7.21.0",
     "foy": "^0.2.5",
     "ts-node": "^9.1.1",
     "typescript": "^4.2.2"
