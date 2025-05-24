@@ -32,22 +32,14 @@ export class EditorPanel {
     const column = vscode.window.activeTextEditor
       ? vscode.window.activeTextEditor.viewColumn
       : undefined;
-    if (EditorPanel.currentPanel && uri !== EditorPanel.currentPanel?._uri) {
+    //if (EditorPanel.currentPanel && uri !== EditorPanel.currentPanel?._uri) {
+    if (EditorPanel.currentPanel) {
       EditorPanel.currentPanel.dispose();
     }
     // If we already have a panel, show it.
     if (EditorPanel.currentPanel) {
       EditorPanel.currentPanel._panel.reveal(column);
       return;
-    }
-    // If we already have editors, show it.
-    if (EditorPanel.editors) {
-      for (const editor of EditorPanel.editors) {
-        if (uri === editor._uri) {
-          editor._panel.reveal(column);
-          return editor;
-        }
-      }
     }
     if (!vscode.window.activeTextEditor && !uri) {
       showError(`Did not open markdown file!`);
@@ -101,7 +93,7 @@ export class EditorPanel {
     }
 
     // Otherwise, create a new panel.
-    const editor = new EditorPanel(context, panel, extensionUri, doc, uri);
+    const editor = new EditorPanel(context, panel, extensionUri, doc, uri, !!webviewPanel);
     if (!webviewPanel) {
       EditorPanel.currentPanel = editor;
     } else {
@@ -131,22 +123,25 @@ export class EditorPanel {
     private readonly _panel: vscode.WebviewPanel,
     private readonly _extensionUri: vscode.Uri,
     public _document: vscode.TextDocument, // 当前有 markdown 编辑器
-    public _uri = _document.uri // 从资源管理器打开，只有 uri 没有 _document
+    public _uri = _document.uri, // 从资源管理器打开，只有 uri 没有 _document
+    public _isEditor: boolean = false // Mark if this is a markdown editor panel
   ) {
-    // Set the webview's initial html content
+    let textEditTimer: NodeJS.Timeout | void;
 
+    // Set the webview's initial html content
     this._init();
 
     // Listen for when the panel is disposed
     // This happens when the user closes the panel or when the panel is closed programmatically
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
-    let textEditTimer: NodeJS.Timeout | void;
+    
     // close EditorPanel when vsc editor is close
     vscode.workspace.onDidCloseTextDocument((e) => {
       if (e.fileName === this._fsPath) {
         this.dispose();
       }
     }, this._disposables);
+
     // update EditorPanel when vsc editor changes
     vscode.workspace.onDidChangeTextDocument((e) => {
       if (e.document.fileName !== this._document.fileName) {
@@ -304,7 +299,17 @@ export class EditorPanel {
   }
 
   public dispose() {
-    EditorPanel.currentPanel = undefined;
+    if (!this._isEditor) {
+      EditorPanel.currentPanel = undefined;
+    }
+
+    // If we already have editors, show it.
+    if (this._isEditor && EditorPanel.editors?.length) {
+      // Remove this editor from the list of editors
+      EditorPanel.editors = EditorPanel.editors.filter(
+        (editor) => this._uri?.path !==  editor._uri?.path
+      );
+    }
 
     // Clean up our resources
     this._panel.dispose();
@@ -379,6 +384,7 @@ export class EditorPanel {
 				${CssFiles.map((f) => `<link href="${f}" rel="stylesheet">`).join("\n")}
 
 				<title>markdown editor</title>
+				<style>` + this._config.get<string>('customCss') + `</style>
 			</head>
 			<body>
 				<div id="app"></div>
