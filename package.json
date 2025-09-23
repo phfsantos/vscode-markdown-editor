@@ -41,6 +41,36 @@
         "command": "markdown-editor.openEditor",
         "title": "Open with markdown editor",
         "category": "markdown-editor"
+      },
+      {
+        "command": "markdown-editor.setAsDefaultEditor",
+        "title": "Set as Default Markdown Editor",
+        "category": "markdown-editor"
+      },
+      {
+        "command": "markdown-editor.showHeadingStats",
+        "title": "Show Heading Statistics",
+        "category": "markdown-editor"
+      },
+      {
+        "command": "markdown-editor.addAltText",
+        "title": "Add Alt Text to Image",
+        "category": "markdown-editor"
+      },
+      {
+        "command": "markdown-editor.formatTable",
+        "title": "Format Table",
+        "category": "markdown-editor"
+      },
+      {
+        "command": "markdown-editor.insertTOC",
+        "title": "Insert Table of Contents",
+        "category": "markdown-editor"
+      },
+      {
+        "command": "markdown-editor.validateDocument",
+        "title": "Validate Document Structure",
+        "category": "markdown-editor"
       }
     ],
     "customEditors": [
@@ -52,7 +82,7 @@
             "filenamePattern": "*.{md,markdown,mdown,mkdn,mkd,rmd,qmd}"
           }
         ],
-        "priority": "option"
+        "priority": "default"
       }
     ],
     "menus": {
@@ -94,6 +124,27 @@
         "markdown-editor.customCss": {
           "type": "string",
           "default": ""
+        },
+        "markdown-editor.enableDiagnostics": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable inline error detection and diagnostics for markdown files"
+        },
+        "markdown-editor.enableCodeLens": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show CodeLens information for headings, images, and tables"
+        },
+        "markdown-editor.enableDecorations": {
+          "type": "boolean",
+          "default": true,
+          "description": "Apply native text decorations to markdown elements"
+        },
+        "markdown-editor.performanceMode": {
+          "type": "string",
+          "enum": ["auto", "performance", "compatibility"],
+          "default": "auto",
+          "description": "Performance optimization level"
         }
       }
     },
