@@ -3,7 +3,7 @@
   "displayName": "Markdown Editor",
   "icon": "media/logo.png",
   "description": "A full-featured WYSIWYG editor for markdown.",
-  "version": "0.2.15",
+  "version": "0.2.16",
   "publisher": "phfsantos",
   "private": true,
   "engines": {
@@ -22,7 +22,6 @@
     "markdown-editor"
   ],
   "activationEvents": [
-    "onCommand:markdown-editor.openEditor",
     "onWebviewPanel:markdown-editor",
     "onLanguage:markdown"
   ],

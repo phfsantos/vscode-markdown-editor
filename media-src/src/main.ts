@@ -19,6 +19,21 @@ import { toolbar } from "./toolbar";
 import { fixTableIr } from "./fix-table-ir";
 import words from "./words.en.txt";
 import "./main.css";
+import { DiagnosticVisualizer } from "./diagnostic-visualizer";
+
+// Global diagnostic visualizer instance
+let diagnosticVisualizer: DiagnosticVisualizer | null = null;
+
+// VS Code logging function
+function vscodeLog(message: string) {
+  vscode.postMessage({
+    command: "log",
+    message: message
+  });
+}
+
+// Test logging immediately when script loads
+vscodeLog("Main.ts: Webview script loaded and vscodeLog function initialized");
 
 function initVditor(msg) {
   const predictionary = window.Predictionary && window.Predictionary.instance();
@@ -85,18 +100,35 @@ function initVditor(msg) {
       handleToolbarClick();
       fixTableIr();
       fixPanelHover();
+      
+      // Initialize diagnostic visualizer
+      diagnosticVisualizer = new DiagnosticVisualizer(window.vditor);
+      
+      // Apply simple diagnostics immediately
+      setTimeout(() => {
+        if (diagnosticVisualizer) {
+          diagnosticVisualizer.addSimpleDiagnostics();
+        }
+      }, 500); // Small delay to ensure editor is fully rendered
     },
     input() {
       inputTimer && clearTimeout(inputTimer);
       inputTimer = setTimeout(() => {
         vscode.postMessage({ command: "edit", content: vditor.getValue() });
+        
+        // Update diagnostics less frequently to prevent flickering
+        setTimeout(() => {
+          if (diagnosticVisualizer) {
+            diagnosticVisualizer.addSimpleDiagnostics();
+          }
+        }, 500); // Longer delay to avoid frequent updates while typing
       }, 100);
     },
     upload: {
       url: "/fuzzy", // 没有 url 参数粘贴图片无法上传 see: https://github.com/Vanessa219/vditor/blob/d7628a0a7cfe5d28b055469bf06fb0ba5cfaa1b2/src/ts/util/fixBrowserBehavior.ts#L1409
       async handler(files) {
         // console.log('files', files)
-        let fileInfos = await Promise.all(
+        const fileInfos = await Promise.all(
           files.map(async (f) => {
             const d = new Date();
             return {
@@ -239,10 +271,10 @@ window.addEventListener("message", (e) => {
           initVditor({ content: msg.content });
           saveVditorOptions();
         }
-        console.log("initVditor");
+        vscodeLog("initVditor");
       } else {
         vditor.setValue(msg.content);
-        console.log("setValue");
+        vscodeLog("setValue");
       }
       break;
     }
@@ -263,6 +295,38 @@ window.addEventListener("message", (e) => {
           };
         }
       });
+      break;
+    }
+    case "diagnostics": {
+      // Handle diagnostics updates from VS Code
+      vscodeLog('Main.ts: Received diagnostics message from VS Code extension: ' + JSON.stringify({
+        diagnosticCount: msg.diagnostics?.length || 0,
+        documentLines: msg.documentLines || 0,
+        documentTextLength: msg.documentText?.length || 0
+      }));
+      
+      // Log each diagnostic for debugging
+      if (msg.diagnostics) {
+        msg.diagnostics.forEach((diag, index) => {
+          vscodeLog(`Main.ts: Diagnostic ${index}: ` + JSON.stringify({
+            message: diag.message,
+            source: diag.source,
+            severity: diag.severity,
+            line: diag.range?.start?.line,
+            lineText: diag.lineText
+          }));
+        });
+      }
+      
+      if (diagnosticVisualizer) {
+        // Pass additional document context to the visualizer
+        diagnosticVisualizer.updateDiagnostics(msg.diagnostics, {
+          documentText: msg.documentText,
+          documentLines: msg.documentLines
+        });
+      } else {
+        console.warn('Main.ts: DiagnosticVisualizer not initialized when diagnostics received');
+      }
       break;
     }
     default:

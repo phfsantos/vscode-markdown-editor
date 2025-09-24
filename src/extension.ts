@@ -10,7 +10,30 @@ import { PerformanceOptimizer } from './performance/PerformanceOptimizer';
 import { MarkdownCodeLensProvider, MarkdownDecorationProvider } from './decorations/MarkdownDecorationProviders';
 import { MarkdownCommandProvider } from './commands/MarkdownCommandProvider';
 
+// Create a global output channel for logging
+let outputChannel: vscode.OutputChannel;
+
 export function activate(context: vscode.ExtensionContext) {
+  // Create output channel for diagnostic logs
+  outputChannel = vscode.window.createOutputChannel('Markdown Editor Diagnostics');
+  context.subscriptions.push(outputChannel);
+  
+  // Make output channel globally available
+  (global as any).markdownEditorLog = (message: string) => {
+    const timestamp = new Date().toISOString();
+    const logMessage = `[${timestamp}] ${message}`;
+    outputChannel.appendLine(logMessage);
+    console.log(`MD Editor: ${logMessage}`); // Also log to console for debugging
+  };
+  
+  // Test logging immediately
+  (global as any).markdownEditorLog('🚀 Markdown Editor extension activated successfully');
+  (global as any).markdownEditorLog('✅ Global logging function is now available');
+  (global as any).markdownEditorLog('📊 Output channel ready for diagnostic logs');
+  (global as any).markdownEditorLog('🔧 Enhanced external change detection enabled');
+  
+  outputChannel.appendLine('Output channel created and ready');
+  
   // Initialize performance optimizer
   const performanceOptimizer = new PerformanceOptimizer();
   

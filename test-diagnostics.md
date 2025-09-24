@@ -1,6 +1,6 @@
 # Test Markdown Document
 
-This document contains various markdown elements to test the new diagnostic and enhancement features.
+This document contains various Markdown elements to test the new diagnostic and enhancement features.
 
 ## Broken Links Section
 
@@ -20,8 +20,9 @@ And here's a [local broken link](./non-existent-file.md).
 | John | 25 |
 | Jane | 30
 
+
 | Name | Age | City |
-|------|-----|------|
+| ---- | --- | ---- |
 | John | 25  | NYC  |
 
 ## Emphasis and Code
@@ -46,5 +47,6 @@ This heading skips from H2 to H4, which should show a diagnostic warning.
 console.log("This should be properly highlighted");
 ```
 
-## Trailing Whitespace Lines   
+## Trailing Whitespace Lines
+
 This line has trailing spaces that should be detected.

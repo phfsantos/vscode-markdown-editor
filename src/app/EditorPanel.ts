@@ -142,11 +142,58 @@ export class EditorPanel {
       }
     }, this._disposables);
 
+    // Listen for diagnostic changes and send to webview
+    vscode.languages.onDidChangeDiagnostics((e) => {
+      if (e.uris.some(uri => uri.toString() === this._document.uri.toString())) {
+        if ((global as any).markdownEditorLog) {
+          (global as any).markdownEditorLog(`Diagnostics changed for document, updating webview`);
+        }
+        this._updateDiagnostics();
+      }
+    }, this._disposables);
+
     // update EditorPanel when vsc editor changes
     vscode.workspace.onDidChangeTextDocument((e) => {
       if (e.document.fileName !== this._document.fileName) {
         return;
       }
+      
+      // Enhanced external change detection
+      const isExternalChange = this.detectExternalChange(e);
+      
+      if ((global as any).markdownEditorLog) {
+        const changeInfo = {
+          changes: e.contentChanges.length,
+          reason: e.reason,
+          panelActive: this._panel.active,
+          isExternal: isExternalChange,
+          changeTypes: e.contentChanges.map(c => ({
+            rangeLength: c.rangeLength,
+            textLength: c.text.length,
+            range: `${c.range.start.line}:${c.range.start.character}-${c.range.end.line}:${c.range.end.character}`
+          }))
+        };
+        (global as any).markdownEditorLog(`Document change detected: ${JSON.stringify(changeInfo)}`);
+      }
+      
+      // Handle external changes (like quick fixes, spell corrections) immediately
+      if (isExternalChange) {
+        if ((global as any).markdownEditorLog) {
+          (global as any).markdownEditorLog(`🔄 EXTERNAL CHANGE DETECTED - Updating webview immediately`);
+          (global as any).markdownEditorLog(`   • Source: VS Code panels (quick fix, spell checker, etc.)`);
+          (global as any).markdownEditorLog(`   • Changes: ${e.contentChanges.length} modifications`);
+          (global as any).markdownEditorLog(`   • Force updating webview content now`);
+        }
+        if (textEditTimer) {
+          clearTimeout(textEditTimer);
+        }
+        
+        // Force update the webview immediately for external changes
+        this._update({ type: "update" });
+        this._updateDiagnostics();
+        return;
+      }
+      
       // 当 webview panel 激活时不将由 webview编辑导致的 vsc 编辑器更新同步回 webview
       // don't change webview panel when webview panel is focus
       if (this._panel.active) {
@@ -158,6 +205,17 @@ export class EditorPanel {
         this._updateEditTitle();
       }, 300);
     }, this._disposables);
+
+    // Listen for configuration changes that might affect external change behavior
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration('markdown-editor')) {
+        if ((global as any).markdownEditorLog) {
+          (global as any).markdownEditorLog('Configuration changed, updating webview');
+        }
+        this._update();
+      }
+    }, this._disposables);
+
     // Handle messages from the webview
     this._panel.webview.onDidReceiveMessage(
       async (message) => {
@@ -291,6 +349,17 @@ export class EditorPanel {
             );
             break;
           }
+          case "log": {
+            // Handle log messages from webview and show in VS Code output
+            const webviewMessage = `[Webview] ${message.message}`;
+            if ((global as any).markdownEditorLog) {
+              (global as any).markdownEditorLog(webviewMessage);
+            } else {
+              // Fallback to console if global logging not available
+              console.log(`MD Editor: ${webviewMessage}`);
+            }
+            break;
+          }
         }
       },
       null,
@@ -327,6 +396,11 @@ export class EditorPanel {
 
     this._panel.webview.html = this._getHtmlForWebview(webview);
     this._panel.title = NodePath.basename(this._fsPath);
+    
+    // Send initial diagnostics to webview after a short delay to ensure webview is ready
+    setTimeout(() => {
+      this._updateDiagnostics();
+    }, 500);
   }
 
   private _updateEditTitle() {
@@ -359,6 +433,121 @@ export class EditorPanel {
       content: md,
       ...props,
     });
+  }
+
+  /**
+   * Update diagnostics in the webview
+   */
+  private _updateDiagnostics(): void {
+    const diagnostics = vscode.languages.getDiagnostics(this._document.uri);
+    
+    console.log(`EditorPanel: Found ${diagnostics.length} diagnostics for ${this._document.uri.toString()}`);
+    
+    // Get the document text to provide context for line mapping
+    const documentText = this._document.getText();
+    const lines = documentText.split('\n');
+    
+    // Convert VS Code diagnostics to a format the webview can understand
+    const serializedDiagnostics = diagnostics.map((diagnostic, index) => {
+      const lineText = lines[diagnostic.range.start.line] || '';
+      
+      // Enhanced logging for each diagnostic
+      console.log(`EditorPanel: Diagnostic ${index}:`, {
+        message: diagnostic.message,
+        source: diagnostic.source,
+        severity: diagnostic.severity,
+        range: diagnostic.range,
+        lineText: lineText,
+        relatedInformation: diagnostic.relatedInformation?.length || 0
+      });
+      
+      return {
+        message: diagnostic.message,
+        severity: diagnostic.severity,
+        range: {
+          start: {
+            line: diagnostic.range.start.line,
+            character: diagnostic.range.start.character
+          },
+          end: {
+            line: diagnostic.range.end.line,
+            character: diagnostic.range.end.character
+          }
+        },
+        source: diagnostic.source,
+        code: diagnostic.code,
+        lineText: lineText, // Add the actual line text for better matching
+        relatedInformation: diagnostic.relatedInformation?.map(info => ({
+          message: info.message,
+          location: {
+            uri: info.location.uri.toString(),
+            range: info.location.range
+          }
+        }))
+      };
+    });
+
+    console.log('EditorPanel: Sending diagnostics to webview:', {
+      count: serializedDiagnostics.length,
+      diagnostics: serializedDiagnostics,
+      documentLines: lines.length
+    });
+
+    this._panel.webview.postMessage({
+      command: "diagnostics",
+      diagnostics: serializedDiagnostics,
+      documentText: documentText, // Send full document text for line mapping
+      documentLines: lines.length
+    });
+    
+    // Also log to VS Code output channel
+    const logMessage = `Diagnostics sent to webview: ${serializedDiagnostics.length} items`;
+    if ((global as any).markdownEditorLog) {
+      (global as any).markdownEditorLog(logMessage);
+      serializedDiagnostics.forEach((diag, i) => {
+        (global as any).markdownEditorLog(`  ${i + 1}. [${diag.source}] Line ${diag.range.start.line}: ${diag.message}`);
+      });
+    }
+  }
+
+  /**
+   * Detect if a document change is from external source (quick fixes, spell checker, etc.)
+   */
+  private detectExternalChange(e: vscode.TextDocumentChangeEvent): boolean {
+    // VS Code 1.44+ includes reason property for change events
+    if (e.reason) {
+      // Reason 1 = Redo, 2 = Undo, undefined = Normal edit
+      return e.reason === 1 || e.reason === 2;
+    }
+    
+    // Heuristics for detecting external changes
+    for (const change of e.contentChanges) {
+      // Large replacements often indicate external modifications
+      if (change.rangeLength > 50 && change.text.length > 50) {
+        return true;
+      }
+      
+      // Multiple line changes when panel is not active
+      if (!this._panel.active && change.range.end.line - change.range.start.line > 2) {
+        return true;
+      }
+      
+      // Specific patterns that suggest external tools
+      const text = change.text.toLowerCase();
+      if (text.includes('markdownlint') || 
+          text.includes('spell') || 
+          text.includes('quickfix') ||
+          change.text.match(/^[\w\s]+$/)) { // Simple word replacements (spell fixes)
+        return true;
+      }
+      
+      // Changes when webview is not focused
+      if (!this._panel.active && change.text.trim() !== '') {
+        return true;
+      }
+    }
+    
+    return false;
   }
 
   private _getHtmlForWebview(webview: vscode.Webview) {
