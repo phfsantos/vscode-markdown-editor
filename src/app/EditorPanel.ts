@@ -19,6 +19,8 @@ export class EditorPanel {
   public static readonly viewType = "markdown-editor";
   private _disposables: vscode.Disposable[] = [];
   private _isEdit = false;
+  private _lastCursorPosition: { line: number; character: number; timestamp: number } | null = null;
+  private _lastWebviewEdit = 0;
 
   /**
    * Create a new panel.
@@ -264,6 +266,9 @@ export class EditorPanel {
             showError(message.content);
             break;
           case "edit": {
+            // Track that this change originates from webview
+            this._lastWebviewEdit = Date.now();
+            
             // 只有当 webview 处于编辑状态时才同步到 vsc 编辑器，避免重复刷新
             if (this._panel.active) {
               await syncToEditor();
@@ -354,10 +359,97 @@ export class EditorPanel {
             const webviewMessage = `[Webview] ${message.message}`;
             if ((global as any).markdownEditorLog) {
               (global as any).markdownEditorLog(webviewMessage);
-            } else {
-              // Fallback to console if global logging not available
-              console.log(`MD Editor: ${webviewMessage}`);
             }
+            break;
+          }
+          case "requestContextMenu": {
+            // Handle context menu requests from webview
+            await this.handleContextMenuRequest(message);
+            break;
+          }
+          case "requestQuickFix": {
+            // Handle quick fix requests from webview
+            await this.handleQuickFixRequest(message);
+            break;
+          }
+          case "clipboardWrite": {
+            // Handle clipboard write requests from webview
+            await this.handleClipboardWrite(message);
+            break;
+          }
+          case "clipboardRead": {
+            // Handle clipboard read requests from webview
+            await this.handleClipboardRead(message);
+            break;
+          }
+          case "cursorPosition": {
+            // Handle cursor position updates from webview
+            await this.handleCursorPositionUpdate(message);
+            break;
+          }
+          case "triggerQuickFix": {
+            // Handle quick fix trigger requests from webview
+            await this.handleTriggerQuickFix(message);
+            break;
+          }
+          case "selectAll": {
+            // Handle select all command
+            await this.handleSelectAll();
+            break;
+          }
+          case "formatDocument": {
+            // Handle format document command
+            await this.handleFormatDocument();
+            break;
+          }
+          case "formatSelection": {
+            // Handle format selection command
+            await this.handleFormatSelection();
+            break;
+          }
+          case "showProblems": {
+            // Handle show problems command
+            await this.handleShowProblems();
+            break;
+          }
+          case "openProblemsPanel": {
+            // Handle open problems panel command (from lightbulb clicks)
+            await this.handleOpenProblemsPanel();
+            break;
+          }
+          case "find": {
+            // Handle find command
+            await this.handleFind();
+            break;
+          }
+          case "findAndReplace": {
+            // Handle find and replace command
+            await this.handleFindAndReplace();
+            break;
+          }
+          case "insertLink": {
+            // Handle insert link command
+            await this.handleInsertLink();
+            break;
+          }
+          case "insertImage": {
+            // Handle insert image command
+            await this.handleInsertImage();
+            break;
+          }
+          case "insertTable": {
+            // Handle insert table command
+            await this.handleInsertTable();
+            break;
+          }
+          case "showCommandPalette": {
+            // Handle show command palette command
+            await this.handleShowCommandPalette();
+            break;
+          }
+          case "toggleWordWrap": {
+            // Handle toggle word wrap command
+            await this.handleToggleWordWrap();
             break;
           }
         }
@@ -441,8 +533,6 @@ export class EditorPanel {
   private _updateDiagnostics(): void {
     const diagnostics = vscode.languages.getDiagnostics(this._document.uri);
     
-    console.log(`EditorPanel: Found ${diagnostics.length} diagnostics for ${this._document.uri.toString()}`);
-    
     // Get the document text to provide context for line mapping
     const documentText = this._document.getText();
     const lines = documentText.split('\n');
@@ -450,16 +540,6 @@ export class EditorPanel {
     // Convert VS Code diagnostics to a format the webview can understand
     const serializedDiagnostics = diagnostics.map((diagnostic, index) => {
       const lineText = lines[diagnostic.range.start.line] || '';
-      
-      // Enhanced logging for each diagnostic
-      console.log(`EditorPanel: Diagnostic ${index}:`, {
-        message: diagnostic.message,
-        source: diagnostic.source,
-        severity: diagnostic.severity,
-        range: diagnostic.range,
-        lineText: lineText,
-        relatedInformation: diagnostic.relatedInformation?.length || 0
-      });
       
       return {
         message: diagnostic.message,
@@ -487,11 +567,7 @@ export class EditorPanel {
       };
     });
 
-    console.log('EditorPanel: Sending diagnostics to webview:', {
-      count: serializedDiagnostics.length,
-      diagnostics: serializedDiagnostics,
-      documentLines: lines.length
-    });
+    // Send diagnostics to webview
 
     this._panel.webview.postMessage({
       command: "diagnostics",
@@ -520,34 +596,659 @@ export class EditorPanel {
       return e.reason === 1 || e.reason === 2;
     }
     
-    // Heuristics for detecting external changes
+    // Track recent webview edits to avoid false positives
+    const now = Date.now();
+    
+    // ENHANCED: Increased time window for webview edit tracking to handle post-newline typing
+    // This prevents cursor jumping after Enter key followed by typing
+    if (this._lastWebviewEdit && (now - this._lastWebviewEdit) < 3000) {
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`⏰ Recent webview edit detected (${now - this._lastWebviewEdit}ms ago) - not external`);
+      }
+      return false;
+    }
+    
+    // ENHANCED: Increased time window for cursor position tracking to handle typing sequences
+    if (this._lastCursorPosition && (now - this._lastCursorPosition.timestamp) < 2000) {
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`⏰ Recent cursor update detected (${now - this._lastCursorPosition.timestamp}ms ago) - not external`);
+      }
+      return false;
+    }
+    
+    // ENHANCED: Detailed logging for debugging cursor jumping issue
     for (const change of e.contentChanges) {
-      // Large replacements often indicate external modifications
-      if (change.rangeLength > 50 && change.text.length > 50) {
-        return true;
-      }
-      
-      // Multiple line changes when panel is not active
-      if (!this._panel.active && change.range.end.line - change.range.start.line > 2) {
-        return true;
-      }
-      
-      // Specific patterns that suggest external tools
-      const text = change.text.toLowerCase();
-      if (text.includes('markdownlint') || 
-          text.includes('spell') || 
-          text.includes('quickfix') ||
-          change.text.match(/^[\w\s]+$/)) { // Simple word replacements (spell fixes)
-        return true;
-      }
-      
-      // Changes when webview is not focused
-      if (!this._panel.active && change.text.trim() !== '') {
-        return true;
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`🔍 CURSOR DEBUG - Change detected:`);
+        (global as any).markdownEditorLog(`   • Text: "${change.text}" (length: ${change.text.length})`);
+        (global as any).markdownEditorLog(`   • Range: ${change.range.start.line}:${change.range.start.character}-${change.range.end.line}:${change.range.end.character}`);
+        (global as any).markdownEditorLog(`   • Range length: ${change.rangeLength}`);
+        (global as any).markdownEditorLog(`   • Panel state: active=${this._panel.active}, visible=${this._panel.visible}`);
+        (global as any).markdownEditorLog(`   • Last webview edit: ${this._lastWebviewEdit ? (now - this._lastWebviewEdit) + 'ms ago' : 'never'}`);
+        (global as any).markdownEditorLog(`   • Last cursor update: ${this._lastCursorPosition ? (now - this._lastCursorPosition.timestamp) + 'ms ago' : 'never'}`);
       }
     }
     
+    // Enhanced heuristics for detecting external changes
+    for (const change of e.contentChanges) {
+      const text = change.text.toLowerCase();
+      const originalText = e.document.getText(change.range).toLowerCase();
+      
+      // ENHANCED: VS Code Quick Fix Signature Detection
+      // Detect replacement patterns characteristic of VS Code quick fixes
+      const isReplacementPattern = change.rangeLength > 0 && 
+                                 change.text.length > 0 && 
+                                 change.rangeLength !== change.text.length;
+      
+      const hasSignificantTimeGap = !this._lastWebviewEdit || (now - this._lastWebviewEdit) > 10000;
+      
+      if (isReplacementPattern && hasSignificantTimeGap) {
+        // Check for markdown syntax patterns (markdownlint fixes)
+        const hasMarkdownSyntax = change.text.match(/!\[.*?\]\(.*?\)|^\s*[\-\*\+]|\[.*?\]\(.*?\)|^\s*#{1,6}\s|```/) ||
+                                 originalText.match(/!\[.*?\]\(.*?\)|^\s*[\-\*\+]|\[.*?\]\(.*?\)|^\s*#{1,6}\s|```/);
+        
+        if (hasMarkdownSyntax) {
+          if ((global as any).markdownEditorLog) {
+            (global as any).markdownEditorLog(`✅ External change detected: Markdown syntax replacement (likely markdownlint fix)`);
+          }
+          return true;
+        }
+        
+        // Check for focused single-line changes (typical of quick fixes)
+        const isFocusedChange = change.range.start.line === change.range.end.line && 
+                               change.rangeLength < 100 && // Not a large block change
+                               change.text.length < 100;
+        
+        if (isFocusedChange) {
+          if ((global as any).markdownEditorLog) {
+            (global as any).markdownEditorLog(`✅ External change detected: Focused replacement pattern (likely quick fix)`);
+          }
+          return true;
+        }
+      }
+      
+      // High-confidence external change indicators
+      if (text.includes('markdownlint-disable') || 
+          text.includes('spellcheck') || 
+          text.includes('quickfix') ||
+          text.includes('markdownlint') ||
+          originalText.includes('typo') ||
+          (change.rangeLength > 0 && change.text.length > 0 && 
+           change.rangeLength !== change.text.length && 
+           (text.match(/^[a-zA-Z\s\-']+$/) || text.match(/^[a-zA-Z]+$/)))) { // Enhanced pattern for words with spaces and hyphens
+        if ((global as any).markdownEditorLog) {
+          (global as any).markdownEditorLog(`✅ External change detected: Quick fix/spell check pattern`);
+        }
+        return true;
+      }
+      
+      // Multi-word replacements (likely spell corrections or quick fixes)
+      const isMultiWordReplacement = change.rangeLength > 5 && 
+                                   change.text.length > 5 && 
+                                   change.text.trim().includes(' ') &&
+                                   !this._panel.active;
+      if (isMultiWordReplacement) {
+        if ((global as any).markdownEditorLog) {
+          (global as any).markdownEditorLog(`✅ External change detected: Multi-word replacement`);
+        }
+        return true;
+      }
+      
+      // Document-wide changes (formatters, linters)
+      if (change.rangeLength > 100 && change.text.length > 100 && 
+          change.range.start.line === 0 && change.range.end.line > 10) {
+        if ((global as any).markdownEditorLog) {
+          (global as any).markdownEditorLog(`✅ External change detected: Document-wide change`);
+        }
+        return true;
+      }
+      
+      // Multi-line changes when panel is not focused (likely external tools)
+      if (!this._panel.active && !this._panel.visible && 
+          change.range.end.line - change.range.start.line > 1) {
+        if ((global as any).markdownEditorLog) {
+          (global as any).markdownEditorLog(`✅ External change detected: Multi-line change while panel inactive`);
+        }
+        return true;
+      }
+      
+      // Enhanced word-level replacements (spell corrections)
+      const isWordReplacement = change.rangeLength > 2 && 
+                               change.text.length > 2 && 
+                               change.text.match(/^[a-zA-Z'-]+$/) && 
+                               !change.text.includes('\n') &&
+                               change.rangeLength !== 1; // Not single character edits
+      if (isWordReplacement && !this._panel.active) {
+        if ((global as any).markdownEditorLog) {
+          (global as any).markdownEditorLog(`✅ External change detected: Word replacement (spell check likely)`);
+        }
+        return true;
+      }
+      
+      // ENHANCED: More sophisticated panel state and typing detection
+      // Panel visibility alone is not sufficient to determine internal vs external changes
+      // Quick fixes and spell corrections can happen while panel is visible
+      
+      // Only reject based on panel state if there are RECENT webview edits indicating active user typing
+      const hasVeryRecentWebviewActivity = this._lastWebviewEdit && (now - this._lastWebviewEdit) < 1000; // Very recent activity
+      const hasVeryRecentCursorActivity = this._lastCursorPosition && (now - this._lastCursorPosition.timestamp) < 1000;
+      
+      if ((this._panel.active || this._panel.visible) && (hasVeryRecentWebviewActivity || hasVeryRecentCursorActivity)) {
+        // Additional check: if it's a clear replacement pattern, still consider it external
+        const isClearReplacement = change.rangeLength > 0 && 
+                                 change.text.length > 0 && 
+                                 Math.abs(change.rangeLength - change.text.length) > 2; // Significant difference
+        
+        if (isClearReplacement && (!hasVeryRecentWebviewActivity && !hasVeryRecentCursorActivity)) {
+          if ((global as any).markdownEditorLog) {
+            (global as any).markdownEditorLog(`✅ Clear replacement pattern overrides panel visibility - treating as external`);
+          }
+          return true;
+        }
+        
+        if ((global as any).markdownEditorLog) {
+          (global as any).markdownEditorLog(`❌ Panel active/visible with recent activity - treating as internal change`);
+        }
+        return false;
+      }
+      
+      // ENHANCED: Better detection of normal typing sequences
+      // Single character changes are virtually always user typing when recent activity detected
+      if (change.text.length <= 1 && change.rangeLength <= 1) {
+        // Check for recent webview activity indicating active typing session
+        const hasRecentWebviewActivity = this._lastWebviewEdit && (now - this._lastWebviewEdit) < 5000;
+        const hasRecentCursorActivity = this._lastCursorPosition && (now - this._lastCursorPosition.timestamp) < 5000;
+        
+        if (hasRecentWebviewActivity || hasRecentCursorActivity) {
+          if ((global as any).markdownEditorLog) {
+            (global as any).markdownEditorLog(`❌ Single character change with recent activity - treating as internal`);
+          }
+          return false;
+        }
+        
+        // Only treat single chars as external if panel is completely inactive for extended period
+        const hasExternalIndicators = !this._panel.visible && 
+                                    (now - this._lastWebviewEdit) > 10000; // Increased from 3000ms
+        if (!hasExternalIndicators) {
+          if ((global as any).markdownEditorLog) {
+            (global as any).markdownEditorLog(`❌ Single character change without strong external indicators - treating as internal`);
+          }
+          return false;
+        }
+      }
+      
+      // ENHANCED: Better handling of small typing sequences (common after newlines)
+      if (change.text.length <= 5 && change.rangeLength <= 5 && 
+          change.text.match(/^[a-zA-Z0-9\s.,!?'"()-]*$/) && // Normal typing characters
+          !change.text.includes('markdownlint') && !change.text.includes('spell')) {
+        
+        const hasRecentActivity = (this._lastWebviewEdit && (now - this._lastWebviewEdit) < 8000) ||
+                                 (this._lastCursorPosition && (now - this._lastCursorPosition.timestamp) < 8000);
+        
+        if (hasRecentActivity) {
+          if ((global as any).markdownEditorLog) {
+            (global as any).markdownEditorLog(`❌ Small typing sequence with recent activity - treating as internal`);
+          }
+          return false;
+        }
+      }
+      
+      // Pure whitespace changes - be more permissive for external changes
+      if (change.text.match(/^\s*$/) && change.rangeLength > 0) {
+        // Could be external formatting
+        if (!this._panel.visible && (now - this._lastWebviewEdit) > 2000) {
+          if ((global as any).markdownEditorLog) {
+            (global as any).markdownEditorLog(`✅ External change detected: Whitespace change while panel not visible`);
+          }
+          return true;
+        }
+      }
+    }
+    
+    // ENHANCED: Default to internal change with detailed reasoning
+    if ((global as any).markdownEditorLog) {
+      (global as any).markdownEditorLog(`❌ EXTERNAL CHANGE DEBUG - Final decision: INTERNAL CHANGE`);
+      (global as any).markdownEditorLog(`   • Reason: No clear external indicators found`);
+      (global as any).markdownEditorLog(`   • Panel state: active=${this._panel.active}, visible=${this._panel.visible}`);
+      (global as any).markdownEditorLog(`   • Recent webview activity: ${this._lastWebviewEdit ? (now - this._lastWebviewEdit) + 'ms ago' : 'never'}`);
+      (global as any).markdownEditorLog(`   • Recent cursor activity: ${this._lastCursorPosition ? (now - this._lastCursorPosition.timestamp) + 'ms ago' : 'never'}`);
+      (global as any).markdownEditorLog(`   • This should NOT trigger webview update`);
+    }
     return false;
+  }
+
+  /**
+   * Handle context menu requests from webview
+   */
+  private async handleContextMenuRequest(message: any): Promise<void> {
+    try {
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`🔧 Context menu requested at position: ${JSON.stringify(message.position)}`);
+      }
+
+      // Get code actions for the current position
+      const document = this._document;
+      if (!document) return;
+
+      const line = Math.max(0, Math.min(message.position?.line || 0, document.lineCount - 1));
+      const character = Math.max(0, message.position?.character || 0);
+      const position = new vscode.Position(line, character);
+      const range = new vscode.Range(position, position);
+
+      // Execute VS Code's context menu command
+      await vscode.commands.executeCommand('editor.action.showContextMenu');
+      
+      // Also get available code actions and send them to webview
+      const codeActions = await vscode.commands.executeCommand<vscode.CodeAction[]>(
+        'vscode.executeCodeActionProvider',
+        document.uri,
+        range
+      ) || [];
+
+      // Send available actions back to webview
+      this._panel.webview.postMessage({
+        command: 'contextMenuActions',
+        actions: codeActions.map(action => ({
+          title: action.title,
+          kind: action.kind?.value,
+          command: action.command?.command,
+          arguments: action.command?.arguments
+        }))
+      });
+
+    } catch (error) {
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`❌ Context menu request failed: ${error}`);
+      }
+    }
+  }
+
+  /**
+   * Handle quick fix requests from webview
+   */
+  private async handleQuickFixRequest(message: any): Promise<void> {
+    try {
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`🔧 Quick fix requested: ${message.actionTitle}`);
+      }
+
+      const document = this._document;
+      if (!document) return;
+
+      const line = Math.max(0, Math.min(message.position?.line || 0, document.lineCount - 1));
+      const character = Math.max(0, message.position?.character || 0);
+      const position = new vscode.Position(line, character);
+      const range = new vscode.Range(position, position);
+
+      // Get available code actions
+      const codeActions = await vscode.commands.executeCommand<vscode.CodeAction[]>(
+        'vscode.executeCodeActionProvider',
+        document.uri,
+        range
+      ) || [];
+
+      // Find the requested action
+      const targetAction = codeActions.find(action => 
+        action.title === message.actionTitle || 
+        action.command?.command === message.command
+      );
+
+      if (targetAction) {
+        // Execute the code action
+        if (targetAction.edit) {
+          await vscode.workspace.applyEdit(targetAction.edit);
+        }
+        if (targetAction.command) {
+          await vscode.commands.executeCommand(
+            targetAction.command.command,
+            ...(targetAction.command.arguments || [])
+          );
+        }
+
+        if ((global as any).markdownEditorLog) {
+          (global as any).markdownEditorLog(`✅ Quick fix applied: ${targetAction.title}`);
+        }
+      }
+
+    } catch (error) {
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`❌ Quick fix request failed: ${error}`);
+      }
+    }
+  }
+
+  /**
+   * Handle clipboard write requests from webview
+   */
+  private async handleClipboardWrite(message: any): Promise<void> {
+    try {
+      await vscode.env.clipboard.writeText(message.text || '');
+      
+      // Send success confirmation back to webview
+      this._panel.webview.postMessage({
+        command: 'clipboardWriteResult',
+        success: true,
+        requestId: message.requestId
+      });
+
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`📋 Clipboard write successful: ${message.text?.length || 0} chars`);
+      }
+
+    } catch (error) {
+      // Send error back to webview
+      this._panel.webview.postMessage({
+        command: 'clipboardWriteResult',
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+        requestId: message.requestId
+      });
+
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`❌ Clipboard write failed: ${error}`);
+      }
+    }
+  }
+
+  /**
+   * Handle clipboard read requests from webview
+   */
+  private async handleClipboardRead(message: any): Promise<void> {
+    try {
+      const text = await vscode.env.clipboard.readText();
+      
+      // Send clipboard content back to webview
+      this._panel.webview.postMessage({
+        command: 'clipboardReadResult',
+        text: text,
+        success: true,
+        requestId: message.requestId
+      });
+
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`📋 Clipboard read successful: ${text.length} chars`);
+      }
+
+    } catch (error) {
+      // Send error back to webview
+      this._panel.webview.postMessage({
+        command: 'clipboardReadResult',
+        text: '',
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+        requestId: message.requestId
+      });
+
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`❌ Clipboard read failed: ${error}`);
+      }
+    }
+  }
+
+  /**
+   * Handle cursor position updates from webview
+   */
+  private async handleCursorPositionUpdate(message: any): Promise<void> {
+    try {
+      // Store cursor position for potential restoration
+      this._lastCursorPosition = {
+        line: message.line || 0,
+        character: message.character || 0,
+        timestamp: Date.now()
+      };
+
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`🎯 Cursor position updated: line ${message.line}, char ${message.character}`);
+      }
+
+    } catch (error) {
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`❌ Cursor position update failed: ${error}`);
+      }
+    }
+  }
+
+  /**
+   * Handle quick fix trigger requests from webview
+   */
+  private async handleTriggerQuickFix(message: any): Promise<void> {
+    try {
+      if (!this._document) {
+        if ((global as any).markdownEditorLog) {
+          (global as any).markdownEditorLog(`❌ Cannot trigger quick fix: no document available`);
+        }
+        return;
+      }
+
+      // Get current cursor position or use the line from message
+      const line = message.line || this._lastCursorPosition?.line || 0;
+      const character = message.character || this._lastCursorPosition?.character || 0;
+      
+      const position = new vscode.Position(line, character);
+      const range = new vscode.Range(position, position);
+
+      // Try to trigger VS Code's quick fix command
+      await vscode.commands.executeCommand('editor.action.quickFix', {
+        uri: this._document.uri,
+        range: range
+      });
+
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`🔧 Quick fix triggered at line ${line}, character ${character}`);
+      }
+
+    } catch (error) {
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`❌ Quick fix trigger failed: ${error}`);
+      }
+    }
+  }
+
+  /**
+   * Handle select all command
+   */
+  private async handleSelectAll(): Promise<void> {
+    try {
+      await vscode.commands.executeCommand('editor.action.selectAll');
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`✅ Select All executed`);
+      }
+    } catch (error) {
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`❌ Select All failed: ${error}`);
+      }
+    }
+  }
+
+  /**
+   * Handle format document command
+   */
+  private async handleFormatDocument(): Promise<void> {
+    try {
+      await vscode.commands.executeCommand('editor.action.formatDocument');
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`✅ Format Document executed`);
+      }
+    } catch (error) {
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`❌ Format Document failed: ${error}`);
+      }
+    }
+  }
+
+  /**
+   * Handle format selection command
+   */
+  private async handleFormatSelection(): Promise<void> {
+    try {
+      await vscode.commands.executeCommand('editor.action.formatSelection');
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`✅ Format Selection executed`);
+      }
+    } catch (error) {
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`❌ Format Selection failed: ${error}`);
+      }
+    }
+  }
+
+  /**
+   * Handle show problems command
+   */
+  private async handleShowProblems(): Promise<void> {
+    try {
+      await vscode.commands.executeCommand('workbench.actions.view.problems');
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`✅ Show Problems executed`);
+      }
+    } catch (error) {
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`❌ Show Problems failed: ${error}`);
+      }
+    }
+  }
+
+  /**
+   * Handle open problems panel command (triggered by lightbulb clicks)
+   */
+  private async handleOpenProblemsPanel(): Promise<void> {
+    try {
+      await vscode.commands.executeCommand('workbench.actions.view.problems');
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`💡 Problems panel opened from lightbulb click`);
+      }
+    } catch (error) {
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`❌ Open Problems Panel failed: ${error}`);
+      }
+    }
+  }
+
+  /**
+   * Handle find command - Use Vditor's integrated find widget
+   */
+  private async handleFind(): Promise<void> {
+    try {
+      // Use our custom FindReplaceManager via webview
+      this._panel.webview.postMessage({
+        command: 'showFind'
+      });
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`✅ Find widget shown`);
+      }
+    } catch (error) {
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`❌ Find failed: ${error}`);
+      }
+    }
+  }
+
+  /**
+   * Handle find and replace command - Use Vditor's integrated find and replace widget
+   */
+  private async handleFindAndReplace(): Promise<void> {
+    try {
+      // Use our custom FindReplaceManager via webview
+      this._panel.webview.postMessage({
+        command: 'showFindReplace'
+      });
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`✅ Find and Replace widget shown`);
+      }
+    } catch (error) {
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`❌ Find and Replace failed: ${error}`);
+      }
+    }
+  }
+
+  /**
+   * Handle insert link command
+   */
+  private async handleInsertLink(): Promise<void> {
+    try {
+      // Use Vditor's insert link functionality via webview
+      this._panel.webview.postMessage({
+        command: 'insertLink'
+      });
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`✅ Insert Link executed`);
+      }
+    } catch (error) {
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`❌ Insert Link failed: ${error}`);
+      }
+    }
+  }
+
+  /**
+   * Handle insert image command
+   */
+  private async handleInsertImage(): Promise<void> {
+    try {
+      // Use Vditor's insert image functionality via webview
+      this._panel.webview.postMessage({
+        command: 'insertImage'
+      });
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`✅ Insert Image executed`);
+      }
+    } catch (error) {
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`❌ Insert Image failed: ${error}`);
+      }
+    }
+  }
+
+  /**
+   * Handle insert table command
+   */
+  private async handleInsertTable(): Promise<void> {
+    try {
+      // Use Vditor's insert table functionality via webview
+      this._panel.webview.postMessage({
+        command: 'insertTable'
+      });
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`✅ Insert Table executed`);
+      }
+    } catch (error) {
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`❌ Insert Table failed: ${error}`);
+      }
+    }
+  }
+
+  /**
+   * Handle show command palette command
+   */
+  private async handleShowCommandPalette(): Promise<void> {
+    try {
+      await vscode.commands.executeCommand('workbench.action.showCommands');
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`✅ Show Command Palette executed`);
+      }
+    } catch (error) {
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`❌ Show Command Palette failed: ${error}`);
+      }
+    }
+  }
+
+  /**
+   * Handle toggle word wrap command
+   */
+  private async handleToggleWordWrap(): Promise<void> {
+    try {
+      await vscode.commands.executeCommand('editor.action.toggleWordWrap');
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`✅ Toggle Word Wrap executed`);
+      }
+    } catch (error) {
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`❌ Toggle Word Wrap failed: ${error}`);
+      }
+    }
   }
 
   private _getHtmlForWebview(webview: vscode.Webview) {

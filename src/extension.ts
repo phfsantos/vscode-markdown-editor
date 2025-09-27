@@ -9,6 +9,7 @@ import { MarkdownTextSyncProvider } from './sync/MarkdownTextSyncProvider';
 import { PerformanceOptimizer } from './performance/PerformanceOptimizer';
 import { MarkdownCodeLensProvider, MarkdownDecorationProvider } from './decorations/MarkdownDecorationProviders';
 import { MarkdownCommandProvider } from './commands/MarkdownCommandProvider';
+import { VSCodeIntegrator } from './integration/VSCodeIntegrator';
 
 // Create a global output channel for logging
 let outputChannel: vscode.OutputChannel;
@@ -23,7 +24,6 @@ export function activate(context: vscode.ExtensionContext) {
     const timestamp = new Date().toISOString();
     const logMessage = `[${timestamp}] ${message}`;
     outputChannel.appendLine(logMessage);
-    console.log(`MD Editor: ${logMessage}`); // Also log to console for debugging
   };
   
   // Test logging immediately
@@ -36,6 +36,11 @@ export function activate(context: vscode.ExtensionContext) {
   
   // Initialize performance optimizer
   const performanceOptimizer = new PerformanceOptimizer();
+  
+  // Initialize VS Code integrator for enhanced native features
+  const vscodeIntegrator = VSCodeIntegrator.getInstance();
+  vscodeIntegrator.registerLanguageFeatures(context);
+  context.subscriptions.push({ dispose: () => vscodeIntegrator.dispose() });
   
   // Initialize diagnostic provider for inline errors
   const diagnosticProvider = new MarkdownDiagnosticProvider();

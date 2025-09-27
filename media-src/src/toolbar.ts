@@ -43,6 +43,35 @@ export const toolbar = [
   "undo",
   "redo",
   "|",
+  {
+    hotkey: "⌘f",
+    name: "find",
+    tipPosition: "s",
+    tip: "Find (Ctrl+F)",
+    className: "find",
+    icon: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"><path d="M10.25 2a8.25 8.25 0 0 1 6.34 13.53l5.69 5.69a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215l-5.69-5.69A8.25 8.25 0 1 1 10.25 2ZM3.5 10.25a6.75 6.75 0 1 0 13.5 0 6.75 6.75 0 0 0-13.5 0Z"></path></svg>',
+    click() {
+      // This will be handled by the FindReplaceManager
+      if ((window as any).findReplaceManager) {
+        (window as any).findReplaceManager.showFind();
+      }
+    },
+  },
+  {
+    hotkey: "⌘h",
+    name: "find-replace",
+    tipPosition: "s",
+    tip: "Find and Replace (Ctrl+H)",
+    className: "find-replace",
+    icon: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"><path d="M10.25 2a8.25 8.25 0 0 1 6.34 13.53l5.69 5.69a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215l-5.69-5.69A8.25 8.25 0 1 1 10.25 2ZM3.5 10.25a6.75 6.75 0 1 0 13.5 0 6.75 6.75 0 0 0-13.5 0Z"></path><path d="M8.75 13.25a1 1 0 0 1 1-1h10.5a1 1 0 0 1 0 2H9.75a1 1 0 0 1-1-1Z"></path><path d="M14.25 8.25a1 1 0 0 1 1-1H21a.75.75 0 0 1 0 1.5h-4.25v4.25a.75.75 0 0 1-1.5 0V8.25Z"></path></svg>',
+    click() {
+      // This will be handled by the FindReplaceManager
+      if ((window as any).findReplaceManager) {
+        (window as any).findReplaceManager.showFindReplace();
+      }
+    },
+  },
+  "|",
   { name: "edit-mode", tipPosition: "e" },
   {
     name: "more",

@@ -10,6 +10,53 @@ body,
   height: 100%;
   width: 100%;
 }
+
+/* Vditor Context Menu Styling - Ensure visibility and proper styling */
+.vditor-menu, 
+.vditor-contextmenu,
+.vditor-context-menu {
+  position: fixed !important;
+  z-index: 999999 !important;
+  background: var(--vscode-menu-background, #2d2d30) !important;
+  border: 1px solid var(--vscode-menu-border, #464647) !important;
+  border-radius: 4px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+  min-width: 160px !important;
+  padding: 4px 0 !important;
+  font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif) !important;
+  font-size: 13px !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.vditor-menu .vditor-menu__item,
+.vditor-contextmenu .vditor-menu__item,
+.vditor-context-menu .vditor-menu__item {
+  display: flex !important;
+  align-items: center !important;
+  padding: 6px 16px !important;
+  color: var(--vscode-menu-foreground, #cccccc) !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  line-height: 1.4 !important;
+}
+
+.vditor-menu .vditor-menu__item:hover,
+.vditor-contextmenu .vditor-menu__item:hover,
+.vditor-context-menu .vditor-menu__item:hover {
+  background: var(--vscode-menu-selectionBackground, #094771) !important;
+  color: var(--vscode-menu-selectionForeground, #ffffff) !important;
+}
+
+.vditor-menu .vditor-menu__item--separator,
+.vditor-contextmenu .vditor-menu__item--separator,
+.vditor-context-menu .vditor-menu__item--separator {
+  height: 1px !important;
+  background: var(--vscode-menu-separatorBackground, #464647) !important;
+  margin: 4px 0 !important;
+  padding: 0 !important;
+}
 body[data-use-vscode-theme-color="1"] .vditor {
   --panel-background-color: var(--vscode-editor-background);
   --toolbar-background-color: var(--vscode-editor-background);
@@ -26,6 +73,263 @@ body[data-use-vscode-theme-color="1"] .vditor {
 /* fix outline toolbar padding */
 .vditor-toolbar.vditor-toolbar--pin {
   padding-left: 35px!important;
+}
+
+/* Re-enable toolbar (was previously hidden) */
+.vditor-toolbar {
+  display: flex !important;
+}
+
+/* Find and Replace Widget Styling */
+.vditor-find-widget {
+  position: fixed !important;
+  top: 40px;
+  right: 20px;
+  z-index: 1000;
+  background: var(--vscode-editor-background, #1e1e1e);
+  border: 1px solid var(--vscode-panel-border, #2d2d30);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  min-width: 320px;
+  max-width: 400px;
+  font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif);
+  font-size: 13px;
+  display: none;
+  backdrop-filter: blur(8px);
+}
+
+.vditor-find-widget__container {
+  padding: 8px;
+}
+
+.vditor-find-widget__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.vditor-find-widget__row:last-child {
+  margin-bottom: 0;
+}
+
+.vditor-find-widget__input-group {
+  flex: 1;
+  position: relative;
+}
+
+.vditor-find-widget__input {
+  width: 100%;
+  height: 28px;
+  padding: 4px 8px;
+  padding-right: 80px; /* Space for match count */
+  background: var(--vscode-input-background, #3c3c3c);
+  border: 1px solid var(--vscode-input-border, #3c3c3c);
+  border-radius: 4px;
+  color: var(--vscode-input-foreground, #cccccc);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.vditor-find-widget__input:focus {
+  border-color: var(--vscode-focusBorder, #0078d4);
+  box-shadow: 0 0 0 1px var(--vscode-focusBorder, #0078d4);
+}
+
+.vditor-find-widget__input::placeholder {
+  color: var(--vscode-input-placeholderForeground, #767676);
+}
+
+.vditor-find-widget__match-count {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground, #999999);
+  background: var(--vscode-badge-background, #4d4d4d);
+  padding: 2px 6px;
+  border-radius: 10px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.vditor-find-widget__match-count--none {
+  color: var(--vscode-errorForeground, #f48771);
+  background: transparent;
+}
+
+.vditor-find-widget__match-count--searching {
+  color: var(--vscode-foreground, #cccccc);
+  background: transparent;
+  font-style: italic;
+  opacity: 0.8;
+}
+
+.vditor-find-widget__buttons {
+  display: flex;
+  gap: 2px;
+}
+
+.vditor-find-widget__button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--vscode-icon-foreground, #cccccc);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.vditor-find-widget__button:hover {
+  background: var(--vscode-toolbar-hoverBackground, #2a2a2a);
+  border-color: var(--vscode-toolbar-hoverOutline, #454545);
+}
+
+.vditor-find-widget__button:active {
+  background: var(--vscode-toolbar-activeBackground, #1e1e1e);
+}
+
+.vditor-find-widget__button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.vditor-find-widget__replace-row {
+  display: none;
+}
+
+.vditor-find-widget--replace-mode .vditor-find-widget__replace-row {
+  display: flex;
+}
+
+.vditor-find-widget__options-row {
+  justify-content: flex-start;
+  border-top: 1px solid var(--vscode-panel-border, #2d2d30);
+  padding-top: 8px;
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+
+.vditor-find-widget__options {
+  display: flex;
+  gap: 4px;
+}
+
+.vditor-find-widget__option {
+  height: 24px;
+  padding: 0 8px;
+  background: transparent;
+  border: 1px solid var(--vscode-button-border, #2d2d30);
+  border-radius: 4px;
+  color: var(--vscode-button-foreground, #cccccc);
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.vditor-find-widget__option:hover {
+  background: var(--vscode-button-hoverBackground, #2a2a2a);
+  border-color: var(--vscode-button-hoverBorder, #454545);
+}
+
+.vditor-find-widget__option--active {
+  background: var(--vscode-button-background, #0e639c);
+  border-color: var(--vscode-button-background, #0e639c);
+  color: var(--vscode-button-foreground, #ffffff);
+}
+
+.vditor-find-widget__option svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Find Highlight Styling */
+.vditor-find-highlight {
+  background-color: var(--vscode-editor-findMatchBackground, rgba(234, 92, 0, 0.33));
+  border: 1px solid var(--vscode-editor-findMatchBorder, rgba(234, 92, 0, 0.8));
+  border-radius: 2px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition: all 0.2s ease;
+}
+
+.vditor-find-highlight--current {
+  background-color: var(--vscode-editor-findMatchHighlightBackground, rgba(234, 92, 0, 0.6));
+  border-color: var(--vscode-editor-findMatchHighlightBorder, rgba(234, 92, 0, 1));
+  box-shadow: 0 0 0 1px var(--vscode-editor-findMatchHighlightBorder, rgba(234, 92, 0, 1));
+}
+
+.vditor-find-replaced {
+  background-color: var(--vscode-diffEditor-insertedTextBackground, rgba(155, 185, 85, 0.2));
+  border: 1px solid var(--vscode-diffEditor-insertedTextBorder, rgba(155, 185, 85, 0.8));
+  border-radius: 2px;
+  animation: vditor-find-replaced-flash 1s ease-out;
+  transition: all 0.3s ease;
+}
+
+@keyframes vditor-find-replaced-flash {
+  0% {
+    background-color: var(--vscode-diffEditor-insertedTextBackground, rgba(155, 185, 85, 0.6));
+    transform: scale(1.02);
+  }
+  50% {
+    background-color: var(--vscode-diffEditor-insertedTextBackground, rgba(155, 185, 85, 0.8));
+  }
+  100% {
+    background-color: var(--vscode-diffEditor-insertedTextBackground, rgba(155, 185, 85, 0.2));
+    transform: scale(1);
+  }
+}
+
+/* Animation for smooth transitions */
+.vditor-find-widget {
+  animation: vditor-find-widget-slide-in 0.2s ease-out;
+}
+
+@keyframes vditor-find-widget-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Dark theme adjustments */
+.vditor--dark .vditor-find-widget {
+  background: var(--vscode-editor-background, #1e1e1e);
+  border-color: var(--vscode-panel-border, #2d2d30);
+}
+
+.vditor--dark .vditor-find-widget__input {
+  background: var(--vscode-input-background, #3c3c3c);
+  border-color: var(--vscode-input-border, #3c3c3c);
+  color: var(--vscode-input-foreground, #cccccc);
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .vditor-find-widget {
+    left: 10px;
+    right: 10px;
+    min-width: auto;
+    max-width: none;
+  }
 }
 .vditor-ir pre.vditor-reset {
   position: relative;
@@ -77,116 +381,95 @@ body[data-use-vscode-theme-color="1"] .vditor {
   position: relative;
 }
 
-.vscode-diagnostic-error::after {
-  content: attr(data-diagnostic-message);
-  position: absolute;
-  top: 0;
-  left: 100%;
-  margin-left: 30px;
-  padding: 2px 6px;
-  background-color: var(--vscode-inputValidation-errorBackground, rgba(241, 76, 76, 0.1));
-  color: var(--vscode-inputValidation-errorForeground, #f14c4c);
-  border: 1px solid var(--vscode-inputValidation-errorBorder, #f14c4c);
-  border-radius: 3px;
-  font-size: 11px;
-  font-family: var(--vscode-editor-font-family, monospace);
-  font-weight: normal;
-  line-height: 1.2;
-  white-space: nowrap;
-  z-index: 1000;
-  opacity: 0.8;
-  pointer-events: none;
-  max-width: 400px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: none;
+/* Special styling for images with diagnostics */
+img.vscode-diagnostic-error,
+img.vscode-diagnostic-warning,
+img.vscode-diagnostic-info {
+  border: 2px solid;
+  border-radius: 4px;
+  outline: none;
 }
 
-.vscode-diagnostic-error:hover::after {
-  display: block;
+img.vscode-diagnostic-error {
+  border-color: var(--vscode-editorError-foreground, #f14c4c);
+  box-shadow: 0 0 4px rgba(241, 76, 76, 0.5);
 }
 
-.vscode-diagnostic-warning {
+img.vscode-diagnostic-warning {
+  border-color: var(--vscode-editorWarning-foreground, #ffcc00);
+  box-shadow: 0 0 4px rgba(255, 204, 0, 0.5);
+}
+
+img.vscode-diagnostic-info {
+  border-color: var(--vscode-editorInfo-foreground, #3794ff);
+  box-shadow: 0 0 4px rgba(55, 148, 255, 0.5);
+}
+
+/* New unified diagnostic span styling with integrated lightbulb support */
+.vscode-diagnostic-span {
   position: relative;
+  text-decoration: underline;
+  text-decoration-style: wavy;
+  text-decoration-skip-ink: none;
+  cursor: pointer;
 }
 
-.vscode-diagnostic-warning::after {
-  content: attr(data-diagnostic-message);
+.vscode-diagnostic-span.vscode-diagnostic-error {
+  text-decoration-color: var(--vscode-editorError-foreground, #f14c4c);
+}
+
+.vscode-diagnostic-span.vscode-diagnostic-warning {
+  text-decoration-color: var(--vscode-editorWarning-foreground, #ffcc00);
+}
+
+.vscode-diagnostic-span.vscode-diagnostic-info {
+  text-decoration-color: var(--vscode-editorInfo-foreground, #3794ff);
+}
+
+/* Enhanced styling for single character diagnostics */
+.vscode-diagnostic-span[data-single-char="true"] {
+  display: inline-block;
+  min-width: 8px;
+  padding: 1px 2px;
+  border-radius: 2px;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.vscode-diagnostic-span[data-single-char="true"].vscode-diagnostic-error {
+  background-color: rgba(241, 76, 76, 0.2);
+}
+
+.vscode-diagnostic-span[data-single-char="true"].vscode-diagnostic-warning {
+  background-color: rgba(255, 204, 0, 0.2);
+}
+
+.vscode-diagnostic-span[data-single-char="true"].vscode-diagnostic-info {
+  background-color: rgba(55, 148, 255, 0.2);
+}
+
+/* Integrated lightbulb CSS - shows on hover over diagnostic spans */
+.vscode-diagnostic-span[data-has-lightbulb="true"]::after {
+  content: '💡';
+  display: var(--lightbulb-display, none);
   position: absolute;
-  top: 0;
-  left: 100%;
-  margin-left: 30px;
-  padding: 2px 6px;
-  background-color: var(--vscode-inputValidation-warningBackground, rgba(255, 204, 0, 0.1));
-  color: var(--vscode-inputValidation-warningForeground, #ffcc00);
-  border: 1px solid var(--vscode-inputValidation-warningBorder, #ffcc00);
-  border-radius: 3px;
-  font-size: 11px;
-  font-family: var(--vscode-editor-font-family, monospace);
-  font-weight: normal;
-  line-height: 1.2;
-  white-space: nowrap;
+  top: -2px;
+  right: -20px;
+  background: transparent;
+  padding: 2px;
+  font-size: 12px;
+  line-height: 1;
   z-index: 1000;
-  opacity: 0.8;
-  pointer-events: none;
-  max-width: 400px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: none;
+  pointer-events: auto;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  color: initial;
 }
 
-.vscode-diagnostic-warning:hover::after {
-  display: block;
+.vscode-diagnostic-span[data-has-lightbulb="true"]:hover::after {
+  display: inline-block !important;
 }
 
-.vscode-diagnostic-info {
-  position: relative;
-}
-
-.vscode-diagnostic-info::after {
-  content: attr(data-diagnostic-message);
-  position: absolute;
-  top: 0;
-  left: 100%;
-  margin-left: 30px;
-  padding: 2px 6px;
-  background-color: var(--vscode-inputValidation-infoBackground, rgba(55, 148, 255, 0.1));
-  color: var(--vscode-inputValidation-infoForeground, #3794ff);
-  border: 1px solid var(--vscode-inputValidation-infoBorder, #3794ff);
-  border-radius: 3px;
-  font-size: 11px;
-  font-family: var(--vscode-editor-font-family, monospace);
-  font-weight: normal;
-  line-height: 1.2;
-  white-space: nowrap;
-  z-index: 1000;
-  opacity: 0.8;
-  pointer-events: none;
-  max-width: 400px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: none;
-}
-
-.vscode-diagnostic-info:hover::after {
-  display: block;
-}
-
-/* Add a subtle underline indicator */
-.vscode-diagnostic-error,
-.vscode-diagnostic-warning,
-.vscode-diagnostic-info {
-  border-bottom: 1px dotted;
-}
-
-.vscode-diagnostic-error {
-  border-bottom-color: var(--vscode-editorError-foreground, #f14c4c);
-}
-
-.vscode-diagnostic-warning {
-  border-bottom-color: var(--vscode-editorWarning-foreground, #ffcc00);
-}
-
-.vscode-diagnostic-info {
-  border-bottom-color: var(--vscode-editorInfo-foreground, #3794ff);
+.vscode-diagnostic-span[data-has-lightbulb="true"]:hover {
+  --lightbulb-display: inline-block;
 }
