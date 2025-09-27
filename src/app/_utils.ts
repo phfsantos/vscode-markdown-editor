@@ -15,7 +15,14 @@ export function getWebviewOptions(
   return {
     // Enable javascript in the webview
     enableScripts: true,
-
+    
+    // Retain content when webview is hidden
     retainContextWhenHidden: true,
+    
+    // Enable finding in the webview
+    enableFindWidget: true,
+    
+    // Allow access to local resources
+    localResourceRoots: [extensionUri],
   }
 }

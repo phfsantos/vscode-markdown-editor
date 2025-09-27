@@ -767,9 +767,9 @@ function initVditor(msg) {
     window.vditor = null;
   }
   window.vditor = new Vditor("app", {
-    width: "100%",
-    height: "100%",
-    minHeight: "100%",
+    width: "100vw",
+    height: "100vh",
+    minHeight: "100vh",
     lang,
     value: msg.content,
     mode: "ir",

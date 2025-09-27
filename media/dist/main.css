@@ -1862,15 +1862,70 @@
 }
 
 /* src/main.css */
+* {
+  box-sizing: border-box;
+}
+html {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
 body {
   margin: 0;
   padding: 0;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
 }
-html,
-body,
 #app {
-  height: 100%;
-  width: 100%;
+  height: 100vh;
+  width: 100vw;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+.vditor {
+  height: 100vh !important;
+  width: 100vw !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+.vditor-content {
+  height: calc(100vh - 40px) !important;
+  width: 100% !important;
+  overflow: auto !important;
+}
+.vditor-ir,
+.vditor-wysiwyg,
+.vditor-sv {
+  height: 100% !important;
+  width: 100% !important;
+}
+.vditor-ir .vditor-reset,
+.vditor-wysiwyg .vditor-reset,
+.vditor-sv .vditor-reset {
+  min-height: 100% !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 16px !important;
+  box-sizing: border-box !important;
+}
+.vditor-reset {
+  max-width: none !important;
+  width: 100% !important;
 }
 .vditor-menu,
 .vditor-contextmenu,

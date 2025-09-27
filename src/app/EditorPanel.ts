@@ -1584,22 +1584,44 @@ export class EditorPanel {
     const CssFiles = ["main.css"].map(toMediaPath).map(toUri);
 
     return `<!DOCTYPE html>
-			<html lang="en">
+			<html lang="en" style="height: 100vh; width: 100vw; margin: 0; padding: 0; overflow: hidden;">
 			<head>
 				<meta charset="UTF-8">
-
-				<meta name="viewport" content="width=device-width, initial-scale=1.0">
+				<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 				<base href="${baseHref}" />
-
-
 				${CssFiles.map((f) => `<link href="${f}" rel="stylesheet">`).join("\n")}
-
 				<title>markdown editor</title>
-				<style>` + this._config.get<string>('customCss') + `</style>
+				<style>
+					/* Inline critical styles for immediate effect */
+					html, body {
+						height: 100vh !important;
+						width: 100vw !important;
+						margin: 0 !important;
+						padding: 0 !important;
+						overflow: hidden !important;
+						position: fixed !important;
+						top: 0 !important;
+						left: 0 !important;
+						right: 0 !important;
+						bottom: 0 !important;
+					}
+					#app {
+						height: 100vh !important;
+						width: 100vw !important;
+						margin: 0 !important;
+						padding: 0 !important;
+						overflow: hidden !important;
+						position: absolute !important;
+						top: 0 !important;
+						left: 0 !important;
+						right: 0 !important;
+						bottom: 0 !important;
+					}
+					${this._config.get<string>('customCss') || ''}
+				</style>
 			</head>
-			<body>
-				<div id="app"></div>
-
+			<body style="height: 100vh; width: 100vw; margin: 0; padding: 0; overflow: hidden; position: fixed; top: 0; left: 0; right: 0; bottom: 0;">
+				<div id="app" style="height: 100vh; width: 100vw; margin: 0; padding: 0; overflow: hidden; position: absolute; top: 0; left: 0; right: 0; bottom: 0;"></div>
         <script src="https://unpkg.com/predictionary/dist/predictionary.min.js"></script>
         <script src="https://cdn.jsdelivr.net/gh/phfsantos/kanban-board@1.1.1/dist/index.js" type="module"></script>
 				${JsFiles.map((f) => `<script src="${f}"></script>`).join("\n")}
