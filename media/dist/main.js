@@ -23835,6 +23835,104 @@ window.addEventListener("message", (e) => {
   var vscodeIntegrator = null;
   var cursorManager = null;
   var findReplaceManager = null;
+  function setupKanbanEventListeners(code, node, boardId = "default") {
+    if (!node)
+      return;
+    const letItFocus = (e2) => {
+      e2.stopPropagation();
+    };
+    code.addEventListener("click", letItFocus);
+    code.addEventListener("mousedown", letItFocus);
+    code.addEventListener("mouseup", letItFocus);
+    code.addEventListener("mousemove", letItFocus);
+    code.addEventListener("keydown", letItFocus);
+    code.addEventListener("keypress", letItFocus);
+    code.addEventListener("keyup", letItFocus);
+    code.addEventListener("beforeinput", letItFocus);
+    code.addEventListener("focus", letItFocus);
+    code.addEventListener("focusin", letItFocus);
+    code.addEventListener("input", letItFocus);
+    const kanbanBoard = code.querySelector("kanban-board");
+    if (kanbanBoard) {
+      kanbanBoard.addEventListener("kanban-save", (e2) => {
+        window.vscode.postMessage({
+          command: "kanban-save-data",
+          data: e2.detail,
+          boardId
+        });
+      });
+      const handleKanbanDataSaved = (event) => {
+        const message = event.data;
+        if (message.command === "kanban-data-saved" && message.boardId === boardId) {
+          if (message.success) {
+            vscodeLog(`\u2705 KANBAN: Board '${boardId}' saved to ${message.filename}`);
+            updateCodeBlockWithFileInfo(code, message.filename, boardId);
+          } else {
+            vscodeLog(`\u274C KANBAN: Failed to save board '${boardId}': ${message.error}`);
+          }
+        }
+      };
+      window.addEventListener("message", handleKanbanDataSaved);
+    }
+  }
+  function updateCodeBlockWithFileInfo(codeElement, filename, boardId) {
+    const codeContainer = codeElement.closest(".vditor-ir__node") || codeElement.closest(".vditor-wysiwyg__block");
+    if (!codeContainer)
+      return;
+    const codeBlock = codeContainer.querySelector("code.language-kanban-board");
+    if (codeBlock && codeBlock.textContent) {
+      const currentContent = codeBlock.textContent.trim();
+      const filenameComment = `<!-- file: ${filename} -->`;
+      if (!currentContent.includes("<!-- file:") && !currentContent.includes(filenameComment)) {
+        if (currentContent === "" || !currentContent.includes("<!-- board:") && !currentContent.startsWith("{")) {
+          codeBlock.textContent = filenameComment;
+          vscodeLog(`\u{1F4CB} KANBAN: Added filename to code block: ${filename}`);
+        } else if (!currentContent.includes("<!-- file:")) {
+          const lines = currentContent.split("\n");
+          if (lines[0].includes("<!-- board:")) {
+            lines.splice(1, 0, filenameComment);
+          } else {
+            lines.unshift(filenameComment);
+          }
+          codeBlock.textContent = lines.join("\n");
+          vscodeLog(`\u{1F4CB} KANBAN: Updated code block with filename: ${filename}`);
+        }
+      }
+    }
+    let fileInfoElement = codeContainer.querySelector(".kanban-file-info");
+    if (!fileInfoElement) {
+      fileInfoElement = document.createElement("div");
+      fileInfoElement.className = "kanban-file-info";
+      fileInfoElement.style.cssText = `
+      background: var(--vscode-editor-inactiveSelectionBackground, #3a3d41);
+      color: var(--vscode-editor-foreground, #cccccc);
+      border: 1px solid var(--vscode-panel-border, #80808059);
+      border-radius: 4px;
+      padding: 8px 12px;
+      margin: 8px 0;
+      font-family: var(--vscode-editor-font-family, 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace);
+      font-size: 12px;
+      line-height: 1.4;
+    `;
+      const kanbanBoard = codeContainer.querySelector("kanban-board");
+      if (kanbanBoard && kanbanBoard.parentNode) {
+        kanbanBoard.parentNode.insertBefore(fileInfoElement, kanbanBoard);
+      }
+    }
+    const boardLabel = boardId === "default" ? "Default Board" : `Board: ${boardId}`;
+    fileInfoElement.innerHTML = `
+    <div style="margin-bottom: 4px;">
+      <strong>\u{1F4CB} ${boardLabel}</strong> \u2192 <code>${filename}</code>
+    </div>
+    <div style="font-size: 11px; color: var(--vscode-descriptionForeground, #cccccc99);">
+      \u26A0\uFE0F Data is stored in the JSON file above - use the kanban board interface to make changes
+    </div>
+  `;
+  }
+  function extractFilenameFromCodeBlock(textContent) {
+    const filenameMatch = textContent.match(/<!--\s*file:\s*([^-\s]+(?:\/[^-\s]+)*)\s*-->/);
+    return filenameMatch ? filenameMatch[1] : null;
+  }
   window.__vditorHandledContextMenu = false;
   var __lastContextMenuBuild = 0;
   var __lastMousePos = {x: 200, y: 200};
@@ -24782,65 +24880,138 @@ window.addEventListener("message", (e) => {
         {
           language: "kanban-board",
           render: (code) => {
-            return new Promise((resolve) => {
+            return new Promise(async (resolve) => {
               const element = code.querySelector("code.language-kanban-board");
               const ir__node = code.closest(".vditor-ir__node");
               const wysiwyg__node = code.closest(".vditor-wysiwyg__block");
               const node = ir__node || wysiwyg__node;
+              const requestId = Math.random().toString(36).substring(2, 15);
+              let boardId = "default";
+              let codeBlockData = null;
+              let requestedFilename = null;
               if (element) {
-                element.outerHTML = `<kanban-board class="language-kanban-board" data='${encodeURIComponent(element.textContent)}'></kanban-board>`;
-              }
-              if (node) {
-                const letItFocus = (e2) => {
-                  e2.stopPropagation();
-                };
-                code.addEventListener("click", letItFocus);
-                code.addEventListener("mousedown", letItFocus);
-                code.addEventListener("mouseup", letItFocus);
-                code.addEventListener("mousemove", letItFocus);
-                code.addEventListener("keydown", letItFocus);
-                code.addEventListener("keypress", letItFocus);
-                code.addEventListener("keyup", letItFocus);
-                code.addEventListener("beforeinput", letItFocus);
-                code.addEventListener("focus", letItFocus);
-                code.addEventListener("focusin", letItFocus);
-                code.addEventListener("input", letItFocus);
-                const kanbanBoard = code.querySelector("kanban-board");
-                kanbanBoard.addEventListener("kanban-save", (e2) => {
-                  const content = JSON.stringify(e2.detail);
-                  if (node && node.checkVisibility({
-                    checkOpacity: true,
-                    checkVisibilityCSS: true
-                  }) && kanbanBoard) {
-                    const irElement = node.querySelector(".vditor-ir__marker--pre code.language-kanban-board");
-                    if (content && irElement && content !== irElement.textContent) {
-                      irElement.textContent = content;
-                      irElement.innerHTML = content;
-                      irElement.dispatchEvent(new InputEvent("input", {
-                        data: content,
-                        bubbles: true,
-                        cancelable: true,
-                        composed: true,
-                        inputType: "insertText"
-                      }));
-                    }
-                    const wysiwygElement = node.querySelector(".vditor-wysiwyg__pre code.language-kanban-board");
-                    if (content && wysiwygElement && content !== wysiwygElement.textContent) {
-                      wysiwygElement.textContent = content;
-                      wysiwygElement.innerHTML = content;
-                      wysiwygElement.dispatchEvent(new InputEvent("input", {
-                        data: content,
-                        bubbles: true,
-                        cancelable: true,
-                        composed: true,
-                        inputType: "insertText"
-                      }));
+                const textContent = element.textContent || "";
+                requestedFilename = extractFilenameFromCodeBlock(textContent);
+                if (requestedFilename) {
+                  vscodeLog(`\u{1F4CB} KANBAN: Found filename in code block: ${requestedFilename}`);
+                }
+                const boardIdMatch = textContent.match(/<!--\s*board:\s*([^-\s]+)\s*-->/);
+                if (boardIdMatch) {
+                  boardId = boardIdMatch[1];
+                  vscodeLog(`\u{1F4CB} KANBAN: Found explicit board ID: ${boardId}`);
+                } else {
+                  const allKanbanBlocks = Array.from(document.querySelectorAll("code.language-kanban-board"));
+                  const currentIndex = allKanbanBlocks.indexOf(element);
+                  if (currentIndex > 0) {
+                    boardId = `board-${currentIndex + 1}`;
+                    vscodeLog(`\u{1F4CB} KANBAN: Generated positional board ID: ${boardId}`);
+                  }
+                }
+                try {
+                  const trimmedContent = textContent.trim();
+                  const jsonContent = trimmedContent.replace(/<!--.*?-->/gs, "").trim();
+                  if (jsonContent && jsonContent.startsWith("{")) {
+                    const parsedData = JSON.parse(jsonContent);
+                    if (parsedData.columns && Array.isArray(parsedData.columns)) {
+                      codeBlockData = parsedData;
+                      vscodeLog(`\u{1F4CB} KANBAN: Found backwards compatibility data in board '${boardId}'`);
                     }
                   }
+                } catch (parseError) {
+                  vscodeLog(`\u{1F4CB} KANBAN: No JSON data in code block for board '${boardId}', will load from file`);
+                }
+                const handleKanbanDataLoaded = (event) => {
+                  const message = event.data;
+                  if (message.command === "kanban-data-loaded" && message.requestId === requestId) {
+                    window.removeEventListener("message", handleKanbanDataLoaded);
+                    if (message.error) {
+                      vscodeLog(`\u274C KANBAN: Failed to load board '${boardId}': ${message.error}`);
+                      element.outerHTML = `<div class="kanban-error" style="
+                      color: var(--vscode-errorForeground, #f48771);
+                      background: var(--vscode-inputValidation-errorBackground, #5a1d1d);
+                      border: 1px solid var(--vscode-inputValidation-errorBorder, #be1100);
+                      padding: 12px;
+                      border-radius: 4px;
+                      margin: 8px 0;
+                    ">
+                      <strong>\u274C Failed to load kanban board '${boardId}':</strong><br>
+                      ${message.error}
+                    </div>`;
+                      resolve(true);
+                      return;
+                    }
+                    vscodeLog(`\u2705 KANBAN: Successfully loaded board '${boardId}' from ${message.dataSource} (${message.filename})`);
+                    vscodeLog(`message.data: ${JSON.stringify(message.data)}`);
+                    element.outerHTML = `<kanban-board 
+                    class="language-kanban-board" 
+                    data='${encodeURIComponent(JSON.stringify(message.data))}'
+                    data-board-id='${boardId}'
+                  ></kanban-board>`;
+                    setTimeout(() => {
+                      setupKanbanEventListeners(code, node, boardId);
+                      if (message.filename) {
+                        updateCodeBlockWithFileInfo(code, message.filename, boardId);
+                      }
+                    }, 100);
+                    resolve(true);
+                  }
+                };
+                window.addEventListener("message", handleKanbanDataLoaded);
+                window.vscode.postMessage({
+                  command: "kanban-load-data",
+                  requestId,
+                  boardId,
+                  codeBlockData,
+                  filename: requestedFilename
                 });
+                setTimeout(() => {
+                  window.removeEventListener("message", handleKanbanDataLoaded);
+                  vscodeLog(`\u26A0\uFE0F KANBAN: Timeout loading board '${boardId}', using default data`);
+                  const defaultData = {
+                    columns: [
+                      {id: "1", title: "Todo", items: []},
+                      {id: "2", title: "Doing", items: []},
+                      {id: "3", title: "Done", items: []}
+                    ]
+                  };
+                  element.outerHTML = `<kanban-board 
+                  class="language-kanban-board" 
+                  data='${encodeURIComponent(JSON.stringify(defaultData))}'
+                  data-board-id='${boardId}'
+                ></kanban-board>`;
+                  setTimeout(() => {
+                    setupKanbanEventListeners(code, node, boardId);
+                    const markdownName = document.title.replace(".md", "") || "document";
+                    const timeoutFilename = boardId === "default" ? `assets/${markdownName}.kanban.json` : `assets/${markdownName}.kanban.${boardId}.json`;
+                    updateCodeBlockWithFileInfo(code, timeoutFilename, boardId);
+                  }, 100);
+                  resolve(true);
+                }, 1e4);
+                return;
+              }
+              if (node) {
+                setTimeout(() => {
+                  setupKanbanEventListeners(code, node, boardId);
+                }, 100);
               } else {
                 const kanbanBoard = code.querySelector("kanban-board");
-                kanbanBoard.setAttribute("style", "pointer-events: none; cursor: not-allowed; user-select: none;");
+                if (kanbanBoard) {
+                  kanbanBoard.setAttribute("style", "pointer-events: none; cursor: not-allowed; user-select: none; opacity: 0.7;");
+                  const previewIndicator = document.createElement("div");
+                  previewIndicator.innerHTML = "\u{1F441}\uFE0F Preview Mode (Read-only)";
+                  previewIndicator.style.cssText = `
+                  position: absolute;
+                  top: 8px;
+                  right: 8px;
+                  background: var(--vscode-badge-background, #4d4d4d);
+                  color: var(--vscode-badge-foreground, #ffffff);
+                  padding: 4px 8px;
+                  border-radius: 4px;
+                  font-size: 11px;
+                  z-index: 1000;
+                `;
+                  kanbanBoard.parentNode?.insertBefore(previewIndicator, kanbanBoard);
+                }
               }
               resolve(true);
             });

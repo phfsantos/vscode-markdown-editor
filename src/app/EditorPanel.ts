@@ -452,6 +452,21 @@ export class EditorPanel {
             await this.handleToggleWordWrap();
             break;
           }
+          case "kanban-save-data": {
+            // Handle kanban data save
+            await this.handleKanbanSaveData(message);
+            break;
+          }
+          case "kanban-load-data": {
+            // Handle kanban data load
+            await this.handleKanbanLoadData(message);
+            break;
+          }
+          case "kanban-migrate-data": {
+            // Handle kanban data migration
+            await this.handleKanbanMigrateData(message);
+            break;
+          }
         }
       },
       null,
@@ -1248,6 +1263,312 @@ export class EditorPanel {
       if ((global as any).markdownEditorLog) {
         (global as any).markdownEditorLog(`❌ Toggle Word Wrap failed: ${error}`);
       }
+    }
+  }
+
+  /**
+   * Handle kanban data save with support for multiple boards
+   */
+  private async handleKanbanSaveData(message: any): Promise<void> {
+    try {
+      const kanbanData = message.data;
+      const boardId = message.boardId || 'default';
+      
+      // Ensure assets directory exists
+      await this._ensureAssetsDirectory();
+      
+      const kanbanFilePath = this._getKanbanFilePath(boardId);
+      const displayFilename = this._getKanbanDisplayFilename(boardId);
+      
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`🗂️ Saving kanban board '${boardId}' to: ${kanbanFilePath}`);
+      }
+
+      // Escape quotes in kanban data to prevent JSON parsing issues
+      const escapedKanbanData = this._escapeKanbanQuotes(kanbanData);
+      const content = Buffer.from(JSON.stringify(escapedKanbanData, null, 2), 'utf8');
+      await vscode.workspace.fs.writeFile(vscode.Uri.file(kanbanFilePath), content);
+
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`✅ Kanban board '${boardId}' saved successfully`);
+      }
+
+      // Send confirmation back to webview
+      this._panel.webview.postMessage({
+        command: "kanban-data-saved",
+        success: true,
+        boardId: boardId,
+        filename: displayFilename
+      });
+    } catch (error) {
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`❌ Failed to save kanban data: ${error}`);
+      }
+
+      // Send error back to webview
+      this._panel.webview.postMessage({
+        command: "kanban-data-saved",
+        success: false,
+        boardId: message.boardId || 'default',
+        filename: this._getKanbanDisplayFilename(message.boardId || 'default'),
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  }
+
+  /**
+   * Handle kanban data load with support for multiple boards and backwards compatibility
+   */
+  private async handleKanbanLoadData(message: any): Promise<void> {
+    try {
+      const boardId = message.boardId || 'default';
+      const codeBlockData = message.codeBlockData; // For backwards compatibility
+      const requestedFilename = message.filename; // Filename from code block
+      
+      // Ensure assets directory exists
+      await this._ensureAssetsDirectory();
+      
+      const kanbanFilePath = this._getKanbanFilePath(boardId);
+      const displayFilename = this._getKanbanDisplayFilename(boardId);
+      let kanbanData;
+      let dataSource = 'unknown';
+
+      // First check if we have backwards compatibility data from code block
+      if (codeBlockData && codeBlockData.columns && Array.isArray(codeBlockData.columns)) {
+        kanbanData = codeBlockData;
+        dataSource = 'code-block';
+        
+        if ((global as any).markdownEditorLog) {
+          (global as any).markdownEditorLog(`🔄 Using legacy code block data for board '${boardId}', will migrate to JSON file`);
+        }
+
+        // Migrate the data to JSON file automatically with quote escaping
+        try {
+          const escapedKanbanData = this._escapeKanbanQuotes(kanbanData);
+          const content = Buffer.from(JSON.stringify(escapedKanbanData, null, 2), 'utf8');
+          await vscode.workspace.fs.writeFile(vscode.Uri.file(kanbanFilePath), content);
+          dataSource = 'migrated';
+          
+          if ((global as any).markdownEditorLog) {
+            (global as any).markdownEditorLog(`✅ Migrated legacy data to: ${kanbanFilePath}`);
+          }
+        } catch (migrateError) {
+          if ((global as any).markdownEditorLog) {
+            (global as any).markdownEditorLog(`⚠️ Failed to migrate data: ${migrateError}`);
+          }
+        }
+      } else {
+        // Try to load from JSON file
+        try {
+          const content = await vscode.workspace.fs.readFile(vscode.Uri.file(kanbanFilePath));
+          const rawKanbanData = JSON.parse(content.toString());
+          // Unescape quotes for display
+          kanbanData = this._unescapeKanbanQuotes(rawKanbanData);
+          dataSource = 'json-file';
+          
+          if ((global as any).markdownEditorLog) {
+            (global as any).markdownEditorLog(`✅ Loaded kanban board '${boardId}' from: ${kanbanFilePath}`);
+          }
+        } catch (fileError) {
+          // File doesn't exist or was moved, create/recreate default data
+          if ((global as any).markdownEditorLog) {
+            (global as any).markdownEditorLog(`⚠️ Kanban file not found (${kanbanFilePath}), creating/recreating with default data`);
+          }
+          
+          kanbanData = {
+            columns: [
+              { id: "1", title: "Todo", items: [] },
+              { id: "2", title: "Doing", items: [] },
+              { id: "3", title: "Done", items: [] }
+            ]
+          };
+          dataSource = 'recreated';
+
+          // Create/recreate the JSON file with default data (with quote escaping)
+          try {
+            const escapedKanbanData = this._escapeKanbanQuotes(kanbanData);
+            const content = Buffer.from(JSON.stringify(escapedKanbanData, null, 2), 'utf8');
+            await vscode.workspace.fs.writeFile(vscode.Uri.file(kanbanFilePath), content);
+            
+            if ((global as any).markdownEditorLog) {
+              (global as any).markdownEditorLog(`✅ Created/recreated kanban file: ${kanbanFilePath}`);
+            }
+          } catch (createError) {
+            if ((global as any).markdownEditorLog) {
+              (global as any).markdownEditorLog(`⚠️ Failed to create kanban file: ${createError}`);
+            }
+          }
+        }
+      }
+
+      // Send data back to webview
+      this._panel.webview.postMessage({
+        command: "kanban-data-loaded",
+        data: kanbanData,
+        boardId: boardId,
+        filename: this._getKanbanDisplayFilename(boardId),
+        dataSource: dataSource,
+        requestId: message.requestId
+      });
+
+    } catch (error) {
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`❌ Failed to load kanban data: ${error}`);
+      }
+
+      // Send error back to webview
+      this._panel.webview.postMessage({
+        command: "kanban-data-loaded",
+        error: error instanceof Error ? error.message : String(error),
+        boardId: message.boardId || 'default',
+        filename: this._getKanbanDisplayFilename(message.boardId || 'default'),
+        requestId: message.requestId
+      });
+    }
+  }
+
+  /**
+   * Get the kanban file path based on the current markdown file and board ID
+   * Files are stored in an 'assets' folder at the same level as the markdown file
+   */
+  private _getKanbanFilePath(boardId: string = 'default'): string {
+    const markdownPath = this._fsPath;
+    const dir = NodePath.dirname(markdownPath);
+    const basename = NodePath.basename(markdownPath, NodePath.extname(markdownPath));
+    const assetsDir = NodePath.join(dir, 'assets');
+    
+    if (boardId === 'default') {
+      return NodePath.join(assetsDir, `${basename}.kanban.json`);
+    } else {
+      // For named boards, include the board ID in the filename
+      return NodePath.join(assetsDir, `${basename}.kanban.${boardId}.json`);
+    }
+  }
+
+  /**
+   * Get the relative filename to display in the code block
+   */
+  private _getKanbanDisplayFilename(boardId: string = 'default'): string {
+    const markdownPath = this._fsPath;
+    const basename = NodePath.basename(markdownPath, NodePath.extname(markdownPath));
+    
+    if (boardId === 'default') {
+      return `assets/${basename}.kanban.json`;
+    } else {
+      return `assets/${basename}.kanban.${boardId}.json`;
+    }
+  }
+
+  /**
+   * Ensure the assets directory exists
+   */
+  private async _ensureAssetsDirectory(): Promise<void> {
+    const markdownPath = this._fsPath;
+    const dir = NodePath.dirname(markdownPath);
+    const assetsDir = NodePath.join(dir, 'assets');
+    
+    try {
+      await vscode.workspace.fs.stat(vscode.Uri.file(assetsDir));
+    } catch (error) {
+      // Directory doesn't exist, create it
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`📁 Creating assets directory: ${assetsDir}`);
+      }
+      await vscode.workspace.fs.createDirectory(vscode.Uri.file(assetsDir));
+    }
+  }
+
+  /**
+   * Escape double quotes in kanban data to prevent JSON parsing issues
+   * Replaces " with \u201C (left double quotation mark)
+   */
+  private _escapeKanbanQuotes(obj: any): any {
+    if (typeof obj === 'string') {
+      // Replace straight double quotes with left curly quote to avoid JSON conflicts
+      return obj.replace(/"/g, '\u201C');
+    } else if (Array.isArray(obj)) {
+      return obj.map(item => this._escapeKanbanQuotes(item));
+    } else if (obj && typeof obj === 'object') {
+      const escaped: any = {};
+      for (const key in obj) {
+        if (obj.hasOwnProperty(key)) {
+          escaped[key] = this._escapeKanbanQuotes(obj[key]);
+        }
+      }
+      return escaped;
+    }
+    return obj;
+  }
+
+  /**
+   * Unescape double quotes in kanban data after loading from JSON
+   * Converts \u201C (left curly quote) back to " for display
+   */
+  private _unescapeKanbanQuotes(obj: any): any {
+    if (typeof obj === 'string') {
+      // Convert left curly quote back to straight quote for display
+      return obj.replace(/\u201C/g, '"');
+    } else if (Array.isArray(obj)) {
+      return obj.map(item => this._unescapeKanbanQuotes(item));
+    } else if (obj && typeof obj === 'object') {
+      const unescaped: any = {};
+      for (const key in obj) {
+        if (obj.hasOwnProperty(key)) {
+          unescaped[key] = this._unescapeKanbanQuotes(obj[key]);
+        }
+      }
+      return unescaped;
+    }
+    return obj;
+  }
+
+  /**
+   * Handle kanban data migration from code blocks to JSON files
+   */
+  private async handleKanbanMigrateData(message: any): Promise<void> {
+    try {
+      const { boardId, codeBlockData } = message;
+      const actualBoardId = boardId || 'default';
+      
+      // Ensure assets directory exists
+      await this._ensureAssetsDirectory();
+      
+      const kanbanFilePath = this._getKanbanFilePath(actualBoardId);
+      const displayFilename = this._getKanbanDisplayFilename(actualBoardId);
+      
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`🔄 Migrating kanban board '${actualBoardId}' from code block to: ${kanbanFilePath}`);
+      }
+
+      // Escape quotes in migrated data to prevent JSON parsing issues
+      const escapedCodeBlockData = this._escapeKanbanQuotes(codeBlockData);
+      const content = Buffer.from(JSON.stringify(escapedCodeBlockData, null, 2), 'utf8');
+      await vscode.workspace.fs.writeFile(vscode.Uri.file(kanbanFilePath), content);
+
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`✅ Migration completed for board '${actualBoardId}'`);
+      }
+
+      // Send confirmation back to webview
+      this._panel.webview.postMessage({
+        command: "kanban-data-migrated",
+        success: true,
+        boardId: actualBoardId,
+        filename: displayFilename
+      });
+    } catch (error) {
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`❌ Failed to migrate kanban data: ${error}`);
+      }
+
+      // Send error back to webview
+      this._panel.webview.postMessage({
+        command: "kanban-data-migrated",
+        success: false,
+        boardId: message.boardId || 'default',
+        filename: this._getKanbanDisplayFilename(message.boardId || 'default'),
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   }
 
