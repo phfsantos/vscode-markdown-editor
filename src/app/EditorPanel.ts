@@ -1361,9 +1361,7 @@ export class EditorPanel {
         // Try to load from JSON file
         try {
           const content = await vscode.workspace.fs.readFile(vscode.Uri.file(kanbanFilePath));
-          const rawKanbanData = JSON.parse(content.toString());
-          // Unescape quotes for display
-          kanbanData = this._unescapeKanbanQuotes(rawKanbanData);
+          kanbanData = JSON.parse(content.toString());
           dataSource = 'json-file';
           
           if ((global as any).markdownEditorLog) {
@@ -1479,13 +1477,21 @@ export class EditorPanel {
   }
 
   /**
-   * Escape double quotes in kanban data to prevent JSON parsing issues
-   * Replaces " with \u201C (left double quotation mark)
+   * Escape quotes in kanban data to prevent JSON parsing issues
+   * Replaces both wrapped quotes and standalone quotes with Unicode equivalents
    */
   private _escapeKanbanQuotes(obj: any): any {
     if (typeof obj === 'string') {
-      // Replace straight double quotes with left curly quote to avoid JSON conflicts
-      return obj.replace(/"/g, '\u201C');
+      // Replace quotes with curly quotes to avoid JSON conflicts
+      return obj
+        // Handle quoted content: "word" -> "word"
+        .replace(/"([^"]*)"/g, '\u201C$1\u201D')
+        // Handle quoted content: 'word' -> 'word' 
+        .replace(/'([^']*)'/g, '\u2018$1\u2019')
+        // Handle standalone double quotes
+        .replace(/"/g, '\u201C')
+        // Handle standalone single quotes/apostrophes
+        .replace(/'/g, '\u2019');
     } else if (Array.isArray(obj)) {
       return obj.map(item => this._escapeKanbanQuotes(item));
     } else if (obj && typeof obj === 'object') {
@@ -1496,28 +1502,6 @@ export class EditorPanel {
         }
       }
       return escaped;
-    }
-    return obj;
-  }
-
-  /**
-   * Unescape double quotes in kanban data after loading from JSON
-   * Converts \u201C (left curly quote) back to " for display
-   */
-  private _unescapeKanbanQuotes(obj: any): any {
-    if (typeof obj === 'string') {
-      // Convert left curly quote back to straight quote for display
-      return obj.replace(/\u201C/g, '"');
-    } else if (Array.isArray(obj)) {
-      return obj.map(item => this._unescapeKanbanQuotes(item));
-    } else if (obj && typeof obj === 'object') {
-      const unescaped: any = {};
-      for (const key in obj) {
-        if (obj.hasOwnProperty(key)) {
-          unescaped[key] = this._unescapeKanbanQuotes(obj[key]);
-        }
-      }
-      return unescaped;
     }
     return obj;
   }
