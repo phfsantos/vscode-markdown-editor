@@ -1920,7 +1920,7 @@ body {
   min-height: 100% !important;
   width: 100% !important;
   margin: 0 !important;
-  padding: 0px 0px 16px 32px !important;
+  padding: 0px 32px 16px 32px !important;
   box-sizing: border-box !important;
 }
 .vditor-reset {
