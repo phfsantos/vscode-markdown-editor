@@ -667,13 +667,40 @@ export class VSCodeWebviewIntegrator {
     const elementType = this.getElementTypeAtPosition(event.target as HTMLElement);
     const selectedText = this.getSelectedText();
     
+    // Store event coordinates for menu positioning
+    const menuX = event.clientX;
+    const menuY = event.clientY;
+    
+    // Calculate viewport boundaries to prevent menu overflow
+    const viewportHeight = window.innerHeight;
+    const viewportWidth = window.innerWidth;
+    const menuEstimatedHeight = 400; // Approximate menu height
+    const menuEstimatedWidth = 200;  // Approximate menu width
+    
+    // Adjust position if menu would appear outside viewport
+    let adjustedX = menuX;
+    let adjustedY = menuY;
+    
+    // Check if menu would overflow bottom of viewport
+    if (menuY + menuEstimatedHeight > viewportHeight) {
+      // Position menu above cursor instead
+      adjustedY = Math.max(0, menuY - menuEstimatedHeight);
+      this.vscodeLog(`📋 MENU POSITION: Adjusted Y from ${menuY} to ${adjustedY} (viewport overflow)`);
+    }
+    
+    // Check if menu would overflow right of viewport
+    if (menuX + menuEstimatedWidth > viewportWidth) {
+      // Position menu to left of cursor instead
+      adjustedX = Math.max(0, menuX - menuEstimatedWidth);
+      this.vscodeLog(`📋 MENU POSITION: Adjusted X from ${menuX} to ${adjustedX} (viewport overflow)`);
+    }
     
     // Request VS Code actions for this position
     this.sendToVSCode({
       command: 'requestContextMenu',
       position: position,
-      clientX: event.clientX,
-      clientY: event.clientY,
+      clientX: adjustedX,
+      clientY: adjustedY,
       elementType: elementType,
       selectedText: selectedText
     });
@@ -800,6 +827,40 @@ export class VSCodeWebviewIntegrator {
           this.sendToVSCode({
             command: 'insertTable'
           });
+        }
+      },
+      { separator: true },
+      
+      // Custom renderers
+      {
+        label: 'Insert Kanban Board',
+        click: () => {
+          this.vscodeLog('📋 Insert Kanban Board menu item clicked');
+          this.sendToVSCode({
+            command: 'requestInsertRenderer',
+            rendererType: 'kanban-board'
+          });
+        }
+      },
+      {
+        label: 'Insert Interactive Table',
+        click: () => {
+          this.vscodeLog('📋 Insert Interactive Table menu item clicked');
+          this.sendToVSCode({
+            command: 'requestInsertRenderer',
+            rendererType: 'table'
+          });
+        }
+      },
+      {
+        label: 'Insert Code Playground',
+        click: () => {
+          this.vscodeLog('📋 Insert Code Playground menu item clicked');
+          // Playground doesn't need extension - insert directly
+          const playgroundText = `\n\`\`\`playground\nconsole.log('Hello, World!');\n\`\`\`\n`;
+          if ((window as any).vditor) {
+            (window as any).vditor.insertValue(playgroundText);
+          }
         }
       },
       { separator: true },

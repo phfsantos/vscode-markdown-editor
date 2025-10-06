@@ -10,20 +10,55 @@
 
 import type Vditor from 'vditor';
 import { BaseRenderer } from '../BaseRenderer';
-import type { IRendererCapabilities, IRenderContext } from '../types';
+import type { IRenderer, IRendererCapabilities, IRenderContext } from '../types';
 
-export class KanbanRenderer extends BaseRenderer {
+export class KanbanRenderer extends BaseRenderer implements IRenderer {
   readonly id = 'kanban-board';
   readonly name = 'Kanban Board';
   readonly language = 'kanban-board';
-  readonly version = '1.0.0';
+  readonly version = '2.0.0';
+  readonly description = 'Interactive Kanban board for task management';
+  readonly author = 'VSCode Markdown Editor';
+  
   readonly capabilities: IRendererCapabilities = {
     supportsPersistence: true,
     supportsMultipleInstances: true,
-    supportsExport: false,
+    supportsExport: true,
     supportsImport: false,
     requiresExtensionHost: true
   };
+
+  /**
+   * Extract board-specific ID from code block
+   * Overrides BaseRenderer.extractId() to implement kanban-specific logic
+   * 
+   * Looks for: <!-- board: board-1 --> or <!-- board: my-board-name -->
+   * Generates: board-1, board-2, board-3, etc. based on position
+   */
+  extractId(element: HTMLElement): string {
+    const textContent = element.textContent || '';
+    
+    // Look for explicit board ID in comment
+    // Match pattern: <!-- board: board-3 --> or <!-- board: my-board-name -->
+    const boardIdMatch = textContent.match(/<!--\s*board:\s*([^\s>]+)\s*-->/);
+    if (boardIdMatch) {
+      console.log(`🔍 KANBAN RENDERER: Extracted boardId from comment: '${boardIdMatch[1]}'`);
+      return boardIdMatch[1];
+    }
+    
+    // Generate board ID from position in document
+    const allBlocks = Array.from(document.querySelectorAll('code.language-kanban-board'));
+    const currentIndex = allBlocks.indexOf(element);
+    
+    if (currentIndex > 0) {
+      const generatedId = `board-${currentIndex + 1}`;
+      console.log(`🔍 KANBAN RENDERER: Generated boardId from position: '${generatedId}'`);
+      return generatedId;
+    }
+    
+    console.log(`🔍 KANBAN RENDERER: Using default boardId`);
+    return 'default';
+  }
 
   /**
    * Main render function
@@ -43,10 +78,13 @@ export class KanbanRenderer extends BaseRenderer {
 
       // Extract board configuration
       const textContent = codeElement.textContent || '';
-      const boardId = this.extractBoardId(codeElement);
+      const boardId = this.extractId(codeElement);
       const requestedFilename = this.extractFilename(codeElement);
       
       console.log(`📋 KANBAN RENDERER: Rendering board '${boardId}'`);
+      console.log(`   Code block content (first 200 chars):`, textContent.substring(0, 200));
+      console.log(`   Extracted boardId: '${boardId}'`);
+      console.log(`   Extracted filename: '${requestedFilename}'`);
 
       // Check for backwards compatibility - inline JSON data
       const inlineData = this.extractInlineData(textContent);
@@ -125,32 +163,36 @@ export class KanbanRenderer extends BaseRenderer {
         });
       }, 10000);
 
-      // Listen for response
-      const removeListener = context.messageHandler.on('kanban-data-loaded', (message: any) => {
-        if (message.requestId === requestId) {
+      // Listen for response using generic renderer protocol
+      const removeListener = context.messageHandler.on('renderer-data-loaded', (message: any) => {
+        if (message.requestId === requestId && message.rendererId === this.id) {
           clearTimeout(timeout);
           removeListener();
           
           if (message.error) {
-            reject(new Error(message.error));
+            console.warn(`⚠️ KANBAN RENDERER: Error loading '${boardId}':`, message.error);
+            // Use default data on error
+            resolve({
+              data: this.getDefaultData(),
+              filename: this.getDefaultFilename(context, boardId),
+              dataSource: 'default'
+            });
           } else {
             console.log(`✅ KANBAN RENDERER: Loaded board '${boardId}' from ${message.dataSource}`);
             resolve({
               data: message.data,
-              filename: message.filename,
+              filename: this.getDefaultFilename(context, boardId),
               dataSource: message.dataSource
             });
           }
         }
       });
 
-      // Request data from extension host
-      context.messageHandler.send('kanban-load-data', {
+      // Request data from extension host using generic renderer protocol
+      context.messageHandler.send('renderer-load-data', {
         requestId,
         rendererId: this.id,
-        boardId,
-        codeBlockData: inlineData,
-        filename: requestedFilename
+        boardId
       });
     });
   }
@@ -197,23 +239,22 @@ export class KanbanRenderer extends BaseRenderer {
     // Setup kanban board save handler
     const kanbanBoard = container.querySelector('kanban-board');
     if (kanbanBoard) {
-      // Save on data change
-      kanbanBoard.addEventListener('on-change', (event: any) => {
+      // Save on data change using generic renderer protocol
+      // The kanban-board component fires 'kanban-save' event (not 'on-change')
+      kanbanBoard.addEventListener('kanban-save', (event: any) => {
         const data = event.detail;
         console.log(`💾 KANBAN RENDERER: Saving board '${boardId}'`, data);
         
-        context.messageHandler.send('kanban-save-data', {
+        context.messageHandler.send('renderer-save-data', {
           rendererId: this.id,
           boardId,
           data
         });
       });
 
-      // Handle save confirmation
+      // Handle save confirmation using generic renderer protocol
       const handleSaveConfirmation = (message: any) => {
-        if (message.command === 'kanban-data-saved' && 
-            message.rendererId === this.id && 
-            message.boardId === boardId) {
+        if (message.rendererId === this.id && message.boardId === boardId) {
           if (message.error) {
             console.error(`❌ KANBAN RENDERER: Save error for '${boardId}'`, message.error);
             // Could show error UI here
@@ -223,7 +264,7 @@ export class KanbanRenderer extends BaseRenderer {
         }
       };
 
-      context.messageHandler.on('kanban-data-saved', handleSaveConfirmation);
+      context.messageHandler.on('renderer-data-saved', handleSaveConfirmation);
     }
   }
 
@@ -332,8 +373,8 @@ export class KanbanRenderer extends BaseRenderer {
   private getDefaultFilename(context: IRenderContext, boardId: string): string {
     const docName = context.documentUri.split('/').pop()?.replace('.md', '') || 'document';
     return boardId === 'default' 
-      ? `assets/${docName}.kanban.json`
-      : `assets/${docName}.kanban.${boardId}.json`;
+      ? `assets/${docName}.${this.id}.json`
+      : `assets/${docName}.${this.id}.${boardId}.json`;
   }
 
   /**

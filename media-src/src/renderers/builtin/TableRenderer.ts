@@ -41,13 +41,35 @@ export class TableRenderer extends BaseRenderer implements IRenderer {
   private tableInstances: Map<string, HTMLElement> = new Map();
 
   /**
-   * Extract table ID from code block comment
-   * Looks for: <!-- table: my-table-id -->
+   * Extract table-specific ID from code block
+   * Overrides BaseRenderer.extractId() to implement table-specific logic
+   * 
+   * Looks for: <!-- table: table-1 --> or <!-- table: my-table-name -->
+   * Generates: table-1, table-2, table-3, etc. based on position
    */
-  private extractTableId(codeElement: HTMLElement): string | null {
-    const text = codeElement.textContent || '';
-    const match = text.match(/<!--\s*table:\s*([^\s-]+(?:\/[^\s-]+)*)\s*-->/);
-    return match ? match[1] : null;
+  extractId(element: HTMLElement): string {
+    const textContent = element.textContent || '';
+    
+    // Look for explicit table ID in comment
+    // Match pattern: <!-- table: table-3 --> or <!-- table: my-table-name -->
+    const tableIdMatch = textContent.match(/<!--\s*table:\s*([^\s>]+)\s*-->/);
+    if (tableIdMatch) {
+      console.log(`🔍 TABLE RENDERER: Extracted tableId from comment: '${tableIdMatch[1]}'`);
+      return tableIdMatch[1];
+    }
+    
+    // Generate table ID from position in document
+    const allBlocks = Array.from(document.querySelectorAll('code.language-table'));
+    const currentIndex = allBlocks.indexOf(element);
+    
+    if (currentIndex > 0) {
+      const generatedId = `table-${currentIndex + 1}`;
+      console.log(`🔍 TABLE RENDERER: Generated tableId from position: '${generatedId}'`);
+      return generatedId;
+    }
+    
+    console.log(`🔍 TABLE RENDERER: Using default tableId`);
+    return 'default';
   }
 
   /**
@@ -773,21 +795,59 @@ export class TableRenderer extends BaseRenderer implements IRenderer {
   }
 
   /**
-   * Show file info banner
+   * Show file info banner and update code block with comments
    */
   private showFileInfo(element: HTMLElement, filename: string, tableId: string): void {
+    const codeContainer = element.closest('.vditor-ir__node') || 
+                          element.closest('.vditor-wysiwyg__block');
+    if (!codeContainer) return;
+
+    // Update code block with filename comment if not present (matching KanbanRenderer)
+    const codeBlock = codeContainer.querySelector('code.language-table') as HTMLElement;
+    if (codeBlock && codeBlock.textContent) {
+      const currentContent = codeBlock.textContent;
+      if (!currentContent.includes(`<!-- file: ${filename} -->`)) {
+        const filenameComment = `<!-- file: ${filename} -->`;
+        const tableComment = tableId !== 'default' ? `\n<!-- table: ${tableId} -->` : '';
+        
+        // Only add if no existing metadata
+        if (!currentContent.includes('<!-- file:') && !currentContent.includes('<!-- table:')) {
+          codeBlock.textContent = `${filenameComment}${tableComment}\n${currentContent}`;
+          console.log('📝 TABLE: Added file comments to code block', { filename, tableId });
+        }
+      }
+    }
+
+    // Create or update file info display banner
     let banner = element.querySelector('.table-file-info') as HTMLElement;
     
     if (!banner) {
       banner = document.createElement('div');
       banner.className = 'table-file-info';
-      element.insertBefore(banner, element.firstChild);
+      banner.style.cssText = `
+        background: var(--vscode-editor-inactiveSelectionBackground, #3a3d41);
+        border: 1px solid var(--vscode-panel-border, #3a3d41);
+        border-radius: 4px;
+        padding: 8px 12px;
+        margin: 10px 0;
+        font-size: 12px;
+        font-family: var(--vscode-font-family);
+        color: var(--vscode-foreground);
+      `;
+      
+      // Insert before table container
+      const tableContainer = element.querySelector('.interactive-table-container');
+      if (tableContainer && tableContainer.parentNode) {
+        tableContainer.parentNode.insertBefore(banner, tableContainer);
+      } else {
+        element.insertBefore(banner, element.firstChild);
+      }
     }
     
     const tableLabel = tableId === 'default' ? 'Default Table' : `Table: ${tableId}`;
     banner.innerHTML = `
       <div style="margin-bottom: 4px;">
-        <strong>📊 ${tableLabel}</strong> → <code>${filename}</code>
+        <strong>📊 ${tableLabel}</strong> → <code>assets/${filename}</code>
       </div>
       <div style="font-size: 11px; opacity: 0.7;">
         ℹ️ Changes are auto-saved to JSON file • Edit cells inline • Use toolbar for structure changes

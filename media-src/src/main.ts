@@ -139,6 +139,16 @@ function buildVSCodeContextMenu(event?: MouseEvent) {
       { label: 'Link', click: () => vscode.postMessage({ command: 'insertLink' }) },
       { label: 'Image', click: () => vscode.postMessage({ command: 'insertImage' }) },
       { label: 'Table', click: () => vscode.postMessage({ command: 'insertTable' }) },
+      { separator: true },
+      { label: 'Kanban Board', click: () => vscode.postMessage({ command: 'requestInsertRenderer', rendererType: 'kanban-board' }) },
+      { label: 'Interactive Table', click: () => vscode.postMessage({ command: 'requestInsertRenderer', rendererType: 'table' }) },
+      { label: 'Code Playground', click: () => {
+        // Playground doesn't need extension - handle directly in webview
+        const playgroundText = `\n\`\`\`playground\nconsole.log('Hello, World!');\n\`\`\`\n`;
+        if (window.vditor) {
+          window.vditor.insertValue(playgroundText);
+        }
+      }},
     ]
   });
   items.push({ separator: true });
@@ -728,6 +738,51 @@ function initVditor(msg) {
           vscodeLog(
             `🎯 MAIN.TS: ✅ Returning ${menuItems.length} menu items to Vditor`
           );
+          
+          // Fix menu positioning after Vditor renders it
+          // Use MutationObserver to detect when menu is added to DOM
+          setTimeout(() => {
+            const menus = document.querySelectorAll('.vditor-menu, .vditor-contextmenu, .vditor-context-menu');
+            menus.forEach((menu: Element) => {
+              const menuEl = menu as HTMLElement;
+              if (menuEl && menuEl.style.display !== 'none') {
+                const rect = menuEl.getBoundingClientRect();
+                const viewportHeight = window.innerHeight;
+                const viewportWidth = window.innerWidth;
+                
+                // Get current position
+                let currentTop = parseFloat(menuEl.style.top || '0');
+                let currentLeft = parseFloat(menuEl.style.left || '0');
+                
+                // Adjust if overflowing bottom
+                if (rect.bottom > viewportHeight) {
+                  const newTop = Math.max(0, viewportHeight - rect.height - 10);
+                  menuEl.style.top = `${newTop}px`;
+                  vscodeLog(`📋 MENU FIX: Adjusted top from ${currentTop}px to ${newTop}px (viewport height: ${viewportHeight}px)`);
+                }
+                
+                // Adjust if overflowing right
+                if (rect.right > viewportWidth) {
+                  const newLeft = Math.max(0, viewportWidth - rect.width - 10);
+                  menuEl.style.left = `${newLeft}px`;
+                  vscodeLog(`📋 MENU FIX: Adjusted left from ${currentLeft}px to ${newLeft}px (viewport width: ${viewportWidth}px)`);
+                }
+                
+                // Adjust if overflowing top
+                if (rect.top < 0) {
+                  menuEl.style.top = '10px';
+                  vscodeLog(`📋 MENU FIX: Adjusted top to 10px (was off-screen)`);
+                }
+                
+                // Adjust if overflowing left
+                if (rect.left < 0) {
+                  menuEl.style.left = '10px';
+                  vscodeLog(`📋 MENU FIX: Adjusted left to 10px (was off-screen)`);
+                }
+              }
+            });
+          }, 10); // Small delay to let Vditor render the menu
+          
           return menuItems;
         } else {
           vscodeLog(`❌ MAIN.TS: vscodeIntegrator not yet initialized - providing immediate basic menu`);
@@ -1489,6 +1544,108 @@ window.addEventListener("message", (e) => {
 | Row 2    | Data     | Data     |
 `;
         window.vditor.insertValue(tableText);
+      }
+      break;
+    }
+    case "insertKanbanBoard": {
+      // Handle insert kanban board command from VS Code
+      vscodeLog(`Main.ts: Insert Kanban Board command received`);
+      if (window.vditor) {
+        // Request a new kanban board with file creation
+        vscode.postMessage({ 
+          command: 'requestInsertRenderer',
+          rendererType: 'kanban-board'
+        });
+      }
+      break;
+    }
+    case "insertInteractiveTable": {
+      // Handle insert interactive table command from VS Code
+      vscodeLog(`Main.ts: Insert Interactive Table command received`);
+      if (window.vditor) {
+        // Request a new interactive table with file creation
+        vscode.postMessage({ 
+          command: 'requestInsertRenderer',
+          rendererType: 'table'
+        });
+      }
+      break;
+    }
+    case "insertPlayground": {
+      // Handle insert playground command from VS Code
+      vscodeLog(`Main.ts: Insert Playground command received`);
+      if (window.vditor) {
+        // Playground doesn't use external files, insert directly
+        const playgroundText = `\n\`\`\`playground\nconsole.log('Hello, World!');\n\`\`\`\n`;
+        window.vditor.insertValue(playgroundText);
+      }
+      break;
+    }
+    case "insertRendererCodeBlock": {
+      // Handle insert renderer code block from extension
+      vscodeLog(`Main.ts: Insert renderer code block received for ${msg.rendererType}`);
+      if (window.vditor && msg.codeBlock) {
+        window.vditor.insertValue(msg.codeBlock);
+        vscodeLog(`✅ Inserted code block for ${msg.rendererType}`);
+      }
+      break;
+    }
+    case "renderer-update-code-block": {
+      // Handle code block update when switching renderer types or invalid data is detected
+      vscodeLog(`Main.ts: Updating code block for ${msg.rendererId} with boardId ${msg.boardId}`);
+      
+      // Find the code block with the board ID
+      const language = msg.rendererId === 'kanban-board' ? 'kanban-board' : 'table';
+      const codeBlocks = Array.from(document.querySelectorAll(`code.language-${language}`));
+      
+      for (const codeBlock of codeBlocks) {
+        const content = codeBlock.textContent || '';
+        
+        // Check if this is the code block we need to update
+        const boardMatch = content.match(/<!--\s*(?:board|table):\s*([^-\s]+)\s*-->/);
+        if (boardMatch && boardMatch[1] === msg.boardId) {
+          // Update the board ID comment (in case it's using wrong renderer name)
+          const correctComment = msg.rendererId === 'kanban-board' 
+            ? `<!-- board: ${msg.boardId} -->`
+            : `<!-- table: ${msg.boardId} -->`;
+          
+          // Build the new content with correct file reference and board comment
+          const fileComment = `<!-- file: assets/${msg.filename} -->\n`;
+          let newContent = content;
+          
+          // Update or add file comment
+          if (content.includes('<!-- file:')) {
+            // Replace existing file comment
+            newContent = content.replace(/<!--\s*file:\s*[^>]+-->/i, fileComment.trim());
+          } else {
+            // Add file comment at the beginning
+            newContent = fileComment + content;
+          }
+          
+          // Ensure correct board/table comment exists
+          if (!newContent.includes(correctComment)) {
+            // Replace old comment with correct one
+            newContent = newContent.replace(/<!--\s*(?:board|table):\s*[^>]+-->/, correctComment);
+          }
+          
+          (codeBlock as HTMLElement).textContent = newContent;
+          vscodeLog(`✅ Updated code block for ${msg.rendererId} → ${msg.filename}`);
+          
+          // CRITICAL: Sync the updated content back to VS Code AND trigger re-render
+          if (window.vditor) {
+            const fullContent = window.vditor.getValue();
+            vscodeLog(`📝 Syncing code block update to VS Code...`);
+            vscode.postMessage({ command: "edit", content: fullContent });
+            
+            // Force Vditor to re-render the updated code block
+            // This ensures the renderer re-initializes with the correct board ID and file
+            setTimeout(() => {
+              vscodeLog(`🔄 Forcing Vditor re-render after code block update...`);
+              window.vditor.setValue(fullContent);
+            }, 100);
+          }
+          break;
+        }
       }
       break;
     }

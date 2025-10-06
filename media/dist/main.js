@@ -19769,23 +19769,19 @@ window.addEventListener("message", (e) => {
         }
       });
     }
-    extractBoardId(element) {
-      const textContent = element.textContent || "";
-      const boardIdMatch = textContent.match(/<!--\s*board:\s*([^-\s]+)\s*-->/);
-      if (boardIdMatch) {
-        return boardIdMatch[1];
-      }
-      const allBlocks = Array.from(document.querySelectorAll(`code.language-${this.language}`));
-      const currentIndex = allBlocks.indexOf(element);
-      if (currentIndex > 0) {
-        return `board-${currentIndex + 1}`;
-      }
+    extractId(element) {
+      console.log(`\u26A0\uFE0F BASE RENDERER: Using default extractId() - subclass should override this method`);
       return "default";
     }
     extractFilename(element) {
       const textContent = element.textContent || "";
-      const filenameMatch = textContent.match(/<!--\s*file:\s*([^-\s]+(?:\/[^-\s]+)*)\s*-->/);
-      return filenameMatch ? filenameMatch[1] : null;
+      const filenameMatch = textContent.match(/<!--\s*file:\s*([^\s>]+)\s*-->/);
+      if (filenameMatch) {
+        console.log(`\u{1F50D} BASE RENDERER: Extracted filename: '${filenameMatch[1]}'`);
+        return filenameMatch[1];
+      }
+      console.log(`\u{1F50D} BASE RENDERER: No filename found in comments`);
+      return null;
     }
     showError(element, error) {
       element.innerHTML = `
@@ -19844,14 +19840,33 @@ window.addEventListener("message", (e) => {
       this.id = "kanban-board";
       this.name = "Kanban Board";
       this.language = "kanban-board";
-      this.version = "1.0.0";
+      this.version = "2.0.0";
+      this.description = "Interactive Kanban board for task management";
+      this.author = "VSCode Markdown Editor";
       this.capabilities = {
         supportsPersistence: true,
         supportsMultipleInstances: true,
-        supportsExport: false,
+        supportsExport: true,
         supportsImport: false,
         requiresExtensionHost: true
       };
+    }
+    extractId(element) {
+      const textContent = element.textContent || "";
+      const boardIdMatch = textContent.match(/<!--\s*board:\s*([^\s>]+)\s*-->/);
+      if (boardIdMatch) {
+        console.log(`\u{1F50D} KANBAN RENDERER: Extracted boardId from comment: '${boardIdMatch[1]}'`);
+        return boardIdMatch[1];
+      }
+      const allBlocks = Array.from(document.querySelectorAll("code.language-kanban-board"));
+      const currentIndex = allBlocks.indexOf(element);
+      if (currentIndex > 0) {
+        const generatedId = `board-${currentIndex + 1}`;
+        console.log(`\u{1F50D} KANBAN RENDERER: Generated boardId from position: '${generatedId}'`);
+        return generatedId;
+      }
+      console.log(`\u{1F50D} KANBAN RENDERER: Using default boardId`);
+      return "default";
     }
     async render(element, vditor2, context) {
       try {
@@ -19864,9 +19879,12 @@ window.addEventListener("message", (e) => {
         const wysiwyg__node = element.closest(".vditor-wysiwyg__block");
         const containerNode = ir__node || wysiwyg__node;
         const textContent = codeElement.textContent || "";
-        const boardId = this.extractBoardId(codeElement);
+        const boardId = this.extractId(codeElement);
         const requestedFilename = this.extractFilename(codeElement);
         console.log(`\u{1F4CB} KANBAN RENDERER: Rendering board '${boardId}'`);
+        console.log(`   Code block content (first 200 chars):`, textContent.substring(0, 200));
+        console.log(`   Extracted boardId: '${boardId}'`);
+        console.log(`   Extracted filename: '${requestedFilename}'`);
         const inlineData = this.extractInlineData(textContent);
         this.showLoading(element, `Loading kanban board '${boardId}'...`);
         try {
@@ -19916,28 +19934,31 @@ window.addEventListener("message", (e) => {
             dataSource: "default"
           });
         }, 1e4);
-        const removeListener = context.messageHandler.on("kanban-data-loaded", (message) => {
-          if (message.requestId === requestId) {
+        const removeListener = context.messageHandler.on("renderer-data-loaded", (message) => {
+          if (message.requestId === requestId && message.rendererId === this.id) {
             clearTimeout(timeout);
             removeListener();
             if (message.error) {
-              reject(new Error(message.error));
+              console.warn(`\u26A0\uFE0F KANBAN RENDERER: Error loading '${boardId}':`, message.error);
+              resolve({
+                data: this.getDefaultData(),
+                filename: this.getDefaultFilename(context, boardId),
+                dataSource: "default"
+              });
             } else {
               console.log(`\u2705 KANBAN RENDERER: Loaded board '${boardId}' from ${message.dataSource}`);
               resolve({
                 data: message.data,
-                filename: message.filename,
+                filename: this.getDefaultFilename(context, boardId),
                 dataSource: message.dataSource
               });
             }
           }
         });
-        context.messageHandler.send("kanban-load-data", {
+        context.messageHandler.send("renderer-load-data", {
           requestId,
           rendererId: this.id,
-          boardId,
-          codeBlockData: inlineData,
-          filename: requestedFilename
+          boardId
         });
       });
     }
@@ -19974,17 +19995,17 @@ window.addEventListener("message", (e) => {
       });
       const kanbanBoard = container.querySelector("kanban-board");
       if (kanbanBoard) {
-        kanbanBoard.addEventListener("on-change", (event) => {
+        kanbanBoard.addEventListener("kanban-save", (event) => {
           const data = event.detail;
           console.log(`\u{1F4BE} KANBAN RENDERER: Saving board '${boardId}'`, data);
-          context.messageHandler.send("kanban-save-data", {
+          context.messageHandler.send("renderer-save-data", {
             rendererId: this.id,
             boardId,
             data
           });
         });
         const handleSaveConfirmation = (message) => {
-          if (message.command === "kanban-data-saved" && message.rendererId === this.id && message.boardId === boardId) {
+          if (message.rendererId === this.id && message.boardId === boardId) {
             if (message.error) {
               console.error(`\u274C KANBAN RENDERER: Save error for '${boardId}'`, message.error);
             } else {
@@ -19992,7 +20013,7 @@ window.addEventListener("message", (e) => {
             }
           }
         };
-        context.messageHandler.on("kanban-data-saved", handleSaveConfirmation);
+        context.messageHandler.on("renderer-data-saved", handleSaveConfirmation);
       }
     }
     showFileInfo(container, filename, boardId) {
@@ -20074,7 +20095,7 @@ ${currentContent}`;
     }
     getDefaultFilename(context, boardId) {
       const docName = context.documentUri.split("/").pop()?.replace(".md", "") || "document";
-      return boardId === "default" ? `assets/${docName}.kanban.json` : `assets/${docName}.kanban.${boardId}.json`;
+      return boardId === "default" ? `assets/${docName}.${this.id}.json` : `assets/${docName}.${this.id}.${boardId}.json`;
     }
     async onLoad(context) {
       await this.loadScript("https://cdn.jsdelivr.net/gh/phfsantos/kanban-board@1.1.1/dist/index.js");
@@ -20100,10 +20121,22 @@ ${currentContent}`;
       };
       this.tableInstances = new Map();
     }
-    extractTableId(codeElement) {
-      const text = codeElement.textContent || "";
-      const match2 = text.match(/<!--\s*table:\s*([^\s-]+(?:\/[^\s-]+)*)\s*-->/);
-      return match2 ? match2[1] : null;
+    extractId(element) {
+      const textContent = element.textContent || "";
+      const tableIdMatch = textContent.match(/<!--\s*table:\s*([^\s>]+)\s*-->/);
+      if (tableIdMatch) {
+        console.log(`\u{1F50D} TABLE RENDERER: Extracted tableId from comment: '${tableIdMatch[1]}'`);
+        return tableIdMatch[1];
+      }
+      const allBlocks = Array.from(document.querySelectorAll("code.language-table"));
+      const currentIndex = allBlocks.indexOf(element);
+      if (currentIndex > 0) {
+        const generatedId = `table-${currentIndex + 1}`;
+        console.log(`\u{1F50D} TABLE RENDERER: Generated tableId from position: '${generatedId}'`);
+        return generatedId;
+      }
+      console.log(`\u{1F50D} TABLE RENDERER: Using default tableId`);
+      return "default";
     }
     async render(element, vditor2, context) {
       console.log("\u{1F4CA} TABLE RENDERER: Starting render...", {element, context, tagName: element.tagName});
@@ -20607,16 +20640,48 @@ ${currentContent}`;
       return `${docName}.${this.id}.${tableId}.json`;
     }
     showFileInfo(element, filename, tableId) {
+      const codeContainer = element.closest(".vditor-ir__node") || element.closest(".vditor-wysiwyg__block");
+      if (!codeContainer)
+        return;
+      const codeBlock = codeContainer.querySelector("code.language-table");
+      if (codeBlock && codeBlock.textContent) {
+        const currentContent = codeBlock.textContent;
+        if (!currentContent.includes(`<!-- file: ${filename} -->`)) {
+          const filenameComment = `<!-- file: ${filename} -->`;
+          const tableComment = tableId !== "default" ? `
+<!-- table: ${tableId} -->` : "";
+          if (!currentContent.includes("<!-- file:") && !currentContent.includes("<!-- table:")) {
+            codeBlock.textContent = `${filenameComment}${tableComment}
+${currentContent}`;
+            console.log("\u{1F4DD} TABLE: Added file comments to code block", {filename, tableId});
+          }
+        }
+      }
       let banner = element.querySelector(".table-file-info");
       if (!banner) {
         banner = document.createElement("div");
         banner.className = "table-file-info";
-        element.insertBefore(banner, element.firstChild);
+        banner.style.cssText = `
+        background: var(--vscode-editor-inactiveSelectionBackground, #3a3d41);
+        border: 1px solid var(--vscode-panel-border, #3a3d41);
+        border-radius: 4px;
+        padding: 8px 12px;
+        margin: 10px 0;
+        font-size: 12px;
+        font-family: var(--vscode-font-family);
+        color: var(--vscode-foreground);
+      `;
+        const tableContainer = element.querySelector(".interactive-table-container");
+        if (tableContainer && tableContainer.parentNode) {
+          tableContainer.parentNode.insertBefore(banner, tableContainer);
+        } else {
+          element.insertBefore(banner, element.firstChild);
+        }
       }
       const tableLabel = tableId === "default" ? "Default Table" : `Table: ${tableId}`;
       banner.innerHTML = `
       <div style="margin-bottom: 4px;">
-        <strong>\u{1F4CA} ${tableLabel}</strong> \u2192 <code>${filename}</code>
+        <strong>\u{1F4CA} ${tableLabel}</strong> \u2192 <code>assets/${filename}</code>
       </div>
       <div style="font-size: 11px; opacity: 0.7;">
         \u2139\uFE0F Changes are auto-saved to JSON file \u2022 Edit cells inline \u2022 Use toolbar for structure changes
@@ -21440,7 +21505,7 @@ ${currentContent}`;
               } else {
                 codeElement = code.querySelector(`code.language-${renderer.language}`);
               }
-              const boardId = codeElement ? extractBoardIdFromElement(codeElement, renderer.language) : "default";
+              const boardId = codeElement ? renderer.extractId(codeElement) : "default";
               console.log(`\u{1F50D} RENDERER SYSTEM: Extracted boardId='${boardId}' from code element`, {
                 hasCodeElement: !!codeElement,
                 codeTagName: code.tagName,
@@ -21483,19 +21548,6 @@ ${currentContent}`;
     }
     console.log(`\u2705 RENDERER SYSTEM: Generated ${customRenders.length} Vditor custom render(s)`);
     return customRenders;
-  }
-  function extractBoardIdFromElement(element, language) {
-    const textContent = element.textContent || "";
-    const boardIdMatch = textContent.match(/<!--\s*board:\s*([^-\s]+)\s*-->/);
-    if (boardIdMatch) {
-      return boardIdMatch[1];
-    }
-    const allBlocks = Array.from(document.querySelectorAll(`code.language-${language}`));
-    const currentIndex = allBlocks.indexOf(element);
-    if (currentIndex > 0) {
-      return `board-${currentIndex + 1}`;
-    }
-    return "default";
   }
 
   // src/diagnostic-visualizer.ts
@@ -24331,11 +24383,27 @@ ${currentContent}`;
       const position = this.getCursorPositionFromEvent(event);
       const elementType = this.getElementTypeAtPosition(event.target);
       const selectedText = this.getSelectedText();
+      const menuX = event.clientX;
+      const menuY = event.clientY;
+      const viewportHeight = window.innerHeight;
+      const viewportWidth = window.innerWidth;
+      const menuEstimatedHeight = 400;
+      const menuEstimatedWidth = 200;
+      let adjustedX = menuX;
+      let adjustedY = menuY;
+      if (menuY + menuEstimatedHeight > viewportHeight) {
+        adjustedY = Math.max(0, menuY - menuEstimatedHeight);
+        this.vscodeLog(`\u{1F4CB} MENU POSITION: Adjusted Y from ${menuY} to ${adjustedY} (viewport overflow)`);
+      }
+      if (menuX + menuEstimatedWidth > viewportWidth) {
+        adjustedX = Math.max(0, menuX - menuEstimatedWidth);
+        this.vscodeLog(`\u{1F4CB} MENU POSITION: Adjusted X from ${menuX} to ${adjustedX} (viewport overflow)`);
+      }
       this.sendToVSCode({
         command: "requestContextMenu",
         position,
-        clientX: event.clientX,
-        clientY: event.clientY,
+        clientX: adjustedX,
+        clientY: adjustedY,
         elementType,
         selectedText
       });
@@ -24451,6 +24519,41 @@ ${currentContent}`;
             this.sendToVSCode({
               command: "insertTable"
             });
+          }
+        },
+        {separator: true},
+        {
+          label: "Insert Kanban Board",
+          click: () => {
+            this.vscodeLog("\u{1F4CB} Insert Kanban Board menu item clicked");
+            this.sendToVSCode({
+              command: "requestInsertRenderer",
+              rendererType: "kanban-board"
+            });
+          }
+        },
+        {
+          label: "Insert Interactive Table",
+          click: () => {
+            this.vscodeLog("\u{1F4CB} Insert Interactive Table menu item clicked");
+            this.sendToVSCode({
+              command: "requestInsertRenderer",
+              rendererType: "table"
+            });
+          }
+        },
+        {
+          label: "Insert Code Playground",
+          click: () => {
+            this.vscodeLog("\u{1F4CB} Insert Code Playground menu item clicked");
+            const playgroundText = `
+\`\`\`playground
+console.log('Hello, World!');
+\`\`\`
+`;
+            if (window.vditor) {
+              window.vditor.insertValue(playgroundText);
+            }
           }
         },
         {separator: true},
@@ -25892,7 +25995,20 @@ ${currentContent}`;
       submenu: [
         {label: "Link", click: () => vscode.postMessage({command: "insertLink"})},
         {label: "Image", click: () => vscode.postMessage({command: "insertImage"})},
-        {label: "Table", click: () => vscode.postMessage({command: "insertTable"})}
+        {label: "Table", click: () => vscode.postMessage({command: "insertTable"})},
+        {separator: true},
+        {label: "Kanban Board", click: () => vscode.postMessage({command: "requestInsertRenderer", rendererType: "kanban-board"})},
+        {label: "Interactive Table", click: () => vscode.postMessage({command: "requestInsertRenderer", rendererType: "table"})},
+        {label: "Code Playground", click: () => {
+          const playgroundText = `
+\`\`\`playground
+console.log('Hello, World!');
+\`\`\`
+`;
+          if (window.vditor) {
+            window.vditor.insertValue(playgroundText);
+          }
+        }}
       ]
     });
     items.push({separator: true});
@@ -26445,6 +26561,37 @@ ${currentContent}`;
           if (vscodeIntegrator) {
             const menuItems = vscodeIntegrator.createVditorContextMenu(event);
             vscodeLog(`\u{1F3AF} MAIN.TS: \u2705 Returning ${menuItems.length} menu items to Vditor`);
+            setTimeout(() => {
+              const menus = document.querySelectorAll(".vditor-menu, .vditor-contextmenu, .vditor-context-menu");
+              menus.forEach((menu) => {
+                const menuEl = menu;
+                if (menuEl && menuEl.style.display !== "none") {
+                  const rect = menuEl.getBoundingClientRect();
+                  const viewportHeight = window.innerHeight;
+                  const viewportWidth = window.innerWidth;
+                  let currentTop = parseFloat(menuEl.style.top || "0");
+                  let currentLeft = parseFloat(menuEl.style.left || "0");
+                  if (rect.bottom > viewportHeight) {
+                    const newTop = Math.max(0, viewportHeight - rect.height - 10);
+                    menuEl.style.top = `${newTop}px`;
+                    vscodeLog(`\u{1F4CB} MENU FIX: Adjusted top from ${currentTop}px to ${newTop}px (viewport height: ${viewportHeight}px)`);
+                  }
+                  if (rect.right > viewportWidth) {
+                    const newLeft = Math.max(0, viewportWidth - rect.width - 10);
+                    menuEl.style.left = `${newLeft}px`;
+                    vscodeLog(`\u{1F4CB} MENU FIX: Adjusted left from ${currentLeft}px to ${newLeft}px (viewport width: ${viewportWidth}px)`);
+                  }
+                  if (rect.top < 0) {
+                    menuEl.style.top = "10px";
+                    vscodeLog(`\u{1F4CB} MENU FIX: Adjusted top to 10px (was off-screen)`);
+                  }
+                  if (rect.left < 0) {
+                    menuEl.style.left = "10px";
+                    vscodeLog(`\u{1F4CB} MENU FIX: Adjusted left to 10px (was off-screen)`);
+                  }
+                }
+              });
+            }, 10);
             return menuItems;
           } else {
             vscodeLog(`\u274C MAIN.TS: vscodeIntegrator not yet initialized - providing immediate basic menu`);
@@ -26997,6 +27144,82 @@ ${currentContent}`;
 | Row 2    | Data     | Data     |
 `;
           window.vditor.insertValue(tableText);
+        }
+        break;
+      }
+      case "insertKanbanBoard": {
+        vscodeLog(`Main.ts: Insert Kanban Board command received`);
+        if (window.vditor) {
+          vscode.postMessage({
+            command: "requestInsertRenderer",
+            rendererType: "kanban-board"
+          });
+        }
+        break;
+      }
+      case "insertInteractiveTable": {
+        vscodeLog(`Main.ts: Insert Interactive Table command received`);
+        if (window.vditor) {
+          vscode.postMessage({
+            command: "requestInsertRenderer",
+            rendererType: "table"
+          });
+        }
+        break;
+      }
+      case "insertPlayground": {
+        vscodeLog(`Main.ts: Insert Playground command received`);
+        if (window.vditor) {
+          const playgroundText = `
+\`\`\`playground
+console.log('Hello, World!');
+\`\`\`
+`;
+          window.vditor.insertValue(playgroundText);
+        }
+        break;
+      }
+      case "insertRendererCodeBlock": {
+        vscodeLog(`Main.ts: Insert renderer code block received for ${msg.rendererType}`);
+        if (window.vditor && msg.codeBlock) {
+          window.vditor.insertValue(msg.codeBlock);
+          vscodeLog(`\u2705 Inserted code block for ${msg.rendererType}`);
+        }
+        break;
+      }
+      case "renderer-update-code-block": {
+        vscodeLog(`Main.ts: Updating code block for ${msg.rendererId} with boardId ${msg.boardId}`);
+        const language = msg.rendererId === "kanban-board" ? "kanban-board" : "table";
+        const codeBlocks = Array.from(document.querySelectorAll(`code.language-${language}`));
+        for (const codeBlock of codeBlocks) {
+          const content = codeBlock.textContent || "";
+          const boardMatch = content.match(/<!--\s*(?:board|table):\s*([^-\s]+)\s*-->/);
+          if (boardMatch && boardMatch[1] === msg.boardId) {
+            const correctComment = msg.rendererId === "kanban-board" ? `<!-- board: ${msg.boardId} -->` : `<!-- table: ${msg.boardId} -->`;
+            const fileComment = `<!-- file: assets/${msg.filename} -->
+`;
+            let newContent = content;
+            if (content.includes("<!-- file:")) {
+              newContent = content.replace(/<!--\s*file:\s*[^>]+-->/i, fileComment.trim());
+            } else {
+              newContent = fileComment + content;
+            }
+            if (!newContent.includes(correctComment)) {
+              newContent = newContent.replace(/<!--\s*(?:board|table):\s*[^>]+-->/, correctComment);
+            }
+            codeBlock.textContent = newContent;
+            vscodeLog(`\u2705 Updated code block for ${msg.rendererId} \u2192 ${msg.filename}`);
+            if (window.vditor) {
+              const fullContent = window.vditor.getValue();
+              vscodeLog(`\u{1F4DD} Syncing code block update to VS Code...`);
+              vscode.postMessage({command: "edit", content: fullContent});
+              setTimeout(() => {
+                vscodeLog(`\u{1F504} Forcing Vditor re-render after code block update...`);
+                window.vditor.setValue(fullContent);
+              }, 100);
+            }
+            break;
+          }
         }
         break;
       }

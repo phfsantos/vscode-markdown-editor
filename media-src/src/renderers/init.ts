@@ -104,7 +104,9 @@ export function generateVditorCustomRenders(documentUri: string, vditor: Vditor)
               codeElement = code.querySelector(`code.language-${renderer.language}`) as HTMLElement;
             }
             
-            const boardId = codeElement ? extractBoardIdFromElement(codeElement, renderer.language) : 'default';
+            // Use renderer's extractId method to get the ID
+            // Each renderer implements its own ID extraction logic
+            const boardId = codeElement ? renderer.extractId(codeElement) : 'default';
             
             console.log(`🔍 RENDERER SYSTEM: Extracted boardId='${boardId}' from code element`, { 
               hasCodeElement: !!codeElement,
@@ -157,30 +159,6 @@ export function generateVditorCustomRenders(documentUri: string, vditor: Vditor)
   
   console.log(`✅ RENDERER SYSTEM: Generated ${customRenders.length} Vditor custom render(s)`);
   return customRenders;
-}
-
-/**
- * Extract board ID from code element
- * Helper function for consistent board ID extraction
- */
-function extractBoardIdFromElement(element: HTMLElement, language: string): string {
-  const textContent = element.textContent || '';
-  
-  // Look for explicit board ID in comment
-  const boardIdMatch = textContent.match(/<!--\s*board:\s*([^-\s]+)\s*-->/);
-  if (boardIdMatch) {
-    return boardIdMatch[1];
-  }
-  
-  // Generate board ID from position in document
-  const allBlocks = Array.from(document.querySelectorAll(`code.language-${language}`));
-  const currentIndex = allBlocks.indexOf(element);
-  
-  if (currentIndex > 0) {
-    return `board-${currentIndex + 1}`;
-  }
-  
-  return 'default';
 }
 
 /**

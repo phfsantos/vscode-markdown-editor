@@ -79,6 +79,18 @@ export interface IRenderer {
   /** Renderer capabilities */
   readonly capabilities: IRendererCapabilities;
   
+  /**
+   * Extract renderer-specific ID from code block element
+   * 
+   * Each renderer implements its own ID extraction logic:
+   * - KanbanRenderer: looks for <!-- board: X --> and generates board-1, board-2, etc.
+   * - TableRenderer: looks for <!-- table: X --> and generates table-1, table-2, etc.
+   * 
+   * @param element The code block element to extract ID from
+   * @returns The extracted or generated ID (e.g., "board-1", "table-2", "default")
+   */
+  extractId(element: HTMLElement): string;
+  
   /** Main render function - creates the UI */
   render(element: HTMLElement, vditor: Vditor, context: IRenderContext): Promise<void>;
   

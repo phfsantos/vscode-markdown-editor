@@ -482,6 +482,11 @@ export class EditorPanel {
             await this.handleRendererCheckData(message);
             break;
           }
+          case "requestInsertRenderer": {
+            // Handle insert custom renderer request from webview
+            await this.handleInsertRenderer(message);
+            break;
+          }
         }
       },
       null,
@@ -1296,6 +1301,13 @@ export class EditorPanel {
       const kanbanData = message.data;
       const boardId = message.boardId || 'default';
       
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`📥 KANBAN SAVE REQUEST:`);
+        (global as any).markdownEditorLog(`   rendererId: ${message.rendererId}`);
+        (global as any).markdownEditorLog(`   boardId: ${boardId}`);
+        (global as any).markdownEditorLog(`   requestId: ${message.requestId}`);
+      }
+      
       // Ensure assets directory exists
       await this._ensureAssetsDirectory();
       
@@ -1304,6 +1316,7 @@ export class EditorPanel {
       
       if ((global as any).markdownEditorLog) {
         (global as any).markdownEditorLog(`🗂️ Saving kanban board '${boardId}' to: ${kanbanFilePath}`);
+        (global as any).markdownEditorLog(`   Display filename: ${displayFilename}`);
       }
 
       // Escape quotes in kanban data to prevent JSON parsing issues
@@ -1319,6 +1332,7 @@ export class EditorPanel {
       this._panel.webview.postMessage({
         command: "kanban-data-saved",
         success: true,
+        rendererId: message.rendererId || 'kanban-board',
         boardId: boardId,
         filename: displayFilename
       });
@@ -1331,6 +1345,7 @@ export class EditorPanel {
       this._panel.webview.postMessage({
         command: "kanban-data-saved",
         success: false,
+        rendererId: message.rendererId || 'kanban-board',
         boardId: message.boardId || 'default',
         filename: this._getKanbanDisplayFilename(message.boardId || 'default'),
         error: error instanceof Error ? error.message : String(error)
@@ -1347,11 +1362,25 @@ export class EditorPanel {
       const codeBlockData = message.codeBlockData; // For backwards compatibility
       const requestedFilename = message.filename; // Filename from code block
       
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`📥 KANBAN LOAD REQUEST:`);
+        (global as any).markdownEditorLog(`   rendererId: ${message.rendererId}`);
+        (global as any).markdownEditorLog(`   boardId: ${boardId}`);
+        (global as any).markdownEditorLog(`   requestId: ${message.requestId}`);
+        (global as any).markdownEditorLog(`   codeBlockData: ${codeBlockData ? 'present' : 'none'}`);
+        (global as any).markdownEditorLog(`   requestedFilename: ${requestedFilename}`);
+      }
+      
       // Ensure assets directory exists
       await this._ensureAssetsDirectory();
       
       const kanbanFilePath = this._getKanbanFilePath(boardId);
       const displayFilename = this._getKanbanDisplayFilename(boardId);
+      
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`   Calculated file path: ${kanbanFilePath}`);
+        (global as any).markdownEditorLog(`   Display filename: ${displayFilename}`);
+      }
       let kanbanData;
       let dataSource = 'unknown';
 
@@ -1425,6 +1454,7 @@ export class EditorPanel {
       this._panel.webview.postMessage({
         command: "kanban-data-loaded",
         data: kanbanData,
+        rendererId: message.rendererId || 'kanban-board',
         boardId: boardId,
         filename: this._getKanbanDisplayFilename(boardId),
         dataSource: dataSource,
@@ -1440,6 +1470,7 @@ export class EditorPanel {
       this._panel.webview.postMessage({
         command: "kanban-data-loaded",
         error: error instanceof Error ? error.message : String(error),
+        rendererId: message.rendererId || 'kanban-board',
         boardId: message.boardId || 'default',
         filename: this._getKanbanDisplayFilename(message.boardId || 'default'),
         requestId: message.requestId
@@ -1640,21 +1671,81 @@ export class EditorPanel {
       // Try to load from JSON file
       try {
         const content = await vscode.workspace.fs.readFile(vscode.Uri.file(rendererFilePath));
-        rendererData = JSON.parse(content.toString());
+        const parsedData = JSON.parse(content.toString());
+        
+        // Validate data structure matches renderer type
+        const isValidData = this._validateRendererData(rendererId, parsedData);
+        
+        if (!isValidData) {
+          if ((global as any).markdownEditorLog) {
+            (global as any).markdownEditorLog(`⚠️ RENDERER LOAD: Invalid data structure in ${rendererFilePath} for renderer '${rendererId}'`);
+            (global as any).markdownEditorLog(`   File contains wrong renderer type data. Creating correct file with board ID: ${actualBoardId}`);
+          }
+          
+          // IMPORTANT: Reuse the existing board ID from the code block
+          // This maintains consistency when switching between renderer types
+          const correctFilePath = this._getRendererFilePath(rendererId, actualBoardId);
+          const correctDisplayFilename = this._getRendererDisplayFilename(rendererId, actualBoardId);
+          
+          // Create new file with default data for this renderer type
+          const defaultData = this._getDefaultRendererData(rendererId);
+          const newContent = Buffer.from(JSON.stringify(defaultData, null, 2), 'utf8');
+          await vscode.workspace.fs.writeFile(vscode.Uri.file(correctFilePath), newContent);
+          
+          if ((global as any).markdownEditorLog) {
+            (global as any).markdownEditorLog(`✅ RENDERER LOAD: Created correct file: ${correctFilePath}`);
+          }
+          
+          // Send message to update code block with correct renderer-specific file reference
+          this._panel.webview.postMessage({
+            command: "renderer-update-code-block",
+            rendererId: rendererId,
+            boardId: actualBoardId,
+            filename: correctDisplayFilename
+          });
+          
+          // Return the default data with same board ID
+          rendererData = defaultData;
+          dataSource = 'new-file-created';
+          
+          // Update response to use same board ID
+          this._panel.webview.postMessage({
+            command: "renderer-data-loaded",
+            success: true,
+            rendererId: rendererId,
+            boardId: actualBoardId,
+            instanceId: actualBoardId,
+            requestId: requestId,
+            data: rendererData,
+            filename: correctDisplayFilename,
+            dataSource: dataSource
+          });
+          return;
+        }
+        
+        rendererData = parsedData;
         dataSource = 'json-file';
         
         if ((global as any).markdownEditorLog) {
           (global as any).markdownEditorLog(`✅ RENDERER LOAD: Loaded '${rendererId}' data from: ${rendererFilePath}`);
         }
       } catch (fileError) {
-        // File doesn't exist, create with default data based on renderer type
+        // File doesn't exist or is empty, create with default data based on renderer type
         if ((global as any).markdownEditorLog) {
-          (global as any).markdownEditorLog(`⚠️ RENDERER LOAD: File not found (${rendererFilePath}), will create on first save`);
+          (global as any).markdownEditorLog(`⚠️ RENDERER LOAD: File not found or empty (${rendererFilePath}), creating with default data`);
         }
         
-        // Return null to let renderer create its own default data
-        rendererData = null;
-        dataSource = 'not-found';
+        // Create file with default data
+        const defaultData = this._getDefaultRendererData(rendererId);
+        const content = Buffer.from(JSON.stringify(defaultData, null, 2), 'utf8');
+        await vscode.workspace.fs.writeFile(vscode.Uri.file(rendererFilePath), content);
+        
+        rendererData = defaultData;
+        dataSource = 'created-default';
+        
+        if ((global as any).markdownEditorLog) {
+          (global as any).markdownEditorLog(`✅ RENDERER LOAD: Created default data file: ${rendererFilePath}`);
+        }
       }
 
       // Send data back to webview
@@ -1806,6 +1897,174 @@ export class EditorPanel {
         requestId: message.requestId,
         error: error instanceof Error ? error.message : String(error)
       });
+    }
+  }
+
+  /**
+   * Handle insert custom renderer request
+   * Creates the data file first, then inserts the code block with the filename reference
+   */
+  private async handleInsertRenderer(message: any): Promise<void> {
+    try {
+      const rendererType = message.rendererType;
+      
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`📝 INSERT RENDERER: Request to insert ${rendererType}`);
+      }
+
+      // Generate unique board ID for this renderer instance
+      const boardId = this._generateUniqueBoardId(rendererType);
+      
+      // Ensure assets directory exists
+      await this._ensureAssetsDirectory();
+      
+      // Create data file with default data
+      let defaultData;
+      let language;
+      
+      switch (rendererType) {
+        case 'kanban-board':
+          language = 'kanban-board';
+          defaultData = {
+            columns: [
+              { id: "1", title: "Todo", items: [] },
+              { id: "2", title: "Doing", items: [] },
+              { id: "3", title: "Done", items: [] }
+            ]
+          };
+          break;
+        case 'table':
+          language = 'table';
+          defaultData = {
+            columns: [
+              { id: 'col1', name: 'Column 1', type: 'text' },
+              { id: 'col2', name: 'Column 2', type: 'text' },
+              { id: 'col3', name: 'Column 3', type: 'text' }
+            ],
+            rows: [
+              { id: 'row1', cells: { col1: 'Data 1', col2: 'Data 2', col3: 'Data 3' } },
+              { id: 'row2', cells: { col1: 'Data 4', col2: 'Data 5', col3: 'Data 6' } }
+            ]
+          };
+          break;
+        default:
+          throw new Error(`Unknown renderer type: ${rendererType}`);
+      }
+      
+      // Get file path and create the file
+      const filePath = this._getRendererFilePath(rendererType, boardId);
+      const displayFilename = this._getRendererDisplayFilename(rendererType, boardId);
+      
+      const content = Buffer.from(JSON.stringify(defaultData, null, 2), 'utf8');
+      await vscode.workspace.fs.writeFile(vscode.Uri.file(filePath), content);
+      
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`✅ INSERT RENDERER: Created data file at ${filePath}`);
+      }
+      
+      // Create the code block markdown to insert
+      let codeBlock = `\n\`\`\`${language}\n`;
+      
+      // Add comment with board ID and file reference for identification
+      codeBlock += `<!-- file: ${displayFilename} -->\n`;
+      
+      if (boardId !== 'default') {
+        if (rendererType === 'kanban-board') {
+          codeBlock += `<!-- board: ${boardId} -->\n`;
+        } else if (rendererType === 'table') {
+          codeBlock += `<!-- table: ${boardId} -->\n`;
+        }
+      }
+      
+      codeBlock += `\`\`\`\n`;
+      
+      // Send message to webview to insert the code block
+      this._panel.webview.postMessage({
+        command: "insertRendererCodeBlock",
+        rendererType: rendererType,
+        boardId: boardId,
+        codeBlock: codeBlock,
+        filename: displayFilename
+      });
+      
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`✅ INSERT RENDERER: Sent code block to webview for ${rendererType}`);
+      }
+      
+    } catch (error) {
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`❌ INSERT RENDERER: Failed - ${error}`);
+      }
+      vscode.window.showErrorMessage(`Failed to insert ${message.rendererType}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Generate a unique board ID for a renderer
+   */
+  private _generateUniqueBoardId(rendererType: string): string {
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(2, 7);
+    return `${rendererType}-${timestamp}-${random}`;
+  }
+
+  /**
+   * Validate that data structure matches the expected format for a renderer
+   */
+  private _validateRendererData(rendererId: string, data: any): boolean {
+    if (!data || typeof data !== 'object') {
+      return false;
+    }
+    
+    switch (rendererId) {
+      case 'kanban-board':
+        // Kanban should have columns array
+        return Array.isArray(data.columns) && 
+               data.columns.length > 0 &&
+               data.columns.every((col: any) => col.id && col.title !== undefined);
+      
+      case 'table-renderer':
+        // Table should have columns and rows arrays
+        return Array.isArray(data.columns) && 
+               Array.isArray(data.rows) &&
+               data.columns.length > 0 &&
+               data.columns.every((col: any) => col.id && col.name !== undefined);
+      
+      default:
+        // Unknown renderer, accept any object
+        return true;
+    }
+  }
+
+  /**
+   * Get default data structure for a renderer type
+   */
+  private _getDefaultRendererData(rendererId: string): any {
+    switch (rendererId) {
+      case 'kanban-board':
+        return {
+          columns: [
+            { id: "1", title: "Todo", items: [] },
+            { id: "2", title: "Doing", items: [] },
+            { id: "3", title: "Done", items: [] }
+          ]
+        };
+      
+      case 'table-renderer':
+        return {
+          columns: [
+            { id: 'col1', name: 'Column 1', type: 'text' },
+            { id: 'col2', name: 'Column 2', type: 'text' },
+            { id: 'col3', name: 'Column 3', type: 'text' }
+          ],
+          rows: [
+            { id: 'row1', cells: { col1: 'Data 1', col2: 'Data 2', col3: 'Data 3' } },
+            { id: 'row2', cells: { col1: 'Data 4', col2: 'Data 5', col3: 'Data 6' } }
+          ]
+        };
+      
+      default:
+        return {};
     }
   }
 

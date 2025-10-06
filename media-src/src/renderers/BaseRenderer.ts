@@ -102,27 +102,17 @@ export abstract class BaseRenderer implements IRenderer {
   }
   
   /**
-   * Helper: Extract board ID from code block
+   * Helper: Extract renderer-specific ID from code block
+   * 
+   * NOTE: Subclasses should override this method to implement their own ID extraction logic.
+   * For example:
+   * - KanbanRenderer: looks for <!-- board: X --> and generates board-1, board-2, etc.
+   * - TableRenderer: looks for <!-- table: X --> and generates table-1, table-2, etc.
+   * 
+   * Default implementation returns 'default' - not useful for most renderers.
    */
-  protected extractBoardId(element: HTMLElement): string {
-    const textContent = element.textContent || '';
-    
-    // Look for explicit board ID in comment
-    const boardIdMatch = textContent.match(/<!--\s*board:\s*([^-\s]+)\s*-->/);
-    if (boardIdMatch) {
-      return boardIdMatch[1];
-    }
-    
-    // Generate board ID from position in document
-    const allBlocks = Array.from(
-      document.querySelectorAll(`code.language-${this.language}`)
-    );
-    const currentIndex = allBlocks.indexOf(element);
-    
-    if (currentIndex > 0) {
-      return `board-${currentIndex + 1}`;
-    }
-    
+  extractId(element: HTMLElement): string {
+    console.log(`⚠️ BASE RENDERER: Using default extractId() - subclass should override this method`);
     return 'default';
   }
   
@@ -131,8 +121,14 @@ export abstract class BaseRenderer implements IRenderer {
    */
   protected extractFilename(element: HTMLElement): string | null {
     const textContent = element.textContent || '';
-    const filenameMatch = textContent.match(/<!--\s*file:\s*([^-\s]+(?:\/[^-\s]+)*)\s*-->/);
-    return filenameMatch ? filenameMatch[1] : null;
+    // Match pattern: <!-- file: assets/my-file.json -->
+    const filenameMatch = textContent.match(/<!--\s*file:\s*([^\s>]+)\s*-->/);
+    if (filenameMatch) {
+      console.log(`🔍 BASE RENDERER: Extracted filename: '${filenameMatch[1]}'`);
+      return filenameMatch[1];
+    }
+    console.log(`🔍 BASE RENDERER: No filename found in comments`);
+    return null;
   }
   
   /**
