@@ -18,6 +18,9 @@ import { t, lang } from "./lang";
 import { toolbar } from "./toolbar";
 import { fixTableIr } from "./fix-table-ir";
 import words from "./words.en.txt";
+
+// Renderer System
+import { initializeRendererSystem, generateVditorCustomRenders } from "./renderers";
 import "./main.css";
 import "./vscode-integration.css";
 import { DiagnosticVisualizer } from "./diagnostic-visualizer";
@@ -30,130 +33,6 @@ let diagnosticVisualizer: DiagnosticVisualizer | null = null;
 let vscodeIntegrator: VSCodeWebviewIntegrator | null = null;
 let cursorManager: CursorManager | null = null;
 let findReplaceManager: FindReplaceManager | null = null;
-
-// Helper function to setup kanban board event listeners with enhanced multi-board support
-function setupKanbanEventListeners(code: HTMLElement, node: HTMLElement, boardId: string = 'default'): void {
-  if (!node) return;
-
-  // Stop the event propagation for the kanban-board to function as intended
-  const letItFocus = (e: Event) => {
-    e.stopPropagation();
-  };
-  code.addEventListener("click", letItFocus);
-  code.addEventListener("mousedown", letItFocus);
-  code.addEventListener("mouseup", letItFocus);
-  code.addEventListener("mousemove", letItFocus);
-  code.addEventListener("keydown", letItFocus);
-  code.addEventListener("keypress", letItFocus);
-  code.addEventListener("keyup", letItFocus);
-  code.addEventListener("beforeinput", letItFocus);
-  code.addEventListener("focus", letItFocus);
-  code.addEventListener("focusin", letItFocus);
-  code.addEventListener("input", letItFocus);
-
-  const kanbanBoard = code.querySelector("kanban-board");
-  if (kanbanBoard) {
-    // Save kanban data to VS Code with board ID support
-    kanbanBoard.addEventListener("kanban-save", (e: CustomEvent) => {
-      (window as any).vscode.postMessage({
-        command: "kanban-save-data",
-        data: e.detail,
-        boardId: boardId,
-      });
-    });
-
-    // Listen for save confirmation with board ID awareness
-    const handleKanbanDataSaved = (event: MessageEvent) => {
-      const message = event.data;
-      if (message.command === "kanban-data-saved" && message.boardId === boardId) {
-        if (message.success) {
-          vscodeLog(`✅ KANBAN: Board '${boardId}' saved to ${message.filename}`);
-          
-          // Update the code block to show filename and warnings
-          updateCodeBlockWithFileInfo(code, message.filename, boardId);
-        } else {
-          vscodeLog(`❌ KANBAN: Failed to save board '${boardId}': ${message.error}`);
-        }
-      }
-    };
-
-    window.addEventListener("message", handleKanbanDataSaved);
-  }
-}
-
-// Helper function to update code block with file information and warnings
-function updateCodeBlockWithFileInfo(codeElement: HTMLElement, filename: string, boardId: string): void {
-  // Find the code block container
-  const codeContainer = codeElement.closest('.vditor-ir__node') || codeElement.closest('.vditor-wysiwyg__block');
-  if (!codeContainer) return;
-
-  // First, add filename to the actual code block content if not already present
-  const codeBlock = codeContainer.querySelector('code.language-kanban-board') as HTMLElement;
-  if (codeBlock && codeBlock.textContent) {
-    const currentContent = codeBlock.textContent.trim();
-    const filenameComment = `<!-- file: ${filename} -->`;
-    
-    // Only add filename comment if not already present
-    if (!currentContent.includes('<!-- file:') && !currentContent.includes(filenameComment)) {
-      // Update the code block to include the filename
-      if (currentContent === '' || (!currentContent.includes('<!-- board:') && !currentContent.startsWith('{'))) {
-        codeBlock.textContent = filenameComment;
-        vscodeLog(`📋 KANBAN: Added filename to code block: ${filename}`);
-      } else if (!currentContent.includes('<!-- file:')) {
-        // Insert filename comment at the beginning, after board comment if present
-        const lines = currentContent.split('\n');
-        if (lines[0].includes('<!-- board:')) {
-          lines.splice(1, 0, filenameComment);
-        } else {
-          lines.unshift(filenameComment);
-        }
-        codeBlock.textContent = lines.join('\n');
-        vscodeLog(`📋 KANBAN: Updated code block with filename: ${filename}`);
-      }
-    }
-  }
-
-  // Create or update file info display
-  let fileInfoElement = codeContainer.querySelector('.kanban-file-info') as HTMLElement;
-  if (!fileInfoElement) {
-    fileInfoElement = document.createElement('div') as HTMLElement;
-    fileInfoElement.className = 'kanban-file-info';
-    fileInfoElement.style.cssText = `
-      background: var(--vscode-editor-inactiveSelectionBackground, #3a3d41);
-      color: var(--vscode-editor-foreground, #cccccc);
-      border: 1px solid var(--vscode-panel-border, #80808059);
-      border-radius: 4px;
-      padding: 8px 12px;
-      margin: 8px 0;
-      font-family: var(--vscode-editor-font-family, 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace);
-      font-size: 12px;
-      line-height: 1.4;
-    `;
-    
-    // Insert before the kanban board
-    const kanbanBoard = codeContainer.querySelector('kanban-board');
-    if (kanbanBoard && kanbanBoard.parentNode) {
-      kanbanBoard.parentNode.insertBefore(fileInfoElement, kanbanBoard);
-    }
-  }
-
-  // Update content with filename and warnings
-  const boardLabel = boardId === 'default' ? 'Default Board' : `Board: ${boardId}`;
-  fileInfoElement.innerHTML = `
-    <div style="margin-bottom: 4px;">
-      <strong>📋 ${boardLabel}</strong> → <code>${filename}</code>
-    </div>
-    <div style="font-size: 11px; color: var(--vscode-descriptionForeground, #cccccc99);">
-      ⚠️ Data is stored in the JSON file above - use the kanban board interface to make changes
-    </div>
-  `;
-}
-
-// Helper function to extract filename from code block
-function extractFilenameFromCodeBlock(textContent: string): string | null {
-  const filenameMatch = textContent.match(/<!--\s*file:\s*([^-\s]+(?:\/[^-\s]+)*)\s*-->/);
-  return filenameMatch ? filenameMatch[1] : null;
-}
 
 // Coordination flag to avoid duplicate custom menu builds
 (window as any).__vditorHandledContextMenu = false;
@@ -698,6 +577,9 @@ function vscodeLog(message: string) {
 vscodeLog("Main.ts: Webview script loaded and vscodeLog function initialized");
 vscodeLog("Main.ts: Starting VS Code integration improvements...");
 
+// Initialize renderer system
+initializeRendererSystem();
+
 function initVditor(msg) {
   const predictionary =
     (window as any).Predictionary && (window as any).Predictionary.instance();
@@ -749,6 +631,28 @@ function initVditor(msg) {
         autoSpace: false, // Disable automatic space correction
         paragraphBeginningSpace: false, // Disable space insertion at paragraph beginning
       },
+      hljs: {
+        // Extend default Vditor languages with our custom renderers
+        // Default includes: mermaid, echarts, mindmap, plantuml, abc, graphviz, flowchart, etc.
+        langs: [
+          // Vditor's default custom renderers
+          'mermaid', 'echarts', 'mindmap', 'plantuml', 'abc', 'graphviz', 'flowchart', 'apache',
+          'js', 'ts', 'html', 'markmap',
+          // Common programming languages
+          'properties', 'bash', 'c', 'csharp', 'cpp', 'css', 'coffeescript',
+          'diff', 'go', 'xml', 'http', 'json', 'java', 'javascript', 'kotlin', 'less', 'lua',
+          'makefile', 'markdown', 'nginx', 'objectivec', 'php', 'php-template', 'perl',
+          'plaintext', 'python', 'python-repl', 'r', 'ruby', 'rust', 'scss', 'sql', 'shell',
+          'swift', 'ini', 'typescript', 'vbnet', 'yaml',
+          'ada', 'clojure', 'dart', 'erb', 'fortran', 'gradle', 'haskell', 'julia',
+          'julia-repl', 'lisp', 'matlab', 'pgsql', 'powershell', 'sql_more', 'stata',
+          'cmake', 'mathematica', 'solidity', 'yul',
+          // Our custom renderers
+          'kanban-board',
+          'table',
+          'playground'
+        ]
+      }
     },
     // Disable auto-formatting features that cause cursor issues
     counter: {
@@ -1156,7 +1060,7 @@ function initVditor(msg) {
         "🔍 VDITOR SETUP: Ready to test vanilla behavior with space and enter keys"
       );
     },
-    input() {
+    input(value: string) {
       const timestamp = Date.now();
       vscodeLog(`🔍 CURSOR DEBUG - Vditor input callback triggered at ${timestamp}`);
 
@@ -1165,6 +1069,33 @@ function initVditor(msg) {
         vscodeLog(
           `🔍 CURSOR DEBUG - Processing content update after delay (${Date.now() - timestamp}ms elapsed)`
         );
+
+        // Custom renderer triggering
+        // find instances where we have a element with class vditor-copy right before one of the custom blocks: language-kanban-board, language-table, language-playground
+        const customRenderTriggers = document.querySelectorAll('.vditor-copy');
+        let shouldResetValue = false
+        customRenderTriggers.forEach(trigger => {
+          const next = trigger.nextElementSibling;
+            if (
+            next &&
+              (
+                next.classList.contains('language-kanban-board') ||
+                next.classList.contains('language-table') ||
+                next.classList.contains('language-playground')
+              )
+            ) {
+              // remove the .vditor-copy element to prevent re-triggering
+              trigger.remove();
+              shouldResetValue = true;
+            }
+        });
+
+        if (shouldResetValue) {
+          // Re-set the editor content to trigger re-rendering of custom blocks
+          const currentValue = vditor.getValue();
+          vditor.setValue(currentValue);
+          vscodeLog(`🔄 Custom renderer trigger detected - reset editor content to re-render blocks`);
+        }
 
         // ENHANCED: Send cursor position with more detailed tracking
         const selection = window.getSelection();
@@ -1369,207 +1300,11 @@ function initVditor(msg) {
         });
       },
     },
-    customRenders: [
-      {
-        language: "kanban-board",
-        render: (code) => {
-          return new Promise(async (resolve) => {
-            const element = code.querySelector(
-              "code.language-kanban-board"
-            ) as HTMLElement;
-            const ir__node = code.closest(".vditor-ir__node") as HTMLElement;
-            const wysiwyg__node = code.closest(
-              ".vditor-wysiwyg__block"
-            ) as HTMLElement;
-            const node = ir__node || wysiwyg__node;
-
-            // Generate unique request ID for this kanban board
-            const requestId = Math.random().toString(36).substring(2, 15);
-
-            // Enhanced board ID and filename detection from multiple sources
-            let boardId = 'default';
-            let codeBlockData = null;
-            let requestedFilename = null;
-
-            if (element) {
-              // Try to extract board ID and filename from various sources
-              const textContent = element.textContent || '';
-              
-              // Method 1: Extract filename from code block
-              requestedFilename = extractFilenameFromCodeBlock(textContent);
-              if (requestedFilename) {
-                vscodeLog(`📋 KANBAN: Found filename in code block: ${requestedFilename}`);
-              }
-              
-              // Method 2: Look for explicit board ID in comment
-              // ```kanban-board
-              // <!-- board: my-board-id -->
-              const boardIdMatch = textContent.match(/<!--\s*board:\s*([^-\s]+)\s*-->/);
-              if (boardIdMatch) {
-                boardId = boardIdMatch[1];
-                vscodeLog(`📋 KANBAN: Found explicit board ID: ${boardId}`);
-              } 
-              // Method 3: Generate board ID from position in document
-              else {
-                const allKanbanBlocks = Array.from(document.querySelectorAll('code.language-kanban-board'));
-                const currentIndex = allKanbanBlocks.indexOf(element);
-                if (currentIndex > 0) {
-                  boardId = `board-${currentIndex + 1}`;
-                  vscodeLog(`📋 KANBAN: Generated positional board ID: ${boardId}`);
-                }
-              }
-
-              // Check for backwards compatibility - existing JSON data in code block
-              try {
-                const trimmedContent = textContent.trim();
-                // Skip comment lines when parsing JSON
-                const jsonContent = trimmedContent.replace(/<!--.*?-->/gs, '').trim();
-                
-                if (jsonContent && jsonContent.startsWith('{')) {
-                  const parsedData = JSON.parse(jsonContent);
-                  if (parsedData.columns && Array.isArray(parsedData.columns)) {
-                    codeBlockData = parsedData;
-                    vscodeLog(`📋 KANBAN: Found backwards compatibility data in board '${boardId}'`);
-                  }
-                }
-              } catch (parseError) {
-                // Not JSON data, continue with normal flow
-                vscodeLog(`📋 KANBAN: No JSON data in code block for board '${boardId}', will load from file`);
-              }
-
-
-              // Listen for the kanban data response
-              const handleKanbanDataLoaded = (event: MessageEvent) => {
-                const message = event.data;
-                if (message.command === "kanban-data-loaded" && message.requestId === requestId) {
-                  window.removeEventListener("message", handleKanbanDataLoaded);
-                  
-                  if (message.error) {
-                    vscodeLog(`❌ KANBAN: Failed to load board '${boardId}': ${message.error}`);
-                    element.outerHTML = `<div class="kanban-error" style="
-                      color: var(--vscode-errorForeground, #f48771);
-                      background: var(--vscode-inputValidation-errorBackground, #5a1d1d);
-                      border: 1px solid var(--vscode-inputValidation-errorBorder, #be1100);
-                      padding: 12px;
-                      border-radius: 4px;
-                      margin: 8px 0;
-                    ">
-                      <strong>❌ Failed to load kanban board '${boardId}':</strong><br>
-                      ${message.error}
-                    </div>`;
-                    resolve(true);
-                    return;
-                  }
-
-                  vscodeLog(`✅ KANBAN: Successfully loaded board '${boardId}' from ${message.dataSource} (${message.filename})`);
-                  vscodeLog(`message.data: ${JSON.stringify(message.data)}`);
-
-                  // Create kanban board with loaded data and board identifier
-                  element.outerHTML = `<kanban-board 
-                    class="language-kanban-board" 
-                    data='${encodeURIComponent(JSON.stringify(message.data))}'
-                    data-board-id='${boardId}'
-                  ></kanban-board>`;
-
-                  // Setup event listeners for the newly created kanban board
-                  setTimeout(() => {
-                    setupKanbanEventListeners(code, node, boardId);
-                    
-                    // Show file info with filename and warnings
-                    if (message.filename) {
-                      updateCodeBlockWithFileInfo(code, message.filename, boardId);
-                    }
-                  }, 100);
-
-                  resolve(true);
-                }
-              };
-
-              window.addEventListener("message", handleKanbanDataLoaded);
-
-              // Request kanban data from VS Code with enhanced parameters
-              (window as any).vscode.postMessage({
-                command: "kanban-load-data",
-                requestId: requestId,
-                boardId: boardId,
-                codeBlockData: codeBlockData, // For backwards compatibility
-                filename: requestedFilename, // Filename from code block
-              });
-
-              // Set a timeout to avoid hanging indefinitely
-              setTimeout(() => {
-                window.removeEventListener("message", handleKanbanDataLoaded);
-                vscodeLog(`⚠️ KANBAN: Timeout loading board '${boardId}', using default data`);
-                
-                const defaultData = {
-                  columns: [
-                    { id: "1", title: "Todo", items: [] },
-                    { id: "2", title: "Doing", items: [] },
-                    { id: "3", title: "Done", items: [] }
-                  ]
-                };
-                
-                element.outerHTML = `<kanban-board 
-                  class="language-kanban-board" 
-                  data='${encodeURIComponent(JSON.stringify(defaultData))}'
-                  data-board-id='${boardId}'
-                ></kanban-board>`;
-                
-                // Setup event listeners for the newly created kanban board
-                setTimeout(() => {
-                  setupKanbanEventListeners(code, node, boardId);
-                  
-                  // Show timeout warning with proper assets path
-                  const markdownName = document.title.replace('.md', '') || 'document';
-                  const timeoutFilename = boardId === 'default' 
-                    ? `assets/${markdownName}.kanban.json`
-                    : `assets/${markdownName}.kanban.${boardId}.json`;
-                  updateCodeBlockWithFileInfo(code, timeoutFilename, boardId);
-                }, 100);
-
-                resolve(true);
-              }, 10000);
-
-              return; // Return early, resolve will be called by the message handler
-            }
-
-            if (node) {
-              // Setup event listeners for interactive mode
-              setTimeout(() => {
-                setupKanbanEventListeners(code, node, boardId);
-              }, 100);
-            } else {
-              // Disable the kanban-board if it's in preview mode
-              const kanbanBoard = code.querySelector("kanban-board");
-              if (kanbanBoard) {
-                kanbanBoard.setAttribute(
-                  "style",
-                  "pointer-events: none; cursor: not-allowed; user-select: none; opacity: 0.7;"
-                );
-                
-                // Add preview mode indicator
-                const previewIndicator = document.createElement('div');
-                previewIndicator.innerHTML = '👁️ Preview Mode (Read-only)';
-                previewIndicator.style.cssText = `
-                  position: absolute;
-                  top: 8px;
-                  right: 8px;
-                  background: var(--vscode-badge-background, #4d4d4d);
-                  color: var(--vscode-badge-foreground, #ffffff);
-                  padding: 4px 8px;
-                  border-radius: 4px;
-                  font-size: 11px;
-                  z-index: 1000;
-                `;
-                kanbanBoard.parentNode?.insertBefore(previewIndicator, kanbanBoard);
-              }
-            }
-            
-            resolve(true);
-          });
-        },
-      },
-    ],
+    // Use dynamic renderer system with actual document filename
+    customRenders: generateVditorCustomRenders(
+      (window as any).currentDocumentFilename || msg.documentFilename || 'untitled', 
+      window.vditor
+    ),
   });
 
   // (Removed legacy ensureCustomContextMenu fallback - replaced by global capture interceptor above)
@@ -1592,6 +1327,12 @@ window.addEventListener("message", (e) => {
 
   switch (msg.command) {
     case "update": {
+      // Store document filename for renderer system
+      if (msg.documentFilename) {
+        (window as any).currentDocumentFilename = msg.documentFilename;
+        console.log(`📄 MAIN: Stored document filename: ${msg.documentFilename}`);
+      }
+      
       if (msg.type === "init") {
         if (msg.options && msg.options.useVscodeThemeColor) {
           document.body.setAttribute("data-use-vscode-theme-color", "1");

@@ -63,7 +63,7 @@ export const toolbar = [
     tipPosition: "s",
     tip: "Find and Replace (Ctrl+H)",
     className: "find-replace",
-    icon: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"><path d="M10.25 2a8.25 8.25 0 0 1 6.34 13.53l5.69 5.69a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215l-5.69-5.69A8.25 8.25 0 1 1 10.25 2ZM3.5 10.25a6.75 6.75 0 1 0 13.5 0 6.75 6.75 0 0 0-13.5 0Z"></path><path d="M8.75 13.25a1 1 0 0 1 1-1h10.5a1 1 0 0 1 0 2H9.75a1 1 0 0 1-1-1Z"></path><path d="M14.25 8.25a1 1 0 0 1 1-1H21a.75.75 0 0 1 0 1.5h-4.25v4.25a.75.75 0 0 1-1.5 0V8.25Z"></path></svg>',
+    icon: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"><path d="M11 2a9 9 0 0 1 6.364 15.364l4.136 4.136a.75.75 0 1 1-1.06 1.06l-4.136-4.136A9 9 0 1 1 11 2zm0 16.5a7.5 7.5 0 1 0 0-15 7.5 7.5 0 0 0 0 15z"/><path d="M8.25 9.25a.75.75 0 0 1 .75-.75h3.19l-.72-.72a.75.75 0 0 1 1.06-1.06l2 2a.75.75 0 0 1 0 1.06l-2 2a.75.75 0 1 1-1.06-1.06l.72-.72H9a.75.75 0 0 1-.75-.75z"/><path d="M13.75 12.75A.75.75 0 0 1 13 13.5H9.81l.72.72a.75.75 0 0 1-1.06 1.06l-2-2a.75.75 0 0 1 0-1.06l2-2a.75.75 0 0 1 1.06 1.06l-.72.72H13a.75.75 0 0 1 .75.75z"/></svg>',
     click() {
       // This will be handled by the FindReplaceManager
       if ((window as any).findReplaceManager) {

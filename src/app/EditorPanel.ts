@@ -467,6 +467,21 @@ export class EditorPanel {
             await this.handleKanbanMigrateData(message);
             break;
           }
+          case "renderer-load-data": {
+            // Generic renderer data load
+            await this.handleRendererLoadData(message);
+            break;
+          }
+          case "renderer-save-data": {
+            // Generic renderer data save
+            await this.handleRendererSaveData(message);
+            break;
+          }
+          case "renderer-check-data": {
+            // Generic renderer data check
+            await this.handleRendererCheckData(message);
+            break;
+          }
         }
       },
       null,
@@ -534,10 +549,17 @@ export class EditorPanel {
     const md = this._document
       ? this._document.getText()
       : (await vscode.workspace.fs.readFile(this._uri)).toString();
+    
+    // Get the actual document filename for renderer file naming
+    const documentFilename = this._document 
+      ? NodePath.basename(this._document.fileName, NodePath.extname(this._document.fileName))
+      : NodePath.basename(this._fsPath, NodePath.extname(this._fsPath));
+    
     // const dir = NodePath.dirname(this._document.fileName)
     this._panel.webview.postMessage({
       command: "update",
       content: md,
+      documentFilename: documentFilename, // Add document filename for renderer system
       ...props,
     });
   }
@@ -1458,6 +1480,38 @@ export class EditorPanel {
   }
 
   /**
+   * Get the full file path for a generic renderer's data file
+   * Format: <document>.<rendererId>.<boardId>.json
+   */
+  private _getRendererFilePath(rendererId: string, boardId: string = 'default'): string {
+    const markdownPath = this._fsPath;
+    const dir = NodePath.dirname(markdownPath);
+    const basename = NodePath.basename(markdownPath, NodePath.extname(markdownPath));
+    const assetsDir = NodePath.join(dir, 'assets');
+    
+    if (boardId === 'default') {
+      return NodePath.join(assetsDir, `${basename}.${rendererId}.json`);
+    } else {
+      // For named boards, include the board ID in the filename
+      return NodePath.join(assetsDir, `${basename}.${rendererId}.${boardId}.json`);
+    }
+  }
+
+  /**
+   * Get the relative filename to display in the code block for generic renderers
+   */
+  private _getRendererDisplayFilename(rendererId: string, boardId: string = 'default'): string {
+    const markdownPath = this._fsPath;
+    const basename = NodePath.basename(markdownPath, NodePath.extname(markdownPath));
+    
+    if (boardId === 'default') {
+      return `assets/${basename}.${rendererId}.json`;
+    } else {
+      return `assets/${basename}.${rendererId}.${boardId}.json`;
+    }
+  }
+
+  /**
    * Ensure the assets directory exists
    */
   private async _ensureAssetsDirectory(): Promise<void> {
@@ -1551,6 +1605,205 @@ export class EditorPanel {
         success: false,
         boardId: message.boardId || 'default',
         filename: this._getKanbanDisplayFilename(message.boardId || 'default'),
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  }
+
+  /**
+   * Generic handler for renderer data loading
+   * Wraps the existing kanban file operations for any renderer type
+   */
+  private async handleRendererLoadData(message: any): Promise<void> {
+    try {
+      const { rendererId, boardId, instanceId, requestId } = message;
+      
+      // Use boardId (new protocol) or fallback to instanceId (old protocol)
+      const actualBoardId = boardId || instanceId || 'default';
+      
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`📥 RENDERER LOAD: Renderer '${rendererId}' boardId '${actualBoardId}' requesting data`);
+      }
+
+      // For now, all renderers use the same file structure as kanban
+      // Future: implement renderer-specific file handling
+      
+      // Ensure assets directory exists
+      await this._ensureAssetsDirectory();
+      
+      // Use renderer-specific file path (not kanban-specific)
+      const rendererFilePath = this._getRendererFilePath(rendererId, actualBoardId);
+      const displayFilename = this._getRendererDisplayFilename(rendererId, actualBoardId);
+      let rendererData;
+      let dataSource = 'unknown';
+
+      // Try to load from JSON file
+      try {
+        const content = await vscode.workspace.fs.readFile(vscode.Uri.file(rendererFilePath));
+        rendererData = JSON.parse(content.toString());
+        dataSource = 'json-file';
+        
+        if ((global as any).markdownEditorLog) {
+          (global as any).markdownEditorLog(`✅ RENDERER LOAD: Loaded '${rendererId}' data from: ${rendererFilePath}`);
+        }
+      } catch (fileError) {
+        // File doesn't exist, create with default data based on renderer type
+        if ((global as any).markdownEditorLog) {
+          (global as any).markdownEditorLog(`⚠️ RENDERER LOAD: File not found (${rendererFilePath}), will create on first save`);
+        }
+        
+        // Return null to let renderer create its own default data
+        rendererData = null;
+        dataSource = 'not-found';
+      }
+
+      // Send data back to webview
+      this._panel.webview.postMessage({
+        command: "renderer-data-loaded",
+        success: true,
+        rendererId: rendererId,
+        boardId: actualBoardId,
+        instanceId: actualBoardId, // For backwards compatibility
+        requestId: requestId,
+        data: rendererData,
+        filename: displayFilename,
+        dataSource: dataSource
+      });
+
+    } catch (error) {
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`❌ RENDERER LOAD: Failed to load data: ${error}`);
+      }
+
+      // Send error back to webview
+      this._panel.webview.postMessage({
+        command: "renderer-data-loaded",
+        success: false,
+        rendererId: message.rendererId,
+        instanceId: message.instanceId,
+        requestId: message.requestId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  }
+
+  /**
+   * Generic handler for renderer data saving
+   * Wraps the existing kanban file operations for any renderer type
+   */
+  private async handleRendererSaveData(message: any): Promise<void> {
+    try {
+      const { rendererId, boardId, instanceId, data, requestId } = message;
+      
+      // Use boardId (new protocol) or fallback to instanceId (old protocol)
+      const actualBoardId = boardId || instanceId || 'default';
+      
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`💾 RENDERER SAVE: Renderer '${rendererId}' boardId '${actualBoardId}' saving data`);
+      }
+
+      // Ensure assets directory exists
+      await this._ensureAssetsDirectory();
+      
+      // Use renderer-specific file path
+      const rendererFilePath = this._getRendererFilePath(rendererId, actualBoardId);
+      const displayFilename = this._getRendererDisplayFilename(rendererId, actualBoardId);
+
+      // Escape quotes in data to prevent JSON parsing issues
+      const escapedData = this._escapeKanbanQuotes(data);
+      const content = Buffer.from(JSON.stringify(escapedData, null, 2), 'utf8');
+      await vscode.workspace.fs.writeFile(vscode.Uri.file(rendererFilePath), content);
+
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`✅ RENDERER SAVE: Saved '${rendererId}' data to: ${rendererFilePath}`);
+      }
+
+      // Send confirmation back to webview
+      this._panel.webview.postMessage({
+        command: "renderer-data-saved",
+        success: true,
+        rendererId: rendererId,
+        boardId: actualBoardId,
+        instanceId: actualBoardId, // For backwards compatibility
+        requestId: requestId,
+        filename: displayFilename
+      });
+
+    } catch (error) {
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`❌ RENDERER SAVE: Failed to save data: ${error}`);
+      }
+
+      // Send error back to webview
+      this._panel.webview.postMessage({
+        command: "renderer-data-saved",
+        success: false,
+        rendererId: message.rendererId,
+        instanceId: message.instanceId,
+        requestId: message.requestId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  }
+
+  /**
+   * Generic handler for checking if renderer data file exists
+   */
+  private async handleRendererCheckData(message: any): Promise<void> {
+    try {
+      const { rendererId, boardId, instanceId, requestId } = message;
+      
+      // Use boardId (new protocol) or fallback to instanceId (old protocol)
+      const actualBoardId = boardId || instanceId || 'default';
+      
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`🔍 RENDERER CHECK: Checking if '${rendererId}' boardId '${actualBoardId}' data exists`);
+      }
+
+      const rendererFilePath = this._getRendererFilePath(rendererId, actualBoardId);
+      const displayFilename = this._getRendererDisplayFilename(rendererId, actualBoardId);
+      let exists = false;
+
+      try {
+        await vscode.workspace.fs.stat(vscode.Uri.file(rendererFilePath));
+        exists = true;
+        
+        if ((global as any).markdownEditorLog) {
+          (global as any).markdownEditorLog(`✅ RENDERER CHECK: File exists at ${rendererFilePath}`);
+        }
+      } catch (error) {
+        exists = false;
+        
+        if ((global as any).markdownEditorLog) {
+          (global as any).markdownEditorLog(`ℹ️ RENDERER CHECK: File does not exist at ${rendererFilePath}`);
+        }
+      }
+
+      // Send result back to webview
+      this._panel.webview.postMessage({
+        command: "renderer-data-checked",
+        success: true,
+        rendererId: rendererId,
+        boardId: actualBoardId,
+        instanceId: actualBoardId, // For backwards compatibility
+        requestId: requestId,
+        exists: exists,
+        filename: displayFilename,
+        filePath: rendererFilePath
+      });
+
+    } catch (error) {
+      if ((global as any).markdownEditorLog) {
+        (global as any).markdownEditorLog(`❌ RENDERER CHECK: Failed to check data: ${error}`);
+      }
+
+      // Send error back to webview
+      this._panel.webview.postMessage({
+        command: "renderer-data-checked",
+        success: false,
+        rendererId: message.rendererId,
+        instanceId: message.instanceId,
+        requestId: message.requestId,
         error: error instanceof Error ? error.message : String(error)
       });
     }

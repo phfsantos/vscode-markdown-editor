@@ -17,7 +17,7 @@ Easy-to-use Markdown editor, born to adapt to different application scenarios
 </p>
 
 <p align="center">
-<a href="https://github.com/Vanessa219/vditor/blob/master/README.md">中文</a> &nbsp;|&nbsp; <a href="https://b3log.org/vditor/demo/index.html">Demo</a>
+<a href="https://github.com/Vanessa219/vditor/blob/master/README.md">中文</a>  |  <a href="https://b3log.org/vditor/demo/index.html">Demo</a>
 </p>
 
 <p align="center">
@@ -172,34 +172,35 @@ Can be filled with element `id` or element itself` HTMLElement`
 
 #### options
 
-|   | Explanation | Default |
-| - | - | - |
-| i18n | I18n, more details see ITips | - |
-| undoDelay | Undo interval | - |
-| after | Callback method after editor asynchronous rendering is completed | - |
-| height | Total editor height | 'auto' |
-| minHeight | Editing area minimum height | - |
-| width | Total editor width, supports % | 'auto' |
-| placeholder | Tips when the input area is empty | '' |
-| lang | I18n type: de_DE, en_US, es_ES, fr_FR, ja_JP, ko_KR, pt_BR, ru_RU, sv_SE, vi_VN, zh_CN, zh_TW | 'zh_CN' |
-| input(value: string) | Trigger after input  | - |
-| focus(value: string) | Trigger after focusing | - |
-| blur(value: string) | Trigger after out of focus | - |
-| keydown(event: KeyboardEvent) | Trigger after keydown | - |
-| esc(value: string) | Trigger after pressing | - |
-| ctrlEnter(value: string) | Trigger after pressing <kbd>⌘/ctrl+enter</kbd> | - |
-| select(value: string) | Triggered after selecting text in the editor | - |
-| unSelect() | Triggered after un selecting text in the editor | - |
-| tab | <kbd>tab</kbd> key operation string, support `\ t` and any string | - |
-| typewriterMode | Whether to enable typewriter mode | false |
-| cdn | Configure self-built CDN address | `https://unpkg.com/vditor@${VDITOR_VERSION}` |
-| mode | Editing mode: sv, ir, wysiwyg | 'ir' |
-| debugger | Whether to display the log | false |
-| value | Editor initialization value | '' |
-| theme | Theme: classic, dark | 'classic' |
-| icon | icon theme: ant, material | 'ant' |
-| customRenders: {language: string, render: (element: HTMLElement, vditor: IVditor) => void}[] | Custom render | [] |
-| customWysiwygToolbar(type: TWYSISYGToolbar, element: HTMLElement): void | Customizing the toolbar in wysiwyg mode | - |
+
+|                                                                                              | Explanation                                                                                   | Default                                      |
+| -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| i18n                                                                                         | I18n, more details see ITips                                                                  | -                                            |
+| undoDelay                                                                                    | Undo interval                                                                                 | -                                            |
+| after                                                                                        | Callback method after editor asynchronous rendering is completed                              | -                                            |
+| height                                                                                       | Total editor height                                                                           | 'auto'                                       |
+| minHeight                                                                                    | Editing area minimum height                                                                   | -                                            |
+| width                                                                                        | Total editor width, supports %                                                                | 'auto'                                       |
+| placeholder                                                                                  | Tips when the input area is empty                                                             | ''                                           |
+| lang                                                                                         | I18n type: de_DE, en_US, es_ES, fr_FR, ja_JP, ko_KR, pt_BR, ru_RU, sv_SE, vi_VN, zh_CN, zh_TW | 'zh_CN'                                      |
+| input(value: string)                                                                         | Trigger after input                                                                           | -                                            |
+| focus(value: string)                                                                         | Trigger after focusing                                                                        | -                                            |
+| blur(value: string)                                                                          | Trigger after out of focus                                                                    | -                                            |
+| keydown(event: KeyboardEvent)                                                                | Trigger after keydown                                                                         | -                                            |
+| esc(value: string)                                                                           | Trigger after pressing                                                                        | -                                            |
+| ctrlEnter(value: string)                                                                     | Trigger after pressing<kbd>⌘/ctrl+enter</kbd>                                                | -                                            |
+| select(value: string)                                                                        | Triggered after selecting text in the editor                                                  | -                                            |
+| unSelect()                                                                                   | Triggered after un selecting text in the editor                                               | -                                            |
+| tab                                                                                          | <kbd>tab</kbd> key operation string, support `\ t` and any string                             | -                                            |
+| typewriterMode                                                                               | Whether to enable typewriter mode                                                             | false                                        |
+| cdn                                                                                          | Configure self-built CDN address                                                              | `https://unpkg.com/vditor@${VDITOR_VERSION}` |
+| mode                                                                                         | Editing mode: sv, ir, wysiwyg                                                                 | 'ir'                                         |
+| debugger                                                                                     | Whether to display the log                                                                    | false                                        |
+| value                                                                                        | Editor initialization value                                                                   | ''                                           |
+| theme                                                                                        | Theme: classic, dark                                                                          | 'classic'                                    |
+| icon                                                                                         | icon theme: ant, material                                                                     | 'ant'                                        |
+| customRenders: {language: string, render: (element: HTMLElement, vditor: IVditor) => void}[] | Custom render                                                                                 | []                                           |
+| customWysiwygToolbar(type: TWYSISYGToolbar, element: HTMLElement): void                      | Customizing the toolbar in wysiwyg mode                                                       | -                                            |
 
 #### options.toolbar
 
@@ -222,156 +223,171 @@ new Vditor('vditor', {
 })
 ```
 
-|   | Explanation | Default |
-| - | - | - |
-| name | Unique label | - |
-| icon | svg icon | - |
-| tip | Prompt | - |
-| tipPosition | Prompt location: 'n', 'ne', 'nw', 's', 'se', 'sw', 'w', 'e' | - |
-| hotkey | Shortcut keys, support 为<kbd>⇧⌘</kbd>/<kbd>⌘</kbd>/<kbd>⌥⌘</kbd> format configuration | - |
-| suffix | Insert the suffix in the editor | - |
-| prefix | Insert the prefix in the editor | - |
-| click(event: Event, vditor: IVditor) | Custom event triggered when button is clicked | - |
-| className | Style name | '' |
-| toolbar?: Array<options.toolbar> | sub menu | - |
+
+|                                      | Explanation                                                                                 | Default |
+| ------------------------------------ | ------------------------------------------------------------------------------------------- | ------- |
+| name                                 | Unique label                                                                                | -       |
+| icon                                 | svg icon                                                                                    | -       |
+| tip                                  | Prompt                                                                                      | -       |
+| tipPosition                          | Prompt location: 'n', 'ne', 'nw', 's', 'se', 'sw', 'w', 'e'                                 | -       |
+| hotkey                               | Shortcut keys, support 为<kbd>⇧⌘</kbd>/<kbd>⌘</kbd>/<kbd>⌥⌘</kbd> format configuration | -       |
+| suffix                               | Insert the suffix in the editor                                                             | -       |
+| prefix                               | Insert the prefix in the editor                                                             | -       |
+| click(event: Event, vditor: IVditor) | Custom event triggered when button is clicked                                               | -       |
+| className                            | Style name                                                                                  | ''      |
+| toolbar?: Array<options.toolbar>     | sub menu                                                                                    | -       |
 
 #### options.toolbarConfig
 
-|   | Explanation | Default |
-| - | - | - |
-| hide | Whether to hide the toolbar | false |
-| pin | Whether to pin the toolbar | false |
+
+|      | Explanation                 | Default |
+| ---- | --------------------------- | ------- |
+| hide | Whether to hide the toolbar | false   |
+| pin  | Whether to pin the toolbar  | false   |
 
 #### options.counter
 
-|   | Explanation | Default |
-| - | - | - |
-| enable | Whether to use counter | false |
-| after(length: number, counter: options.counter): void | After count callback | - |
-| max | max counter | - |
-| type | counter type: 'markdown', 'text' | 'markdown' |
+
+|                                                       | Explanation                      | Default    |
+| ----------------------------------------------------- | -------------------------------- | ---------- |
+| enable                                                | Whether to use counter           | false      |
+| after(length: number, counter: options.counter): void | After count callback             | -          |
+| max                                                   | max counter                      | -          |
+| type                                                  | counter type: 'markdown', 'text' | 'markdown' |
 
 #### options.cache
 
-|   | Explanation | Default |
-| - | - | - |
-| enable | Whether to use localStorage for caching | true |
-| id | Cache key, the first parameter is an element and when caching is enabled **required** | - |
-| after | cache callback (markdown: string) | - |
+
+|        | Explanation                                                                          | Default |
+| ------ | ------------------------------------------------------------------------------------ | ------- |
+| enable | Whether to use localStorage for caching                                              | true    |
+| id     | Cache key, the first parameter is an element and when caching is enabled**required** | -       |
+| after  | cache callback (markdown: string)                                                    | -       |
 
 #### options.comment
 
 ⚠️: Only supports wysiwyg mode
 
-|   | Explanation | Default |
-| - | - | - |
-| enable | Whether to enable comment mode | false |
-| add(id: string, text: string, commentsData: ICommentsData[]) | Add comment callback | - |
-| remove(ids: string[]) | delete comment callback | - |
-| scroll(top: number) | Scroll callback | - |
-| adjustTop(commentsData: ICommentsData[]) | Adapt the comment height | - |
+
+|                                                              | Explanation                    | Default |
+| ------------------------------------------------------------ | ------------------------------ | ------- |
+| enable                                                       | Whether to enable comment mode | false   |
+| add(id: string, text: string, commentsData: ICommentsData[]) | Add comment callback           | -       |
+| remove(ids: string[])                                        | delete comment callback        | -       |
+| scroll(top: number)                                          | Scroll callback                | -       |
+| adjustTop(commentsData: ICommentsData[])                     | Adapt the comment height       | -       |
 
 #### options.preview
 
-|   | Explanation | Default |
-| - | - | - |
-| delay | Preview debounce millisecond interval | 1000 |
-| maxWidth | Preview area maximum width | 800 |
-| mode | Display mode: both, editor | 'both' |
-| url | md parsing request | - |
-| parse | Preview callback (element: HTMLElement) | - |
-| transform | Callback before rendering (html: string): string | - |
+
+|           | Explanation                                      | Default |
+| --------- | ------------------------------------------------ | ------- |
+| delay     | Preview debounce millisecond interval            | 1000    |
+| maxWidth  | Preview area maximum width                       | 800     |
+| mode      | Display mode: both, editor                       | 'both'  |
+| url       | md parsing request                               | -       |
+| parse     | Preview callback (element: HTMLElement)          | -       |
+| transform | Callback before rendering (html: string): string | -       |
 
 #### options.preview.theme
 
-|   | Explanation | Default |
-| - | - | - |
-| current | current Markdown Theme | "light" |
-| list | Choose Markdown Theme List | { "ant-design": "Ant Design", dark: "Dark", light: "Light", wechat: "WeChat" } |
-| path | CSS Path | `https://unpkg.com/vditor@${VDITOR_VERSION}/dist/css/content-theme` |
+
+|         | Explanation                | Default                                                                        |
+| ------- | -------------------------- | ------------------------------------------------------------------------------ |
+| current | current Markdown Theme     | "light"                                                                        |
+| list    | Choose Markdown Theme List | { "ant-design": "Ant Design", dark: "Dark", light: "Light", wechat: "WeChat" } |
+| path    | CSS Path                   | `https://unpkg.com/vditor@${VDITOR_VERSION}/dist/css/content-theme`            |
 
 #### options.preview.hljs
 
-|   | Explanation | Default |
-| - | - | - |
-| defaultLang | The language is used by default when no language is specified | '' |
-| enable | Whether to enable code syntax highlighting | true |
-| style | For optional values, see [Chroma](https://xyproto.github.io/splash/docs/longer/all.html) | `github` |
-| lineNumber | Whether to enable line number | false |
-| langs | Custom languages | [CODE_LANGUAGES](https://github.com/Vanessa219/vditor/blob/53ca8f9a0e511b37b5dae7c6b15eb933e9e02ccd/src/ts/constants.ts#L20) |
-| renderMenu(code: HTMLElement, copy: HTMLElement) | render menu button | - |
+
+|                                                  | Explanation                                                                             | Default                                                                                                                      |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| defaultLang                                      | The language is used by default when no language is specified                           | ''                                                                                                                           |
+| enable                                           | Whether to enable code syntax highlighting                                              | true                                                                                                                         |
+| style                                            | For optional values, see[Chroma](https://xyproto.github.io/splash/docs/longer/all.html) | `github`                                                                                                                     |
+| lineNumber                                       | Whether to enable line number                                                           | false                                                                                                                        |
+| langs                                            | Custom languages                                                                        | [CODE_LANGUAGES](https://github.com/Vanessa219/vditor/blob/53ca8f9a0e511b37b5dae7c6b15eb933e9e02ccd/src/ts/constants.ts#L20) |
+| renderMenu(code: HTMLElement, copy: HTMLElement) | render menu button                                                                      | -                                                                                                                            |
 
 #### options.preview.markdown
 
-|   | Explanation | Default |
-| - | - | - |
-| autoSpace | Autospace | false |
-| gfmAutoLink | Automatic link | true |
-| fixTermTypo | Automatically correct terminology | false |
-| toc | Insert Table of Contents | false |
-| footnotes | Footnotes | true |
-| codeBlockPreview | Whether to render code blocks in wysiwyg and ir modes | true |
-| mathBlockPreview | Whether to render math blocks in wysiwyg and ir modes | true |
-| paragraphBeginningSpace | Two spaces before the paragraph | false |
-| sanitize | Use XSS | true |
-| listStyle | add data-style attribute | false |
-| linkBase | link relative path prefix | '' |
-| linkPrefix | link prefix | '' |
-| mark | enable mark tag | false |
-| sup | superscript | false |
-| sub | subscript | false |
+
+|                         | Explanation                                           | Default |
+| ----------------------- | ----------------------------------------------------- | ------- |
+| autoSpace               | Autospace                                             | false   |
+| gfmAutoLink             | Automatic link                                        | true    |
+| fixTermTypo             | Automatically correct terminology                     | false   |
+| toc                     | Insert Table of Contents                              | false   |
+| footnotes               | Footnotes                                             | true    |
+| codeBlockPreview        | Whether to render code blocks in wysiwyg and ir modes | true    |
+| mathBlockPreview        | Whether to render math blocks in wysiwyg and ir modes | true    |
+| paragraphBeginningSpace | Two spaces before the paragraph                       | false   |
+| sanitize                | Use XSS                                               | true    |
+| listStyle               | add data-style attribute                              | false   |
+| linkBase                | link relative path prefix                             | ''      |
+| linkPrefix              | link prefix                                           | ''      |
+| mark                    | enable mark tag                                       | false   |
+| sup                     | superscript                                           | false   |
+| sub                     | subscript                                             | false   |
 
 #### options.preview.math
 
-|   | Explanation | Default |
-| - | - | - |
-| inlineDigit | Whether numbers are allowed after the inline math formula starting with $ | false |
-| macros | Macro definition passed in when rendering with MathJax | {} |
-| engine | Math formula rendering engine: KaTeX, MathJax | 'KaTeX' |
-| mathJaxOptions | Parameters when the math formula rendering engine is MathJax | - |
+
+|                | Explanation                                                               | Default |
+| -------------- | ------------------------------------------------------------------------- | ------- |
+| inlineDigit    | Whether numbers are allowed after the inline math formula starting with $ | false   |
+| macros         | Macro definition passed in when rendering with MathJax                    | {}      |
+| engine         | Math formula rendering engine: KaTeX, MathJax                             | 'KaTeX' |
+| mathJaxOptions | Parameters when the math formula rendering engine is MathJax              | -       |
 
 #### options.preview.actions
 
 Default: ["desktop", "tablet", "mobile", "mp-wechat", "zhihu"]
 
-|   | Explanation | Default |
-| - | - | - |
-| key | Custom action ID, not Empty. | - |
-| tooltip | Tooltip | - |
-| text | Button Text | - |
-| className | Button Class | - |
-| click(key: string) | Click Event | - |
+
+|                    | Explanation                  | Default |
+| ------------------ | ---------------------------- | ------- |
+| key                | Custom action ID, not Empty. | -       |
+| tooltip            | Tooltip                      | -       |
+| text               | Button Text                  | -       |
+| className          | Button Class                 | -       |
+| click(key: string) | Click Event                  | -       |
 
 #### options.preview.render.media
 
-|        | Explanation        | Default  |
-|--------|-----------|------|
-| enable | Whether to enable multimedia render | true |
+
+|        | Explanation                         | Default |
+| ------ | ----------------------------------- | ------- |
+| enable | Whether to enable multimedia render | true    |
 
 #### options.image
 
-|   | Explanation | Default |
-| - | - | - |
-| isPreview | Whether to preview the picture | true |
-| preview(bom: Element) => void | Image preview processing | - |
+
+|                               | Explanation                    | Default |
+| ----------------------------- | ------------------------------ | ------- |
+| isPreview                     | Whether to preview the picture | true    |
+| preview(bom: Element) => void | Image preview processing       | -       |
 
 #### options.link
 
-|   | Explanation | Default |
-| - | - | - |
-| isOpen | Whether to open the link address | true |
-| click(bom: Element) => void | Click link event | - |
+
+|                             | Explanation                      | Default |
+| --------------------------- | -------------------------------- | ------- |
+| isOpen                      | Whether to open the link address | true    |
+| click(bom: Element) => void | Click link event                 | -       |
 
 #### options.hint
 
-|   | Explanation | Default |
-| - | - | - |
-| parse | Whether to perform md parsing | true |
-| delay | Tip debounce millisecond interval | 200 |
-| emoji | The default emoji can be selected from [lute/emoji_map](https://github.com/88250/lute/blob/master/parse/emoji_map.go), or can be customized | { '+1': '👍', '-1': '👎', 'heart': '❤️', 'cold_sweat': '😰' } |
-| emojiTail | Common emoji | - |
-| emojiPath | Emoji path | `https://unpkg.com/vditor@${VDITOR_VERSION}/dist/images/emoji` |
-| extend: IHintExtend[] | @/# and other keyword auto-completion expansion | [] |
+
+|                       | Explanation                                                                                                                                | Default                                                         |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------- |
+| parse                 | Whether to perform md parsing                                                                                                              | true                                                            |
+| delay                 | Tip debounce millisecond interval                                                                                                          | 200                                                             |
+| emoji                 | The default emoji can be selected from[lute/emoji_map](https://github.com/88250/lute/blob/master/parse/emoji_map.go), or can be customized | { '+1': '👍', '-1': '👎', 'heart': '❤️', 'cold_sweat': '😰' } |
+| emojiTail             | Common emoji                                                                                                                               | -                                                               |
+| emojiPath             | Emoji path                                                                                                                                 | `https://unpkg.com/vditor@${VDITOR_VERSION}/dist/images/emoji`  |
+| extend: IHintExtend[] | @/# and other keyword auto-completion expansion                                                                                            | []                                                              |
 
 ```ts
 interface IHintData {
@@ -423,94 +439,100 @@ xhr.send(JSON.stringify({url: src})); // src is the address of the image outside
 }
 ```
 
-|   | Explanation | Default |
-| - | - | - |
-| xhr | XMLHttpRequest used when uploading | - |
-| url | Upload url, empty will not trigger upload related events | '' |
-| max | The largest upload file Byte | 10 * 1024 * 1024 |
-| linkToImgUrl | When the clipboard contains the image address, use this url to re-upload | '' |
-| linkToImgCallback | Callback when uploading picture address | - |
-| linkToImgFormat | Transform the data returned by the server to meet the built-in data structure (responseText: string): string | - |
-| success | Upload success callback (editor: HTMLPreElement, msg: string) | - |
-| error | Upload failure callback (msg: string) | - |
-| token | CORS upload verification, header is X-Upload-Token | - |
-| withCredentials | Cross-site access control | false |
-| headers | Request header settings | - |
-| filename | Sanitizing file names (name: string): string \| name => name.replace(/\W/g, '') |
-| accept | File upload type, same as [input accept](https://www.w3schools.com/tags/att_input_accept.asp) | - |
-| validate | Check, return true if successful, otherwise return error message (files: File[]) => string \| boolean | - |
-| handler(files: File[]) => string \| null \| Promise<string> \| Promise<null> | Custom upload, return error message when an error occurs | - |
-| format | Transform the data returned by the server to meet the built-in data structure (files: File[], responseText: string): string | - |
-| file(files: File[]): File[] \| Promise<File[]> | Process the uploaded file before return. | - |
-| cancel(files: File[]): void | Cancel uploading a file. | - |
-| setHeaders | Use the return value to set the header before uploading (): { [key: string]: string } | - |
-| extraData | Append data to FormData { [key: string]: string | Blob } | - |
-| multiple | Allow multiple file uploads | true |
-| fieldName | The key of field name | file[] |
-| renderLinkDest?(vditor: IVditor, node: ILuteNode, entering: boolean): [string, number] | Process the image address in the clipboard | '' |
+
+|                                                                                        | Explanation                                                                                                                 | Default          |
+| -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| xhr                                                                                    | XMLHttpRequest used when uploading                                                                                          | -                |
+| url                                                                                    | Upload url, empty will not trigger upload related events                                                                    | ''               |
+| max                                                                                    | The largest upload file Byte                                                                                                | 10 * 1024 * 1024 |
+| linkToImgUrl                                                                           | When the clipboard contains the image address, use this url to re-upload                                                    | ''               |
+| linkToImgCallback                                                                      | Callback when uploading picture address                                                                                     | -                |
+| linkToImgFormat                                                                        | Transform the data returned by the server to meet the built-in data structure (responseText: string): string                | -                |
+| success                                                                                | Upload success callback (editor: HTMLPreElement, msg: string)                                                               | -                |
+| error                                                                                  | Upload failure callback (msg: string)                                                                                       | -                |
+| token                                                                                  | CORS upload verification, header is X-Upload-Token                                                                          | -                |
+| withCredentials                                                                        | Cross-site access control                                                                                                   | false            |
+| headers                                                                                | Request header settings                                                                                                     | -                |
+| filename                                                                               | Sanitizing file names (name: string): string\| name => name.replace(/\W/g, '')                                              |                  |
+| accept                                                                                 | File upload type, same as[input accept](https://www.w3schools.com/tags/att_input_accept.asp)                                | -                |
+| validate                                                                               | Check, return true if successful, otherwise return error message (files: File[]) => string\| boolean                        | -                |
+| handler(files: File[]) => string\| null \| Promise<string> \| Promise<null>            | Custom upload, return error message when an error occurs                                                                    | -                |
+| format                                                                                 | Transform the data returned by the server to meet the built-in data structure (files: File[], responseText: string): string | -                |
+| file(files: File[]): File[]\| Promise<File[]>                                          | Process the uploaded file before return.                                                                                    | -                |
+| cancel(files: File[]): void                                                            | Cancel uploading a file.                                                                                                    | -                |
+| setHeaders                                                                             | Use the return value to set the header before uploading (): { [key: string]: string }                                       | -                |
+| extraData                                                                              | Append data to FormData { [key: string]: string                                                                             | Blob }           |
+| multiple                                                                               | Allow multiple file uploads                                                                                                 | true             |
+| fieldName                                                                              | The key of field name                                                                                                       | file[]           |
+| renderLinkDest?(vditor: IVditor, node: ILuteNode, entering: boolean): [string, number] | Process the image address in the clipboard                                                                                  | ''               |
 
 #### options.resize
 
-|   | Explanation | Default |
-| - | - | - |
-| enable | Whether to support size drag | false |
-| position | Drag column position: 'top', 'bottom' | 'bottom' |
-| after | Callback when dragging ends (height: number) | - |
+
+|          | Explanation                                  | Default  |
+| -------- | -------------------------------------------- | -------- |
+| enable   | Whether to support size drag                 | false    |
+| position | Drag column position: 'top', 'bottom'        | 'bottom' |
+| after    | Callback when dragging ends (height: number) | -        |
 
 #### options.classes
 
-|   | Explanation | Default |
-| - | - | - |
-| preview | Preview on the element className | '' |
+
+|         | Explanation                      | Default |
+| ------- | -------------------------------- | ------- |
+| preview | Preview on the element className | ''      |
 
 #### options.fullscreen
 
-|   | Explanation | Default |
-| - | - | - |
-| index | fullscreen index | 90 |
+
+|       | Explanation      | Default |
+| ----- | ---------------- | ------- |
+| index | fullscreen index | 90      |
 
 #### options.outline
 
-|   | Explanation | Default |
-| - | - | - |
-| enable | Initialize whether to show outline | false |
-| position | Outline location: 'left', 'right' | 'left' |
+
+|          | Explanation                        | Default |
+| -------- | ---------------------------------- | ------- |
+| enable   | Initialize whether to show outline | false   |
+| position | Outline location: 'left', 'right'  | 'left'  |
 
 #### methods
 
-|   | Explanation |
-| - | - |
-| exportJSON(markdown: string) | Get JSON by markdown |
-| getValue() | Get editor content |
-| getHTML() | Get preview area content |
-| insertValue(value: string, render = true) | Insert content at the focus and markdown rendering by default |
-| focus() | Focus on the editor |
-| blur() | Make the editor out of focus |
-| disabled() | Disable editor |
-| enable() | Unedit editor |
-| getSelection(): string | Returns the selected string |
-| setValue(markdown: string, clearStack = false) | Set editor content |
-| clearStack() | remove undo and redo stack |
-| renderPreview(value?: string) | Set preview area content |
-| getCursorPosition():{top: number, left: number} | Get focus position |
-| deleteValue() | Delete selected content |
-| updateValue(value: string) | Update selected content |
-| isUploading() | Whether the upload is still in progress |
-| clearCache() | clear cache |
-| disabledCache() | Disable cache |
-| enableCache() | Enable caching |
-| html2md(value: string) | HTML to md |
-| tip(text: string, time: number) | notification. time is 0 will always display |
-| setPreviewMode(mode: "both" \| "editor") | Set preview mode |
-| setTheme(theme: "dark" | "classic", contentTheme?: string, codeTheme?: string, contentThemePath?: string) | Set theme |
-| getCurrentMode(): string | Get the editor's current editing mode |
-| destroy() | Destroy the vditor |
-| getCommentIds(): {id: string, top: number}[] | Get all comments |
-| hlCommentIds(ids: string[]) | Highlight comment by Ids |
-| unHlCommentIds(ids: string[]) | Cancel highlight comment by Ids |
-| removeCommentIds(removeIds: string[]) | Remove comment by Ids |
-| updateToolbarConfig(config: {hide?: boolean, pin?: boolean}) | Update toolbar config |
-| insertEmptyBlock(position: InsertPosition) | Insert empty block |
+
+|                                                              | Explanation                                                                      |
+| ------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| exportJSON(markdown: string)                                 | Get JSON by Markdown                                                             |
+| getValue()                                                   | Get editor content                                                               |
+| getHTML()                                                    | Get preview area content                                                         |
+| insertValue(value: string, render = true)                    | Insert content at the focus and Markdown rendering by default                    |
+| focus()                                                      | Focus on the editor                                                              |
+| blur()                                                       | Make the editor out of focus                                                     |
+| disabled()                                                   | Disable editor                                                                   |
+| enable()                                                     | Unedit editor                                                                    |
+| getSelection(): string                                       | Returns the selected string                                                      |
+| setValue(markdown: string, clearStack = false)               | Set editor content                                                               |
+| clearStack()                                                 | remove undo and redo stack                                                       |
+| renderPreview(value?: string)                                | Set preview area content                                                         |
+| getCursorPosition():{top: number, left: number}              | Get focus position                                                               |
+| deleteValue()                                                | Delete selected content                                                          |
+| updateValue(value: string)                                   | Update selected content                                                          |
+| isUploading()                                                | Whether the upload is still in progress                                          |
+| clearCache()                                                 | clear cache                                                                      |
+| disabledCache()                                              | Disable cache                                                                    |
+| enableCache()                                                | Enable caching                                                                   |
+| html2md(value: string)                                       | HTML to md                                                                       |
+| tip(text: string, time: number)                              | notification. time is 0 will always display                                      |
+| setPreviewMode(mode: "both"\| "editor")                      | Set preview mode                                                                 |
+| setTheme(theme: "dark"                                       | "classic", contentTheme?: string, codeTheme?: string, contentThemePath?: string) |
+| getCurrentMode(): string                                     | Get the editor's current editing mode                                            |
+| destroy()                                                    | Destroy the vditor                                                               |
+| getCommentIds(): {id: string, top: number}[]                 | Get all comments                                                                 |
+| hlCommentIds(ids: string[])                                  | Highlight comment by Ids                                                         |
+| unHlCommentIds(ids: string[])                                | Cancel highlight comment by Ids                                                  |
+| removeCommentIds(removeIds: string[])                        | Remove comment by Ids                                                            |
+| updateToolbarConfig(config: {hide?: boolean, pin?: boolean}) | Update toolbar config                                                            |
+| insertEmptyBlock(position: InsertPosition)                   | Insert empty block                                                               |
 
 #### static methods
 
@@ -553,29 +575,30 @@ options?: IPreviewOptions {
 
 * ⚠️`method.min.js` and` index.min.js` cannot be introduced at the same time
 
-|   | Explanation |
-| - | - |
-| previewImage(oldImgElement: HTMLImageElement, lang: keyof II18n = "zh_CN", theme = "classic") | Click on the image to preview |
-| mermaidRender(element: HTMLElement, cdn = options.cdn, theme = options.theme) | flowchart/sequence diagram/gantt diagram rendering |
-| SMILESRender(element: HTMLElement, cdn = options.cdn, theme = options.theme) | the structure of chemical |
-| markmapRender(element: HTMLElement, cdn = options.cdn) | markdown Mind Map |
-| flowchartRender(element: HTMLElement, cdn = options.cdn) | flowchart.js rendering |
-| codeRender(element: HTMLElement, option?: IHljs) | Add a copy button for the code block in element |
-| chartRender(element: (HTMLElement\| Document) = document, cdn = options.cdn, theme = options.theme) | Chart rendering |
-| plantumlRender(element: (HTMLElement\| Document) = document, cdn = options.cdn) | plantuml rendering |
-| abcRender(element: (HTMLElement\| Document) = document, cdn = options.cdn) | Stave rendering |
-| outlineRender(contentElement: HTMLElement, targetElement: Element, vditor?: IVditor) | Outline rendering |
-| md2html(mdText: string, options?: IPreviewOptions): Promise\<string> | Markdown text is converted to HTML, this method needs to use [asynchronous programming](https://ld246.com/article/1546828434083?r=Vanessa#toc_h3_1) |
-| preview(previewElement: HTMLDivElement, markdown: string, options?: IPreviewOptions) | Page Markdown article rendering |
-| highlightRender(hljsOption?: IHljs, element?: HTMLElement \| Document, cdn = options.cdn) | Highlight the code block in element |
-| mediaRender(element: HTMLElement) | Rendering as [specific link](https://ld246.com/article/1589813914768) as video, audio, embedded iframe |
-| mathRender(element: HTMLElement, options?: {cdn?: string, math?: IMath}) | Render math formulas |
-| speechRender(element: HTMLElement, lang?: (keyof II18nLang)) | Read the selected text |
-| graphvizRender(element: HTMLElement, cdn?: string) | Render graphviz |
-| lazyLoadImageRender(element: (HTMLElement \| Document) = document) | Render lazy load image |
-| setCodeTheme (codeTheme: string, cdn = options.cdn)  | update code theme |
-| setContentTheme (contentTheme: string, path: string)  | update content theme |
-| mindmapRender (element: (HTMLElement \| Document) = document, cdn = options.cdn, theme = options.theme)  | Render mind map |
+
+|                                                                                                        | Explanation                                                                                                                                        |
+| ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| previewImage(oldImgElement: HTMLImageElement, lang: keyof II18n = "zh_CN", theme = "classic")          | Click on the image to preview                                                                                                                      |
+| mermaidRender(element: HTMLElement, cdn = options.cdn, theme = options.theme)                          | flowchart/sequence diagram/gantt diagram rendering                                                                                                 |
+| SMILESRender(element: HTMLElement, cdn = options.cdn, theme = options.theme)                           | the structure of chemical                                                                                                                          |
+| markmapRender(element: HTMLElement, cdn = options.cdn)                                                 | Markdown Mind Map                                                                                                                                  |
+| flowchartRender(element: HTMLElement, cdn = options.cdn)                                               | flowchart.js rendering                                                                                                                             |
+| codeRender(element: HTMLElement, option?: IHljs)                                                       | Add a copy button for the code block in element                                                                                                    |
+| chartRender(element: (HTMLElement\| Document) = document, cdn = options.cdn, theme = options.theme)    | Chart rendering                                                                                                                                    |
+| plantumlRender(element: (HTMLElement\| Document) = document, cdn = options.cdn)                        | plantuml rendering                                                                                                                                 |
+| abcRender(element: (HTMLElement\| Document) = document, cdn = options.cdn)                             | Stave rendering                                                                                                                                    |
+| outlineRender(contentElement: HTMLElement, targetElement: Element, vditor?: IVditor)                   | Outline rendering                                                                                                                                  |
+| md2html(mdText: string, options?: IPreviewOptions): Promise\<string>                                   | Markdown text is converted to HTML, this method needs to use[asynchronous programming](https://ld246.com/article/1546828434083?r=Vanessa#toc_h3_1) |
+| preview(previewElement: HTMLDivElement, markdown: string, options?: IPreviewOptions)                   | Page Markdown article rendering                                                                                                                    |
+| highlightRender(hljsOption?: IHljs, element?: HTMLElement\| Document, cdn = options.cdn)               | Highlight the code block in element                                                                                                                |
+| mediaRender(element: HTMLElement)                                                                      | Rendering as[specific link](https://ld246.com/article/1589813914768) as video, audio, embedded iframe                                              |
+| mathRender(element: HTMLElement, options?: {cdn?: string, math?: IMath})                               | Render math formulas                                                                                                                               |
+| speechRender(element: HTMLElement, lang?: (keyof II18nLang))                                           | Read the selected text                                                                                                                             |
+| graphvizRender(element: HTMLElement, cdn?: string)                                                     | Render graphviz                                                                                                                                    |
+| lazyLoadImageRender(element: (HTMLElement\| Document) = document)                                      | Render lazy load image                                                                                                                             |
+| setCodeTheme (codeTheme: string, cdn = options.cdn)                                                    | update code theme                                                                                                                                  |
+| setContentTheme (contentTheme: string, path: string)                                                   | update content theme                                                                                                                               |
+| mindmapRender (element: (HTMLElement\| Document) = document, cdn = options.cdn, theme = options.theme) | Render mind map                                                                                                                                    |
 
 ## 🏗 Developer Guide
 
