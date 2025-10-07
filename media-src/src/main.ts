@@ -13,6 +13,9 @@ import {
 import { merge } from "lodash";
 import Vditor from "vditor";
 import { format, set } from "date-fns";
+// Import predictionary UMD module (bundled with extension)
+// This will execute the UMD module and register Predictionary on window
+require("predictionary/dist/predictionary.min.js");
 import "vditor/dist/index.css";
 import { t, lang } from "./lang";
 import { toolbar } from "./toolbar";
@@ -591,21 +594,32 @@ vscodeLog("Main.ts: Starting VS Code integration improvements...");
 initializeRendererSystem();
 
 function initVditor(msg) {
-  const predictionary =
-    (window as any).Predictionary && (window as any).Predictionary.instance();
+  // Predictionary is loaded as UMD module and available on window
+  const predictionary = (window as any).Predictionary?.instance();
   const dictionaryKey = "en_US";
-  predictionary.parseWords(words, {
-    elementSeparator: "\n",
-    rankSeparator: " ",
-    wordPosition: 2,
-    rankPosition: 0,
-    addToDictionary: dictionaryKey,
-  });
-  predictionary.useDictionaries([dictionaryKey]);
+  
+  // Debug: Check if Predictionary is available
+  if (!predictionary) {
+    console.warn('⚠️ Predictionary not available - autocomplete hints will be disabled');
+    console.log('window.Predictionary:', (window as any).Predictionary);
+  }
+  
+  // Only configure predictionary if it's available
+  if (predictionary) {
+    console.log('✅ Predictionary loaded successfully');
+    predictionary.parseWords(words, {
+      elementSeparator: "\n",
+      rankSeparator: " ",
+      wordPosition: 2,
+      rankPosition: 0,
+      addToDictionary: dictionaryKey,
+    });
+    predictionary.useDictionaries([dictionaryKey]);
+  }
   let inputTimer;
   let defaultOptions: any = {
     hint: {
-      extend: [
+      extend: predictionary ? [
         {
           key: "{{",
           hint: (word) => {
@@ -614,7 +628,7 @@ function initVditor(msg) {
               .map((w) => ({ html: w, value: w }));
           },
         },
-      ],
+      ] : [],
     },
   };
   if (msg.theme === "dark") {

@@ -49,14 +49,6 @@
   --ir-bracket-color: #287bde;
   --ir-paren-color: #6a8759;
 }
-@-webkit-keyframes tooltip-appear {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
 @keyframes tooltip-appear {
   from {
     opacity: 0;
@@ -114,13 +106,9 @@
 .vditor-tooltipped:focus::after {
   display: inline-block;
   text-decoration: none;
-  -webkit-animation-name: tooltip-appear;
   animation-name: tooltip-appear;
-  -webkit-animation-duration: 0.15s;
   animation-duration: 0.15s;
-  -webkit-animation-fill-mode: forwards;
   animation-fill-mode: forwards;
-  -webkit-animation-timing-function: ease-in;
   animation-timing-function: ease-in;
 }
 .vditor-tooltipped__s::after,
@@ -207,16 +195,6 @@
     content: none;
   }
 }
-@-webkit-keyframes scale-in {
-  0% {
-    opacity: 0;
-    transform: scale(0.5);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
 @keyframes scale-in {
   0% {
     opacity: 0;
@@ -238,21 +216,16 @@
   display: none;
   -webkit-user-select: none;
   -moz-user-select: none;
-  -ms-user-select: none;
   user-select: none;
   max-width: 320px;
   min-width: 80px;
-  -webkit-animation-duration: 0.15s;
   animation-duration: 0.15s;
-  -webkit-animation-name: scale-in;
   animation-name: scale-in;
-  -webkit-animation-timing-function: cubic-bezier(0.2, 0, 0.13, 1.5);
   animation-timing-function: cubic-bezier(0.2, 0, 0.13, 1.5);
   color: var(--toolbar-icon-color);
 }
 .vditor-panel--none {
   padding: 0;
-  -webkit-animation: none;
   animation: none;
   min-width: auto;
   max-width: none;
@@ -321,7 +294,6 @@
   line-height: 1;
 }
 .vditor-toolbar--pin {
-  position: -webkit-sticky;
   position: sticky;
   top: 0;
   z-index: 1;
@@ -466,15 +438,6 @@
     color: var(--toolbar-icon-hover-color);
   }
 }
-@-webkit-keyframes slideInDown {
-  from {
-    transform: translate3d(0, -100%, 0);
-    visibility: visible;
-  }
-  to {
-    transform: translate3d(0, 0, 0);
-  }
-}
 @keyframes slideInDown {
   from {
     transform: translate3d(0, -100%, 0);
@@ -588,7 +551,6 @@
   font-size: 12px;
   -webkit-user-select: none;
   -moz-user-select: none;
-  -ms-user-select: none;
   user-select: none;
   float: right;
   margin: 8px 3px 0 0;
@@ -602,7 +564,6 @@
   cursor: row-resize;
   -webkit-user-select: none;
   -moz-user-select: none;
-  -ms-user-select: none;
   user-select: none;
   position: absolute;
   width: 100%;
@@ -648,16 +609,13 @@
   position: absolute;
   font-size: 12px;
   top: 10px;
-  -webkit-animation-duration: 0.15s;
   animation-duration: 0.15s;
-  -webkit-animation-fill-mode: both;
   animation-fill-mode: both;
   left: 50%;
   z-index: 5;
 }
 .vditor-tip--show {
   display: block;
-  -webkit-animation-name: slideInDown;
   animation-name: slideInDown;
 }
 .vditor-tip__content {
@@ -718,7 +676,6 @@
   margin-left: 24px;
   -webkit-user-select: none;
   -moz-user-select: none;
-  -ms-user-select: none;
   user-select: none;
   color: var(--toolbar-icon-color);
 }
@@ -1035,6 +992,7 @@
 .vditor-reset .language-mindmap,
 .vditor-reset .language-plantuml,
 .vditor-reset .language-mermaid,
+.vditor-reset .language-smiles,
 .vditor-reset .language-markmap,
 .vditor-reset .language-abc,
 .vditor-reset .language-flowchart,
@@ -1044,6 +1002,11 @@
 .vditor-reset .language-math mjx-container:focus {
   outline: none;
   cursor: context-menu;
+}
+.vditor-reset .language-math .katex-display > .katex > .katex-html > .tag {
+  display: inline-block;
+  font-size: 1.21rem;
+  right: 2px;
 }
 .vditor-reset .language-echarts,
 .vditor-reset .language-mindmap {
@@ -1146,12 +1109,11 @@
 .vditor-linenumber__rows {
   position: absolute;
   pointer-events: none;
-  top: 0.5em;
+  top: 1em;
   left: 0;
   width: 3em;
   -webkit-user-select: none;
   -moz-user-select: none;
-  -ms-user-select: none;
   user-select: none;
   counter-reset: linenumber;
 }
@@ -1283,7 +1245,6 @@
   margin-bottom: 16px;
   -webkit-user-select: text;
   -moz-user-select: text;
-  -ms-user-select: text;
   user-select: text;
   color: #4285f4;
 }
@@ -2248,6 +2209,155 @@ body[data-use-vscode-theme-color="1"] .vditor {
 }
 .jconfirm-buttons button {
   text-transform: none !important;
+}
+dialog {
+  background: var(--vscode-editor-background, #1e1e1e);
+  color: var(--vscode-editor-foreground, #cccccc);
+  border: 1px solid var(--vscode-panel-border, #2d2d30);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  padding: 0;
+  max-width: 90vw;
+  max-height: 90vh;
+  font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif);
+  font-size: 13px;
+}
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+}
+dialog header {
+  padding: 12px 16px;
+  background: var(--vscode-titleBar-activeBackground, #3c3c3c);
+  color: var(--vscode-titleBar-activeForeground, #cccccc);
+  border-bottom: 1px solid var(--vscode-panel-border, #2d2d30);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+dialog header h2,
+dialog header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+dialog .dialog-content {
+  padding: 16px;
+  overflow-y: auto;
+  max-height: calc(90vh - 120px);
+}
+dialog footer {
+  padding: 12px 16px;
+  background: var(--vscode-editor-background, #1e1e1e);
+  border-top: 1px solid var(--vscode-panel-border, #2d2d30);
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+dialog button {
+  padding: 6px 14px;
+  background: var(--vscode-button-background, #0e639c);
+  color: var(--vscode-button-foreground, #ffffff);
+  border: 1px solid transparent;
+  border-radius: 2px;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+dialog button:hover {
+  background: var(--vscode-button-hoverBackground, #1177bb);
+}
+dialog button:active {
+  background: var(--vscode-button-activeBackground, #0d5a8f);
+}
+dialog button.secondary {
+  background: var(--vscode-button-secondaryBackground, #3a3d41);
+  color: var(--vscode-button-secondaryForeground, #cccccc);
+}
+dialog button.secondary:hover {
+  background: var(--vscode-button-secondaryHoverBackground, #45494e);
+}
+dialog input[type=text],
+dialog input[type=number],
+dialog input[type=email],
+dialog input[type=password],
+dialog textarea,
+dialog select {
+  width: 100%;
+  padding: 6px 8px;
+  background: var(--vscode-input-background, #3c3c3c);
+  color: var(--vscode-input-foreground, #cccccc);
+  border: 1px solid var(--vscode-input-border, #3c3c3c);
+  border-radius: 2px;
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+  box-sizing: border-box;
+}
+dialog input:focus,
+dialog textarea:focus,
+dialog select:focus {
+  border-color: var(--vscode-focusBorder, #0078d4);
+  box-shadow: 0 0 0 1px var(--vscode-focusBorder, #0078d4);
+}
+dialog label {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--vscode-foreground, #cccccc);
+  font-size: 12px;
+  font-weight: 500;
+}
+kanban-board::part(dialog) {
+  background: var(--vscode-editor-background, #1e1e1e);
+  color: var(--vscode-editor-foreground, #cccccc);
+  border: 1px solid var(--vscode-panel-border, #2d2d30);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif);
+}
+kanban-board::part(dialog-form) {
+  background: var(--vscode-editor-background, #1e1e1e);
+  color: var(--vscode-editor-foreground, #cccccc);
+}
+kanban-board::part(dialog-title) {
+  color: var(--vscode-titleBar-activeForeground, #cccccc);
+  font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif);
+  font-weight: 600;
+  border-bottom-color: var(--vscode-panel-border, #2d2d30);
+}
+kanban-board::part(dialog-description) {
+  color: var(--vscode-descriptionForeground, #999999);
+  font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif);
+}
+kanban-board::part(dialog-buttons) {
+  background: var(--vscode-editor-background, #1e1e1e);
+  border-top-color: var(--vscode-panel-border, #2d2d30);
+}
+kanban-board::part(dialog-cancel-button) {
+  background: var(--vscode-button-secondaryBackground, #3a3d41);
+  color: var(--vscode-button-secondaryForeground, #cccccc);
+  border: 1px solid transparent;
+  font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif);
+}
+kanban-board::part(dialog-cancel-button):hover {
+  background: var(--vscode-button-secondaryHoverBackground, #45494e);
+}
+kanban-board::part(dialog-confirm-button) {
+  background: var(--vscode-button-background, #0e639c);
+  color: var(--vscode-button-foreground, #ffffff);
+  border: 1px solid transparent;
+  font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif);
+}
+kanban-board::part(dialog-confirm-button):hover {
+  background: var(--vscode-button-hoverBackground, #1177bb);
+}
+kanban-board::part(dialog-confirm-button):active {
+  background: var(--vscode-button-activeBackground, #0d5a8f);
+}
+kanban-board::part(dialog)::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
 }
 .vscode-diagnostic-error {
   position: relative;

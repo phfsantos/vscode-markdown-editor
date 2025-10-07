@@ -2118,8 +2118,6 @@ export class EditorPanel {
 			</head>
 			<body style="height: 100vh; width: 100vw; margin: 0; padding: 0; overflow: hidden; position: fixed; top: 0; left: 0; right: 0; bottom: 0;">
 				<div id="app" style="height: 100vh; width: 100vw; margin: 0; padding: 0; overflow: hidden; position: absolute; top: 0; left: 0; right: 0; bottom: 0;"></div>
-        <script src="https://unpkg.com/predictionary/dist/predictionary.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/gh/phfsantos/kanban-board@1.1.1/dist/index.js" type="module"></script>
 				${JsFiles.map((f) => `<script src="${f}"></script>`).join("\n")}
 			</body>
 			</html>`;

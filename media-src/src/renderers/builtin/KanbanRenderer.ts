@@ -1,23 +1,33 @@
 /**
- * KanbanRenderer - Kanban board renderer migrated to new architecture
+ * KanbanRenderer - Kanban board renderer using bundled npm package
  * 
  * This renderer provides interactive kanban board functionality with:
  * - Multiple boards per document support
  * - File-based persistence (JSON files)
  * - Backwards compatibility with inline JSON data
  * - Auto-generated board IDs
+ * - Bundled @phfsantos/kanban-board v1.3.0 (no CDN required)
+ * 
+ * v1.3.0 API Changes:
+ * - Uses setData()/getData() methods instead of deprecated data attribute
+ * - Listens for 'kanban-change' event instead of 'kanban-save'
+ * - Enhanced error handling with 'kanban-error' events
+ * - Includes Zod validation for data integrity
  */
 
 import type Vditor from 'vditor';
 import { BaseRenderer } from '../BaseRenderer';
 import type { IRenderer, IRendererCapabilities, IRenderContext } from '../types';
 
+// Import kanban-board web component (bundled with extension)
+import '@phfsantos/kanban-board';
+
 export class KanbanRenderer extends BaseRenderer implements IRenderer {
   readonly id = 'kanban-board';
   readonly name = 'Kanban Board';
   readonly language = 'kanban-board';
-  readonly version = '2.0.0';
-  readonly description = 'Interactive Kanban board for task management';
+  readonly version = '2.2.0';
+  readonly description = 'Interactive Kanban board (bundled v1.3.0)';
   readonly author = 'VSCode Markdown Editor';
   
   readonly capabilities: IRendererCapabilities = {
@@ -199,14 +209,34 @@ export class KanbanRenderer extends BaseRenderer implements IRenderer {
 
   /**
    * Create the kanban board DOM element
+   * Updated for v1.3.0 API - uses setData() instead of deprecated data attribute
    */
   private createKanbanBoard(container: HTMLElement, loadedData: any, boardId: string): void {
     const data = loadedData.data || loadedData;
+    
+    // Create element without deprecated data attribute (v1.3.0 uses setData() method)
     container.innerHTML = `<kanban-board 
+      id="kanban-board-${boardId}"
       class="language-kanban-board" 
-      data='${encodeURIComponent(JSON.stringify(data))}'
       data-board-id='${boardId}'
     ></kanban-board>`;
+    
+    // Use new setData() API after element is created (v1.3.0)
+    // Small delay to ensure custom element is fully registered
+    setTimeout(() => {
+      const board = container.querySelector('kanban-board') as any;
+      if (board && board.setData) {
+        const success = board.setData(data, false); // false = don't dispatch kanban-change event on initial set
+        if (!success) {
+          console.error(`❌ KANBAN RENDERER: Failed to set data for board '${boardId}' - validation failed`);
+          this.showError(container, 'Invalid kanban board data. Please check the console for details.');
+        }
+      } else if (board) {
+        // Fallback for older versions that don't have setData()
+        console.warn(`⚠️ KANBAN RENDERER: Using deprecated data attribute for board '${boardId}' - update to v1.3.0+`);
+        board.setAttribute('data', encodeURIComponent(JSON.stringify(data)));
+      }
+    }, 100);
   }
 
   /**
@@ -239,17 +269,33 @@ export class KanbanRenderer extends BaseRenderer implements IRenderer {
     // Setup kanban board save handler
     const kanbanBoard = container.querySelector('kanban-board');
     if (kanbanBoard) {
-      // Save on data change using generic renderer protocol
-      // The kanban-board component fires 'kanban-save' event (not 'on-change')
-      kanbanBoard.addEventListener('kanban-save', (event: any) => {
-        const data = event.detail;
-        console.log(`💾 KANBAN RENDERER: Saving board '${boardId}'`, data);
+      // v1.3.0: Listen for 'kanban-change' event (replaces 'kanban-save')
+      // Event detail structure changed: { data, timestamp } instead of just data
+      kanbanBoard.addEventListener('kanban-change', (event: any) => {
+        const data = event.detail.data;      // v1.3.0: data is nested in event.detail.data
+        const timestamp = event.detail.timestamp || Date.now();
+        console.log(`💾 KANBAN RENDERER: Saving board '${boardId}' at ${new Date(timestamp).toISOString()}`, data);
         
         context.messageHandler.send('renderer-save-data', {
           rendererId: this.id,
           boardId,
           data
         });
+      });
+
+      // v1.3.0: Listen for 'kanban-error' event for validation and operation errors
+      kanbanBoard.addEventListener('kanban-error', (event: any) => {
+        const error = event.detail;
+        console.error(`❌ KANBAN RENDERER: Error for board '${boardId}'`, {
+          type: error.type,              // 'validation' | 'operation' | 'system'
+          message: error.message,         // Technical error message
+          userMessage: error.userMessage, // User-friendly message
+          details: error.details          // Additional error details
+        });
+        
+        // Show user-friendly error message
+        const errorMsg = error.userMessage || error.message || 'An error occurred with the kanban board';
+        this.showError(container, errorMsg);
       });
 
       // Handle save confirmation using generic renderer protocol
@@ -377,10 +423,4 @@ export class KanbanRenderer extends BaseRenderer implements IRenderer {
       : `assets/${docName}.${this.id}.${boardId}.json`;
   }
 
-  /**
-   * Load external kanban-board script
-   */
-  async onLoad(context: IRenderContext): Promise<void> {
-    await this.loadScript('https://cdn.jsdelivr.net/gh/phfsantos/kanban-board@1.1.1/dist/index.js');
-  }
 }
