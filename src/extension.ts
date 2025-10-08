@@ -10,6 +10,7 @@ import { PerformanceOptimizer } from './performance/PerformanceOptimizer';
 import { MarkdownCodeLensProvider, MarkdownDecorationProvider } from './decorations/MarkdownDecorationProviders';
 import { MarkdownCommandProvider } from './commands/MarkdownCommandProvider';
 import { VSCodeIntegrator } from './integration/VSCodeIntegrator';
+import { MarkdownDiffViewSupport } from './diff/MarkdownDiffViewSupport';
 
 // Create a global output channel for logging
 let outputChannel: vscode.OutputChannel;
@@ -63,6 +64,15 @@ export function activate(context: vscode.ExtensionContext) {
   // Initialize enhanced commands
   const commandProvider = new MarkdownCommandProvider(context);
   context.subscriptions.push(commandProvider);
+
+  // Initialize markdown diff view support (detects when editors are in diff view)
+  (global as any).markdownEditorLog('🔍 DIFF: Initializing Markdown Diff View Support...');
+  const diffViewSupport = new MarkdownDiffViewSupport(context);
+  context.subscriptions.push(diffViewSupport);
+  (global as any).markdownEditorLog('✅ DIFF: Markdown Diff View Support registered successfully');
+
+  // Make diff support globally available
+  (global as any).markdownDiffViewSupport = diffViewSupport;
 
   // Original command registration with performance optimization
   context.subscriptions.push(

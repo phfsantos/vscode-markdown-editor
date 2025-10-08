@@ -133,6 +133,15 @@ export class EditorPanel {
     // Set the webview's initial html content
     this._init();
 
+    // Trigger diff detection when this editor is created
+    const diffSupport = (global as any).markdownDiffViewSupport;
+    if (diffSupport && diffSupport.triggerDetection) {
+      diffSupport.triggerDetection();
+    }
+
+    // Check if this editor is part of a diff view
+    this._checkDiffViewContext();
+
     // Listen for when the panel is disposed
     // This happens when the user closes the panel or when the panel is closed programmatically
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
@@ -273,6 +282,28 @@ export class EditorPanel {
             if (this._panel.active) {
               await syncToEditor();
               this._updateEditTitle();
+            }
+            break;
+          }
+          case "diff-scroll-sync": {
+            // Handle scroll synchronization in diff view
+            console.log('📥 EDITOR PANEL: Received diff-scroll-sync message', {
+              uri: this._uri?.toString(),
+              percentage: message.scrollPercentage,
+              role: message.role
+            });
+            
+            if (this._uri) {
+              const diffSupport = (global as any).markdownDiffViewSupport;
+              console.log('📥 EDITOR PANEL: diffSupport exists:', !!diffSupport);
+              
+              if (diffSupport) {
+                diffSupport.handleScrollSync(this._uri, message.scrollPercentage);
+              } else {
+                console.warn('⚠️ EDITOR PANEL: markdownDiffViewSupport not found on global');
+              }
+            } else {
+              console.warn('⚠️ EDITOR PANEL: No _uri for scroll sync');
             }
             break;
           }
@@ -494,6 +525,18 @@ export class EditorPanel {
     );
   }
 
+  /**
+   * Send scroll sync message to this editor's webview
+   */
+  public sendScrollSync(scrollPercentage: number): void {
+    if (this._panel) {
+      this._panel.webview.postMessage({
+        type: 'diff-scroll-sync',
+        scrollPercentage: scrollPercentage
+      });
+    }
+  }
+
   public dispose() {
     if (!this._isEditor) {
       EditorPanel.currentPanel = undefined;
@@ -528,6 +571,80 @@ export class EditorPanel {
     setTimeout(() => {
       this._updateDiagnostics();
     }, 500);
+  }
+
+  /**
+   * Check if this editor is part of a diff view and send diff information to webview
+   */
+  private async _checkDiffViewContext(): Promise<void> {
+    const diffSupport = (global as any).markdownDiffViewSupport;
+    if (!diffSupport) {
+      console.log('⚠️ DIFF VIEW: No diff support available');
+      return;
+    }
+
+    // Give VS Code time to set up the layout and run detection
+    // Try multiple times with increasing delays
+    const checkDiff = async (attempt: number = 1): Promise<void> => {
+      console.log(`🔍 DIFF VIEW: Checking diff context (attempt ${attempt}) for ${this._uri.toString()}`);
+      
+      const diffInfo = diffSupport.getDiffInfo(this._uri);
+      
+      if (diffInfo) {
+        console.log('🔍 DIFF VIEW: Editor is in diff view!', {
+          thisUri: diffInfo.thisUri.toString(),
+          otherUri: diffInfo.otherUri.toString(),
+          role: diffInfo.role
+        });
+
+        // Calculate diff
+        const leftUri = diffInfo.role === 'left' ? diffInfo.thisUri : diffInfo.otherUri;
+        const rightUri = diffInfo.role === 'left' ? diffInfo.otherUri : diffInfo.thisUri;
+        
+        const diffResult = await diffSupport.calculateDiff(leftUri, rightUri);
+        
+        // Send ALL changes to webview - it needs both sides for spacer blocks
+        // The webview will filter what to highlight vs what to add spacers for
+        const allChanges = diffResult.changes;
+        
+        // Also send the full document text so the webview can build proper line mapping
+        const thisDoc = await vscode.workspace.openTextDocument(diffInfo.thisUri);
+        const documentText = thisDoc.getText();
+        
+        console.log('📊 DIFF VIEW: All changes:', allChanges.map((c: any) => ({
+          type: c.type,
+          line: c.lineNumber,
+          content: c.content.substring(0, 30) + '...',
+          side: c.side
+        })));
+        
+        // Send diff information to webview with ALL changes
+        this._panel.webview.postMessage({
+          type: 'diff-view-detected',
+          diffInfo: {
+            role: diffInfo.role,
+            otherUri: diffInfo.otherUri.toString(),
+            changes: allChanges, // Send all changes, not filtered
+            stats: diffResult.stats,
+            documentText: documentText // Send full text for accurate line mapping
+          }
+        });
+
+        console.log('✅ DIFF VIEW: Sent diff info to webview', {
+          role: diffInfo.role,
+          allChanges: allChanges.length,
+          stats: diffResult.stats
+        });
+      } else if (attempt < 3) {
+        // Try again after a longer delay
+        setTimeout(() => checkDiff(attempt + 1), 1000);
+      } else {
+        console.log('ℹ️ DIFF VIEW: Not in diff context after 3 attempts');
+      }
+    };
+
+    // Start checking with initial delay
+    setTimeout(() => checkDiff(1), 500);
   }
 
   private _updateEditTitle() {

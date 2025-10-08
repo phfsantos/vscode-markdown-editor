@@ -501,67 +501,6 @@ export class DiagnosticVisualizer {
     }
 
     /**
-        // - vscode-diagnostic-warning  
-        // - vscode-diagnostic-info
-        // These are content styling, not transient UI overlays
-        
-        // Only check for lightbulb emojis that might have been inserted as text content
-        const allElementsWithLightbulbs = document.querySelectorAll('*');
-        let lightbulbTextElements = 0;
-        allElementsWithLightbulbs.forEach(el => {
-            if (el.textContent && el.textContent.includes('💡')) {
-                this.vscodeLog(`🔍 DEBUG: Found element with lightbulb text: ${el.tagName}.${el.className}, text: "${el.textContent}"`);
-                // Only remove if it's clearly a UI overlay element, not content with diagnostic styling
-                if (el.getAttribute('data-diagnostic-ui') === 'true' || 
-                    el.classList.contains('vscode-quickfix-lightbulb') || 
-                    el.classList.contains('vscode-lightbulb-overlay')) {
-                    el.remove();
-                    lightbulbTextElements++;
-                }
-            }
-        });
-        
-        // Count diagnostic styling elements that are being preserved
-        const diagnosticElements = editor.querySelectorAll('.vscode-diagnostic-error, .vscode-diagnostic-warning, .vscode-diagnostic-info, .vscode-diagnostic-hint');
-        
-        this.vscodeLog(`🔍 DEBUG: Found ${trueOverlayElements.length} overlay elements in editor, ${bodyOverlayElements.length} in body, ${lightbulbTextElements} lightbulb text elements`);
-        this.vscodeLog(`🛡️ CRITICAL: ${diagnosticElements.length} diagnostic styling elements are PRESERVED - they are content styling, not transient overlays`);
-        
-        // Debug: Show what we're about to remove
-        trueOverlayElements.forEach((element, index) => {
-            this.vscodeLog(`🔍 DEBUG: Will remove overlay element ${index + 1}: ${element.tagName}.${element.className}`);
-        });
-        
-        bodyOverlayElements.forEach((element, index) => {
-            this.vscodeLog(`🔍 DEBUG: Will remove body overlay element ${index + 1}: ${element.tagName}.${element.className}`);
-        });
-        
-        // Now actually remove the overlay elements
-        trueOverlayElements.forEach(element => {
-            this.vscodeLog(`🗑️ Removing overlay element from editor: ${element.tagName}.${element.className}`);
-            element.remove();
-        });
-
-        bodyOverlayElements.forEach(element => {
-            this.vscodeLog(`�️ Removing overlay element from body: ${element.tagName}.${element.className}`);
-            element.remove();
-        });
-
-        // Also clean up any temporary diagnostic attributes that might interfere
-        const elementsWithTempAttrs = editor.querySelectorAll('[data-diagnostic-temp]');
-        elementsWithTempAttrs.forEach(element => {
-            element.removeAttribute('data-diagnostic-temp');
-        });
-
-        const totalCleaned = trueOverlayElements.length + bodyOverlayElements.length;
-        if (totalCleaned > 0) {
-            this.vscodeLog(`DiagnosticVisualizer: Cleaned up ${totalCleaned} true overlay elements before content save`);
-        } else {
-            this.vscodeLog(`DiagnosticVisualizer: No overlay elements to clean up - diagnostic styling preserved`);
-        }
-    }
-
-    /**
      * Apply diagnostic styles using efficient single-pass DOM traversal
      * Now with cursor-aware element exclusion
      */

@@ -13,9 +13,8 @@ import {
 import { merge } from "lodash";
 import Vditor from "vditor";
 import { format, set } from "date-fns";
-// Import predictionary UMD module (bundled with extension)
-// This will execute the UMD module and register Predictionary on window
-require("predictionary/dist/predictionary.min.js");
+// Import Predictionary v1.6.0 - ES6 module with proper exports
+import Predictionary from "predictionary/src/index.mjs";
 import "vditor/dist/index.css";
 import { t, lang } from "./lang";
 import { toolbar } from "./toolbar";
@@ -28,6 +27,7 @@ import "./main.css";
 import "./vscode-integration.css";
 import { DiagnosticVisualizer } from "./diagnostic-visualizer";
 import { VSCodeWebviewIntegrator } from "./vscode-integrator";
+import { diffVisualizer } from "./diff-visualizer";
 import { CursorManager } from "./cursor-manager";
 import { FindReplaceManager } from "./find-replace";
 
@@ -36,6 +36,9 @@ let diagnosticVisualizer: DiagnosticVisualizer | null = null;
 let vscodeIntegrator: VSCodeWebviewIntegrator | null = null;
 let cursorManager: CursorManager | null = null;
 let findReplaceManager: FindReplaceManager | null = null;
+
+// Ensure diff visualizer is loaded (singleton is created on import)
+console.log('📋 MAIN: Diff visualizer loaded:', !!diffVisualizer);
 
 // Coordination flag to avoid duplicate custom menu builds
 (window as any).__vditorHandledContextMenu = false;
@@ -132,7 +135,7 @@ function buildVSCodeContextMenu(event?: MouseEvent) {
   // Navigation / search group
   items.push(
     { label: 'Find', click: () => vscode.postMessage({ command: 'find' }) },
-    { label: 'Find && Replace', click: () => vscode.postMessage({ command: 'findAndReplace' }) },
+    { label: 'Find & Replace', click: () => vscode.postMessage({ command: 'findAndReplace' }) },
   );
   items.push({ separator: true });
   // Insert submenu
@@ -179,8 +182,6 @@ function enhanceManualMenuForSubmenus(menuRoot: HTMLElement) {
       submenuEl = document.createElement('div');
       submenuEl.className = 'vscode-submenu';
       submenuEl.style.position = 'fixed';
-      submenuEl.style.left = rect.right + 4 + 'px';
-      submenuEl.style.top = rect.top + 'px';
       submenuEl.style.background = 'var(--vscode-menu-background, #1e1e1e)';
       submenuEl.style.border = '1px solid var(--vscode-menu-border, #454545)';
       submenuEl.style.borderRadius = '3px';
@@ -188,6 +189,11 @@ function enhanceManualMenuForSubmenus(menuRoot: HTMLElement) {
       submenuEl.style.minWidth = '150px';
       submenuEl.style.boxShadow = '0 2px 8px rgba(0,0,0,.5)';
       submenuEl.style.zIndex = '10001';
+      
+      // Initially position off-screen to measure dimensions
+      submenuEl.style.left = '-9999px';
+      submenuEl.style.top = '-9999px';
+      submenuEl.style.visibility = 'hidden';
 
       submenuData.forEach(sub => {
         if (sub.separator) {
@@ -228,6 +234,47 @@ function enhanceManualMenuForSubmenus(menuRoot: HTMLElement) {
       });
 
       document.body.appendChild(submenuEl);
+      
+      // Get actual submenu dimensions after rendering
+      const submenuRect = submenuEl.getBoundingClientRect();
+      const submenuWidth = submenuRect.width;
+      const submenuHeight = submenuRect.height;
+      
+      // Get viewport dimensions
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      
+      // Calculate initial position (to the right of parent menu item)
+      let finalX = rect.right + 4;
+      let finalY = rect.top;
+      
+      // Check if submenu would overflow right edge
+      if (finalX + submenuWidth > viewportWidth) {
+        // Position to the left of parent menu item instead
+        finalX = rect.left - submenuWidth - 4;
+        
+        // If still overflowing left, constrain to viewport
+        if (finalX < 10) {
+          finalX = 10;
+        }
+      }
+      
+      // Check bottom boundary
+      if (finalY + submenuHeight > viewportHeight) {
+        finalY = viewportHeight - submenuHeight - 10;
+      }
+      
+      // Check top boundary
+      if (finalY < 10) {
+        finalY = 10;
+      }
+      
+      // Apply final position and make visible
+      submenuEl.style.left = `${finalX}px`;
+      submenuEl.style.top = `${finalY}px`;
+      submenuEl.style.visibility = 'visible';
+      
+      console.log(`📋 SUBMENU: Positioned at (${finalX}, ${finalY}) - Submenu: ${submenuWidth}x${submenuHeight}, Viewport: ${viewportWidth}x${viewportHeight}`);
     };
 
     const scheduleClose = () => {
@@ -266,16 +313,23 @@ async function performClipboardAction(kind: 'cut' | 'copy' | 'paste') {
           const text = await navigator.clipboard.readText();
           if (text) {
             window.vditor.insertValue(text);
-            return;
+            console.log('🔧 Paste via Vditor.insertValue succeeded');
+            return; // SUCCESS - STOP HERE
           }
         }
       }
-      // Try execCommand
-      const success = document.execCommand('paste');
-      if (success) {
-        return;
+      // Try execCommand only if Vditor failed
+      try {
+        const success = document.execCommand('paste');
+        if (success) {
+          console.log('🔧 Paste via execCommand succeeded');
+          return; // SUCCESS - STOP HERE
+        }
+      } catch (err) {
+        console.warn('🔧 execCommand paste failed:', err);
       }
-      // Fallback: ask extension
+      // Fallback: ask extension only if both above failed
+      console.log('🔧 Requesting paste from extension as fallback');
       vscode.postMessage({ command: 'clipboardReadRequest' });
     } else {
       // Unified robust selection capture
@@ -594,19 +648,13 @@ vscodeLog("Main.ts: Starting VS Code integration improvements...");
 initializeRendererSystem();
 
 function initVditor(msg) {
-  // Predictionary is loaded as UMD module and available on window
-  const predictionary = (window as any).Predictionary?.instance();
-  const dictionaryKey = "en_US";
-  
-  // Debug: Check if Predictionary is available
-  if (!predictionary) {
-    console.warn('⚠️ Predictionary not available - autocomplete hints will be disabled');
-    console.log('window.Predictionary:', (window as any).Predictionary);
-  }
-  
-  // Only configure predictionary if it's available
-  if (predictionary) {
-    console.log('✅ Predictionary loaded successfully');
+  // Initialize Predictionary for autocomplete hints (v1.6.0 ES6 module)
+  let predictionary = null;
+  try {
+    predictionary = Predictionary.instance();
+    const dictionaryKey = "en_US";
+    
+    // Configure with word list
     predictionary.parseWords(words, {
       elementSeparator: "\n",
       rankSeparator: " ",
@@ -615,7 +663,13 @@ function initVditor(msg) {
       addToDictionary: dictionaryKey,
     });
     predictionary.useDictionaries([dictionaryKey]);
+    
+    console.log('✅ Predictionary v1.6.0 loaded successfully');
+  } catch (error) {
+    console.warn('⚠️ Predictionary initialization failed:', error);
+    predictionary = null;
   }
+  
   let inputTimer;
   let defaultOptions: any = {
     hint: {
@@ -912,8 +966,6 @@ function initVditor(msg) {
         const menu = document.createElement("div");
         menu.id = "manual-context-menu";
         menu.style.position = "fixed";
-        menu.style.left = `${x}px`;
-        menu.style.top = `${y}px`;
         menu.style.backgroundColor = "var(--vscode-menu-background, #1e1e1e)";
         menu.style.border = "1px solid var(--vscode-menu-border, #454545)";
         menu.style.borderRadius = "3px";
@@ -921,6 +973,11 @@ function initVditor(msg) {
         menu.style.zIndex = "10000";
         menu.style.minWidth = "150px";
         menu.style.padding = "4px 0";
+        
+        // Initially position off-screen to measure dimensions
+        menu.style.left = '-9999px';
+        menu.style.top = '-9999px';
+        menu.style.visibility = 'hidden';
 
         let actionableIndex = 0;
         const actionableElements: { el: HTMLElement; item: any }[] = [];
@@ -968,8 +1025,48 @@ function initVditor(msg) {
           menu.appendChild(menuItem);
         });
 
-        // Add to document
+        // Add to document first so we can measure dimensions
         document.body.appendChild(menu);
+        
+        // Get actual menu dimensions after rendering
+        const menuRect = menu.getBoundingClientRect();
+        const menuWidth = menuRect.width;
+        const menuHeight = menuRect.height;
+        
+        // Get viewport dimensions (window dimensions, not scrollable container)
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        
+        // Calculate safe position ensuring menu stays within viewport
+        let finalX = x;
+        let finalY = y;
+        
+        // Check right boundary
+        if (finalX + menuWidth > viewportWidth) {
+          finalX = viewportWidth - menuWidth - 10; // 10px padding from edge
+        }
+        
+        // Check bottom boundary
+        if (finalY + menuHeight > viewportHeight) {
+          finalY = viewportHeight - menuHeight - 10; // 10px padding from edge
+        }
+        
+        // Check left boundary (in case adjusted position went negative)
+        if (finalX < 10) {
+          finalX = 10;
+        }
+        
+        // Check top boundary (in case adjusted position went negative)
+        if (finalY < 10) {
+          finalY = 10;
+        }
+        
+        // Apply final position and make visible
+        menu.style.left = `${finalX}px`;
+        menu.style.top = `${finalY}px`;
+        menu.style.visibility = 'visible';
+        
+        console.log(`📋 CONTEXT MENU: Positioned at (${finalX}, ${finalY}) - Menu: ${menuWidth}x${menuHeight}, Viewport: ${viewportWidth}x${viewportHeight}`);
 
         // Remove on click outside
         const removeMenu = (e: Event) => {

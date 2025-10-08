@@ -10921,7 +10921,7 @@
             var tag = baseGetTag(value);
             return tag == funcTag || tag == genTag || tag == asyncTag || tag == proxyTag;
           }
-          function isInteger(value) {
+          function isInteger2(value) {
             return typeof value == "number" && value == toInteger2(value);
           }
           function isLength(value) {
@@ -10973,7 +10973,7 @@
           }
           var isRegExp = nodeIsRegExp ? baseUnary(nodeIsRegExp) : baseIsRegExp;
           function isSafeInteger(value) {
-            return isInteger(value) && value >= -MAX_SAFE_INTEGER && value <= MAX_SAFE_INTEGER;
+            return isInteger2(value) && value >= -MAX_SAFE_INTEGER && value <= MAX_SAFE_INTEGER;
           }
           var isSet = nodeIsSet ? baseUnary(nodeIsSet) : baseIsSet;
           function isString(value) {
@@ -12011,7 +12011,7 @@
           lodash.isError = isError;
           lodash.isFinite = isFinite2;
           lodash.isFunction = isFunction;
-          lodash.isInteger = isInteger;
+          lodash.isInteger = isInteger2;
           lodash.isLength = isLength;
           lodash.isMap = isMap;
           lodash.isMatch = isMatch;
@@ -26419,304 +26419,6 @@ window.addEventListener("message", (e) => {
     }
   });
 
-  // node_modules/predictionary/dist/predictionary.min.js
-  var require_predictionary_min = __commonJS({
-    "node_modules/predictionary/dist/predictionary.min.js"() {
-      var Predictionary = function(t7) {
-        var e7 = {};
-        function n5(r6) {
-          if (e7[r6])
-            return e7[r6].exports;
-          var i6 = e7[r6] = {i: r6, l: false, exports: {}};
-          return t7[r6].call(i6.exports, i6, i6.exports, n5), i6.l = true, i6.exports;
-        }
-        return n5.m = t7, n5.c = e7, n5.d = function(t8, e8, r6) {
-          n5.o(t8, e8) || Object.defineProperty(t8, e8, {enumerable: true, get: r6});
-        }, n5.r = function(t8) {
-          typeof Symbol != "undefined" && Symbol.toStringTag && Object.defineProperty(t8, Symbol.toStringTag, {value: "Module"}), Object.defineProperty(t8, "__esModule", {value: true});
-        }, n5.t = function(t8, e8) {
-          if (1 & e8 && (t8 = n5(t8)), 8 & e8)
-            return t8;
-          if (4 & e8 && typeof t8 == "object" && t8 && t8.__esModule)
-            return t8;
-          var r6 = Object.create(null);
-          if (n5.r(r6), Object.defineProperty(r6, "default", {enumerable: true, value: t8}), 2 & e8 && typeof t8 != "string")
-            for (var i6 in t8)
-              n5.d(r6, i6, function(e9) {
-                return t8[e9];
-              }.bind(null, i6));
-          return r6;
-        }, n5.n = function(t8) {
-          var e8 = t8 && t8.__esModule ? function() {
-            return t8.default;
-          } : function() {
-            return t8;
-          };
-          return n5.d(e8, "a", e8), e8;
-        }, n5.o = function(t8, e8) {
-          return Object.prototype.hasOwnProperty.call(t8, e8);
-        }, n5.p = "dist/", n5(n5.s = 0);
-      }([function(t7, e7, n5) {
-        "use strict";
-        n5.r(e7);
-        var r6 = {};
-        r6.createItem = function(t8, e8) {
-          if (!t8)
-            throw 'parameter "word" must be specified.';
-          var n6, r7 = parseInt(e8), i7 = {w: t8, f: 0, t: {}};
-          return (n6 = r7) == parseInt(n6) && (i7.r = r7), i7;
-        };
-        var i6 = r6;
-        var o6 = function() {
-          var t8 = this, e8 = {}, n6 = null, r7 = null;
-          function o7(t9) {
-            if (!t9)
-              return [];
-            var n7 = [];
-            return e8[t9] && n7.push(e8[t9]), e8[t9.toLowerCase()] && n7.indexOf(e8[t9.toLowerCase()]) === -1 && n7.push(e8[t9.toLowerCase()]), e8[t9.toUpperCase()] && n7.indexOf(e8[t9.toUpperCase()]) === -1 && n7.push(e8[t9.toUpperCase()]), e8[c6(t9)] && n7.indexOf(e8[c6(t9)]) === -1 && n7.push(e8[c6(t9)]), n7;
-          }
-          function a6(t9) {
-            var e9 = o7(t9);
-            return e9.length > 0 ? e9[0] : null;
-          }
-          function c6(t9) {
-            return t9.charAt(0).toUpperCase() + t9.slice(1);
-          }
-          t8.load = function(t9) {
-            var n7 = JSON.parse(t9);
-            Object.keys(n7).forEach(function(t10) {
-              n7[t10].w = t10;
-            }), e8 = n7;
-          }, t8.toJSON = function() {
-            var t9 = JSON.parse(JSON.stringify(e8));
-            return Object.keys(t9).forEach(function(e9) {
-              delete t9[e9].w;
-            }), JSON.stringify(t9);
-          }, t8.addWord = function(t9, n7) {
-            t9 && (e8[t9] || (e8[t9] = i6.createItem(t9, n7)));
-          }, t8.addWords = function(e9) {
-            if (!(e9 instanceof Array) || e9.length === 0)
-              throw "words to add must be an array with at least one element.";
-            e9.forEach(function(e10) {
-              t8.addWord(e10);
-            });
-          }, t8.deleteWord = function(t9, n7) {
-            Object.keys(e8).forEach(function(r8) {
-              if (n7 ? t9.toUpperCase() === r8.toUpperCase() : t9 === r8)
-                delete e8[r8];
-              else {
-                var i7 = e8[r8];
-                Object.keys(i7.t).forEach(function(e9) {
-                  (n7 ? t9.toUpperCase() === e9.toUpperCase() : t9 === e9) && delete i7.t[e9];
-                });
-              }
-            });
-          }, t8.contains = function(t9, n7) {
-            return n7 ? !!e8[t9] : !!a6(t9);
-          }, t8.predictCompleteWord = function(i7, o8) {
-            i7 = i7 || "", o8 = o8 || {};
-            var a7 = [];
-            if (Object.keys(e8).forEach(function(t9) {
-              t9.toLowerCase().indexOf(i7.toLowerCase()) === 0 && a7.push(e8[t9]);
-            }), a7.length === 0 && i7.length > 1) {
-              var c7 = null;
-              return (c7 = n6 && r7 && i7.indexOf(n6) === 0 ? r7 : t8.predictCompleteWord(i7.substring(0, i7.length - 1), o8)).forEach(function(t9) {
-                t9.fuzzyMatch = true;
-              }), c7;
-            }
-            return n6 = i7, r7 = a7.map(function(t9) {
-              return {word: t9.w, frequency: t9.f, rank: t9.r};
-            });
-          }, t8.predictNextWord = function(t9, e9) {
-            var n7 = o7(t9), r8 = [];
-            return n7.forEach(function(t10) {
-              Object.keys(t10.t).forEach(function(e10) {
-                r8.push({word: e10, frequency: t10.t[e10]});
-              });
-            }), r8;
-          }, t8.learn = function(e9, n7, r8) {
-            if (e9 && (t8.contains(e9) || r8)) {
-              r8 && e9 && !t8.contains(e9) && t8.addWord(e9), r8 && n7 && !t8.contains(n7) && t8.addWord(n7);
-              var i7 = a6(n7), o8 = a6(e9);
-              o8.f++, i7 && i7.t && (i7.t[o8.w] ? i7.t[o8.w]++ : i7.t[o8.w] = 1);
-            }
-          }, t8.getWords = function() {
-            return Object.keys(e8);
-          };
-        };
-        n5.d(e7, "instance", function() {
-          return p3;
-        });
-        var a5 = "[\\s\\.\\?!,]", c5 = "[\\.\\?!,]", u4 = "[\\.\\?!]";
-        function s6() {
-          this.DEFAULT_DICTIONARY_KEY = "DEFAULT_DICTIONARY_KEY";
-          var t8 = this, e8 = "PREDICT_METHOD_COMPLETE_WORD", n6 = "PREDICT_METHOD_NEXT_WORD", r7 = {}, i7 = null;
-          function a6(i8, o7, a7) {
-            var c6 = [];
-            (o7 = o7 || {}).maxPredictions = o7.maxPredictions || o7.maxPredicitons || 10, o7.applyToInput = o7.applyToInput || false, Object.keys(r7).forEach(function(t9) {
-              var u6 = r7[t9];
-              if (!u6.disabled) {
-                var s8 = a7 === n6 ? u6.predictNextWord : a7 === e8 ? u6.predictCompleteWord : null;
-                s8 = s8 || (d5(i8) ? u6.predictNextWord : u6.predictCompleteWord), c6 = c6.concat(s8(f3(i8), o7));
-              }
-            }), c6.sort(function(t9, e9) {
-              return t9.fuzzyMatch !== e9.fuzzyMatch ? t9.fuzzyMatch ? 1 : -1 : t9.frequency !== e9.frequency ? t9.frequency < e9.frequency ? 1 : -1 : t9.rank !== e9.rank ? t9.rank && e9.rank === void 0 ? -1 : e9.rank && t9.rank === void 0 ? 1 : t9.rank < e9.rank ? -1 : 1 : 0;
-            });
-            for (var u5 = [], s7 = 0; s7 < c6.length && u5.length < o7.maxPredictions; s7++)
-              u5.indexOf(c6[s7].word) === -1 && (o7.applyToInput ? u5.push(t8.applyPrediction(i8, c6[s7].word, {dontLearn: true})) : u5.push(c6[s7].word));
-            return u5;
-          }
-          this.loadDictionary = function(e9, n7) {
-            if (!e9)
-              throw "dictionaryJSON must be specified.";
-            n7 = n7 || t8.DEFAULT_DICTIONARY_KEY;
-            var i8 = new o6();
-            i8.load(e9), r7[n7] = i8;
-          }, this.loadDictionaries = function(e9) {
-            if (!e9)
-              throw "dictionariesJSON must be specified.";
-            r7 = {}, JSON.parse(e9).forEach(function(e10) {
-              t8.loadDictionary(e10.json, e10.key);
-            });
-          }, this.dictionaryToJSON = function(e9) {
-            e9 = e9 || t8.DEFAULT_DICTIONARY_KEY;
-            var n7 = r7[e9];
-            return n7 ? n7.toJSON() : null;
-          }, this.dictionariesToJSON = function() {
-            var t9 = [];
-            return Object.keys(r7).forEach(function(e9) {
-              t9.push({key: e9, json: r7[e9].toJSON()});
-            }), JSON.stringify(t9);
-          }, this.useDictionary = function(t9) {
-            if (!t9)
-              throw "dictionaryKey must be specified.";
-            Object.keys(r7).forEach(function(e9) {
-              r7[e9].disabled = t9 !== e9;
-            });
-          }, this.useDictionaries = function(e9) {
-            if (!(e9 instanceof Array))
-              throw "dictionaryKeys must be specified and of type Array.";
-            Object.keys(r7).forEach(function(n7) {
-              r7[n7].disabled = e9.indexOf(n7) === -1 && n7 !== t8.DEFAULT_DICTIONARY_KEY;
-            });
-          }, this.useAllDictionaries = function() {
-            Object.keys(r7).forEach(function(t9) {
-              r7[t9].disabled = false;
-            });
-          }, this.addDictionary = function(e9, n7) {
-            if (!e9)
-              throw "dictionaryKey must be specified.";
-            if (r7[e9])
-              throw "dictionary already existing.";
-            r7[e9] = new o6(), n7 && n7 instanceof Array && n7.forEach(function(n8) {
-              t8.addWord(n8, e9);
-            });
-          }, this.addWord = function(e9, n7) {
-            if (n7 = n7 || t8.DEFAULT_DICTIONARY_KEY, !e9)
-              throw "element to add not specified.";
-            r7[n7] || t8.addDictionary(n7);
-            var i8 = r7[n7];
-            typeof e9 == "string" ? i8.addWord(l3(e9)) : e9.word && typeof e9.word == "string" && i8.addWord(l3(e9.word), e9.rank);
-          }, this.addWords = function(e9, n7) {
-            if (!(e9 instanceof Array))
-              throw "elements to add must be instance of array specified.";
-            e9.forEach(function(e10) {
-              t8.addWord(e10, n7);
-            });
-          }, this.delete = function(e9, n7) {
-            var i8 = f3(e9);
-            n7 = n7 || {}, i8 && (n7.dictionaryKey ? r7[n7.dictionaryKey] && r7[n7.dictionaryKey].deleteWord(i8, n7.ignoreCase) : t8.getDictionaryKeys().forEach(function(t9) {
-              r7[t9].deleteWord(i8, n7.ignoreCase);
-            }));
-          }, this.parseWords = function(e9, n7) {
-            var r8 = (n7 = n7 || {}).elementSeparator || ";", i8 = n7.rankSeparator || " ", o7 = n7.wordPosition || 0, a7 = n7.wordPosition2, c6 = n7.rankPosition, u5 = n7.addToDictionary || t8.DEFAULT_DICTIONARY_KEY;
-            e9.split(r8).forEach(function(e10) {
-              var n8 = e10.split(i8), r9 = parseInt(n8[c6]);
-              if (o7 !== void 0 && a7 !== void 0) {
-                var s7 = n8[o7], f4 = n8[a7];
-                s7 && f4 && t8.learn(f4, s7, u5);
-              } else if (n8[o7]) {
-                var d6 = {word: n8[o7].trim()};
-                isNaN(r9) || (d6.rank = r9), t8.addWord(d6, u5);
-              }
-            });
-          }, this.getWords = function(e9) {
-            var n7 = [];
-            return e9 ? r7[e9] && (n7 = r7[e9].getWords()) : t8.getDictionaryKeys().forEach(function(t9) {
-              n7 = n7.concat(r7[t9].getWords());
-            }), n7;
-          }, this.hasWord = function(e9, n7, r8) {
-            var i8 = " " + t8.getWords(n7).join(" ") + " ";
-            return new RegExp(" " + e9 + " ", r8 ? "" : "i").test(i8);
-          }, this.predict = function(t9, e9) {
-            return a6(t9, e9);
-          }, this.predictCompleteWord = function(t9, n7) {
-            return a6(t9, n7, e8);
-          }, this.predictNextWord = function(t9, e9) {
-            return a6(t9, e9, n6);
-          }, this.applyPrediction = function(e9, n7, r8) {
-            var i8 = (r8 = r8 || {}).addToDictionary || (t8.isUsingOnlyDefaultDictionary() ? t8.DEFAULT_DICTIONARY_KEY : null), o7 = r8.shouldCompleteLastWord !== void 0 ? r8.shouldCompleteLastWord : !d5(e9), a7 = r8.dontLearn, u5 = f3(e9), s7 = f3(e9, 2), l4 = o7 ? e9.substring(0, e9.lastIndexOf(u5)) : e9;
-            return l4.length > 0 && (!d5(l4) || new RegExp(c5).test(l4[l4.length - 1])) && (l4 += " "), a7 || t8.learn(n7, o7 ? s7 : u5, i8), l4 + n7 + " ";
-          }, this.learn = function(e9, n7, i8) {
-            e9 = l3(e9), n7 = l3(n7);
-            var o7 = t8.getDictionaryKeys(true);
-            if (i8 = o7.length === 1 ? o7[0] : i8, o7.length > 0 && (!i8 || !r7[i8])) {
-              var a7 = 0;
-              o7.forEach(function(r8) {
-                var o8 = 0;
-                t8.hasWord(e9, r8) && (o8 += 2), t8.hasWord(n7, r8) && o8++, o8 > 0 && o8 >= a7 && (a7 = o8, i8 = r8);
-              });
-            }
-            i8 = i8 || t8.DEFAULT_DICTIONARY_KEY, r7[i8] || t8.addDictionary(i8), Object.keys(r7).forEach(function(t9) {
-              var o8 = r7[t9];
-              o8.disabled || o8.learn(e9, n7, i8 === t9);
-            });
-          }, this.learnFromInput = function(e9, n7) {
-            if (d5(e9)) {
-              var r8 = f3(e9, 2), o7 = f3(e9, 3);
-              if (r8 && r8 !== i7)
-                return i7 = r8, t8.learn(r8, o7, n7), true;
-            }
-            return false;
-          }, this.learnFromText = function(t9, e9) {
-            var n7 = this;
-            (t9 = t9.replace(/\s\s/g, " ")).split(new RegExp(u4)).forEach(function(t10) {
-              for (var r8 = t10.split(" "), i8 = 0; i8 < r8.length - 1; i8++)
-                n7.learn(r8[i8 + 1], r8[i8], e9);
-            });
-          }, this.getDictionaryKeys = function(t9) {
-            return t9 ? Object.keys(r7).filter(function(t10) {
-              return !r7[t10].disabled;
-            }) : Object.keys(r7);
-          }, this.isUsingOnlyDefaultDictionary = function() {
-            var e9 = t8.getDictionaryKeys();
-            return e9.length === 0 || e9.length === 1 && e9[0] === t8.DEFAULT_DICTIONARY_KEY;
-          };
-        }
-        function f3(t8, e8) {
-          e8 = e8 || 1;
-          var n6 = t8.trim().split(new RegExp(a5)).filter(function(t9) {
-            return !!t9;
-          });
-          return (n6[n6.length - e8] || "").replace(new RegExp(a5, "g"), "");
-        }
-        function d5(t8) {
-          return new RegExp(a5).test(t8[t8.length - 1]);
-        }
-        function l3(t8) {
-          return (t8 = t8 || "").replace(/[^a-z0-9áéíóúñüäöß'`´’]/gim, "");
-        }
-        s6.instance = function() {
-          return new s6();
-        };
-        e7.default = s6;
-        function p3() {
-          return new s6();
-        }
-      }]);
-    }
-  });
-
   // src/preload.ts
   window["global"] = window["global"] || globalThis;
 
@@ -28350,6 +28052,491 @@ window.addEventListener("message", (e) => {
     }
     return matched[1].replace(doubleQuoteRegExp, "'");
   }
+
+  // node_modules/predictionary/src/itemFactory.mjs
+  var itemFactory = {};
+  itemFactory.createItem = function(word, rank) {
+    if (!word) {
+      throw 'parameter "word" must be specified.';
+    }
+    let rankInt = parseInt(rank);
+    let returnObject = {
+      w: word,
+      f: 0,
+      t: {}
+    };
+    if (isInteger(rankInt)) {
+      returnObject.r = rankInt;
+    }
+    return returnObject;
+  };
+  function isInteger(value) {
+    return value == parseInt(value);
+  }
+  var itemFactory_default = itemFactory;
+
+  // node_modules/predictionary/src/dictionary.mjs
+  function Dictionary() {
+    let thiz = this;
+    let _dict = {};
+    let _lastPredictionInput = null;
+    let _lastPredictions = null;
+    thiz.load = function(dictionaryJSON) {
+      let importDict = JSON.parse(dictionaryJSON);
+      Object.keys(importDict).forEach((key) => {
+        importDict[key].w = key;
+      });
+      _dict = importDict;
+    };
+    thiz.toJSON = function() {
+      let copy = JSON.parse(JSON.stringify(_dict));
+      Object.keys(copy).forEach((key) => {
+        delete copy[key].w;
+      });
+      return JSON.stringify(copy);
+    };
+    thiz.addWord = function(word, rank) {
+      if (!word) {
+        return;
+      }
+      if (!_dict[word]) {
+        _dict[word] = itemFactory_default.createItem(word, rank);
+      }
+    };
+    thiz.addWords = function(words) {
+      if (!(words instanceof Array) || words.length === 0) {
+        throw "words to add must be an array with at least one element.";
+      }
+      words.forEach((word) => {
+        thiz.addWord(word);
+      });
+    };
+    thiz.deleteWord = function(word, ignoreCase) {
+      Object.keys(_dict).forEach((dictWord) => {
+        let equalWord = ignoreCase ? word.toUpperCase() === dictWord.toUpperCase() : word === dictWord;
+        if (equalWord) {
+          delete _dict[dictWord];
+        } else {
+          let dictElement = _dict[dictWord];
+          Object.keys(dictElement.t).forEach((transistionWord) => {
+            let equalTransitionWord = ignoreCase ? word.toUpperCase() === transistionWord.toUpperCase() : word === transistionWord;
+            if (equalTransitionWord) {
+              delete dictElement.t[transistionWord];
+            }
+          });
+        }
+      });
+    };
+    thiz.contains = function(word, matchCase) {
+      if (matchCase) {
+        return !!_dict[word];
+      } else {
+        return !!getBestFittingItem(word);
+      }
+    };
+    thiz.predictCompleteWord = function(input, options) {
+      input = input || "";
+      options = options || {};
+      let possiblePredictions = [];
+      Object.keys(_dict).forEach((key) => {
+        if (key.toLowerCase().indexOf(input.toLowerCase()) === 0) {
+          possiblePredictions.push(_dict[key]);
+        }
+      });
+      if (possiblePredictions.length === 0 && input.length > 1) {
+        let result = null;
+        if (_lastPredictionInput && _lastPredictions && input.indexOf(_lastPredictionInput) === 0) {
+          result = _lastPredictions;
+        } else {
+          result = thiz.predictCompleteWord(input.substring(0, input.length - 1), options);
+        }
+        result.forEach((element) => {
+          element.fuzzyMatch = true;
+        });
+        return result;
+      }
+      _lastPredictionInput = input;
+      _lastPredictions = possiblePredictions.map((element) => {
+        return {
+          word: element.w,
+          frequency: element.f,
+          rank: element.r
+        };
+      });
+      return _lastPredictions;
+    };
+    thiz.predictNextWord = function(previousWord, options) {
+      let items = getDictItemsAnyCase(previousWord);
+      let predictions = [];
+      items.forEach((item) => {
+        Object.keys(item.t).forEach((key) => {
+          predictions.push({
+            word: key,
+            frequency: item.t[key]
+          });
+        });
+      });
+      return predictions;
+    };
+    thiz.learn = function(chosenWord, previousWord, addIfNotExisting) {
+      if (!chosenWord || !thiz.contains(chosenWord) && !addIfNotExisting) {
+        return;
+      }
+      if (addIfNotExisting && chosenWord && !thiz.contains(chosenWord)) {
+        thiz.addWord(chosenWord);
+      }
+      if (addIfNotExisting && previousWord && !thiz.contains(previousWord)) {
+        thiz.addWord(previousWord);
+      }
+      let previousWordItem = getBestFittingItem(previousWord);
+      let chosenWordItem = getBestFittingItem(chosenWord);
+      chosenWordItem.f++;
+      if (previousWordItem && previousWordItem.t) {
+        if (previousWordItem.t[chosenWordItem.w]) {
+          previousWordItem.t[chosenWordItem.w]++;
+        } else {
+          previousWordItem.t[chosenWordItem.w] = 1;
+        }
+      }
+    };
+    thiz.getWords = function() {
+      return Object.keys(_dict);
+    };
+    function getDictItemsAnyCase(word) {
+      if (!word) {
+        return [];
+      }
+      let items = [];
+      if (_dict[word])
+        items.push(_dict[word]);
+      if (_dict[word.toLowerCase()] && items.indexOf(_dict[word.toLowerCase()]) === -1)
+        items.push(_dict[word.toLowerCase()]);
+      if (_dict[word.toUpperCase()] && items.indexOf(_dict[word.toUpperCase()]) === -1)
+        items.push(_dict[word.toUpperCase()]);
+      if (_dict[capitalize(word)] && items.indexOf(_dict[capitalize(word)]) === -1)
+        items.push(_dict[capitalize(word)]);
+      return items;
+    }
+    function getBestFittingItem(word) {
+      let items = getDictItemsAnyCase(word);
+      return items.length > 0 ? items[0] : null;
+    }
+    function capitalize(string2) {
+      return string2.charAt(0).toUpperCase() + string2.slice(1);
+    }
+  }
+  var dictionary_default = Dictionary;
+
+  // node_modules/predictionary/src/index.mjs
+  var INBETWEEN_CHARS_REGEX = "[\\s\\.\\?!,]";
+  var PHRASE_END_CHARS_REGEX = "[\\.\\?!,]";
+  var SENTENCE_END_CHARS_REGEX = "[\\.\\?!]";
+  function Predictionary() {
+    this.DEFAULT_DICTIONARY_KEY = "DEFAULT_DICTIONARY_KEY";
+    let thiz = this;
+    let PREDICT_METHOD_COMPLETE_WORD = "PREDICT_METHOD_COMPLETE_WORD";
+    let PREDICT_METHOD_NEXT_WORD = "PREDICT_METHOD_NEXT_WORD";
+    let _dicts = {};
+    let _lastChosenWord = null;
+    this.loadDictionary = function(dictionaryJSON, dictionaryKey) {
+      if (!dictionaryJSON) {
+        throw "dictionaryJSON must be specified.";
+      }
+      dictionaryKey = dictionaryKey || thiz.DEFAULT_DICTIONARY_KEY;
+      let dictionary = new dictionary_default();
+      dictionary.load(dictionaryJSON);
+      _dicts[dictionaryKey] = dictionary;
+    };
+    this.loadDictionaries = function(dictionariesJSON) {
+      if (!dictionariesJSON) {
+        throw "dictionariesJSON must be specified.";
+      }
+      _dicts = {};
+      let list = JSON.parse(dictionariesJSON);
+      list.forEach((element) => {
+        thiz.loadDictionary(element.json, element.key);
+      });
+    };
+    this.dictionaryToJSON = function(dictionaryKey) {
+      dictionaryKey = dictionaryKey || thiz.DEFAULT_DICTIONARY_KEY;
+      let dict = _dicts[dictionaryKey];
+      return dict ? dict.toJSON() : null;
+    };
+    this.dictionariesToJSON = function() {
+      let list = [];
+      Object.keys(_dicts).forEach((key) => {
+        list.push({
+          key,
+          json: _dicts[key].toJSON()
+        });
+      });
+      return JSON.stringify(list);
+    };
+    this.useDictionary = function(dictionaryKey) {
+      if (!dictionaryKey) {
+        throw "dictionaryKey must be specified.";
+      }
+      Object.keys(_dicts).forEach((key) => {
+        _dicts[key].disabled = dictionaryKey !== key;
+      });
+    };
+    this.useDictionaries = function(dictionaryKeys) {
+      if (!(dictionaryKeys instanceof Array)) {
+        throw "dictionaryKeys must be specified and of type Array.";
+      }
+      Object.keys(_dicts).forEach((key) => {
+        _dicts[key].disabled = dictionaryKeys.indexOf(key) === -1 && key !== thiz.DEFAULT_DICTIONARY_KEY;
+      });
+    };
+    this.useAllDictionaries = function() {
+      Object.keys(_dicts).forEach((key) => {
+        _dicts[key].disabled = false;
+      });
+    };
+    this.addDictionary = function(dictionaryKey, words) {
+      if (!dictionaryKey) {
+        throw "dictionaryKey must be specified.";
+      }
+      if (_dicts[dictionaryKey]) {
+        throw "dictionary already existing.";
+      }
+      _dicts[dictionaryKey] = new dictionary_default();
+      if (words && words instanceof Array) {
+        words.forEach((element) => {
+          thiz.addWord(element, dictionaryKey);
+        });
+      }
+    };
+    this.addWord = function(element, dictionaryKey) {
+      dictionaryKey = dictionaryKey || thiz.DEFAULT_DICTIONARY_KEY;
+      if (!element) {
+        throw "element to add not specified.";
+      }
+      if (!_dicts[dictionaryKey]) {
+        thiz.addDictionary(dictionaryKey);
+      }
+      let dict = _dicts[dictionaryKey];
+      if (typeof element === "string") {
+        dict.addWord(sanitize(element));
+      } else if (element.word && typeof element.word === "string") {
+        dict.addWord(sanitize(element.word), element.rank);
+      }
+    };
+    this.addWords = function(elements, dictionaryKey) {
+      if (!(elements instanceof Array)) {
+        throw "elements to add must be instance of array specified.";
+      }
+      elements.forEach((element) => {
+        thiz.addWord(element, dictionaryKey);
+      });
+    };
+    this.delete = function(inputOrWord, options) {
+      let word = getLastWord(inputOrWord);
+      options = options || {};
+      if (word) {
+        if (!options.dictionaryKey) {
+          thiz.getDictionaryKeys().forEach((key) => {
+            _dicts[key].deleteWord(word, options.ignoreCase);
+          });
+        } else if (_dicts[options.dictionaryKey]) {
+          _dicts[options.dictionaryKey].deleteWord(word, options.ignoreCase);
+        }
+      }
+    };
+    this.parseWords = function(importString, options) {
+      options = options || {};
+      let elementSeparator = options.elementSeparator || ";";
+      let rankSeparator = options.rankSeparator || " ";
+      let wordPosition = options.wordPosition || 0;
+      let wordPosition2 = options.wordPosition2;
+      let rankPosition = options.rankPosition;
+      let rankIsIndex = !!options.rankIsIndex;
+      let addToDictionary = options.addToDictionary || thiz.DEFAULT_DICTIONARY_KEY;
+      let lines = importString.split(elementSeparator);
+      lines.forEach((line, index2) => {
+        let elems = line.split(rankSeparator);
+        let rank = rankIsIndex ? index2 + 1 : parseInt(elems[rankPosition]);
+        if (wordPosition !== void 0 && wordPosition2 !== void 0) {
+          let word1 = elems[wordPosition];
+          let word2 = elems[wordPosition2];
+          if (word1 && word2) {
+            thiz.learn(word2, word1, addToDictionary);
+          }
+        } else if (elems[wordPosition]) {
+          let elementToAdd = {
+            word: elems[wordPosition].trim()
+          };
+          if (!isNaN(rank)) {
+            elementToAdd.rank = rank;
+          }
+          thiz.addWord(elementToAdd, addToDictionary);
+        }
+      });
+    };
+    this.getWords = function(dictionaryKey) {
+      let words = [];
+      if (!dictionaryKey) {
+        thiz.getDictionaryKeys().forEach((key) => {
+          words = words.concat(_dicts[key].getWords());
+        });
+      } else if (_dicts[dictionaryKey]) {
+        words = _dicts[dictionaryKey].getWords();
+      }
+      return words;
+    };
+    this.hasWord = function(word, dictionaryKey, matchCase) {
+      let allElementsString = " " + thiz.getWords(dictionaryKey).join(" ") + " ";
+      let flag = matchCase ? "" : "i";
+      return new RegExp(" " + word + " ", flag).test(allElementsString);
+    };
+    this.predict = function(input, options) {
+      return predictInternal(input, options);
+    };
+    this.predictCompleteWord = function(input, options) {
+      return predictInternal(input, options, PREDICT_METHOD_COMPLETE_WORD);
+    };
+    this.predictNextWord = function(input, options) {
+      return predictInternal(input, options, PREDICT_METHOD_NEXT_WORD);
+    };
+    this.applyPrediction = function(input, chosenPrediction, options) {
+      options = options || {};
+      let addToDictionary = options.addToDictionary || (thiz.isUsingOnlyDefaultDictionary() ? thiz.DEFAULT_DICTIONARY_KEY : null);
+      let shouldCompleteLastWord = options.shouldCompleteLastWord !== void 0 ? options.shouldCompleteLastWord : !isLastWordCompleted(input);
+      let dontLearn = options.dontLearn;
+      let lastWord = getLastWord(input);
+      let preLastWord = getLastWord(input, 2);
+      let temp = shouldCompleteLastWord ? input.substring(0, input.lastIndexOf(lastWord)) : input;
+      if (temp.length > 0 && (!isLastWordCompleted(temp) || new RegExp(PHRASE_END_CHARS_REGEX).test(temp[temp.length - 1]))) {
+        temp += " ";
+      }
+      if (!dontLearn) {
+        thiz.learn(chosenPrediction, !shouldCompleteLastWord ? lastWord : preLastWord, addToDictionary);
+      }
+      return temp + chosenPrediction + " ";
+    };
+    this.learn = function(chosenWord, previousWord, addToDictionary) {
+      chosenWord = sanitize(chosenWord);
+      previousWord = sanitize(previousWord);
+      let dictKeys = thiz.getDictionaryKeys(true);
+      addToDictionary = dictKeys.length === 1 ? dictKeys[0] : addToDictionary;
+      if (dictKeys.length > 0 && (!addToDictionary || !_dicts[addToDictionary])) {
+        let currentHighscore = 0;
+        dictKeys.forEach((key) => {
+          let score = 0;
+          if (thiz.hasWord(chosenWord, key)) {
+            score += 2;
+          }
+          if (thiz.hasWord(previousWord, key)) {
+            score++;
+          }
+          if (score > 0 && score >= currentHighscore) {
+            currentHighscore = score;
+            addToDictionary = key;
+          }
+        });
+      }
+      addToDictionary = addToDictionary || thiz.DEFAULT_DICTIONARY_KEY;
+      if (!_dicts[addToDictionary]) {
+        thiz.addDictionary(addToDictionary);
+      }
+      Object.keys(_dicts).forEach((key) => {
+        let dict = _dicts[key];
+        if (!dict.disabled) {
+          dict.learn(chosenWord, previousWord, addToDictionary === key);
+        }
+      });
+    };
+    this.learnFromInput = function(input, dictionaryKey) {
+      if (isLastWordCompleted(input)) {
+        let chosenWord = getLastWord(input, 2);
+        let previousWord = getLastWord(input, 3);
+        if (chosenWord && chosenWord !== _lastChosenWord) {
+          _lastChosenWord = chosenWord;
+          thiz.learn(chosenWord, previousWord, dictionaryKey);
+          return true;
+        }
+      }
+      return false;
+    };
+    this.learnFromText = function(text, dictionaryKey) {
+      text = text.replace(/\s\s/g, " ");
+      let sentences = text.split(new RegExp(SENTENCE_END_CHARS_REGEX));
+      sentences.forEach((sentence) => {
+        let words = sentence.split(" ");
+        for (let i6 = 0; i6 < words.length - 1; i6++) {
+          this.learn(words[i6 + 1], words[i6], dictionaryKey);
+        }
+      });
+    };
+    this.getDictionaryKeys = function(onlyEnabled) {
+      if (onlyEnabled) {
+        return Object.keys(_dicts).filter((element) => !_dicts[element].disabled);
+      }
+      return Object.keys(_dicts);
+    };
+    this.isUsingOnlyDefaultDictionary = function() {
+      let keys = thiz.getDictionaryKeys();
+      return keys.length === 0 || keys.length === 1 && keys[0] === thiz.DEFAULT_DICTIONARY_KEY;
+    };
+    function predictInternal(input, options, predictType) {
+      let predictions = [];
+      options = options || {};
+      options.maxPredictions = options.maxPredictions || options.maxPredicitons || 10;
+      options.applyToInput = options.applyToInput || false;
+      Object.keys(_dicts).forEach((key) => {
+        let dict = _dicts[key];
+        if (!dict.disabled) {
+          let predictFn = predictType === PREDICT_METHOD_NEXT_WORD ? dict.predictNextWord : predictType === PREDICT_METHOD_COMPLETE_WORD ? dict.predictCompleteWord : null;
+          predictFn = predictFn || (isLastWordCompleted(input) ? dict.predictNextWord : dict.predictCompleteWord);
+          predictions = predictions.concat(predictFn(getLastWord(input), options));
+        }
+      });
+      predictions.sort((a5, b4) => {
+        if (a5.fuzzyMatch !== b4.fuzzyMatch) {
+          return a5.fuzzyMatch ? 1 : -1;
+        }
+        if (a5.frequency !== b4.frequency) {
+          return a5.frequency < b4.frequency ? 1 : -1;
+        }
+        if (a5.rank !== b4.rank) {
+          if (a5.rank && b4.rank === void 0)
+            return -1;
+          if (b4.rank && a5.rank === void 0)
+            return 1;
+          return a5.rank < b4.rank ? -1 : 1;
+        }
+        return 0;
+      });
+      let returnArray = [];
+      for (let i6 = 0; i6 < predictions.length && returnArray.length < options.maxPredictions; i6++) {
+        if (returnArray.indexOf(predictions[i6].word) === -1) {
+          if (options.applyToInput) {
+            returnArray.push(thiz.applyPrediction(input, predictions[i6].word, {dontLearn: true}));
+          } else {
+            returnArray.push(predictions[i6].word);
+          }
+        }
+      }
+      return returnArray;
+    }
+  }
+  function getLastWord(text, index2) {
+    index2 = index2 || 1;
+    let words = text.trim().split(new RegExp(INBETWEEN_CHARS_REGEX)).filter((word) => !!word);
+    let returnWord = words[words.length - index2] || "";
+    return returnWord.replace(new RegExp(INBETWEEN_CHARS_REGEX, "g"), "");
+  }
+  function isLastWordCompleted(text) {
+    return new RegExp(INBETWEEN_CHARS_REGEX).test(text[text.length - 1]);
+  }
+  function sanitize(word) {
+    word = word || "";
+    return word.replace(/[!?,;.:\n]/gim, "").trim();
+  }
+  Predictionary.instance = function() {
+    return new Predictionary();
+  };
+  var src_default = Predictionary;
 
   // src/lang.ts
   var Langs = {
@@ -44014,6 +44201,635 @@ console.log('Hello, World!');
     }
   };
 
+  // src/diff-visualizer.ts
+  var DiffVisualizer = class {
+    constructor() {
+      this.diffInfo = null;
+      this.isInDiffView = false;
+      this.scrollSyncEnabled = true;
+      this.isScrolling = false;
+      this.scrollTimeout = null;
+      this.setupMessageListener();
+      this.setupScrollSync();
+    }
+    setupMessageListener() {
+      console.log("\u{1F3A8} DIFF VISUALIZER: Setting up message listener");
+      window.addEventListener("message", (event) => {
+        const message = event.data;
+        console.log("\u{1F3A8} DIFF VISUALIZER: Received message", {type: message.type, data: message});
+        if (message.type === "diff-view-detected") {
+          console.log("\u{1F3A8} DIFF VISUALIZER: Received diff info from extension", message.diffInfo);
+          this.diffInfo = message.diffInfo;
+          this.isInDiffView = true;
+          this.applyDiffVisualizations();
+        } else if (message.type === "diff-scroll-sync") {
+          console.log("\uFFFD DIFF VISUALIZER: Received scroll sync from other editor", {
+            percentage: message.scrollPercentage,
+            myRole: this.diffInfo?.role,
+            syncEnabled: this.scrollSyncEnabled
+          });
+          this.applyScrollFromOther(message.scrollPercentage);
+        }
+      });
+      console.log("\u{1F3A8} DIFF VISUALIZER: Message listener setup complete");
+    }
+    applyDiffVisualizations() {
+      console.log("\u{1F3A8} DIFF VISUALIZER: applyDiffVisualizations called", {
+        hasDiffInfo: !!this.diffInfo,
+        role: this.diffInfo?.role,
+        changesCount: this.diffInfo?.changes.length
+      });
+      if (!this.diffInfo) {
+        console.log("\u26A0\uFE0F DIFF VISUALIZER: No diff info, exiting");
+        return;
+      }
+      console.log("\u{1F3A8} DIFF VISUALIZER: Applying visualizations", {
+        role: this.diffInfo.role,
+        changes: this.diffInfo.changes.length,
+        stats: this.diffInfo.stats
+      });
+      this.addDiffHeader();
+      setTimeout(() => {
+        console.log("\u{1F3A8} DIFF VISUALIZER: Timeout elapsed, applying line decorations");
+        this.applyLineDecorations();
+        console.log("\u{1F504} DIFF VISUALIZER: Setting up scroll sync after visualizations");
+        this.setupScrollSyncListeners();
+      }, 1e3);
+    }
+    addDiffHeader() {
+      console.log("\u{1F3A8} DIFF VISUALIZER: addDiffHeader called");
+      if (!this.diffInfo) {
+        console.log("\u26A0\uFE0F DIFF VISUALIZER: No diff info in addDiffHeader");
+        return;
+      }
+      const tryAddHeader = (attempt = 1) => {
+        const existingHeader = document.querySelector(".diff-view-header");
+        if (existingHeader) {
+          console.log("\u{1F3A8} DIFF VISUALIZER: Removing existing header");
+          existingHeader.remove();
+        }
+        const vditorElement = document.querySelector(".vditor");
+        if (!vditorElement || !vditorElement.parentElement) {
+          if (attempt < 10) {
+            console.log(`\u26A0\uFE0F DIFF VISUALIZER: Vditor not ready, retrying (attempt ${attempt}/10)...`);
+            setTimeout(() => tryAddHeader(attempt + 1), 300);
+          } else {
+            console.log("\u26A0\uFE0F DIFF VISUALIZER: Vditor element not found after 10 attempts");
+          }
+          return;
+        }
+        console.log("\u2705 DIFF VISUALIZER: Found Vditor element, inserting header");
+        const header = document.createElement("div");
+        header.className = "diff-view-header";
+        header.style.cssText = `
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        background: var(--vscode-editor-background);
+        border-bottom: 1px solid var(--vscode-panel-border);
+        padding: 8px 12px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-family: var(--vscode-font-family);
+        font-size: 12px;
+      `;
+        const roleLabel = document.createElement("span");
+        roleLabel.textContent = this.diffInfo.role === "left" ? "\u{1F4C4} Original" : "\u{1F4DD} Modified";
+        roleLabel.style.cssText = `
+        font-weight: 600;
+        color: var(--vscode-foreground);
+      `;
+        const stats = document.createElement("span");
+        stats.innerHTML = `
+        <span style="color: var(--vscode-gitDecoration-addedResourceForeground);">+${this.diffInfo.stats.added}</span>
+        <span style="color: var(--vscode-gitDecoration-deletedResourceForeground);">-${this.diffInfo.stats.deleted}</span>
+        <span style="color: var(--vscode-gitDecoration-modifiedResourceForeground);">~${this.diffInfo.stats.modified}</span>
+      `;
+        stats.style.cssText = `
+        display: flex;
+        gap: 8px;
+        margin-left: auto;
+      `;
+        header.appendChild(roleLabel);
+        header.appendChild(stats);
+        vditorElement.parentElement.insertBefore(header, vditorElement);
+        console.log("\u2705 DIFF VISUALIZER: Header inserted successfully");
+      };
+      tryAddHeader();
+    }
+    applyLineDecorations() {
+      console.log("\u{1F3A8} DIFF VISUALIZER: applyLineDecorations called");
+      if (!this.diffInfo) {
+        console.log("\u26A0\uFE0F DIFF VISUALIZER: No diff info in applyLineDecorations");
+        return;
+      }
+      console.log("\u{1F3A8} DIFF VISUALIZER: Applying line decorations to", this.diffInfo.changes.length, "changes");
+      const contentElement = document.querySelector(".vditor-ir") || document.querySelector(".vditor-wysiwyg") || document.querySelector(".vditor-sv");
+      if (!contentElement) {
+        console.warn("\u26A0\uFE0F DIFF VISUALIZER: Could not find Vditor content element");
+        return;
+      }
+      console.log("\u2705 DIFF VISUALIZER: Found content element:", contentElement.className);
+      const allTextNodes = [];
+      const elements = contentElement.querySelectorAll(".vditor-ir__node, .vditor-wysiwyg__block, p, div, h1, h2, h3, h4, h5, h6, li, pre, blockquote");
+      elements.forEach((el) => {
+        const text = el.textContent?.trim() || "";
+        if (text.length > 0) {
+          allTextNodes.push({element: el, text});
+        }
+      });
+      console.log("\u{1F3A8} DIFF VISUALIZER: Found", allTextNodes.length, "text nodes");
+      const sourceLines = this.diffInfo.documentText ? this.diffInfo.documentText.split("\n") : [];
+      console.log("\u{1F3A8} DIFF VISUALIZER: Source document has", sourceLines.length, "text lines");
+      const lineToDom = new Map();
+      let domIndex = 0;
+      for (let lineNum = 0; lineNum < sourceLines.length && domIndex < allTextNodes.length; lineNum++) {
+        const sourceLine = sourceLines[lineNum].trim();
+        if (!sourceLine) {
+          continue;
+        }
+        let found = false;
+        for (let i6 = domIndex; i6 < allTextNodes.length; i6++) {
+          const domNode = allTextNodes[i6];
+          const domText = domNode.text.trim();
+          if (domText === sourceLine) {
+            lineToDom.set(lineNum, domNode.element);
+            domIndex = i6 + 1;
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          console.log(`\u26A0\uFE0F DIFF VISUALIZER: Could not map source line ${lineNum}: "${sourceLine.substring(0, 40)}..."`);
+        }
+      }
+      console.log("\u{1F3A8} DIFF VISUALIZER: Built line-to-DOM mapping with", lineToDom.size, "entries");
+      console.log("\u{1F3A8} DIFF VISUALIZER: Mapping details:", Array.from(lineToDom.entries()).slice(0, 20).map(([line, el]) => ({
+        line,
+        text: el.textContent?.trim().substring(0, 30) + "..."
+      })));
+      this.addSpacerBlocks(lineToDom, sourceLines);
+      const relevantChangesForHighlight = this.diffInfo.changes.filter((c5) => c5.side === this.diffInfo.role || c5.side === "both");
+      console.log(`\u{1F3A8} DIFF VISUALIZER: Highlighting ${relevantChangesForHighlight.length} changes for ${this.diffInfo.role} side`);
+      let matchedCount = 0;
+      const alreadyMatched = new Set();
+      relevantChangesForHighlight.forEach((change, index2) => {
+        const changeText = change.content.trim();
+        if (!changeText) {
+          console.log(`\u26A0\uFE0F DIFF VISUALIZER: Change ${index2 + 1} has empty content, skipping`);
+          return;
+        }
+        const targetLineNumber = change.lineNumber;
+        console.log(`\u{1F50D} DIFF VISUALIZER: Looking for change ${index2 + 1} (${change.type}) at line ${targetLineNumber}: "${changeText.substring(0, 40)}..."`);
+        let targetElement = lineToDom.get(targetLineNumber);
+        if (targetElement && !alreadyMatched.has(targetElement)) {
+          const elementText = targetElement.textContent?.trim() || "";
+          if (elementText === changeText || elementText.includes(changeText)) {
+            console.log(`\u2705 DIFF VISUALIZER: Found exact match via line mapping at line ${targetLineNumber}`);
+          } else {
+            console.log(`\u26A0\uFE0F DIFF VISUALIZER: Line mapping found element but text doesn't match. Looking for alternative...`);
+            targetElement = null;
+          }
+        } else if (targetElement) {
+          console.log(`\u26A0\uFE0F DIFF VISUALIZER: Line mapping found element but it's already matched. Looking for alternative...`);
+          targetElement = null;
+        }
+        if (!targetElement) {
+          const matchingNodes = allTextNodes.filter((node) => !alreadyMatched.has(node.element) && node.text === changeText);
+          if (matchingNodes.length === 1) {
+            targetElement = matchingNodes[0].element;
+            console.log(`\u2705 DIFF VISUALIZER: Found single text match`);
+          } else if (matchingNodes.length > 1) {
+            const relativePosition = targetLineNumber / Math.max(sourceLines.length, 1);
+            const targetIndex = Math.floor(relativePosition * allTextNodes.length);
+            targetElement = matchingNodes.reduce((closest, node) => {
+              const nodeIndex = allTextNodes.indexOf(node);
+              const closestIndex = allTextNodes.indexOf(allTextNodes.find((n5) => n5.element === closest));
+              return Math.abs(nodeIndex - targetIndex) < Math.abs(closestIndex - targetIndex) ? node.element : closest;
+            }, matchingNodes[0].element);
+            console.log(`\u2705 DIFF VISUALIZER: Found ${matchingNodes.length} text matches, chose one using relative position (~${Math.floor(relativePosition * 100)}%)`);
+          }
+        }
+        if (targetElement) {
+          const color = this.getChangeColor(change.type);
+          targetElement.style.backgroundColor = color.bg;
+          targetElement.style.borderLeft = `3px solid ${color.border}`;
+          targetElement.style.paddingLeft = "4px";
+          targetElement.title = this.getChangeTooltip(change);
+          alreadyMatched.add(targetElement);
+          matchedCount++;
+          console.log(`\u2705 DIFF VISUALIZER: Applied ${change.type} decoration`);
+        } else {
+          console.log(`\u26A0\uFE0F DIFF VISUALIZER: No match for change ${index2 + 1}`);
+        }
+      });
+      console.log(`\u2705 DIFF VISUALIZER: Applied ${matchedCount}/${relevantChangesForHighlight.length} decorations`);
+    }
+    calculateSimilarity(text1, text2) {
+      const longer = text1.length > text2.length ? text1 : text2;
+      const shorter = text1.length > text2.length ? text2 : text1;
+      if (longer.length === 0)
+        return 1;
+      const matches = shorter.split("").filter((char, i6) => longer[i6] === char).length;
+      return matches / longer.length;
+    }
+    getChangeColor(type) {
+      switch (type) {
+        case "added":
+          return {
+            bg: "var(--vscode-diffEditor-insertedTextBackground, rgba(155, 185, 85, 0.2))",
+            border: "var(--vscode-gitDecoration-addedResourceForeground, #81b88b)"
+          };
+        case "deleted":
+          return {
+            bg: "var(--vscode-diffEditor-removedTextBackground, rgba(255, 0, 0, 0.2))",
+            border: "var(--vscode-gitDecoration-deletedResourceForeground, #c74e39)"
+          };
+        case "modified":
+          return {
+            bg: "var(--vscode-diffEditor-insertedTextBackground, rgba(155, 185, 85, 0.15))",
+            border: "var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d)"
+          };
+      }
+    }
+    getChangeTooltip(change) {
+      switch (change.type) {
+        case "added":
+          return "Added in this version";
+        case "deleted":
+          return "Deleted from original";
+        case "modified":
+          return `Modified from: ${change.oldContent}`;
+        default:
+          return "";
+      }
+    }
+    setupScrollSync() {
+      console.log("\u{1F504} DIFF VISUALIZER: setupScrollSync called (initial setup)");
+    }
+    setupScrollSyncListeners() {
+      console.log("\u{1F504} DIFF VISUALIZER: Setting up scroll sync listeners");
+      const possibleContainers = [
+        document.documentElement,
+        document.body,
+        document.querySelector(".vditor"),
+        document.querySelector(".vditor-content"),
+        document.querySelector(".vditor-ir"),
+        document.querySelector(".vditor-wysiwyg"),
+        document.querySelector(".vditor-sv")
+      ];
+      let scrollableElement = null;
+      for (const element of possibleContainers) {
+        if (element) {
+          const el = element;
+          const hasScroll = el.scrollHeight > el.clientHeight;
+          const overflowY = window.getComputedStyle(el).overflowY;
+          const tagName = el.tagName || "unknown";
+          console.log(`\u{1F50D} DIFF VISUALIZER: Checking ${tagName}.${el.className}:`, {
+            scrollHeight: el.scrollHeight,
+            clientHeight: el.clientHeight,
+            hasScroll,
+            overflowY,
+            isScrollable: hasScroll || el === document.documentElement || el === document.body
+          });
+          if (el === document.documentElement || el === document.body) {
+            scrollableElement = el;
+            console.log(`\u2705 DIFF VISUALIZER: Using document-level scroll: ${tagName}`);
+            break;
+          }
+          if (hasScroll && (overflowY === "auto" || overflowY === "scroll")) {
+            scrollableElement = el;
+            console.log(`\u2705 DIFF VISUALIZER: Found scrollable element: ${tagName}.${el.className}`);
+            break;
+          }
+        }
+      }
+      if (!scrollableElement) {
+        console.error("\u274C DIFF VISUALIZER: Could not find any scroll element, defaulting to document.documentElement");
+        scrollableElement = document.documentElement;
+      }
+      const elementName = scrollableElement.tagName || scrollableElement.className || "unknown";
+      console.log(`\u2705 DIFF VISUALIZER: Attaching scroll listener to: ${elementName}`);
+      const scrollHandler = (e7) => {
+        if (!this.scrollSyncEnabled || this.isScrolling) {
+          return;
+        }
+        const target = e7.target;
+        console.log("\u{1F504} DIFF VISUALIZER: Scroll event fired on:", target.tagName, target.className);
+        this.handleScroll(target);
+      };
+      scrollableElement.addEventListener("scroll", scrollHandler, {passive: true, capture: true});
+      const windowScrollHandler = () => {
+        if (!this.scrollSyncEnabled || this.isScrolling) {
+          return;
+        }
+        console.log("\u{1F504} DIFF VISUALIZER: Window scroll detected");
+        this.handleScroll(document.documentElement);
+      };
+      window.addEventListener("scroll", windowScrollHandler, {passive: true});
+      console.log("\u2705 DIFF VISUALIZER: Scroll listeners attached successfully");
+      console.log("\u{1F4CD} DIFF VISUALIZER: Initial scroll position:", {
+        scrollTop: scrollableElement.scrollTop,
+        scrollHeight: scrollableElement.scrollHeight,
+        clientHeight: scrollableElement.clientHeight
+      });
+    }
+    addSpacerBlocks(lineToDom, sourceLines) {
+      if (!this.diffInfo) {
+        return;
+      }
+      console.log("\u{1F4CF} DIFF VISUALIZER: Adding spacer blocks for alignment");
+      const contentElement = document.querySelector(".vditor-ir") || document.querySelector(".vditor-wysiwyg") || document.querySelector(".vditor-sv");
+      if (!contentElement) {
+        console.warn("\u26A0\uFE0F DIFF VISUALIZER: Could not find content element for spacers");
+        return;
+      }
+      console.log("\u2705 DIFF VISUALIZER: Found content element for spacers:", contentElement.className);
+      console.log(`\u{1F4CF} DIFF VISUALIZER: Processing ${this.diffInfo.changes.length} total changes for ${this.diffInfo.role} editor`);
+      console.log(`\u{1F4CF} DIFF VISUALIZER: Changes breakdown:`, this.diffInfo.changes.map((c5) => ({
+        type: c5.type,
+        line: c5.lineNumber,
+        side: c5.side,
+        content: c5.content.substring(0, 30) + "..."
+      })));
+      const leftSideChanges = this.diffInfo.changes.filter((c5) => c5.side === "left");
+      const rightSideChanges = this.diffInfo.changes.filter((c5) => c5.side === "right");
+      console.log(`\u{1F4CF} DIFF VISUALIZER: Left side (deletions): ${leftSideChanges.length}, Right side (additions): ${rightSideChanges.length}`);
+      const leftDeletions = this.diffInfo.changes.filter((c5) => c5.side === "left" && c5.type === "deleted");
+      const rightAdditions = this.diffInfo.changes.filter((c5) => c5.side === "right" && c5.type === "added");
+      const excludedRightLines = new Set();
+      const excludedLeftLines = new Set();
+      for (const deletion of leftDeletions) {
+        const previousAdditions = rightAdditions.filter((a5) => a5.lineNumber < deletion.lineNumber).length;
+        const previousDeletions = leftDeletions.filter((d5) => d5.lineNumber < deletion.lineNumber).length;
+        const offset = previousAdditions - previousDeletions;
+        const expectedRightLine = deletion.lineNumber + offset;
+        const matchingAddition = rightAdditions.find((a5) => Math.abs(a5.lineNumber - expectedRightLine) <= 2);
+        if (matchingAddition) {
+          console.log(`\u{1F4CF} DIFF VISUALIZER: Detected replacement pair - left line ${deletion.lineNumber} \u2194 right line ${matchingAddition.lineNumber} (both excluded)`);
+          excludedRightLines.add(matchingAddition.lineNumber);
+          excludedLeftLines.add(deletion.lineNumber);
+        }
+      }
+      const relevantChanges = this.diffInfo.role === "left" ? this.diffInfo.changes.filter((c5) => c5.side === "right" && c5.type === "added" && !excludedRightLines.has(c5.lineNumber) && c5.content.trim().length > 0) : this.diffInfo.changes.filter((c5) => c5.side === "left" && c5.type === "deleted" && !excludedLeftLines.has(c5.lineNumber) && c5.content.trim().length > 0);
+      console.log(`\u{1F4CF} DIFF VISUALIZER: Adding ${relevantChanges.length} spacer blocks for ${this.diffInfo.role} editor`);
+      console.log(`\u{1F4CF} DIFF VISUALIZER: Excluded ${excludedRightLines.size} right lines (replacements):`, Array.from(excludedRightLines));
+      console.log(`\u{1F4CF} DIFF VISUALIZER: Excluded ${excludedLeftLines.size} left lines (replacements):`, Array.from(excludedLeftLines));
+      console.log(`\u{1F4CF} DIFF VISUALIZER: Relevant changes for spacers:`, relevantChanges.map((c5) => ({
+        line: c5.lineNumber,
+        type: c5.type,
+        side: c5.side,
+        content: c5.content.substring(0, 30)
+      })));
+      if (relevantChanges.length === 0) {
+        console.log("\u{1F4CF} DIFF VISUALIZER: No spacers needed");
+        return;
+      }
+      const spacerBlocks = [];
+      const sortedChanges = [...relevantChanges].sort((a5, b4) => a5.lineNumber - b4.lineNumber);
+      let currentBlock = {startLine: sortedChanges[0].lineNumber, endLine: sortedChanges[0].lineNumber, lineCount: 1};
+      for (let i6 = 1; i6 < sortedChanges.length; i6++) {
+        const change = sortedChanges[i6];
+        if (change.lineNumber === currentBlock.endLine + 1) {
+          currentBlock.endLine = change.lineNumber;
+          currentBlock.lineCount++;
+          console.log(`\u{1F4CF} DIFF VISUALIZER: Extended block to include line ${change.lineNumber}, block now ${currentBlock.startLine}-${currentBlock.endLine}`);
+        } else {
+          spacerBlocks.push(currentBlock);
+          console.log(`\u{1F4CF} DIFF VISUALIZER: Completed block ${currentBlock.startLine}-${currentBlock.endLine} (${currentBlock.lineCount} lines)`);
+          currentBlock = {startLine: change.lineNumber, endLine: change.lineNumber, lineCount: 1};
+        }
+      }
+      spacerBlocks.push(currentBlock);
+      console.log(`\u{1F4CF} DIFF VISUALIZER: Final block ${currentBlock.startLine}-${currentBlock.endLine} (${currentBlock.lineCount} lines)`);
+      console.log(`\u{1F4CF} DIFF VISUALIZER: Grouped into ${spacerBlocks.length} spacer blocks:`, spacerBlocks);
+      for (let i6 = spacerBlocks.length - 1; i6 >= 0; i6--) {
+        const block = spacerBlocks[i6];
+        console.log(`\u{1F4CF} DIFF VISUALIZER: Processing spacer block for lines ${block.startLine}-${block.endLine} (${block.lineCount} lines)`);
+        let targetElement = null;
+        let targetLineNum;
+        if (this.diffInfo.role === "left") {
+          const additionsBeforeThis = rightAdditions.filter((a5) => a5.lineNumber < block.startLine).length;
+          targetLineNum = block.startLine - additionsBeforeThis;
+          console.log(`\u{1F4CF} DIFF VISUALIZER: Left editor: block at right line ${block.startLine}, inserting at left line ~${targetLineNum}`);
+        } else {
+          const deletionsBeforeThis = leftDeletions.filter((d5) => d5.lineNumber < block.startLine && !excludedLeftLines.has(d5.lineNumber)).length;
+          const additionsBeforeThis = rightAdditions.filter((a5) => a5.lineNumber < block.startLine).length;
+          targetLineNum = block.startLine - deletionsBeforeThis + additionsBeforeThis;
+          console.log(`\u{1F4CF} DIFF VISUALIZER: Right editor: block at left line ${block.startLine}, inserting at right line ~${targetLineNum}`);
+        }
+        targetElement = lineToDom.get(targetLineNum) || null;
+        if (!targetElement) {
+          for (let offset = 1; offset <= 5; offset++) {
+            targetElement = lineToDom.get(targetLineNum - offset);
+            if (targetElement) {
+              console.log(`\u{1F4CF} DIFF VISUALIZER: Found nearby element at offset -${offset} (line ${targetLineNum - offset})`);
+              break;
+            }
+          }
+          if (!targetElement) {
+            for (let offset = 1; offset <= 5; offset++) {
+              targetElement = lineToDom.get(targetLineNum + offset);
+              if (targetElement) {
+                console.log(`\u{1F4CF} DIFF VISUALIZER: Found nearby element at offset +${offset} (line ${targetLineNum + offset})`);
+                break;
+              }
+            }
+          }
+        }
+        if (!targetElement) {
+          console.warn(`\u26A0\uFE0F DIFF VISUALIZER: Could not find target element for block starting at line ${block.startLine}, skipping spacer`);
+          continue;
+        }
+        console.log(`\u{1F4CF} DIFF VISUALIZER: Target element for spacer block:`, targetElement.tagName, targetElement.className);
+        let parentElement = targetElement.parentElement;
+        let insertionParent = null;
+        while (parentElement) {
+          if (parentElement === contentElement) {
+            insertionParent = contentElement;
+            break;
+          }
+          parentElement = parentElement.parentElement;
+        }
+        if (!insertionParent) {
+          console.warn(`\u26A0\uFE0F DIFF VISUALIZER: Target element is not a child of content element, skipping spacer for block at line ${block.startLine}`);
+          continue;
+        }
+        const singleLineHeight = this.estimateLineHeight(targetElement);
+        const totalHeight = singleLineHeight * block.lineCount;
+        console.log(`\u{1F4CF} DIFF VISUALIZER: Estimated line height: ${singleLineHeight}px \xD7 ${block.lineCount} lines = ${totalHeight}px total`, {
+          tag: targetElement.tagName,
+          offsetHeight: targetElement.offsetHeight,
+          computedLineHeight: window.getComputedStyle(targetElement).lineHeight,
+          fontSize: window.getComputedStyle(targetElement).fontSize
+        });
+        const spacer = document.createElement("div");
+        spacer.className = "diff-spacer-block";
+        spacer.setAttribute("data-line-start", block.startLine.toString());
+        spacer.setAttribute("data-line-end", block.endLine.toString());
+        spacer.style.cssText = `
+        height: ${totalHeight}px;
+        min-height: ${totalHeight}px;
+        background-color: var(--vscode-diffEditor-removedTextBackground, rgba(255, 0, 0, 0.1));
+        border-left: 3px solid var(--vscode-gitDecoration-deletedResourceForeground, #c74e39);
+        margin: 0;
+        padding: 0;
+        position: relative;
+        display: block;
+        box-sizing: border-box;
+      `;
+        spacer.innerHTML = `<span style="
+        position: absolute;
+        left: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--vscode-descriptionForeground);
+        font-size: 11px;
+        opacity: 0.5;
+        user-select: none;
+      ">\xB7\xB7\xB7</span>`;
+        try {
+          if (this.diffInfo.role === "left") {
+            if (targetElement.nextSibling) {
+              targetElement.parentElement.insertBefore(spacer, targetElement.nextSibling);
+            } else {
+              targetElement.parentElement.appendChild(spacer);
+            }
+            console.log(`\u{1F4CF} DIFF VISUALIZER: \u2705 Inserted spacer AFTER line ${targetLineNum} (left/original) for block ${block.startLine}-${block.endLine}`);
+          } else {
+            targetElement.parentElement.insertBefore(spacer, targetElement);
+            console.log(`\u{1F4CF} DIFF VISUALIZER: \u2705 Inserted spacer BEFORE line ${targetLineNum} (right/modified) for block ${block.startLine}-${block.endLine}`);
+          }
+        } catch (error2) {
+          console.error(`\u274C DIFF VISUALIZER: Failed to insert spacer for block ${block.startLine}-${block.endLine}:`, error2);
+        }
+      }
+      console.log("\u{1F4CF} DIFF VISUALIZER: Spacer blocks insertion complete");
+    }
+    estimateLineHeight(element) {
+      const computedStyle = window.getComputedStyle(element);
+      const lineHeightStr = computedStyle.lineHeight;
+      if (lineHeightStr === "normal" || lineHeightStr === "") {
+        const fontSize = parseFloat(computedStyle.fontSize);
+        if (!isNaN(fontSize)) {
+          return Math.ceil(fontSize * 1.2);
+        }
+      } else {
+        const lineHeight = parseFloat(lineHeightStr);
+        if (!isNaN(lineHeight)) {
+          return Math.ceil(lineHeight);
+        }
+      }
+      const elementHeight = element.offsetHeight;
+      if (elementHeight > 40) {
+        const fontSize = parseFloat(computedStyle.fontSize);
+        if (!isNaN(fontSize)) {
+          return Math.ceil(fontSize * 1.2);
+        }
+        return 24;
+      }
+      return elementHeight || 24;
+    }
+    handleScroll(element) {
+      console.log("\u{1F504} DIFF VISUALIZER: handleScroll called");
+      if (this.isScrolling) {
+        console.log("\u{1F504} DIFF VISUALIZER: Scroll ignored - isScrolling is true");
+        return;
+      }
+      const scrollHeight = element.scrollHeight;
+      const clientHeight = element.clientHeight;
+      const scrollTop = element.scrollTop;
+      const scrollableHeight = scrollHeight - clientHeight;
+      const scrollPercentage = scrollableHeight > 0 ? scrollTop / scrollableHeight : 0;
+      console.log("\u{1F504} DIFF VISUALIZER: Scroll detected", {
+        element: element.tagName + "." + element.className,
+        scrollTop,
+        scrollHeight,
+        clientHeight,
+        scrollableHeight,
+        percentage: scrollPercentage,
+        hasVscode: !!window.vscode,
+        diffRole: this.diffInfo?.role
+      });
+      if (isNaN(scrollPercentage)) {
+        console.warn("\u26A0\uFE0F DIFF VISUALIZER: Invalid scroll percentage (NaN), skipping");
+        return;
+      }
+      const vscode2 = window.vscode;
+      if (vscode2) {
+        console.log("\u{1F504} DIFF VISUALIZER: Sending scroll sync message to extension", {percentage: scrollPercentage});
+        vscode2.postMessage({
+          command: "diff-scroll-sync",
+          scrollPercentage,
+          role: this.diffInfo?.role
+        });
+      } else {
+        console.warn("\u26A0\uFE0F DIFF VISUALIZER: vscode object not available!");
+      }
+    }
+    applyScrollFromOther(scrollPercentage) {
+      if (!this.scrollSyncEnabled) {
+        console.log("\u{1F504} DIFF VISUALIZER: Scroll sync disabled, ignoring");
+        return;
+      }
+      const scrollableElement = document.querySelector(".vditor-ir pre.vditor-reset") || document.querySelector(".vditor-wysiwyg pre.vditor-reset") || document.querySelector(".vditor-sv pre.vditor-reset") || document.querySelector("pre.vditor-reset") || document.documentElement;
+      if (!scrollableElement) {
+        console.warn("\u26A0\uFE0F DIFF VISUALIZER: No element found to apply scroll");
+        return;
+      }
+      const element = scrollableElement;
+      console.log("\u{1F504} DIFF VISUALIZER: Target element for scroll sync:", {
+        tag: element.tagName,
+        classes: element.className,
+        scrollHeight: element.scrollHeight,
+        clientHeight: element.clientHeight,
+        currentScrollTop: element.scrollTop
+      });
+      this.isScrolling = true;
+      const scrollableHeight = element.scrollHeight - element.clientHeight;
+      if (scrollableHeight <= 0) {
+        console.warn("\u26A0\uFE0F DIFF VISUALIZER: Element is not scrollable!", {
+          scrollHeight: element.scrollHeight,
+          clientHeight: element.clientHeight,
+          element: element.tagName + "." + element.className
+        });
+        this.isScrolling = false;
+        return;
+      }
+      const targetScrollTop = scrollPercentage * scrollableHeight;
+      element.scrollTop = targetScrollTop;
+      console.log("\u2705 DIFF VISUALIZER: Applied scroll sync", {
+        element: element.tagName + "." + element.className,
+        percentage: scrollPercentage,
+        scrollHeight: element.scrollHeight,
+        clientHeight: element.clientHeight,
+        scrollableHeight,
+        targetScrollTop,
+        actualScrollTop: element.scrollTop
+      });
+      if (this.scrollTimeout) {
+        clearTimeout(this.scrollTimeout);
+      }
+      this.scrollTimeout = window.setTimeout(() => {
+        this.isScrolling = false;
+      }, 100);
+    }
+    toggleScrollSync() {
+      this.scrollSyncEnabled = !this.scrollSyncEnabled;
+      console.log("\u{1F504} DIFF VISUALIZER: Scroll sync", this.scrollSyncEnabled ? "enabled" : "disabled");
+    }
+    inDiffView() {
+      return this.isInDiffView;
+    }
+    getDiffInfo() {
+      return this.diffInfo;
+    }
+  };
+  console.log("\u{1F3A8} DIFF VISUALIZER: Module loading, creating singleton instance");
+  var diffVisualizer = new DiffVisualizer();
+  console.log("\u{1F3A8} DIFF VISUALIZER: Singleton instance created");
+
   // src/cursor-manager.ts
   var CursorManager = class {
     constructor(vditorInstance) {
@@ -45265,11 +46081,11 @@ console.log('Hello, World!');
   };
 
   // src/main.ts
-  require_predictionary_min();
   var diagnosticVisualizer = null;
   var vscodeIntegrator = null;
   var cursorManager = null;
   var findReplaceManager = null;
+  console.log("\u{1F4CB} MAIN: Diff visualizer loaded:", !!diffVisualizer);
   window.__vditorHandledContextMenu = false;
   var __lastContextMenuBuild = 0;
   var __lastMousePos = {x: 200, y: 200};
@@ -45341,7 +46157,7 @@ console.log('Hello, World!');
     items.push({separator: true});
     items.push({label: "Quick Fix...", click: () => vscode.postMessage({command: "triggerQuickFix"}), disabled: !diagAvailable}, {label: "Format Document", click: () => vscode.postMessage({command: "formatDocument"})}, {label: "Format Selection", click: () => vscode.postMessage({command: "formatSelection"}), disabled: !selection.hasSelection}, {label: "Show Problems", click: () => vscode.postMessage({command: "showProblems"})});
     items.push({separator: true});
-    items.push({label: "Find", click: () => vscode.postMessage({command: "find"})}, {label: "Find && Replace", click: () => vscode.postMessage({command: "findAndReplace"})});
+    items.push({label: "Find", click: () => vscode.postMessage({command: "find"})}, {label: "Find & Replace", click: () => vscode.postMessage({command: "findAndReplace"})});
     items.push({separator: true});
     items.push({
       label: "Insert",
@@ -45384,8 +46200,6 @@ console.log('Hello, World!');
         submenuEl = document.createElement("div");
         submenuEl.className = "vscode-submenu";
         submenuEl.style.position = "fixed";
-        submenuEl.style.left = rect.right + 4 + "px";
-        submenuEl.style.top = rect.top + "px";
         submenuEl.style.background = "var(--vscode-menu-background, #1e1e1e)";
         submenuEl.style.border = "1px solid var(--vscode-menu-border, #454545)";
         submenuEl.style.borderRadius = "3px";
@@ -45393,6 +46207,9 @@ console.log('Hello, World!');
         submenuEl.style.minWidth = "150px";
         submenuEl.style.boxShadow = "0 2px 8px rgba(0,0,0,.5)";
         submenuEl.style.zIndex = "10001";
+        submenuEl.style.left = "-9999px";
+        submenuEl.style.top = "-9999px";
+        submenuEl.style.visibility = "hidden";
         submenuData.forEach((sub) => {
           if (sub.separator) {
             const sep = document.createElement("div");
@@ -45432,6 +46249,29 @@ console.log('Hello, World!');
           close();
         });
         document.body.appendChild(submenuEl);
+        const submenuRect = submenuEl.getBoundingClientRect();
+        const submenuWidth = submenuRect.width;
+        const submenuHeight = submenuRect.height;
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        let finalX = rect.right + 4;
+        let finalY = rect.top;
+        if (finalX + submenuWidth > viewportWidth) {
+          finalX = rect.left - submenuWidth - 4;
+          if (finalX < 10) {
+            finalX = 10;
+          }
+        }
+        if (finalY + submenuHeight > viewportHeight) {
+          finalY = viewportHeight - submenuHeight - 10;
+        }
+        if (finalY < 10) {
+          finalY = 10;
+        }
+        submenuEl.style.left = `${finalX}px`;
+        submenuEl.style.top = `${finalY}px`;
+        submenuEl.style.visibility = "visible";
+        console.log(`\u{1F4CB} SUBMENU: Positioned at (${finalX}, ${finalY}) - Submenu: ${submenuWidth}x${submenuHeight}, Viewport: ${viewportWidth}x${viewportHeight}`);
       };
       const scheduleClose = () => {
         if (closeTimer)
@@ -45466,14 +46306,21 @@ console.log('Hello, World!');
             const text = await navigator.clipboard.readText();
             if (text) {
               window.vditor.insertValue(text);
+              console.log("\u{1F527} Paste via Vditor.insertValue succeeded");
               return;
             }
           }
         }
-        const success2 = document.execCommand("paste");
-        if (success2) {
-          return;
+        try {
+          const success2 = document.execCommand("paste");
+          if (success2) {
+            console.log("\u{1F527} Paste via execCommand succeeded");
+            return;
+          }
+        } catch (err) {
+          console.warn("\u{1F527} execCommand paste failed:", err);
         }
+        console.log("\u{1F527} Requesting paste from extension as fallback");
         vscode.postMessage({command: "clipboardReadRequest"});
       } else {
         const {text, range} = getRobustSelectionSnapshot();
@@ -45732,14 +46579,10 @@ console.log('Hello, World!');
   vscodeLog("Main.ts: Starting VS Code integration improvements...");
   initializeRendererSystem();
   function initVditor(msg) {
-    const predictionary = window.Predictionary?.instance();
-    const dictionaryKey = "en_US";
-    if (!predictionary) {
-      console.warn("\u26A0\uFE0F Predictionary not available - autocomplete hints will be disabled");
-      console.log("window.Predictionary:", window.Predictionary);
-    }
-    if (predictionary) {
-      console.log("\u2705 Predictionary loaded successfully");
+    let predictionary = null;
+    try {
+      predictionary = src_default.instance();
+      const dictionaryKey = "en_US";
       predictionary.parseWords(words_en_default, {
         elementSeparator: "\n",
         rankSeparator: " ",
@@ -45748,6 +46591,10 @@ console.log('Hello, World!');
         addToDictionary: dictionaryKey
       });
       predictionary.useDictionaries([dictionaryKey]);
+      console.log("\u2705 Predictionary v1.6.0 loaded successfully");
+    } catch (error2) {
+      console.warn("\u26A0\uFE0F Predictionary initialization failed:", error2);
+      predictionary = null;
     }
     let inputTimer;
     let defaultOptions2 = {
@@ -46017,8 +46864,6 @@ console.log('Hello, World!');
           const menu = document.createElement("div");
           menu.id = "manual-context-menu";
           menu.style.position = "fixed";
-          menu.style.left = `${x3}px`;
-          menu.style.top = `${y5}px`;
           menu.style.backgroundColor = "var(--vscode-menu-background, #1e1e1e)";
           menu.style.border = "1px solid var(--vscode-menu-border, #454545)";
           menu.style.borderRadius = "3px";
@@ -46026,6 +46871,9 @@ console.log('Hello, World!');
           menu.style.zIndex = "10000";
           menu.style.minWidth = "150px";
           menu.style.padding = "4px 0";
+          menu.style.left = "-9999px";
+          menu.style.top = "-9999px";
+          menu.style.visibility = "hidden";
           let actionableIndex = 0;
           const actionableElements = [];
           menuItems.forEach((item) => {
@@ -46074,6 +46922,29 @@ console.log('Hello, World!');
             menu.appendChild(menuItem);
           });
           document.body.appendChild(menu);
+          const menuRect = menu.getBoundingClientRect();
+          const menuWidth = menuRect.width;
+          const menuHeight = menuRect.height;
+          const viewportWidth = window.innerWidth;
+          const viewportHeight = window.innerHeight;
+          let finalX = x3;
+          let finalY = y5;
+          if (finalX + menuWidth > viewportWidth) {
+            finalX = viewportWidth - menuWidth - 10;
+          }
+          if (finalY + menuHeight > viewportHeight) {
+            finalY = viewportHeight - menuHeight - 10;
+          }
+          if (finalX < 10) {
+            finalX = 10;
+          }
+          if (finalY < 10) {
+            finalY = 10;
+          }
+          menu.style.left = `${finalX}px`;
+          menu.style.top = `${finalY}px`;
+          menu.style.visibility = "visible";
+          console.log(`\u{1F4CB} CONTEXT MENU: Positioned at (${finalX}, ${finalY}) - Menu: ${menuWidth}x${menuHeight}, Viewport: ${viewportWidth}x${viewportHeight}`);
           const removeMenu = (e7) => {
             if (!menu.contains(e7.target)) {
               menu.remove();
