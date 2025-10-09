@@ -19,7 +19,7 @@ export class CursorManager {
    */
   private initializeCursorTracking(): void {
     this.setupSelectionMonitoring(); // DISABLED - was causing issues
-    this.setupMutationObserver();    // DISABLED - was causing issues
+    // this.setupMutationObserver(); // Method removed - was causing cursor jumping issues
     this.setupInputHandling();       // DISABLED - was causing issues
     this.logCursor('🎯 CursorManager initialized but most features DISABLED to prevent cursor jumping');
     this.logCursor('🎯 Only manual space/enter handling and paste handling remain active');
@@ -27,7 +27,13 @@ export class CursorManager {
 
   /**
    * Setup selection change monitoring
-   * DISABLED: This was causing excessive cursor position tracking during normal typing
+   * 
+   * @deprecated This method is currently disabled due to cursor jumping issues.
+   * The selection change monitoring was causing excessive cursor position tracking
+   * during normal typing, which contributed to cursor jumping problems.
+   * 
+   * See: Cursor jumping issue - selection monitoring was storing position on every
+   * character typed, leading to unwanted cursor restoration.
    */
   private setupSelectionMonitoring(): void {
     this.logCursor("⚠️ Selection change monitoring DISABLED - was causing excessive cursor tracking");
@@ -47,35 +53,15 @@ export class CursorManager {
     */
   }
 
-  /**
-   * Setup mutation observer to detect DOM changes that might affect cursor
-   * DISABLED: This was causing cursor jumping during normal typing
-   */
-  private setupMutationObserver(): void {
-    this.logCursor("⚠️ MutationObserver DISABLED - was causing cursor jumping during typing");
-    
-    // PROBLEM: The mutation observer was restoring cursor position on EVERY DOM change,
-    // including normal typing, which caused the cursor jumping issue.
-    // We should only restore cursor position for specific external changes, not user typing.
-    
-    // TODO: Implement more intelligent cursor restoration that only triggers for
-    // actual external DOM changes, not normal user input
-    return;
-    
-    /*
-    const editor = this.getEditorElement();
-    if (!editor) return;
-
-    this.mutationObserver = new MutationObserver((mutations) => {
-      // Only restore cursor for specific non-typing changes
-      // This logic needs to be much more sophisticated
-    });
-    */
-  }
 
   /**
    * Setup input handling to prevent cursor jumping during typing
-   * TEMPORARILY DISABLED for debugging
+   * 
+   * @deprecated This method is temporarily disabled for debugging cursor jumping issues.
+   * The input event handling was contributing to cursor position interference during
+   * normal typing. Needs to be re-evaluated and potentially redesigned.
+   * 
+   * Note: Paste events are now handled by VSCodeIntegrator to avoid conflicts.
    */
   private setupInputHandling(): void {
     const editor = this.getEditorElement();

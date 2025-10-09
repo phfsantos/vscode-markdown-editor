@@ -31,7 +31,7 @@ export class VSCodeWebviewIntegrator {
     this.setupClipboardIntegration();
     this.setupCursorManagement();
     this.setupQuickFixIntegration();
-    this.vscodeLog('🔗 VSCodeWebviewIntegrator initialized');
+
   }
 
   /**
@@ -44,13 +44,10 @@ export class VSCodeWebviewIntegrator {
     // Make editor properly focusable for better interaction
     editor.setAttribute('contenteditable', 'true');
     editor.setAttribute('tabindex', '0');
-    
-    this.vscodeLog(`✅ Context menu integration setup - Vditor will handle display via createVditorContextMenu()`);
 
     // REMOVED: The conflicting event listener that was preventing Vditor's contextmenu callback from working
     // The createVditorContextMenu() method will be called by Vditor automatically when configured properly
-    
-    this.vscodeLog(`� Context menu integration ready - removed conflicting event listeners`);
+
   }
 
   /**
@@ -73,8 +70,7 @@ export class VSCodeWebviewIntegrator {
 
     // Ensure context menu events bubble to VS Code with proper selection handling
     editor.addEventListener('contextmenu', (e) => {
-      this.vscodeLog('🖱️ Context menu event captured');
-      
+
       // Ensure there's a selection for cut/copy to work
       const selection = window.getSelection();
       if (!selection || selection.toString().length === 0) {
@@ -103,8 +99,7 @@ export class VSCodeWebviewIntegrator {
         editor.focus();
       });
     }
-    
-    this.vscodeLog('🔧 Enhanced VS Code native context menu integration');
+
   }
 
   /**
@@ -212,7 +207,7 @@ export class VSCodeWebviewIntegrator {
       if (selection) {
         const success = await this.writeToVSCodeClipboard(selection);
         if (success) {
-          this.vscodeLog(`📋 Copied: ${selection.length} characters`);
+
         }
       }
     } catch (error) {
@@ -228,8 +223,7 @@ export class VSCodeWebviewIntegrator {
       const text = await this.readFromVSCodeClipboard();
       if (text) {
         this.insertTextAtCursor(text);
-        this.vscodeLog(`📋 Pasted: ${text.length} characters`);
-        
+
         // Notify cursor manager to handle positioning after paste
         if (this.cursorManager && this.cursorManager.handleAfterPaste) {
           this.cursorManager.handleAfterPaste();
@@ -250,7 +244,7 @@ export class VSCodeWebviewIntegrator {
         const success = await this.writeToVSCodeClipboard(selection);
         if (success) {
           this.deleteSelectedText();
-          this.vscodeLog(`📋 Cut: ${selection.length} characters`);
+
         }
       }
     } catch (error) {
@@ -485,7 +479,7 @@ export class VSCodeWebviewIntegrator {
 
     // Show context menu at last click position
     // (This would need to be implemented based on your UI framework)
-    this.vscodeLog(`🔧 Showing context menu with ${menuItems.length} items`);
+
   }
 
   /**
@@ -545,7 +539,7 @@ export class VSCodeWebviewIntegrator {
    * Trigger quick fix at current cursor position
    */
   public triggerQuickFix(): void {
-    this.vscodeLog('🔧 Triggering quick fix menu');
+
     this.sendToVSCode({
       command: 'triggerQuickFix'
     });
@@ -625,8 +619,7 @@ export class VSCodeWebviewIntegrator {
    * Request quick fix from VS Code with enhanced debugging
    */
   public requestQuickFix(source: string, position: any): void {
-    this.vscodeLog(`💡 Requesting quick fix from ${source} at position: ${JSON.stringify(position)}`);
-    
+
     this.sendToVSCode({
       command: 'requestQuickFix',
       source: source,
@@ -655,13 +648,11 @@ export class VSCodeWebviewIntegrator {
     }
   }
 
-
   /**
    * Create Vditor context menu with VS Code commands - Enhanced with comprehensive debugging
    */
   public createVditorContextMenu(event: MouseEvent): any[] {
-    this.vscodeLog(`📋 VDITOR CONTEXT MENU: createVditorContextMenu() called!`);
-    
+
     // Get cursor position for context-sensitive actions
     const position = this.getCursorPositionFromEvent(event);
     const elementType = this.getElementTypeAtPosition(event.target as HTMLElement);
@@ -685,14 +676,14 @@ export class VSCodeWebviewIntegrator {
     if (menuY + menuEstimatedHeight > viewportHeight) {
       // Position menu above cursor instead
       adjustedY = Math.max(0, menuY - menuEstimatedHeight);
-      this.vscodeLog(`📋 MENU POSITION: Adjusted Y from ${menuY} to ${adjustedY} (viewport overflow)`);
+
     }
     
     // Check if menu would overflow right of viewport
     if (menuX + menuEstimatedWidth > viewportWidth) {
       // Position menu to left of cursor instead
       adjustedX = Math.max(0, menuX - menuEstimatedWidth);
-      this.vscodeLog(`📋 MENU POSITION: Adjusted X from ${menuX} to ${adjustedX} (viewport overflow)`);
+
     }
     
     // Request VS Code actions for this position
@@ -711,28 +702,28 @@ export class VSCodeWebviewIntegrator {
       {
         label: 'Cut',
         click: () => {
-          this.vscodeLog('📋 Cut menu item clicked');
+
           this.handleCut(new ClipboardEvent('cut'));
         }
       },
       {
         label: 'Copy',
         click: () => {
-          this.vscodeLog('📋 Copy menu item clicked');
+
           this.handleCopy(new ClipboardEvent('copy'));
         }
       },
       {
         label: 'Paste',
         click: () => {
-          this.vscodeLog('📋 Paste menu item clicked');
+
           this.handlePaste(new ClipboardEvent('paste'));
         }
       },
       {
         label: 'Select All',
         click: () => {
-          this.vscodeLog('📋 Select All menu item clicked');
+
           this.sendToVSCode({
             command: 'selectAll'
           });
@@ -744,14 +735,14 @@ export class VSCodeWebviewIntegrator {
       {
         label: 'Quick Fix...',
         click: () => {
-          this.vscodeLog('📋 Quick Fix menu item clicked');
+
           this.requestQuickFix('contextMenu', position);
         }
       },
       {
         label: 'Show Problems',
         click: () => {
-          this.vscodeLog('📋 Show Problems menu item clicked');
+
           this.sendToVSCode({
             command: 'showProblems'
           });
@@ -763,7 +754,7 @@ export class VSCodeWebviewIntegrator {
       {
         label: 'Format Document',
         click: () => {
-          this.vscodeLog('📋 Format Document menu item clicked');
+
           this.sendToVSCode({
             command: 'formatDocument'
           });
@@ -772,7 +763,7 @@ export class VSCodeWebviewIntegrator {
       {
         label: 'Format Selection',
         click: () => {
-          this.vscodeLog('📋 Format Selection menu item clicked');
+
           this.sendToVSCode({
             command: 'formatSelection'
           });
@@ -784,7 +775,7 @@ export class VSCodeWebviewIntegrator {
       {
         label: 'Find',
         click: () => {
-          this.vscodeLog('📋 Find menu item clicked');
+
           this.sendToVSCode({
             command: 'find'
           });
@@ -793,7 +784,7 @@ export class VSCodeWebviewIntegrator {
       {
         label: 'Find and Replace',
         click: () => {
-          this.vscodeLog('📋 Find and Replace menu item clicked');
+
           this.sendToVSCode({
             command: 'findAndReplace'
           });
@@ -805,7 +796,7 @@ export class VSCodeWebviewIntegrator {
       {
         label: 'Insert Link',
         click: () => {
-          this.vscodeLog('📋 Insert Link menu item clicked');
+
           this.sendToVSCode({
             command: 'insertLink'
           });
@@ -814,7 +805,7 @@ export class VSCodeWebviewIntegrator {
       {
         label: 'Insert Image',
         click: () => {
-          this.vscodeLog('📋 Insert Image menu item clicked');
+
           this.sendToVSCode({
             command: 'insertImage'
           });
@@ -823,7 +814,7 @@ export class VSCodeWebviewIntegrator {
       {
         label: 'Insert Table',
         click: () => {
-          this.vscodeLog('📋 Insert Table menu item clicked');
+
           this.sendToVSCode({
             command: 'insertTable'
           });
@@ -835,7 +826,7 @@ export class VSCodeWebviewIntegrator {
       {
         label: 'Insert Kanban Board',
         click: () => {
-          this.vscodeLog('📋 Insert Kanban Board menu item clicked');
+
           this.sendToVSCode({
             command: 'requestInsertRenderer',
             rendererType: 'kanban-board'
@@ -845,7 +836,7 @@ export class VSCodeWebviewIntegrator {
       {
         label: 'Insert Interactive Table',
         click: () => {
-          this.vscodeLog('📋 Insert Interactive Table menu item clicked');
+
           this.sendToVSCode({
             command: 'requestInsertRenderer',
             rendererType: 'table'
@@ -855,7 +846,7 @@ export class VSCodeWebviewIntegrator {
       {
         label: 'Insert Code Playground',
         click: () => {
-          this.vscodeLog('📋 Insert Code Playground menu item clicked');
+
           // Playground doesn't need extension - insert directly
           const playgroundText = `\n\`\`\`playground\nconsole.log('Hello, World!');\n\`\`\`\n`;
           if ((window as any).vditor) {
@@ -869,7 +860,7 @@ export class VSCodeWebviewIntegrator {
       {
         label: 'Command Palette',
         click: () => {
-          this.vscodeLog('📋 Command Palette menu item clicked');
+
           this.sendToVSCode({
             command: 'showCommandPalette'
           });
@@ -878,32 +869,28 @@ export class VSCodeWebviewIntegrator {
       {
         label: 'Toggle Word Wrap',
         click: () => {
-          this.vscodeLog('📋 Toggle Word Wrap menu item clicked');
+
           this.sendToVSCode({
             command: 'toggleWordWrap'
           });
         }
       }
     ];
-    
-    this.vscodeLog(`📋 ✅ Created Vditor context menu with ${contextMenu.length} items`);
-    
+
         // Enhanced fallback: Create custom context menu if Vditor doesn't display
-        this.vscodeLog(`📋 🎯 CONTEXT MENU CALLBACK COMPLETE - Setting up display fallback`);
-        
+
         // Give Vditor a chance to display the menu, then fallback to custom display
         setTimeout(() => {
           // Check if Vditor displayed a context menu
           const vditorMenu = document.querySelector('.vditor-menu, .vditor-contextmenu');
           if (!vditorMenu) {
-            this.vscodeLog(`📋 🔧 Vditor menu not detected - creating custom context menu display`);
+
             this.createAndDisplayContextMenu(event.clientX, event.clientY, contextMenu);
           } else {
-            this.vscodeLog(`📋 ✅ Vditor menu detected - using Vditor's display`);
+
           }
         }, 50); // Slightly longer delay to give Vditor time to render    // Log the complete context information for VS Code
-    this.vscodeLog(`📋 Context menu request: position=${JSON.stringify(position)} elementType=${elementType} selectedText="${selectedText}"`);
-    
+
     return contextMenu;
   }
 
@@ -983,19 +970,17 @@ export class VSCodeWebviewIntegrator {
       document.addEventListener('click', removeMenu);
       document.addEventListener('keydown', removeMenu);
     }, 100);
-    
-    this.vscodeLog(`✅ Custom context menu displayed with ${menuItems.length} items`);
+
   }
 
   /**
    * Handle context menu actions received from VS Code (legacy support)
    */
   public handleContextMenuActions(actions: any[]): void {
-    this.vscodeLog(`📋 Received ${actions.length} context menu actions from VS Code`);
-    
+
     // Log available actions
     actions.forEach((action, index) => {
-      this.vscodeLog(`Action ${index}: ${action.title} (${action.kind})`);
+
     });
     
     // Could enhance the Vditor context menu with these actions in the future

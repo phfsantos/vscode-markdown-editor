@@ -16,7 +16,7 @@ export class MarkdownDiffViewSupport {
     // Command to manually trigger diff mode for two visible markdown editors
     this.disposables.push(
       vscode.commands.registerCommand('markdown-editor.enableDiffMode', () => {
-        console.log('🔍 DIFF: Manual diff mode triggered');
+
         this.detectDiffViews();
         
         if (this.diffViewEditors.size === 0) {
@@ -63,7 +63,7 @@ export class MarkdownDiffViewSupport {
    * Manually trigger diff detection (can be called by EditorPanel)
    */
   public triggerDetection(): void {
-    console.log('🔍 DIFF VIEW: Manual detection triggered');
+
     setTimeout(() => this.detectDiffViews(), 100);
   }
 
@@ -71,32 +71,27 @@ export class MarkdownDiffViewSupport {
    * Scans all tab groups to find markdown editors in diff views
    */
   private detectDiffViews(): void {
-    console.log('🔍 DIFF VIEW: Detecting diff views...');
-    console.log('🔍 DIFF VIEW: Total tab groups:', vscode.window.tabGroups.all.length);
-    
+
+
     const allEditors: { uri: vscode.Uri; tabGroup: vscode.TabGroup; tab: vscode.Tab; groupIndex: number }[] = [];
     
     // First, collect all markdown editors with their group info
     const groups = vscode.window.tabGroups.all;
     for (let groupIndex = 0; groupIndex < groups.length; groupIndex++) {
       const tabGroup = groups[groupIndex];
-      console.log(`🔍 DIFF VIEW: Group ${groupIndex} - Active: ${tabGroup.isActive}, Tabs: ${tabGroup.tabs.length}`);
-      
+
       for (const tab of tabGroup.tabs) {
         // Log ALL tab types to see what we're dealing with
         const inputType = (tab.input as any)?.constructor?.name || 'unknown';
         const hasArrow = tab.label.includes('↔');
-        console.log(`🔍 TAB TYPE: ${inputType}, Label: ${tab.label}, Active: ${tab.isActive}, HasArrow: ${hasArrow}`);
-        
+
         // Check for diff tabs by label pattern (test3.md ↔ test3 copy.md)
         if (hasArrow && tab.label.includes('.md')) {
-          console.log('📊 DIFF VIEW: Found diff tab by label pattern!');
-          
+
           // Parse the file names from the label
           const parts = tab.label.split('↔').map(s => s.trim());
           if (parts.length === 2) {
-            console.log('📊 DIFF VIEW: Parsed files:', parts);
-            
+
             // Try to find these files in our markdown editors
             const file1Name = parts[0];
             const file2Name = parts[1];
@@ -120,17 +115,11 @@ export class MarkdownDiffViewSupport {
             }
             
             if (uri1 && uri2) {
-              console.log('✅ DIFF VIEW: Found both markdown files for diff!', {
-                left: uri1.toString(),
-                right: uri2.toString()
-              });
+
               this.registerDiffPair(uri1, uri2);
               return;
             } else {
-              console.log('⚠️ DIFF VIEW: Could not find URIs for both files', {
-                found1: !!uri1,
-                found2: !!uri2
-              });
+
             }
           }
         }
@@ -138,14 +127,10 @@ export class MarkdownDiffViewSupport {
         // Check for TextDiff tabs (native VS Code diff with text editors)
         if (tab.input instanceof vscode.TabInputTextDiff) {
           const diffInput = tab.input as vscode.TabInputTextDiff;
-          console.log('📊 DIFF VIEW: Found TextDiff tab!', {
-            original: diffInput.original.toString(),
-            modified: diffInput.modified.toString()
-          });
-          
+
           // Check if both are markdown files
           if (diffInput.original.path.endsWith('.md') && diffInput.modified.path.endsWith('.md')) {
-            console.log('✅ DIFF VIEW: Found markdown diff tab!');
+
             this.registerDiffPair(diffInput.original, diffInput.modified);
             return;
           }
@@ -156,15 +141,13 @@ export class MarkdownDiffViewSupport {
           const customInput = tab.input as vscode.TabInputCustom;
           if (customInput.viewType === 'markdown-editor') {
             const fileName = customInput.uri.path.split('/').pop();
-            console.log(`📄 DIFF VIEW: Group ${groupIndex}, Tab: ${fileName}, Active: ${tab.isActive}, isGroupActive: ${tabGroup.isActive}`);
+
             allEditors.push({ uri: customInput.uri, tabGroup, tab, groupIndex });
           }
         }
       }
     }
-    
-    console.log(`🔍 DIFF VIEW: Found ${allEditors.length} markdown editors total`);
-    
+
     // Strategy 1: Look for exactly 2 groups with 1 active markdown editor each (side-by-side)
     if (groups.length >= 2) {
       const editorsInGroup: Map<number, typeof allEditors[0]> = new Map();
@@ -175,15 +158,12 @@ export class MarkdownDiffViewSupport {
           editorsInGroup.set(editor.groupIndex, editor);
         }
       }
-      
-      console.log(`🔍 DIFF VIEW: Active editors per group: ${editorsInGroup.size}`);
-      
+
       // If we have exactly 2 groups with active markdown editors
       if (editorsInGroup.size === 2) {
         const editorsArray = Array.from(editorsInGroup.values());
         const [editor1, editor2] = editorsArray.sort((a, b) => a.groupIndex - b.groupIndex);
-        
-        console.log('✅ DIFF VIEW: Found diff pair (2 groups with active markdown editors)');
+
         this.registerDiffPair(editor1.uri, editor2.uri);
         return;
       }
@@ -191,14 +171,12 @@ export class MarkdownDiffViewSupport {
     
     // Strategy 2: Look for 2 active editors in different groups (fallback)
     const activeEditorsInDifferentGroups = allEditors.filter(e => e.tab.isActive);
-    console.log(`🔍 DIFF VIEW: ${activeEditorsInDifferentGroups.length} active editors across all groups`);
-    
+
     if (activeEditorsInDifferentGroups.length === 2) {
       const [editor1, editor2] = activeEditorsInDifferentGroups;
       
       if (editor1.groupIndex !== editor2.groupIndex) {
-        console.log('✅ DIFF VIEW: Found 2 active editors in different groups');
-        
+
         if (editor1.groupIndex < editor2.groupIndex) {
           this.registerDiffPair(editor1.uri, editor2.uri);
         } else {
@@ -207,8 +185,7 @@ export class MarkdownDiffViewSupport {
         return;
       }
     }
-    
-    console.log('⚠️ DIFF VIEW: No diff pairs detected');
+
   }
   
   /**
@@ -259,8 +236,7 @@ export class MarkdownDiffViewSupport {
       otherUri: uri1,
       role: 'right'
     });
-    
-    console.log('✅ DIFF VIEW: Registered diff pair');
+
   }
 
   /**
@@ -281,8 +257,7 @@ export class MarkdownDiffViewSupport {
    * Calculate line-by-line diff between two documents using LCS algorithm
    */
   public async calculateDiff(leftUri: vscode.Uri, rightUri: vscode.Uri): Promise<DiffResult> {
-    console.log('📊 DIFF VIEW: Calculating diff between documents');
-    
+
     const leftDoc = await vscode.workspace.openTextDocument(leftUri);
     const rightDoc = await vscode.workspace.openTextDocument(rightUri);
     
@@ -291,9 +266,7 @@ export class MarkdownDiffViewSupport {
     
     // Use Longest Common Subsequence (LCS) to find actual differences
     const changes = this.computeLCSDiff(leftLines, rightLines);
-    
-    console.log(`📊 DIFF VIEW: Found ${changes.length} changes`);
-    
+
     return {
       leftUri,
       rightUri,
@@ -386,48 +359,32 @@ export class MarkdownDiffViewSupport {
    * Handle scroll sync message from webview
    */
   public handleScrollSync(sourceUri: vscode.Uri, scrollPercentage: number): void {
-    console.log('🔄 DIFF: handleScrollSync called', {
-      sourceUri: sourceUri.toString(),
-      percentage: scrollPercentage
-    });
-    
+
     const info = this.diffViewEditors.get(sourceUri.toString());
     if (!info) {
-      console.log('⚠️ DIFF: No diff info for scroll sync, available editors:', 
-        Array.from(this.diffViewEditors.keys()));
       return;
     }
-    
-    console.log('🔄 DIFF: Found diff info, forwarding scroll sync', {
-      from: sourceUri.toString(),
-      to: info.otherUri.toString(),
-      percentage: scrollPercentage
-    });
-    
+
     // Find the target EditorPanel for the other editor
     // EditorPanel stores all instances in EditorPanel.editors
     const EditorPanel = require('../app/EditorPanel').EditorPanel;
-    console.log('🔄 DIFF: EditorPanel.editors exists:', !!EditorPanel.editors);
-    console.log('🔄 DIFF: EditorPanel.editors length:', EditorPanel.editors?.length);
-    
+
+
     if (EditorPanel.editors && EditorPanel.editors.length > 0) {
-      console.log('🔄 DIFF: Available editor URIs:', 
-        EditorPanel.editors.map((e: any) => e._uri?.toString()).filter(Boolean));
-      
       const targetEditor = EditorPanel.editors.find((editor: any) => 
         editor._uri && editor._uri.toString() === info.otherUri.toString()
       );
       
       if (targetEditor) {
-        console.log('✅ DIFF: Found target editor, sending scroll sync to:', info.otherUri.toString());
+
         targetEditor.sendScrollSync(scrollPercentage);
       } else {
-        console.log('❌ DIFF: Could not find target editor for scroll sync');
-        console.log('❌ DIFF: Looking for:', info.otherUri.toString());
-        console.log('❌ DIFF: Available:', EditorPanel.editors.map((e: any) => e._uri?.toString()));
+
+
+
       }
     } else {
-      console.log('❌ DIFF: No EditorPanel.editors available');
+
     }
   }
 

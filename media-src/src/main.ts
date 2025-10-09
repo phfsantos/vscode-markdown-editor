@@ -38,8 +38,6 @@ let cursorManager: CursorManager | null = null;
 let findReplaceManager: FindReplaceManager | null = null;
 
 // Ensure diff visualizer is loaded (singleton is created on import)
-console.log('📋 MAIN: Diff visualizer loaded:', !!diffVisualizer);
-
 // Coordination flag to avoid duplicate custom menu builds
 (window as any).__vditorHandledContextMenu = false;
 let __lastContextMenuBuild = 0;
@@ -273,8 +271,6 @@ function enhanceManualMenuForSubmenus(menuRoot: HTMLElement) {
       submenuEl.style.left = `${finalX}px`;
       submenuEl.style.top = `${finalY}px`;
       submenuEl.style.visibility = 'visible';
-      
-      console.log(`📋 SUBMENU: Positioned at (${finalX}, ${finalY}) - Submenu: ${submenuWidth}x${submenuHeight}, Viewport: ${viewportWidth}x${viewportHeight}`);
     };
 
     const scheduleClose = () => {
@@ -313,7 +309,6 @@ async function performClipboardAction(kind: 'cut' | 'copy' | 'paste') {
           const text = await navigator.clipboard.readText();
           if (text) {
             window.vditor.insertValue(text);
-            console.log('🔧 Paste via Vditor.insertValue succeeded');
             return; // SUCCESS - STOP HERE
           }
         }
@@ -322,14 +317,10 @@ async function performClipboardAction(kind: 'cut' | 'copy' | 'paste') {
       try {
         const success = document.execCommand('paste');
         if (success) {
-          console.log('🔧 Paste via execCommand succeeded');
           return; // SUCCESS - STOP HERE
         }
-      } catch (err) {
-        console.warn('🔧 execCommand paste failed:', err);
-      }
+      } catch (err) {/* empty */}
       // Fallback: ask extension only if both above failed
-      console.log('🔧 Requesting paste from extension as fallback');
       vscode.postMessage({ command: 'clipboardReadRequest' });
     } else {
       // Unified robust selection capture
@@ -347,14 +338,14 @@ async function performClipboardAction(kind: 'cut' | 'copy' | 'paste') {
                 activeRange.deleteContents();
               }
             } catch (errDel) {
-              try { activeRange.deleteContents(); } catch (errDel2) { console.warn('🔧 Cut delete fallback failed', errDel2); }
+              try { activeRange.deleteContents(); } catch (errDel2) { vscodeLog(`Cut delete fallback failed: ${errDel2}`); }
             }
             // Trigger Vditor content change
             window.vditor?.vditor?.ir?.element?.dispatchEvent(new InputEvent('input', { bubbles: true }));
           }
           return;
         } catch (err) {
-          console.warn('🔧 navigator.clipboard writeText failed, will fallback', err);
+          vscodeLog(`Clipboard writeText failed, falling back to execCommand: ${err}`);
         }
       }
 
@@ -375,7 +366,7 @@ async function performClipboardAction(kind: 'cut' | 'copy' | 'paste') {
         if (kind === 'cut' && (range || (sel && sel.rangeCount > 0))) {
           const activeRange = range || sel.getRangeAt(0);
             if (!document.execCommand('insertText', false, '')) {
-              try { activeRange.deleteContents(); } catch (errDel3) { console.warn('🔧 ExecCommand cut fallback failed', errDel3); }
+              try { activeRange.deleteContents(); } catch (errDel3) { vscodeLog(`ExecCommand cut fallback failed: ${errDel3}`); }
             }
             window.vditor?.vditor?.ir?.element?.dispatchEvent(new InputEvent('input', { bubbles: true }));
         }
@@ -386,7 +377,7 @@ async function performClipboardAction(kind: 'cut' | 'copy' | 'paste') {
       vscode.postMessage({ command: 'clipboardWriteRequest', kind, text });
     }
   } catch (err) {
-    console.warn(`🔧 Clipboard action ${kind} failed:`, err);
+    vscodeLog(`Clipboard action ${kind} failed: ${err}`);
     if (kind === 'paste') {
       vscode.postMessage({ command: 'clipboardReadRequest' });
     } else {
@@ -489,7 +480,7 @@ document.addEventListener('contextmenu', (e: MouseEvent) => {
     const root = document.getElementById('manual-context-menu');
     if (root) {
       enhanceManualMenuForSubmenus(root);
-      try { attachMenuKeyboardNavigation(root); } catch (err) { console.warn('🔧 Keyboard nav attach (mouse) failed', err); }
+      try { attachMenuKeyboardNavigation(root); } catch (err) { vscodeLog(`Keyboard nav attach (mouse) failed: ${err}`); }
     }
   }
 }, { capture: true });
@@ -515,122 +506,13 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
       const root = document.getElementById('manual-context-menu');
       if (root) {
         enhanceManualMenuForSubmenus(root);
-        try { attachMenuKeyboardNavigation(root); } catch (err) { console.warn('🔧 Keyboard nav attach (keyboard) failed', err); }
+        try { attachMenuKeyboardNavigation(root); } catch (err) { vscodeLog(`Keyboard nav attach (keyboard) failed: ${err}`); }
       }
     }
     e.preventDefault();
     e.stopPropagation();
   }
 });
-
-/**
- * Setup comprehensive debugging for space/enter key issues
- */
-function setupDebugLogging(): void {
-  const editor = document.querySelector(
-    ".vditor-ir .vditor-reset"
-  ) as HTMLElement;
-  if (!editor) {
-    vscodeLog("❌ Could not find editor element for debug logging");
-    return;
-  }
-
-  // Log all input events to understand the sequence
-  editor.addEventListener(
-    "beforeinput",
-    (e: InputEvent) => {
-      vscodeLog(
-        `🔍 BEFOREINPUT: type=${e.inputType}, data="${e.data}", isComposing=${e.isComposing}`
-      );
-    },
-    true
-  );
-
-  editor.addEventListener("input", (e: InputEvent) => {
-    vscodeLog(
-      `🔍 INPUT: type=${e.inputType}, data="${e.data}", isComposing=${e.isComposing}`
-    );
-  });
-
-  editor.addEventListener("keydown", (e: KeyboardEvent) => {
-    if (e.key === " " || e.key === "Enter") {
-      vscodeLog(
-        `🔍 KEYDOWN: key="${e.key}", ctrlKey=${e.ctrlKey}, shiftKey=${e.shiftKey}, altKey=${e.altKey}`
-      );
-
-      // Log cursor position before the key event
-      const selection = window.getSelection();
-      if (selection && selection.rangeCount > 0) {
-        const range = selection.getRangeAt(0);
-        vscodeLog(
-          `🔍 CURSOR BEFORE: container=${range.startContainer.nodeName}, offset=${range.startOffset}`
-        );
-      }
-    }
-  });
-
-  editor.addEventListener("keyup", (e: KeyboardEvent) => {
-    if (e.key === " " || e.key === "Enter") {
-      vscodeLog(`🔍 KEYUP: key="${e.key}"`);
-
-      // Log cursor position after the key event
-      setTimeout(() => {
-        const selection = window.getSelection();
-        if (selection && selection.rangeCount > 0) {
-          const range = selection.getRangeAt(0);
-          vscodeLog(
-            `🔍 CURSOR AFTER: container=${range.startContainer.nodeName}, offset=${range.startOffset}`
-          );
-        }
-      }, 10);
-    }
-  });
-
-  // Log DOM mutations to detect when Vditor is changing the DOM
-  const mutationObserver = new MutationObserver((mutations) => {
-    mutations.forEach((mutation) => {
-      if (mutation.type === "childList") {
-        if (mutation.addedNodes.length > 0) {
-          vscodeLog(
-            `🔍 DOM MUTATION: Added ${mutation.addedNodes.length} nodes`
-          );
-        }
-        if (mutation.removedNodes.length > 0) {
-          vscodeLog(
-            `🔍 DOM MUTATION: Removed ${mutation.removedNodes.length} nodes`
-          );
-        }
-      }
-      if (mutation.type === "characterData") {
-        vscodeLog(`🔍 DOM MUTATION: Text content changed`);
-      }
-    });
-  });
-
-  mutationObserver.observe(editor, {
-    childList: true,
-    subtree: true,
-    characterData: true,
-  });
-
-  vscodeLog(
-    "✅ Debug logging setup complete - monitoring space/enter key behavior"
-  );
-}
-
-/**
- * Setup format prevention to stop Vditor from interfering with typing
- * TEMPORARILY DISABLED for debugging - we'll re-enable after identifying root cause
- */
-function setupFormatPrevention(): void {
-  vscodeLog(
-    "⚠️ Format prevention DISABLED for debugging - testing vanilla Vditor behavior"
-  );
-
-  // TODO: Re-enable after we identify the root cause
-  // For now, let Vditor handle space and enter keys naturally
-  // so we can see if the flicker is caused by our intervention or by Vditor itself
-}
 
 // VS Code logging function
 function vscodeLog(message: string) {
@@ -639,10 +521,6 @@ function vscodeLog(message: string) {
     message: message,
   });
 }
-
-// Test logging immediately when script loads
-vscodeLog("Main.ts: Webview script loaded and vscodeLog function initialized");
-vscodeLog("Main.ts: Starting VS Code integration improvements...");
 
 // Initialize renderer system
 initializeRendererSystem();
@@ -663,10 +541,8 @@ function initVditor(msg) {
       addToDictionary: dictionaryKey,
     });
     predictionary.useDictionaries([dictionaryKey]);
-    
-    console.log('✅ Predictionary v1.6.0 loaded successfully');
   } catch (error) {
-    console.warn('⚠️ Predictionary initialization failed:', error);
+    vscodeLog(`Predictionary initialization failed: ${error}`);
     predictionary = null;
   }
   
@@ -801,14 +677,9 @@ function initVditor(msg) {
 
       try {
         if (vscodeIntegrator) {
-
           const menuItems = vscodeIntegrator.createVditorContextMenu(event);
-          vscodeLog(
-            `🎯 MAIN.TS: ✅ Returning ${menuItems.length} menu items to Vditor`
-          );
           
           // Fix menu positioning after Vditor renders it
-          // Use MutationObserver to detect when menu is added to DOM
           setTimeout(() => {
             const menus = document.querySelectorAll('.vditor-menu, .vditor-contextmenu, .vditor-context-menu');
             menus.forEach((menu: Element) => {
@@ -818,42 +689,31 @@ function initVditor(msg) {
                 const viewportHeight = window.innerHeight;
                 const viewportWidth = window.innerWidth;
                 
-                // Get current position
-                let currentTop = parseFloat(menuEl.style.top || '0');
-                let currentLeft = parseFloat(menuEl.style.left || '0');
-                
                 // Adjust if overflowing bottom
                 if (rect.bottom > viewportHeight) {
-                  const newTop = Math.max(0, viewportHeight - rect.height - 10);
-                  menuEl.style.top = `${newTop}px`;
-                  vscodeLog(`📋 MENU FIX: Adjusted top from ${currentTop}px to ${newTop}px (viewport height: ${viewportHeight}px)`);
+                  menuEl.style.top = `${Math.max(0, viewportHeight - rect.height - 10)}px`;
                 }
                 
                 // Adjust if overflowing right
                 if (rect.right > viewportWidth) {
-                  const newLeft = Math.max(0, viewportWidth - rect.width - 10);
-                  menuEl.style.left = `${newLeft}px`;
-                  vscodeLog(`📋 MENU FIX: Adjusted left from ${currentLeft}px to ${newLeft}px (viewport width: ${viewportWidth}px)`);
+                  menuEl.style.left = `${Math.max(0, viewportWidth - rect.width - 10)}px`;
                 }
                 
                 // Adjust if overflowing top
                 if (rect.top < 0) {
                   menuEl.style.top = '10px';
-                  vscodeLog(`📋 MENU FIX: Adjusted top to 10px (was off-screen)`);
                 }
                 
                 // Adjust if overflowing left
                 if (rect.left < 0) {
                   menuEl.style.left = '10px';
-                  vscodeLog(`📋 MENU FIX: Adjusted left to 10px (was off-screen)`);
                 }
               }
             });
-          }, 10); // Small delay to let Vditor render the menu
+          }, 10);
           
           return menuItems;
         } else {
-          vscodeLog(`❌ MAIN.TS: vscodeIntegrator not yet initialized - providing immediate basic menu`);
 
           // Return comprehensive menu directly without vscodeIntegrator
           return [
@@ -880,15 +740,6 @@ function initVditor(msg) {
           ];
         }
       } catch (error) {
-        console.error(
-          `❌ MAIN.TS: Critical error in contextmenu callback:`,
-          error
-        );
-        vscodeLog(
-          `❌ MAIN.TS: Critical error in contextmenu callback: ${error}`
-        );
-
-        // Return basic menu as error fallback
         return [
           { label: "Cut", click: () => document.execCommand('cut') },
           { label: "Copy", click: () => document.execCommand('copy') },
@@ -908,13 +759,6 @@ function initVditor(msg) {
     },
     ...defaultOptions,
     after() {
-      vscodeLog(
-        `🔍 VDITOR AFTER CALLBACK: Editor initialized in mode: ${
-          window.vditor?.getCurrentMode() || "unknown"
-        }`
-      );
-      vscodeLog(`🔍 VDITOR CONFIG: Vditor instance created with IR mode`);
-
       fixDarkTheme();
 
       // Add a simple global context menu event listener to debug the event flow
@@ -941,9 +785,8 @@ function initVditor(msg) {
 
           try {
             const result = (window.vditor as any).options.contextmenu(e);
-
           } catch (error) {
-            console.error(`❌ GLOBAL DEBUG: Manual callback error:`, error);
+            vscodeLog(`Error in Vditor contextmenu callback: ${error}`);
           }
         }
       }, false); // Use bubbling phase, not capture
@@ -1065,8 +908,6 @@ function initVditor(msg) {
         menu.style.left = `${finalX}px`;
         menu.style.top = `${finalY}px`;
         menu.style.visibility = 'visible';
-        
-        console.log(`📋 CONTEXT MENU: Positioned at (${finalX}, ${finalY}) - Menu: ${menuWidth}x${menuHeight}, Viewport: ${viewportWidth}x${viewportHeight}`);
 
         // Remove on click outside
         const removeMenu = (e: Event) => {
@@ -1137,28 +978,21 @@ function initVditor(msg) {
       };
 
       // Re-enable components now that space/enter fix is working
-      vscodeLog(
-        "✅ Re-enabling DiagnosticVisualizer, VSCodeIntegrator, and CursorManager"
-      );
-
       // Initialize diagnostic visualizer
       try {
         diagnosticVisualizer = new DiagnosticVisualizer(window.vditor);
         // Initialize the diagnostic update timestamp to prevent immediate updates
         (window as any).__lastDiagnosticUpdate = Date.now();
-        vscodeLog("✅ DiagnosticVisualizer initialized successfully");
       } catch (error) {
-        vscodeLog(`❌ Failed to initialize DiagnosticVisualizer: ${error}`);
+        vscodeLog(`Failed to initialize DiagnosticVisualizer: ${error}`);
       }
 
       // Initialize VS Code webview integrator
       try {
         vscodeIntegrator = new VSCodeWebviewIntegrator(window.vditor);
-        vscodeLog("✅ VSCodeWebviewIntegrator initialized successfully");
 
         // Add test function to window for manual debugging
         (window as any).testContextMenu = () => {
-
           if (vscodeIntegrator) {
             const testEvent = new MouseEvent("contextmenu", {
               bubbles: true,
@@ -1174,24 +1008,20 @@ function initVditor(msg) {
           }
           return [];
         };
-
-
       } catch (error) {
-        vscodeLog(`❌ Failed to initialize VSCodeWebviewIntegrator: ${error}`);
+        vscodeLog(`Failed to initialize VSCodeWebviewIntegrator: ${error}`);
       }
 
       // Initialize cursor manager to prevent jumping
       try {
         cursorManager = new CursorManager(window.vditor);
-        vscodeLog("✅ CursorManager initialized successfully");
 
         // Connect cursor manager to VSCode integrator for coordinated paste handling
         if (vscodeIntegrator) {
           vscodeIntegrator.setCursorManager(cursorManager);
-          vscodeLog("✅ CursorManager connected to VSCodeIntegrator");
         }
       } catch (error) {
-        vscodeLog(`❌ Failed to initialize CursorManager: ${error}`);
+        vscodeLog(`Failed to initialize CursorManager: ${error}`);
       }
 
       // Initialize find and replace manager
@@ -1201,19 +1031,9 @@ function initVditor(msg) {
         
         // Make it globally accessible for toolbar buttons
         (window as any).findReplaceManager = findReplaceManager;
-        
-        vscodeLog("✅ FindReplaceManager initialized successfully");
-
       } catch (error) {
-        vscodeLog(`❌ Failed to initialize FindReplaceManager: ${error}`);
-        console.error('❌ FindReplaceManager initialization error:', error);
+        vscodeLog(`FindReplaceManager initialization error: ${error}`);
       }
-
-      // Setup comprehensive debugging to identify root cause of space/enter flicker
-      setupDebugLogging();
-
-      // Override Vditor's input processing to prevent formatting (currently disabled)
-      setupFormatPrevention();
 
       // Apply simple diagnostics immediately
       setTimeout(() => {
@@ -1221,20 +1041,12 @@ function initVditor(msg) {
           diagnosticVisualizer.addSimpleDiagnostics();
         }
       }, 500); // Small delay to ensure editor is fully rendered
-
-      vscodeLog(
-        "🔍 VDITOR SETUP: Ready to test vanilla behavior with space and enter keys"
-      );
     },
     input(value: string) {
       const timestamp = Date.now();
-      vscodeLog(`🔍 CURSOR DEBUG - Vditor input callback triggered at ${timestamp}`);
 
       inputTimer && clearTimeout(inputTimer);
       inputTimer = setTimeout(() => {
-        vscodeLog(
-          `🔍 CURSOR DEBUG - Processing content update after delay (${Date.now() - timestamp}ms elapsed)`
-        );
 
         // Custom renderer triggering
         // find instances where we have a element with class vditor-copy right before one of the custom blocks: language-kanban-board, language-table, language-playground
@@ -1260,10 +1072,9 @@ function initVditor(msg) {
           // Re-set the editor content to trigger re-rendering of custom blocks
           const currentValue = vditor.getValue();
           vditor.setValue(currentValue);
-          vscodeLog(`🔄 Custom renderer trigger detected - reset editor content to re-render blocks`);
         }
 
-        // ENHANCED: Send cursor position with more detailed tracking
+        // Send cursor position with more detailed tracking
         const selection = window.getSelection();
         if (selection && selection.rangeCount > 0) {
           const range = selection.getRangeAt(0);
@@ -1276,18 +1087,10 @@ function initVditor(msg) {
             const beforeCursor = textContent.substring(0, range.startOffset);
             const lines = beforeCursor.split("\n");
             
-            const cursorInfo = {
-              line: lines.length - 1,
-              character: lines[lines.length - 1].length,
-              containerType: range.startContainer.nodeName,
-              offset: range.startOffset
-            };
-
-            vscodeLog(`🔍 CURSOR DEBUG - Sending cursor position: line ${cursorInfo.line}, char ${cursorInfo.character}`);
             vscode.postMessage({
               command: "cursorPosition",
-              line: cursorInfo.line,
-              character: cursorInfo.character,
+              line: lines.length - 1,
+              character: lines[lines.length - 1].length,
             });
           }
         }
@@ -1295,16 +1098,6 @@ function initVditor(msg) {
         // Clean up ALL transient UI elements before getting content to prevent them from being saved
         if (diagnosticVisualizer) {
           diagnosticVisualizer.cleanupTransientUI();
-          // CRITICAL: Verify diagnostic state after cleanup to detect if elements were accidentally removed
-          setTimeout(() => {
-            if (diagnosticVisualizer) {
-              const stillExist = diagnosticVisualizer.verifyDiagnosticElementsAfterCleanup();
-              if (!stillExist) {
-                vscodeLog(`🚨 INPUT CALLBACK: Diagnostic elements missing after cleanup - triggering reapplication`);
-                diagnosticVisualizer.addSimpleDiagnostics();
-              }
-            }
-          }, 50); // Small delay to check after cleanup completes
         }
 
         // Extra aggressive cleanup: remove any lightbulb characters from the editor DOM
@@ -1331,10 +1124,6 @@ function initVditor(msg) {
           textNodesToFix.forEach((node) => {
             const cleanText = node.textContent.replace(/💡/g, "");
             if (cleanText !== node.textContent) {
-              vscodeLog(
-                `🔧 Removed lightbulb from text node: "${node.textContent}" -> "${cleanText}"`
-              );
-
               node.textContent = cleanText;
             }
           });
@@ -1342,86 +1131,7 @@ function initVditor(msg) {
 
         // Extra safety: wait a moment for cleanup to complete, then get content
         setTimeout(() => {
-          // Before getting content, do a final check for any lightbulbs in the editor DOM
-          const editor =
-            document.querySelector(".vditor-ir .vditor-reset") ||
-            document.querySelector(".vditor-wysiwyg .vditor-reset") ||
-            document.querySelector(".vditor-sv .vditor-reset");
-
-          if (editor) {
-            const editorLightbulbs = editor.querySelectorAll(
-              ".vscode-quickfix-lightbulb"
-            );
-            const editorElementsWithLightbulb = Array.from(
-              editor.querySelectorAll("*")
-            ).filter((el) => el.textContent && el.textContent.includes("💡"));
-
-            if (editorLightbulbs.length > 0) {
-              vscodeLog(
-                `🚨 Found ${editorLightbulbs.length} lightbulbs still in editor DOM before getValue()!`
-              );
-              console.error(
-                `🚨 Found ${editorLightbulbs.length} lightbulbs still in editor DOM before getValue()!`
-              );
-              editorLightbulbs.forEach((lb) => lb.remove());
-            }
-
-            if (editorElementsWithLightbulb.length > 0) {
-              vscodeLog(
-                `� Found ${editorElementsWithLightbulb.length} elements with lightbulb text in editor DOM!`
-              );
-              console.error(
-                `🚨 Found ${editorElementsWithLightbulb.length} elements with lightbulb text in editor DOM!`
-              );
-              editorElementsWithLightbulb.forEach((el) => {
-                vscodeLog(
-                  `Element: ${el.tagName}.${el.className}, text: "${el.textContent}"`
-                );
-                console.error(
-                  `Element: ${el.tagName}.${el.className}, text: "${el.textContent}"`
-                );
-              });
-            }
-          }
-
           const content = vditor.getValue();
-          vscodeLog(`�🔍 VDITOR CONTENT LENGTH: ${content.length} characters`);
-
-          // Check if content contains any lightbulb characters or diagnostic UI elements
-          if (content.includes("💡")) {
-            vscodeLog(`🚨 LIGHTBULB FOUND IN CONTENT! This should not happen.`);
-            console.error(
-              `🚨 LIGHTBULB FOUND IN CONTENT! This should not happen. Our fix may need adjustment.`
-            );
-            const lightbulbIndex = content.indexOf("💡");
-            const snippet = content.substring(
-              Math.max(0, lightbulbIndex - 100),
-              lightbulbIndex + 100
-            );
-            vscodeLog(`Content snippet around lightbulb: ${snippet}`);
-            console.error(`Content snippet around lightbulb: ${snippet}`);
-
-            // Show more context - full lines around the lightbulb
-            const lines = content.split("\n");
-            for (let i = 0; i < lines.length; i++) {
-              if (lines[i].includes("💡")) {
-                vscodeLog(`Lightbulb found on line ${i}: "${lines[i]}"`);
-                console.error(`Lightbulb found on line ${i}: "${lines[i]}"`);
-                if (i > 0) vscodeLog(`Previous line: "${lines[i - 1]}"`);
-                if (i < lines.length - 1)
-                  vscodeLog(`Next line: "${lines[i + 1]}"`);
-              }
-            }
-          }
-          if (content.includes("data-diagnostic-ui")) {
-            vscodeLog(
-              `🚨 DIAGNOSTIC UI ATTRIBUTES FOUND IN CONTENT! This should not happen.`
-            );
-            console.error(
-              `🚨 DIAGNOSTIC UI ATTRIBUTES FOUND IN CONTENT! This should not happen.`
-            );
-          }
-
           vscodeLog(`🔍 CURSOR DEBUG - Sending edit message to VS Code (content length: ${content.length})`);
           vscode.postMessage({ command: "edit", content: content });
         }, 10); // Small delay to ensure cleanup completes
@@ -1496,7 +1206,7 @@ window.addEventListener("message", (e) => {
       // Store document filename for renderer system
       if (msg.documentFilename) {
         (window as any).currentDocumentFilename = msg.documentFilename;
-        console.log(`📄 MAIN: Stored document filename: ${msg.documentFilename}`);
+        vscodeLog(`Stored document filename: ${msg.documentFilename}`);
       }
       
       if (msg.type === "init") {
@@ -1509,7 +1219,7 @@ window.addEventListener("message", (e) => {
           initVditor(msg);
         } catch (error) {
           // reset options when error
-          console.error(error);
+          vscodeLog(`Error initializing Vditor: ${error}`);
           initVditor({ content: msg.content });
           saveVditorOptions();
         }
@@ -1584,8 +1294,8 @@ window.addEventListener("message", (e) => {
           documentLines: msg.documentLines,
         });
       } else {
-        console.warn(
-          "Main.ts: DiagnosticVisualizer not initialized when diagnostics received"
+        vscodeLog(
+          "DiagnosticVisualizer not initialized when diagnostics received"
         );
       }
       break;
@@ -1625,21 +1335,21 @@ window.addEventListener("message", (e) => {
     }
     case "showFind": {
       // Handle show find widget command from VS Code
-      vscodeLog(`Main.ts: Show Find command received`);
+      vscodeLog(`Show Find command received`);
       if (findReplaceManager) {
         findReplaceManager.showFind();
       } else {
-        console.warn('FindReplaceManager not initialized');
+        vscodeLog('FindReplaceManager not initialized');
       }
       break;
     }
     case "showFindReplace": {
       // Handle show find and replace widget command from VS Code
-      vscodeLog(`Main.ts: Show Find and Replace command received`);
+      vscodeLog(`Show Find and Replace command received`);
       if (findReplaceManager) {
         findReplaceManager.showFindReplace();
       } else {
-        console.warn('FindReplaceManager not initialized');
+        vscodeLog('FindReplaceManager not initialized');
       }
       break;
     }

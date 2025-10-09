@@ -60,19 +60,15 @@ export class DiagnosticVisualizer {
     const visualElementsExist = this.verifyDiagnosticElementsExist();
     
     if (newHash === currentHash && this.diagnosticsApplied && visualElementsExist) {
-      this.vscodeLog(`✅ SMART APPLY: Diagnostics unchanged and visual elements exist - skipping clear/reapply`);
       return;
     }
 
     // FOCUS-AWARE CHECK: Don't apply diagnostics if user is actively typing
     if (!this.isSafeToUpdateDiagnostics()) {
-      this.vscodeLog(`🎯 FOCUS AWARE: User is typing - deferring diagnostic application`);
       this.diagnostics = diagnostics; // Store the new diagnostics
       this.pendingDiagnosticUpdate = true;
       return;
     }
-
-    this.vscodeLog(`🔄 SMART APPLY: Applying diagnostics - hash changed: ${newHash !== currentHash}, applied: ${this.diagnosticsApplied}, visual: ${visualElementsExist}`);
 
     // Use requestAnimationFrame to ensure DOM is ready
     requestAnimationFrame(() => {
@@ -144,14 +140,12 @@ export class DiagnosticVisualizer {
         if (parent) {
           parent.replaceChild(fragment, textNode);
           this.wrappedKeys.add(tokenKey);
-          this.vscodeLog(`✅ Successfully styled text: "${diagnosticText}" with tokenKey: ${tokenKey}`);
           return true;
         } else {
           this.vscodeLog(`❌ No parent node found for text node containing: "${diagnosticText}"`);
           return false;
         }
       } else {
-        this.vscodeLog(`⚠️ Duplicate detected - text already wrapped: "${diagnosticText}" with tokenKey: ${tokenKey}`);
         return false;
       }
     } catch (error) {
@@ -278,25 +272,21 @@ export class DiagnosticVisualizer {
             const diagnosticsChanged = currentDiagnosticsHash !== this.lastDiagnosticsHash;
             const noDiagnosticsApplied = !this.diagnosticsApplied || this.wrappedKeys.size === 0;
             
-            this.vscodeLog(`� SMART UPDATE CHECK: content=${contentChanged ? 'CHANGED' : 'unchanged'}, diagnostics=${diagnosticsChanged ? 'CHANGED' : 'unchanged'}, applied=${this.diagnosticsApplied}, keys=${this.wrappedKeys.size}, force=${force}`);
             
             // Only update if there's a real change or we're forced to
             if (force || contentChanged || diagnosticsChanged || noDiagnosticsApplied) {
                 if (diagnosticsChanged || noDiagnosticsApplied || force) {
-                    this.vscodeLog(`🔄 Diagnostics changed or not applied - full update needed`);
                     this.clearDiagnosticStyles();
                     this.applyDiagnosticStyles();
                     this.lastDiagnosticsHash = currentDiagnosticsHash;
                     this.diagnosticsApplied = true;
                 } else if (contentChanged) {
                     // Content changed but diagnostics are the same - try to preserve existing diagnostics
-                    this.vscodeLog(`📝 Content changed but diagnostics unchanged - preserving existing diagnostics`);
                     // Only revalidate diagnostics without full clear/reapply
                     this.revalidateExistingDiagnostics();
                 }
                 this.lastContent = currentContent;
             } else {
-                this.vscodeLog(`✅ Content and diagnostics unchanged, diagnostics applied - skipping update`);
             }
             this.updateTimer = null;
     }
@@ -305,7 +295,6 @@ export class DiagnosticVisualizer {
      * Clear all diagnostic styles from the editor with enhanced content preservation
      */
     private clearDiagnosticStyles(): void {
-        this.vscodeLog(`🧹 Starting clearDiagnosticStyles() - preserving ALL content structure`);
         
         // Try to find the active editor element (same logic as applyDiagnosticStyles)
         let editor = document.querySelector('.vditor-ir .vditor-reset'); // IR mode
@@ -321,15 +310,11 @@ export class DiagnosticVisualizer {
             return;
         }
 
-        this.vscodeLog(`🎯 Found editor element: ${editor.className}`);
-
         // Count content before cleanup for verification
         const beforeContent = editor.textContent?.length || 0;
-        this.vscodeLog(`📊 Content length before cleanup: ${beforeContent} characters`);
 
         // Remove diagnostic CSS classes but preserve ALL original element structure
         const elements = editor.querySelectorAll('[class*="vscode-diagnostic-"]');
-        this.vscodeLog(`🔍 Found ${elements.length} elements with diagnostic classes`);
         
         elements.forEach((el, index) => {
             const originalClasses = el.className;
@@ -351,12 +336,10 @@ export class DiagnosticVisualizer {
                 this.vscodeLog(`⚠️ Content changed in element ${index}: "${originalContent}" → "${newContent}"`);
             }
             
-            this.vscodeLog(`📝 Element ${index}: classes "${originalClasses}" → "${el.className}"`);
         });
 
         // Handle diagnostic spans with EXTREME care - preserve ALL child content and structure
         const diagnosticSpans = editor.querySelectorAll('.vscode-diagnostic-span');
-        this.vscodeLog(`🔍 Found ${diagnosticSpans.length} diagnostic spans to process`);
         
         diagnosticSpans.forEach((span, index) => {
             const originalContent = span.textContent || '';
@@ -373,7 +356,6 @@ export class DiagnosticVisualizer {
             if (!span.className.trim() && !span.hasAttributes()) {
                 const parent = span.parentNode;
                 if (parent) {
-                    this.vscodeLog(`📦 Unwrapping empty span ${index} with ${span.childNodes.length} child nodes`);
                     
                     // Create document fragment to safely move children
                     const fragment = document.createDocumentFragment();
@@ -387,12 +369,9 @@ export class DiagnosticVisualizer {
                     parent.insertBefore(fragment, span);
                     parent.removeChild(span);
                     
-                    this.vscodeLog(`✅ Successfully unwrapped span ${index}`);
                 } else {
-                    this.vscodeLog(`⚠️ Span ${index} has no parent, keeping as-is`);
                 }
             } else {
-                this.vscodeLog(`📝 Span ${index} kept with classes: "${span.className}"`);
             }
             
             // Verify content preservation
@@ -404,12 +383,9 @@ export class DiagnosticVisualizer {
 
         // Count content after cleanup for verification
         const afterContent = editor.textContent?.length || 0;
-        this.vscodeLog(`📊 Content length after cleanup: ${afterContent} characters`);
         
         if (beforeContent !== afterContent) {
-            this.vscodeLog(`🚨 CONTENT LENGTH CHANGED: ${beforeContent} → ${afterContent} (diff: ${afterContent - beforeContent})`);
         } else {
-            this.vscodeLog(`✅ Content length preserved: ${afterContent} characters`);
         }
 
         // Clean up lightbulb overlays (completely separate system)
@@ -418,7 +394,6 @@ export class DiagnosticVisualizer {
         // Clear applied diagnostic tracking
         this.clearAppliedDiagnosticTracking();
 
-        this.vscodeLog(`✅ clearDiagnosticStyles completed - processed ${elements.length} elements and ${diagnosticSpans.length} spans`);
     }
 
     /**
@@ -433,7 +408,6 @@ export class DiagnosticVisualizer {
      * This includes: lightbulbs, hover overlays, diagnostic tooltips, etc.
      */
     public cleanupTransientUI(): void {
-        this.vscodeLog(`🔍 DEBUG: cleanupTransientUI() called - cleaning up ONLY overlays, preserving ALL content`);
         
         // Find editor element for diagnostic count (but we won't remove anything from it)
         const editor = document.querySelector('.vditor-ir .vditor-reset') || 
@@ -441,9 +415,7 @@ export class DiagnosticVisualizer {
                       document.querySelector('.vditor-sv .vditor-reset');
 
         if (!editor) {
-            this.vscodeLog('🔍 DEBUG: Could not find Vditor editor element - cleaning body overlays only');
         } else {
-            this.vscodeLog(`🔍 DEBUG: Found editor element: ${editor.className}`);
         }
 
         // FUNDAMENTAL PRINCIPLE: Do NOT remove ANY elements from the editor content
@@ -456,7 +428,6 @@ export class DiagnosticVisualizer {
         // 2. Clean up ONLY overlay elements from document.body with data-diagnostic-ui="true"
         const bodyOverlays = document.body.querySelectorAll('[data-diagnostic-ui="true"]');
         
-        this.vscodeLog(`🔍 DEBUG: Found ${bodyOverlays.length} overlay elements in document.body to clean up`);
         
         let removedCount = 0;
         bodyOverlays.forEach((element) => {
@@ -469,8 +440,6 @@ export class DiagnosticVisualizer {
                 attributes: Array.from(element.attributes).map(attr => `${attr.name}="${attr.value}"`).join(' ')
             };
             
-            this.vscodeLog(`🗑️ REMOVING OVERLAY: ${elementInfo.tag}.${elementInfo.classes} (${elementInfo.textContent})`);
-            this.vscodeLog(`   📋 Element details: id="${elementInfo.id}", attrs="${elementInfo.attributes}"`);
             
             element.remove();
             removedCount++;
@@ -483,20 +452,14 @@ export class DiagnosticVisualizer {
             diagnosticCount = diagnosticElements.length;
             
             if (diagnosticCount > 0) {
-                this.vscodeLog(`🛡️ PRESERVED: ${diagnosticCount} diagnostic styling elements in editor (content styling, never removed)`);
             }
         }
         
         // 4. Final summary
-        this.vscodeLog(`✅ cleanupTransientUI() completed:`);
-        this.vscodeLog(`   🗑️ Removed ${removedCount} true overlay elements from document.body`);
-        this.vscodeLog(`   🛡️ Preserved ${diagnosticCount} diagnostic styling elements (content)`);
-        this.vscodeLog(`   🚫 NEVER removed ANY elements from editor content - only cleaned overlays`);
         
         // 5. Verify content integrity
         if (editor) {
             const contentLength = editor.textContent?.length || 0;
-            this.vscodeLog(`📊 Editor content length after cleanup: ${contentLength} characters (should be unchanged)`);
         }
     }
 
@@ -506,7 +469,6 @@ export class DiagnosticVisualizer {
      */
     private applyDiagnosticStyles(): void {
         if (this.diagnostics.length === 0) {
-            this.vscodeLog('DiagnosticVisualizer: No diagnostics to apply');
             return;
         }
 
@@ -526,7 +488,6 @@ export class DiagnosticVisualizer {
         // Get the element that contains the cursor to exclude it from updates
         const cursorElement = this.getCursorContainerElement();
         if (cursorElement) {
-            this.vscodeLog(`🎯 CURSOR AWARE: Found cursor in element ${cursorElement.tagName}.${cursorElement.className || '(no-class)'} - will exclude from diagnostic updates`);
         }
 
         // Use the new efficient single-pass approach with cursor awareness
@@ -595,18 +556,15 @@ export class DiagnosticVisualizer {
      * Now with cursor-aware element exclusion
      */
     private applySinglePassDiagnostics(editor: HTMLElement, cursorElement?: Element | null): void {
-        this.vscodeLog(`🚀 Starting single-pass diagnostic application for ${this.diagnostics.length} diagnostics`);
         
         // Step 1: Sort diagnostics by line number for efficient processing
         const sortedDiagnostics = this.prepareSortedDiagnostics();
         if (sortedDiagnostics.length === 0) {
-            this.vscodeLog('No valid diagnostics to process after filtering');
             return;
         }
         
         // Step 2: Get all block elements that could represent markdown lines
         const blockElements = this.getMarkdownBlockElements(editor);
-        this.vscodeLog(`Found ${blockElements.length} block elements to process`);
         
         // Step 3: Filter out the cursor element to avoid disrupting user's typing
         const safeElements = cursorElement 
@@ -618,13 +576,11 @@ export class DiagnosticVisualizer {
             : blockElements;
             
         if (cursorElement && safeElements.length < blockElements.length) {
-            this.vscodeLog(`🎯 CURSOR AWARE: Excluded ${blockElements.length - safeElements.length} elements containing cursor from diagnostic updates`);
         }
         
         // Step 4: Single pass through safe DOM elements, matching with sorted diagnostics
         this.matchDiagnosticsToElements(safeElements, sortedDiagnostics);
         
-        this.vscodeLog(`✅ Single-pass diagnostic application completed`);
     }
 
     /**
@@ -653,7 +609,6 @@ export class DiagnosticVisualizer {
         // 3. MD012 (multiple blank lines) - DISABLED: Vditor strips blank lines in rendering
         // Need to investigate Vditor's blank line normalization before implementing
         if (source === 'markdownlint' && message.includes('md012')) {
-            this.vscodeLog(`MD012 diagnostic skipped - Vditor normalizes blank lines in IR mode`);
             return false; // Skip MD012 for now
         }
         
@@ -673,7 +628,6 @@ export class DiagnosticVisualizer {
         }
         
         // Default: Don't apply if we can't be precise
-        this.vscodeLog(`Skipping imprecise diagnostic: ${diagnostic.message}`);
         return false;
     }
 
@@ -699,13 +653,11 @@ export class DiagnosticVisualizer {
             return false;
         }
         
-        this.vscodeLog(`🔍 Looking for precise text: "${problemText}" in line: "${lineText}" (range: ${startChar}-${endChar})`);
         
         // Find exact text match in the DOM
         const result = this.findAndWrapExactText(editor, problemText, diagnostic);
         
         if (result) {
-            this.vscodeLog(`✅ Precise text diagnostic succeeded for: "${problemText}"`);
         } else {
             this.vscodeLog(`❌ Precise text diagnostic failed for: "${problemText}" - no DOM matches found`);
         }
@@ -721,16 +673,9 @@ export class DiagnosticVisualizer {
         const tokenKey = `${lineKey}|${targetText}`;
         const lineNumber = diagnostic.range?.start?.line;
         
-        this.vscodeLog(`🔍 Starting line-aware text search for "${targetText}" on line ${lineNumber} (tokenKey: ${tokenKey})`);
-        
-        // Debug: Log the current DOM structure for problematic lines
-        if (lineNumber && (lineNumber >= 70 && lineNumber <= 74)) { // Focus on the failing lines
-            this.debugDOMStructure(editor, lineNumber);
-        }
         
         // Check if this token has already been wrapped
         if (this.wrappedKeys.has(tokenKey)) {
-            this.vscodeLog(`⚠️ Token already wrapped, skipping: ${tokenKey}`);
             return true; // Already processed successfully
         }
         
@@ -742,7 +687,6 @@ export class DiagnosticVisualizer {
             return this.fallbackToGlobalSearch(editor, targetText, diagnostic, tokenKey);
         }
         
-        this.vscodeLog(`🎯 Found line element for line ${lineNumber}: ${lineElement.tagName}.${lineElement.className}`);
         
         // Search within the specific line element
         return this.searchWithinElement(lineElement, targetText, diagnostic, tokenKey);
@@ -756,26 +700,20 @@ export class DiagnosticVisualizer {
             return null;
         }
         
-        this.vscodeLog(`🔍 DEBUG: Starting findElementForLine for line ${lineNumber}, text: "${lineText}"`);
         
         // Strategy 1: Look for elements with data-line attributes (if Vditor provides them)
         const lineElements = editor.querySelectorAll(`[data-line="${lineNumber}"]`);
-        this.vscodeLog(`🔍 DEBUG: Strategy 1 - Found ${lineElements.length} elements with data-line="${lineNumber}"`);
         if (lineElements.length > 0) {
-            this.vscodeLog(`📍 Found element by data-line attribute: line ${lineNumber}`);
             return lineElements[0] as HTMLElement;
         }
         
         // Strategy 2: Enhanced content-based line mapping with multiple approaches
         const allElements = this.getAllPossibleLineElements(editor);
-        this.vscodeLog(`🔍 DEBUG: Strategy 2 - getAllPossibleLineElements returned ${allElements.length} elements`);
         
         // Debug: Log first few elements to understand structure
         if (allElements.length > 0) {
-            this.vscodeLog(`🔍 DEBUG: First 5 elements from getAllPossibleLineElements:`);
             for (let i = 0; i < Math.min(5, allElements.length); i++) {
                 const el = allElements[i];
-                this.vscodeLog(`   ${i}: ${el.tagName}.${el.className || '(no-class)'} - "${(el.textContent || '').substring(0, 50)}..."`);
             }
         }
         
@@ -797,12 +735,10 @@ export class DiagnosticVisualizer {
                     elementMd = this.vditor.html2md(element.outerHTML || '');
                     // Log html2md conversion for debugging (only for first few elements)
                     if (index < 3) {
-                        this.vscodeLog(`🔄 html2md conversion for element ${index}: "${element.outerHTML?.substring(0, 100)}..." → "${elementMd?.substring(0, 100)}..."`);
                     }
                 } else {
                     // Log if vditor or html2md is not available
                     if (index === 0) {
-                        this.vscodeLog(`⚠️ Vditor html2md not available: vditor=${!!this.vditor}, html2md=${this.vditor ? typeof this.vditor.html2md : 'N/A'}`);
                     }
                 }
             } catch (e) {
@@ -818,7 +754,6 @@ export class DiagnosticVisualizer {
             if (elementText.trim() === lineText.trim() || elementMd.trim() === lineText.trim()) {
                 const confidence = this.calculateMatchConfidence(element, lineText, index, lineNumber);
                 exactMatches.push({element, index, confidence});
-                this.vscodeLog(`📍 Found exact match at index ${index} for line ${lineNumber}: "${elementText.trim()}" (confidence: ${confidence})`);
             }
             // Check for fuzzy matches
             else if (elementText.includes(lineText.trim()) || lineText.trim().includes(elementText.trim()) ||
@@ -826,23 +761,19 @@ export class DiagnosticVisualizer {
                 if (this.fuzzyLineMatch(elementText, lineText) || this.fuzzyLineMatch(elementMd, lineText)) {
                     const confidence = this.calculateMatchConfidence(element, lineText, index, lineNumber);
                     fuzzyMatches.push({element, index, confidence});
-                    this.vscodeLog(`📍 Found fuzzy match at index ${index} for line ${lineNumber}: "${elementText.trim()}" (confidence: ${confidence})`);
                 }
             }
         });
         
-        this.vscodeLog(`🔍 DEBUG: Strategy 2a - Found ${exactMatches.length} exact matches, ${fuzzyMatches.length} fuzzy matches`);
         
         // Return the best match based on position and confidence
         const bestMatch = this.selectBestMatch(exactMatches, fuzzyMatches, lineNumber);
         if (bestMatch) {
-            this.vscodeLog(`🎯 Selected best match at index ${bestMatch.index} for line ${lineNumber} (confidence: ${bestMatch.confidence})`);
             return bestMatch.element;
         }
         
         // Strategy 3: Vditor IR structure aware search
         const vditorElements = Array.from(editor.querySelectorAll('.vditor-ir__node, .vditor-ir__marker'));
-        this.vscodeLog(`🔍 DEBUG: Strategy 3 - Found ${vditorElements.length} Vditor IR elements`);
         
         let vditorMatches = 0;
         for (const element of vditorElements) {
@@ -850,16 +781,13 @@ export class DiagnosticVisualizer {
             if (elementText.includes(lineText.trim())) {
                 vditorMatches++;
                 if (this.fuzzyLineMatch(elementText, lineText)) {
-                    this.vscodeLog(`📍 Found Vditor IR element for line ${lineNumber}: ${element.tagName}.${element.className}`);
                     return element as HTMLElement;
                 }
             }
         }
-        this.vscodeLog(`🔍 DEBUG: Strategy 3 - Found ${vditorMatches} Vditor elements containing text`);
         
         // Strategy 4: List item specific mapping (since OL/UL items often fail)
         const listItems = Array.from(editor.querySelectorAll('li, p, h1, h2, h3, h4, h5, h6'));
-        this.vscodeLog(`🔍 DEBUG: Strategy 4 - Found ${listItems.length} list/heading items`);
         
         let listMatches = 0;
         for (const element of listItems) {
@@ -868,27 +796,21 @@ export class DiagnosticVisualizer {
                 listMatches++;
                 // For numbered lists, check if this might be the right item
                 if (lineText.match(/^\d+\./) && elementText.includes(lineText.replace(/^\d+\.\s*/, ''))) {
-                    this.vscodeLog(`📍 Found numbered list item for line ${lineNumber}: "${elementText.trim()}"`);
                     return element as HTMLElement;
                 }
                 // For regular content
                 if (this.fuzzyLineMatch(elementText, lineText)) {
-                    this.vscodeLog(`📍 Found list/heading item for line ${lineNumber}: "${elementText.trim()}"`);
                     return element as HTMLElement;
                 }
             }
         }
-        this.vscodeLog(`🔍 DEBUG: Strategy 4 - Found ${listMatches} list/heading elements containing text`);
         
         // Strategy 5: Approximate mapping by position (last resort)
         const blockElements = this.getBlockElements(editor);
-        this.vscodeLog(`🔍 DEBUG: Strategy 5 - Found ${blockElements.length} block elements`);
         
         if (blockElements.length > 0) {
-            this.vscodeLog(`🔍 DEBUG: First 3 block elements:`);
             for (let i = 0; i < Math.min(3, blockElements.length); i++) {
                 const el = blockElements[i];
-                this.vscodeLog(`   ${i}: ${el.tagName}.${el.className || '(no-class)'} - "${(el.textContent || '').substring(0, 50)}..."`);
             }
         }
         
@@ -896,7 +818,6 @@ export class DiagnosticVisualizer {
             // Try to map line numbers to elements more intelligently
             const approximateIndex = Math.min(Math.floor(lineNumber / 3), blockElements.length - 1);
             const approximateElement = blockElements[approximateIndex];
-            this.vscodeLog(`📍 Using enhanced approximate mapping: line ${lineNumber} → element ${approximateIndex} (${approximateElement.tagName})`);
             return approximateElement;
         }
         
@@ -908,7 +829,6 @@ export class DiagnosticVisualizer {
      * Get all possible elements that could represent lines (including nested elements)
      */
     private getAllPossibleLineElements(editor: HTMLElement): HTMLElement[] {
-        this.vscodeLog(`🔍 DEBUG: getAllPossibleLineElements - editor element: ${editor.tagName}.${editor.className || '(no-class)'}`);
         
         const elements: HTMLElement[] = [];
         const selectors = [
@@ -919,7 +839,6 @@ export class DiagnosticVisualizer {
         
         selectors.forEach(selector => {
             const found = Array.from(editor.querySelectorAll(selector));
-            this.vscodeLog(`🔍 DEBUG: Selector "${selector}" found ${found.length} elements`);
             
             found.forEach(el => {
                 if (el instanceof HTMLElement && el.textContent && el.textContent.trim()) {
@@ -929,57 +848,11 @@ export class DiagnosticVisualizer {
         });
         
         // Debug: Show ALL direct children of editor
-        this.vscodeLog(`🔍 DEBUG: Editor has ${editor.children.length} direct children:`);
         for (let i = 0; i < Math.min(10, editor.children.length); i++) {
             const child = editor.children[i];
-            this.vscodeLog(`   Child ${i}: ${child.tagName}.${child.className || '(no-class)'} - "${(child.textContent || '').substring(0, 30)}..."`);
         }
         
-        this.vscodeLog(`🔍 DEBUG: getAllPossibleLineElements returning ${elements.length} total elements`);
         return elements;
-    }
-    
-    /**
-     * Debug method to understand DOM structure for line mapping
-     */
-    private debugDOMStructure(editor: HTMLElement, lineNumber: number): void {
-        this.vscodeLog(`🏗️ DOM STRUCTURE DEBUG for line ${lineNumber}:`);
-        this.vscodeLog(`🏗️ Editor: ${editor.tagName}.${editor.className || '(no-class)'} with ${editor.children.length} children`);
-        
-        // Show all direct children
-        Array.from(editor.children).forEach((child, i) => {
-            if (child instanceof HTMLElement) {
-                const text = (child.textContent || '').substring(0, 60);
-                this.vscodeLog(`   ${i}: ${child.tagName}.${child.className || '(no-class)'} - "${text}${text.length > 60 ? '...' : ''}"`);
-                
-                // If this is a list or container, show its children too
-                if (child.tagName === 'UL' || child.tagName === 'OL' || child.tagName === 'DIV') {
-                    Array.from(child.children).forEach((grandChild, j) => {
-                        if (grandChild instanceof HTMLElement && j < 5) { // Limit to first 5
-                            const grandText = (grandChild.textContent || '').substring(0, 40);
-                            this.vscodeLog(`      ${i}.${j}: ${grandChild.tagName}.${grandChild.className || '(no-class)'} - "${grandText}${grandText.length > 40 ? '...' : ''}"`);
-                        }
-                    });
-                }
-            }
-        });
-        
-        // Show some text nodes too
-        const walker = document.createTreeWalker(
-            editor,
-            NodeFilter.SHOW_TEXT,
-            null
-        );
-        
-        let textNodeCount = 0;
-        let textNode;
-        this.vscodeLog(`🏗️ Text nodes in editor (first 10):`);
-        while ((textNode = walker.nextNode()) && textNodeCount < 10) {
-            if (textNode.textContent && textNode.textContent.trim()) {
-                this.vscodeLog(`   TextNode ${textNodeCount}: "${textNode.textContent.substring(0, 50)}${textNode.textContent.length > 50 ? '...' : ''}"`);
-                textNodeCount++;
-            }
-        }
     }
     
     /**
@@ -1031,7 +904,6 @@ export class DiagnosticVisualizer {
             confidence += positionConfidence;
             
             // Extra logging for debugging position calculations
-            this.vscodeLog(`🎯 Position calc for element ${elementIndex}: line ${targetLineNumber}/${totalMarkdownLines} (${expectedPositionRatio.toFixed(2)}) vs element ${elementIndex}/${totalElements} (${actualPositionRatio.toFixed(2)}) → confidence +${positionConfidence.toFixed(1)}`);
         }
         
         // Element type bonus - prefer structural elements
@@ -1110,7 +982,6 @@ export class DiagnosticVisualizer {
         let textNode: Text | null;
         let attemptCount = 0;
         
-        this.vscodeLog(`🔍 Searching within element for "${targetText}"`);
         
         while ((textNode = walker.nextNode() as Text)) {
             const content = textNode.textContent || '';
@@ -1118,7 +989,6 @@ export class DiagnosticVisualizer {
             
             if (content.trim().length === 0) continue; // Skip empty text nodes
             
-            this.vscodeLog(`🔍 Checking text node ${attemptCount} within element: "${content.substring(0, 50)}${content.length > 50 ? '...' : ''}"`);
             
             // Try multiple matching strategies for better accuracy
             const strategies = [
@@ -1134,7 +1004,6 @@ export class DiagnosticVisualizer {
             
             for (const strategy of strategies) {
                 if (strategy.index !== -1) {
-                    this.vscodeLog(`🎯 Found match using ${strategy.name} strategy at index ${strategy.index} in: "${content}"`);
                     
                     // Attempt to wrap the text
                     const success = this.wrapTextWithDiagnostic(
@@ -1145,7 +1014,6 @@ export class DiagnosticVisualizer {
                     );
                     
                     if (success) {
-                        this.vscodeLog(`✅ Successfully wrapped text: "${targetText}" using ${strategy.name} strategy in correct line element`);
                         return true;
                     } else {
                         this.vscodeLog(`❌ Failed to wrap text: "${targetText}" using ${strategy.name} strategy`);
@@ -1162,7 +1030,6 @@ export class DiagnosticVisualizer {
      * Fallback to global search if line-specific search fails
      */
     private fallbackToGlobalSearch(editor: HTMLElement, targetText: string, diagnostic: any, tokenKey: string): boolean {
-        this.vscodeLog(`🔄 Falling back to global search for "${targetText}"`);
         
         const walker = document.createTreeWalker(
             editor,
@@ -1178,7 +1045,6 @@ export class DiagnosticVisualizer {
             attemptCount++;
             
             if (content.indexOf(targetText) !== -1) {
-                this.vscodeLog(`🎯 Found match in global search at text node ${attemptCount}: "${content}"`);
                 
                 const success = this.wrapTextWithDiagnostic(
                     textNode, 
@@ -1188,7 +1054,6 @@ export class DiagnosticVisualizer {
                 );
                 
                 if (success) {
-                    this.vscodeLog(`✅ Successfully wrapped text: "${targetText}" using global search fallback`);
                     return true;
                 }
             }
@@ -1241,7 +1106,6 @@ export class DiagnosticVisualizer {
         );
         
         if (!isTrustedSource) {
-            this.vscodeLog(`⚠️ Untrusted diagnostic source: "${source}"`);
             return false;
         }
         
@@ -1255,7 +1119,6 @@ export class DiagnosticVisualizer {
             );
             
             if (!hasValidRange) {
-                this.vscodeLog(`⚠️ Diagnostic has invalid range information`);
                 return false;
             }
         }
@@ -1270,31 +1133,26 @@ export class DiagnosticVisualizer {
             );
             
             if (hasSpellingPatterns && range) {
-                this.vscodeLog(`✅ High-confidence spelling diagnostic: "${message}"`);
                 return true;
             }
         }
         
         // Markdownlint diagnostics - high confidence
         if (source.toLowerCase().includes('markdownlint')) {
-            this.vscodeLog(`✅ High-confidence markdownlint diagnostic: "${message}"`);
             return true;
         }
         
         // Grammar and style checkers
         if (source.toLowerCase().includes('grammar') || source.toLowerCase().includes('languagetool')) {
-            this.vscodeLog(`✅ High-confidence grammar diagnostic: "${message}"`);
             return true;
         }
         
         // Link and reference checkers
         if (source.toLowerCase().includes('link-check') || message.includes('broken') || message.includes('missing')) {
-            this.vscodeLog(`✅ High-confidence link/reference diagnostic: "${message}"`);
             return true;
         }
         
         // Default: If we have a trusted source but didn't match specific patterns, still allow it
-        this.vscodeLog(`✅ High-confidence diagnostic from trusted source "${source}": "${message}"`);
         return true;
     }
 
@@ -1302,35 +1160,28 @@ export class DiagnosticVisualizer {
      * Handle MD041 - First line should be heading
      */
     private handleMD041Diagnostic(editor: HTMLElement, diagnostic: any): boolean {
-        this.vscodeLog('DiagnosticVisualizer: Handling MD041 - First line should be heading');
         
         // Find the first content element in the editor
         const firstElement = editor.querySelector('p, div, h1, h2, h3, h4, h5, h6, blockquote, ul, ol, pre');
         
         if (firstElement) {
             this.applyDiagnosticStyleToElement(firstElement as HTMLElement, diagnostic);
-            this.vscodeLog('MD041: Applied diagnostic to first content element');
             return true;
         }
         
         return false;
 
-        this.vscodeLog(`DiagnosticVisualizer: Applying ${this.diagnostics.length} diagnostics to editor`);
         
         let successCount = 0;
         const failedDiagnostics: any[] = [];
 
         // Process each diagnostic and track results
         this.diagnostics.forEach((diagnostic, index) => {
-            this.vscodeLog(`\n=== Processing Diagnostic ${index + 1}/${this.diagnostics.length} ===`);
-            this.vscodeLog(`Message: ${diagnostic.message}`);
-            this.vscodeLog(`Source: ${diagnostic.source}`);
             
             const success = this.applyDiagnosticByContentMatch(editor as HTMLElement, diagnostic);
             
             if (success) {
                 successCount++;
-                this.vscodeLog(`✅ Diagnostic ${index + 1} applied successfully`);
             } else {
                 failedDiagnostics.push({
                     index: index + 1,
@@ -1356,7 +1207,6 @@ export class DiagnosticVisualizer {
     const matchedText = diagnostic.matchedText || '';
     const source = diagnostic.source || '';
     
-    this.vscodeLog(`Applying diagnostic: ${message}, source: ${source}, matchedText: "${matchedText}"`);
     
     // Handle specific diagnostic types with precision
     let handled = false;
@@ -1374,24 +1224,20 @@ export class DiagnosticVisualizer {
     // For MD012: Multiple consecutive blank lines - DISABLED
     // Vditor normalizes blank lines, making this diagnostic unreliable
     else if (message.includes('Multiple consecutive blank lines') || (source === 'markdownlint' && message.includes('MD012'))) {
-      this.vscodeLog(`MD012 diagnostic skipped in generic handler - Vditor normalizes blank lines`);
       handled = false; // Skip MD012
     }
     
     // For other markdownlint or VS Code diagnostics, use generic text-based matching
     else if (source === 'markdownlint' || diagnostic.range) {
-      this.vscodeLog(`Using generic diagnostic matching for: ${message}`);
       handled = this.handleGenericDiagnostic(editor, diagnostic);
     }
     
     // For any remaining diagnostics, try text-based matching as fallback
     else if (matchedText) {
-      this.vscodeLog(`Using text matching for: ${message}`);
       handled = this.findExactTextMatch(editor, matchedText, diagnostic);
     }
     
     if (!handled) {
-      this.vscodeLog(`Diagnostic not applied (avoiding false positives): ${message}`);
     }
     
     return handled;
@@ -1452,21 +1298,17 @@ export class DiagnosticVisualizer {
      * Handle image alt text diagnostics with enhanced Vditor IR structure awareness
      */
     private handleImageAltDiagnosticPrecise(editor: HTMLElement, diagnostic: any): boolean {
-        this.vscodeLog('🖼️ DiagnosticVisualizer: Handling MD045 image alt text diagnostic with Vditor IR awareness');
         
         const lineNumber = diagnostic.range?.start?.line;
         const lineText = diagnostic.lineText;
         
-        this.vscodeLog(`🖼️ Image alt diagnostic on line ${lineNumber}: "${lineText}"`);
         
         // Strategy 1: Look for Vditor IR image nodes specifically
         // User provided structure: <span class="vditor-ir__node" data-type="img">
         const vditorImageNodes = editor.querySelectorAll('.vditor-ir__node[data-type="img"]');
-        this.vscodeLog(`🖼️ Found ${vditorImageNodes.length} Vditor IR image nodes`);
         
         // Debug: log the actual structure of each node
         vditorImageNodes.forEach((node, i) => {
-            this.vscodeLog(`🖼️ Node ${i} structure: ${node.outerHTML.substring(0, 200)}...`);
         });
         
         // Strategy 1A: Check for Vditor IR image nodes
@@ -1482,7 +1324,6 @@ export class DiagnosticVisualizer {
             const pathSpans = imageNode.querySelectorAll('.vditor-ir__marker ~ span');
             const allText = imageNode.textContent || '';
             
-            this.vscodeLog(`🖼️ Vditor image node ${i}: img src="${imgSrc}", alt="${imgAlt}", text="${allText}"`);
             
             // Try to match against line text if available
             if (lineText) {
@@ -1516,7 +1357,6 @@ export class DiagnosticVisualizer {
                     }
                     
                     if (isMatch && (!expectedAltText.trim() || imgAlt === expectedAltText)) {
-                        this.vscodeLog(`✅ Found matching Vditor image with missing/empty alt text`);
                         
                         // Apply diagnostic to the Vditor image node (the span containing everything)
                         this.applyDiagnosticStyleToVditorNode(imageNode, diagnostic);
@@ -1526,7 +1366,6 @@ export class DiagnosticVisualizer {
             } else {
                 // Fallback: any image without alt text
                 if (img && !imgAlt.trim()) {
-                    this.vscodeLog(`✅ Found Vditor image without alt text (no line text provided)`);
                     this.applyDiagnosticStyleToVditorNode(imageNode, diagnostic);
                     return true;
                 }
@@ -1535,7 +1374,6 @@ export class DiagnosticVisualizer {
         
         // Strategy 2: Fallback to regular img elements if no Vditor IR nodes found
         const images = editor.querySelectorAll('img');
-        this.vscodeLog(`🖼️ Fallback: Found ${images.length} regular img elements`);
         
         for (let i = 0; i < images.length; i++) {
             const img = images[i];
@@ -1555,13 +1393,11 @@ export class DiagnosticVisualizer {
                     }
                     
                     if (isMatch && (!alt.trim() || alt === expectedAlt)) {
-                        this.vscodeLog(`✅ Found matching fallback image with missing alt text`);
                         this.applyDiagnosticStyleToElement(img as HTMLElement, diagnostic);
                         return true;
                     }
                 }
             } else if (!alt.trim()) {
-                this.vscodeLog(`✅ Found fallback image without alt text`);
                 this.applyDiagnosticStyleToElement(img as HTMLElement, diagnostic);
                 return true;
             }
@@ -1578,7 +1414,6 @@ export class DiagnosticVisualizer {
         const severity = this.getDiagnosticSeverityString(diagnostic.severity);
         const cssClass = `vscode-diagnostic-${severity}`;
         
-        this.vscodeLog(`🎯 Applying diagnostic to Vditor IR node: ${cssClass}`);
         
         // Apply diagnostic styling to the Vditor node itself
         vditorNode.classList.add(cssClass);
@@ -1598,22 +1433,18 @@ export class DiagnosticVisualizer {
             // NOTE: Do NOT mark content elements with data-diagnostic-ui="true"
         }
         
-        this.vscodeLog(`✅ Applied ${cssClass} to Vditor IR image node`);
     }
 
     /**
      * Handle MD012 diagnostics - Multiple consecutive blank lines
      */
     private handleMD012Diagnostic(editor: HTMLElement, diagnostic: any): boolean {
-        this.vscodeLog('DiagnosticVisualizer: Handling MD012 - Multiple consecutive blank lines');
         
         const lineNumber = diagnostic.range?.start?.line;
         if (lineNumber === undefined) {
-            this.vscodeLog('MD012: No line number provided');
             return false;
         }
         
-        this.vscodeLog(`MD012: Looking for multiple blank lines around line ${lineNumber}`);
         
         // For MD012, we need to find the area where multiple blank lines occur
         // This is tricky in WYSIWYG mode because blank lines may not have direct DOM representation
@@ -1622,7 +1453,6 @@ export class DiagnosticVisualizer {
         // First, let's check the raw markdown content vs the rendered DOM
         const vditorContent = this.vditor ? this.vditor.getValue() : '';
         const lines = vditorContent.split('\n');
-        this.vscodeLog(`MD012: Raw markdown has ${lines.length} lines, checking around line ${lineNumber}`);
         
         // Look for multiple consecutive blank lines in the raw content
         let consecutiveBlankLines = 0;
@@ -1635,7 +1465,6 @@ export class DiagnosticVisualizer {
                 consecutiveBlankLines++;
             } else {
                 if (consecutiveBlankLines >= 2) {
-                    this.vscodeLog(`MD012: Found ${consecutiveBlankLines} consecutive blank lines from line ${blankLineStart} to ${i-1}`);
                     // Check if this matches our target line number
                     if (Math.abs(blankLineStart - lineNumber) <= 2 || Math.abs(i - 1 - lineNumber) <= 2) {
                         // Found the problematic area, now try to find corresponding DOM elements
@@ -1646,9 +1475,7 @@ export class DiagnosticVisualizer {
                 blankLineStart = -1;
             }
         }
-        
-        this.vscodeLog(`MD012: Could not find multiple consecutive blank lines in raw content around line ${lineNumber}`);
-        
+
         // Strategy 1: Look for paragraph elements that might represent the blank lines
         const allElements = editor.querySelectorAll('p, div, br');
         const targetElements: HTMLElement[] = [];
@@ -1679,7 +1506,6 @@ export class DiagnosticVisualizer {
         
         // If we found target elements, apply the diagnostic style
         if (targetElements.length > 0) {
-            this.vscodeLog(`MD012: Found ${targetElements.length} elements representing multiple blank lines`);
             targetElements.forEach((element) => {
                 this.applyDiagnosticStyleToElement(element, diagnostic);
             });
@@ -1706,7 +1532,6 @@ export class DiagnosticVisualizer {
                     consecutiveBrs.forEach((br) => {
                         this.applyDiagnosticStyleToElement(br, diagnostic);
                     });
-                    this.vscodeLog(`MD012: Applied diagnostic to ${consecutiveBrs.length} consecutive br elements`);
                     return true;
                 }
                 consecutiveBrs = [];
@@ -1718,12 +1543,10 @@ export class DiagnosticVisualizer {
             consecutiveBrs.forEach((br) => {
                 this.applyDiagnosticStyleToElement(br, diagnostic);
             });
-            this.vscodeLog(`MD012: Applied diagnostic to ${consecutiveBrs.length} consecutive br elements (final group)`);
             return true;
         }
         
         // Strategy 3: Fallback - apply to a nearby element using line mapping
-        this.vscodeLog('MD012: Using fallback line mapping approach');
         return this.findElementByLineMapping(editor, diagnostic);
     }
     
@@ -1731,7 +1554,6 @@ export class DiagnosticVisualizer {
      * Find DOM elements that correspond to a blank line area in the raw markdown
      */
     private findElementsForBlankLineArea(editor: HTMLElement, startLine: number, endLine: number, diagnostic: any): boolean {
-        this.vscodeLog(`MD012: Trying to find DOM elements for blank line area from line ${startLine} to ${endLine}`);
         
         // Strategy: Since Vditor may normalize blank lines, look for paragraph breaks or line breaks
         // in the approximate area where the blank lines should be
@@ -1740,7 +1562,6 @@ export class DiagnosticVisualizer {
         const blockElements = editor.querySelectorAll('p, div, br, .vditor-ir__node');
         
         if (blockElements.length === 0) {
-            this.vscodeLog('MD012: No block elements found in editor');
             return false;
         }
         
@@ -1751,11 +1572,10 @@ export class DiagnosticVisualizer {
         const element = blockElements[Math.min(targetIndex, blockElements.length - 1)] as HTMLElement;
         
         if (!element) {
-            this.vscodeLog('MD012: Could not find target element for blank line area');
+
             return false;
         }
         
-        this.vscodeLog(`MD012: Applying diagnostic to element at index ${targetIndex} (${element.tagName})`);
         this.applyDiagnosticStyleToElement(element, diagnostic);
         return true;
     }
@@ -1925,8 +1745,6 @@ export class DiagnosticVisualizer {
       return;
     }
 
-    this.vscodeLog(`� Adding integrated lightbulb to diagnostic span: ${diagnostic.message} (${diagnostic.source})`);
-
     // Add lightbulb styling directly to the span
     element.style.position = 'relative';
     element.style.cursor = 'pointer';
@@ -1945,12 +1763,10 @@ export class DiagnosticVisualizer {
       if (clickX > elementWidth * 0.75) {
         e.preventDefault();
         e.stopPropagation();
-        this.vscodeLog(`🔧 Lightbulb clicked - triggering quick fix for: ${diagnostic.message}`);
         this.triggerQuickFix(diagnostic);
       }
     });
 
-    this.vscodeLog(`✅ Integrated lightbulb added to diagnostic span (using main.css styles)`);
   }
 
   /**
@@ -1976,7 +1792,6 @@ export class DiagnosticVisualizer {
       removedCount++;
     });
     
-    this.vscodeLog(`✅ Cleaned up integrated lightbulbs: removed ${removedCount} lightbulb attributes`);
   }
 
   /**
@@ -2011,8 +1826,6 @@ export class DiagnosticVisualizer {
     return quickFixSources.some(s => source.includes(s)) ||
            quickFixPatterns.some(p => message.includes(p));
   }
-
-
 
     /**
      * Check if an element matches the diagnostic line content
@@ -2181,7 +1994,6 @@ export class DiagnosticVisualizer {
         const severity = this.getDiagnosticSeverityString(diagnostic.severity);
         const cssClass = `vscode-diagnostic-${severity}`;
         
-        this.vscodeLog(`🔍 APPLYING DIAGNOSTIC: ${cssClass} to ${element.tagName}.${element.className} for "${diagnostic.message}"`);
         
         // Apply the diagnostic CSS class
         element.classList.add(cssClass);
@@ -2198,16 +2010,12 @@ export class DiagnosticVisualizer {
         // NOTE: Do NOT mark content elements with data-diagnostic-ui="true" 
         // Only true overlay elements (tooltips, lightbulbs) should have this attribute
         
-        this.vscodeLog(`✅ Applied ${cssClass} to ${element.tagName} element`);
     }
-
-
 
     /**
      * Open VS Code problems panel for user to choose what to fix
      */
     private triggerQuickFix(diagnostic: any): void {
-        this.vscodeLog(`🔧 Opening VS Code problems panel for: ${diagnostic.message}`);
         
         // Simply open the problems panel for the user to choose what to fix
         if ((window as any).vscode) {
@@ -2215,7 +2023,6 @@ export class DiagnosticVisualizer {
                 command: 'openProblemsPanel'
             });
             
-            this.vscodeLog(`📤 Problems panel open request sent to VS Code`);
         } else {
             this.vscodeLog(`❌ VS Code API not available for opening problems panel`);
         }
@@ -2253,7 +2060,6 @@ export class DiagnosticVisualizer {
         const newDiagnosticsHash = this.generateDiagnosticsHashForArray(normalizedDiagnostics);
         const diagnosticsActuallyChanged = newDiagnosticsHash !== this.lastDiagnosticsHash;
         
-        this.vscodeLog(`🔍 DIAGNOSTIC UPDATE: ${diagnostics.length} diagnostics, hash changed: ${diagnosticsActuallyChanged}`);
         
         // Process all diagnostics
         
@@ -2261,11 +2067,9 @@ export class DiagnosticVisualizer {
         const visualElementsExist = this.verifyDiagnosticElementsExist();
         
         if (diagnosticsActuallyChanged || !this.diagnosticsApplied || !visualElementsExist) {
-            this.vscodeLog(`🔄 Diagnostics update needed - changed: ${diagnosticsActuallyChanged}, applied: ${this.diagnosticsApplied}, visual: ${visualElementsExist}`);
             this.diagnostics = normalizedDiagnostics;
             this.scheduleUpdate();
         } else {
-            this.vscodeLog(`✅ Diagnostics unchanged and visual elements exist - keeping existing visualization`);
             // Still update the diagnostics array in case there are minor differences
             this.diagnostics = normalizedDiagnostics;
         }
@@ -2283,17 +2087,14 @@ export class DiagnosticVisualizer {
      */
     public addSimpleDiagnostics(): void {
         const content = this.vditor?.getValue() || '';
-        this.vscodeLog(`DiagnosticVisualizer: Checking content for simple diagnostics, length: ${content.length}`);
         
         // SMART CHECK: Only update if content changed significantly to prevent unnecessary updates
         if (content === this.lastContent) {
-            this.vscodeLog('Content unchanged, skipping simple diagnostic update');
             return;
         }
         
         // Check if diagnostics are already applied and still valid
         if (this.diagnosticsApplied && this.wrappedKeys.size > 0) {
-            this.vscodeLog(`Simple diagnostics already applied (${this.wrappedKeys.size} items), checking if still valid`);
             
             // Quick validation: if existing diagnostics are mostly still valid, skip update
             let editor = document.querySelector('.vditor-ir .vditor-reset') as HTMLElement;
@@ -2303,7 +2104,6 @@ export class DiagnosticVisualizer {
             if (editor) {
                 const existingDiagnostics = editor.querySelectorAll('[class*="vscode-diagnostic-"]');
                 if (existingDiagnostics.length > 0) {
-                    this.vscodeLog(`Found ${existingDiagnostics.length} existing diagnostic elements - skipping simple diagnostic update`);
                     this.lastContent = content;
                     return;
                 }
@@ -2357,13 +2157,11 @@ export class DiagnosticVisualizer {
             }
         });
 
-        this.vscodeLog(`DiagnosticVisualizer: Generated ${simpleDiagnostics.length} simple diagnostics`);
         
         // Only apply if we actually found diagnostics or need to clear existing ones
         if (simpleDiagnostics.length > 0 || this.diagnostics.length > 0) {
             this.applyDiagnosticsToEditor(simpleDiagnostics);
         } else {
-            this.vscodeLog(`No simple diagnostics found and no existing diagnostics to clear`);
         }
     }
 
@@ -2411,7 +2209,6 @@ export class DiagnosticVisualizer {
             // Create deduplication key
             const key = `${diagnostic.range?.start?.line}:${diagnostic.range?.start?.character}-${diagnostic.range?.end?.line}:${diagnostic.range?.end?.character}|${diagnostic.message}|${diagnostic.code || ''}`;
             if (seen.has(key)) {
-                this.vscodeLog(`🧪 De-dup skipped duplicate diagnostic: ${diagnostic.message}`);
                 continue;
             }
             seen.add(key);
@@ -2429,17 +2226,14 @@ export class DiagnosticVisualizer {
                         lineText: lineText.trim()
                     });
                 } else {
-                    this.vscodeLog(`⚠️ Skipped low-confidence diagnostic: ${diagnostic.message}`);
                 }
             } else {
-                this.vscodeLog(`⚠️ Skipped diagnostic without line info: ${diagnostic.message}`);
             }
         }
         
         // Sort by line number for efficient processing
         validDiagnostics.sort((a, b) => a.lineNumber - b.lineNumber);
         
-        this.vscodeLog(`📋 Prepared ${validDiagnostics.length} sorted diagnostics from ${this.diagnostics.length} total`);
         return validDiagnostics;
     }
 
@@ -2493,7 +2287,6 @@ export class DiagnosticVisualizer {
             item.index = idx;
         });
         
-        this.vscodeLog(`🏗️ Found ${blockElements.length} block elements representing document structure`);
         return blockElements;
     }
 
@@ -2527,7 +2320,6 @@ export class DiagnosticVisualizer {
         blockElements: Array<{element: HTMLElement, index: number}>,
         sortedDiagnostics: Array<{diagnostic: any, lineNumber: number, lineText: string}>
     ): void {
-        this.vscodeLog(`🎯 Starting content-based matching: ${blockElements.length} elements vs ${sortedDiagnostics.length} diagnostics`);
         
         let appliedCount = 0;
         
@@ -2549,7 +2341,6 @@ export class DiagnosticVisualizer {
                 continue;
             }
             
-            this.vscodeLog(`🔍 Finding element for line ${lineNumber} diagnostic: "${targetText}" from "${lineText}"`);
             
             let bestMatch: {element: HTMLElement, index: number, confidence: number, matchType: string} | null = null;
             
@@ -2573,14 +2364,12 @@ export class DiagnosticVisualizer {
                 // Check if this element already has a diagnostic applied for the same token
                 const tokenKey = `${lineNumber}|${targetText}`;
                 if (this.wrappedKeys.has(tokenKey)) {
-                    this.vscodeLog(`⚠️ Element already has diagnostic for "${targetText}" on line ${lineNumber}, skipping`);
                     continue;
                 }
                 
                 // Additional check: prevent applying diagnostics to elements that already have overlapping ranges
                 // Only check for overlaps on the SAME element - different elements can have same char ranges
                 if (this.hasOverlappingDiagnostic(element, startChar, endChar, lineNumber, diagnostic)) {
-                    this.vscodeLog(`⚠️ Element ${index} already has overlapping diagnostic for chars ${startChar}-${endChar}, skipping`);
                     continue;
                 }
                 
@@ -2660,12 +2449,10 @@ export class DiagnosticVisualizer {
                         charPositionBonus = 25;   // Reasonably close
                     }
                     
-                    this.vscodeLog(`📍 Multiple "${targetText}" occurrences at positions: [${targetOccurrences.join(', ')}], expected: ${expectedCharPos}, best: ${bestOccurrence}, bonus: ${charPositionBonus}`);
                 }
                 
                 confidence += proximityBonus + charPositionBonus;
                 
-                this.vscodeLog(`🎯 Element ${index} contains "${targetText}" - confidence: ${confidence.toFixed(1)} (${matchType}) pos-diff: ${positionDifference} proximity-bonus: ${proximityBonus} char-bonus: ${charPositionBonus} line-match: ${index === lineNumber}`);
                 
                 // Prefer matches with better match types, then higher confidence
                 if (!bestMatch || 
@@ -2683,7 +2470,6 @@ export class DiagnosticVisualizer {
             
             // More lenient acceptance criteria since we now have word boundary validation
             if (bestMatch && (isStrictMatch || isLineContained || (bestMatch.confidence >= 100 && isReasonableProximity))) {
-                this.vscodeLog(`✅ SELECTED: Element ${bestMatch.index} with confidence ${bestMatch.confidence.toFixed(1)} (${bestMatch.matchType})`);
                 
                 const matchResult = {
                     matched: true,
@@ -2695,14 +2481,12 @@ export class DiagnosticVisualizer {
                 
                 if (this.applyDiagnosticToMatchedElement(bestMatch.element, diagnostic, matchResult)) {
                     appliedCount++;
-                    this.vscodeLog(`🎨 Applied diagnostic "${diagnostic.message}" to element ${bestMatch.index}`);
                 } else {
                     this.vscodeLog(`❌ Failed to apply diagnostic despite good match`);
                 }
             } else {
                 // FALLBACK: If we have a word-boundary validated match but it's just below threshold, be more lenient
                 if (bestMatch && bestMatch.confidence >= 80) {
-                    this.vscodeLog(`🟡 FALLBACK MATCH: Applying lower-confidence match for "${targetText}" (confidence: ${bestMatch.confidence.toFixed(1)})`);
                     
                     const matchResult = {
                         matched: true,
@@ -2714,7 +2498,6 @@ export class DiagnosticVisualizer {
                     
                     if (this.applyDiagnosticToMatchedElement(bestMatch.element, diagnostic, matchResult)) {
                         appliedCount++;
-                        this.vscodeLog(`🎨 Applied fallback diagnostic "${diagnostic.message}" to element ${bestMatch.index}`);
                     } else {
                         this.vscodeLog(`❌ Failed to apply fallback diagnostic despite match`);
                     }
@@ -2728,14 +2511,12 @@ export class DiagnosticVisualizer {
                     for (let i = Math.max(0, lineNumber - 3); i < Math.min(blockElements.length, lineNumber + 3); i++) {
                         if (i < blockElements.length) {
                             const elementText = (blockElements[i].element.textContent || '').substring(0, 50);
-                            this.vscodeLog(`📍 Element ${i}: "${elementText}${elementText.length >= 50 ? '...' : ''}"`);
                         }
                     }
                 }
             }
         }
         
-        this.vscodeLog(`📊 Content-based matching completed: ${appliedCount}/${sortedDiagnostics.length} diagnostics applied`);
     }
 
     /**
@@ -2761,11 +2542,9 @@ export class DiagnosticVisualizer {
             return {matched: false, confidence: 0, matchType: 'no-target-text'};
         }
         
-        this.vscodeLog(`🎯 Looking for precise target text: "${targetText}" (chars ${startChar}-${endChar}) in element: "${elementText.substring(0, 100)}..."`);
         
         // Check if this diagnostic range would overlap with already applied diagnostics
         if (this.hasOverlappingDiagnostic(element, startChar, endChar, lineNumber, diagnostic)) {
-            this.vscodeLog(`⚠️ Skipping diagnostic - overlaps with already applied diagnostic`);
             return {matched: false, confidence: 0, matchType: 'overlap-conflict'};
         }
         
@@ -2777,7 +2556,6 @@ export class DiagnosticVisualizer {
         if (targetIndex !== -1) {
             confidence = 95;
             matchType = 'exact-target-match';
-            this.vscodeLog(`✅ Found exact target text "${targetText}" at position ${targetIndex} in element`);
         }
         // Strategy 2: Case-insensitive search for target text
         else {
@@ -2785,7 +2563,6 @@ export class DiagnosticVisualizer {
             if (targetIndexCI !== -1) {
                 confidence = 90;
                 matchType = 'case-insensitive-target';
-                this.vscodeLog(`✅ Found case-insensitive target text "${targetText}" at position ${targetIndexCI} in element`);
             }
         }
         
@@ -2806,19 +2583,16 @@ export class DiagnosticVisualizer {
                 if (elementText.includes(targetText)) {
                     confidence = 85;
                     matchType = 'full-line-exact';
-                    this.vscodeLog(`✅ Element matches full line text exactly AND contains target`);
                 } else {
                     this.vscodeLog(`❌ STRICT CHECK FAILED: Element matches line but missing target text "${targetText}"`);
                 }
             } else if (elementText.includes(lineText.trim()) && elementText.includes(targetText)) {
                 confidence = 75;
                 matchType = 'full-line-contains';
-                this.vscodeLog(`✅ Element contains full line text AND target text`);
             } else if (elementText.includes(targetText) && this.fuzzyLineMatch(elementText, lineText)) {
                 // STRICT: Only allow fuzzy match if target text is actually present in element
                 confidence = 65;
                 matchType = 'full-line-fuzzy-with-target';
-                this.vscodeLog(`✅ Element matches line via fuzzy matching AND contains target text`);
             } else {
                 // REJECTED: Element doesn't contain target text
                 this.vscodeLog(`❌ STRICT REJECTION: Element doesn't contain target text "${targetText}"`);
@@ -2833,11 +2607,9 @@ export class DiagnosticVisualizer {
                 if (targetInMd !== -1) {
                     confidence = 80;
                     matchType = 'html2md-target-match';
-                    this.vscodeLog(`✅ Found target text "${targetText}" in html2md converted element`);
                 } else if (elementMd.trim() === lineText.trim() && lineText.includes(targetText)) {
                     confidence = 70;
                     matchType = 'html2md-line-match';
-                    this.vscodeLog(`✅ html2md element matches line text and line contains target`);
                 }
             } catch (e) {
                 this.vscodeLog(`❌ html2md conversion failed: ${e}`);
@@ -2860,7 +2632,6 @@ export class DiagnosticVisualizer {
         const matched = confidence >= 70; // Higher threshold for precision
         
         if (matched) {
-            this.vscodeLog(`🎯 Match found: ${matchType} (confidence: ${confidence.toFixed(1)}, target: "${targetText}")`);
             return {
                 matched, 
                 confidence, 
@@ -2900,7 +2671,6 @@ export class DiagnosticVisualizer {
             return false;
         }
         
-        this.vscodeLog(`🎨 Applying diagnostic to element: targeting "${targetText}" (chars ${startChar}-${endChar})`);
         
         // Try to find and wrap the specific target text within the element
         const applied = this.findAndWrapPreciseTextInElement(element, targetText, diagnostic, startChar, endChar);
@@ -2908,7 +2678,6 @@ export class DiagnosticVisualizer {
         if (applied) {
             // Record that this diagnostic has been applied to prevent overlaps
             this.recordAppliedDiagnostic(element, startChar, endChar, lineNumber, diagnostic);
-            this.vscodeLog(`✅ Successfully applied diagnostic: "${diagnostic.message}"`);
         } else {
             this.vscodeLog(`❌ Failed to apply diagnostic: could not locate target text "${targetText}"`);
         }
@@ -2953,7 +2722,6 @@ export class DiagnosticVisualizer {
         originalEndChar: number
     ): boolean {
         const elementText = element.textContent || '';
-        this.vscodeLog(`🔍 Precise search for "${targetText}" in element text: "${elementText.substring(0, 100)}..."`);
         
         // Strategy 1: Direct search for target text
         let targetIndex = elementText.indexOf(targetText);
@@ -2969,7 +2737,6 @@ export class DiagnosticVisualizer {
                 searchIndex += targetText.length;
             }
             
-            this.vscodeLog(`🔍 Found ${allOccurrences.length} occurrences of "${targetText}" at positions: [${allOccurrences.join(', ')}]`);
             
             if (allOccurrences.length > 1) {
                 // Multiple occurrences - try to find the best match based on character position
@@ -2979,7 +2746,6 @@ export class DiagnosticVisualizer {
                     elementText,
                     targetText
                 );
-                this.vscodeLog(`🎯 Selected occurrence at position ${targetIndex} based on character position analysis`);
             }
         }
         
@@ -2990,7 +2756,6 @@ export class DiagnosticVisualizer {
             targetIndex = lowerElementText.indexOf(lowerTargetText);
             
             if (targetIndex !== -1) {
-                this.vscodeLog(`🔍 Found case-insensitive match at position ${targetIndex}`);
                 // Update targetText to match the actual case in the element
                 targetText = elementText.substring(targetIndex, targetIndex + targetText.length);
             }
@@ -3028,7 +2793,6 @@ export class DiagnosticVisualizer {
             }
         }
         
-        this.vscodeLog(`🎯 Best occurrence analysis: target char ${originalCharPosition}, selected position ${bestIndex} (distance: ${bestDistance})`);
         
         // Additional context-based filtering for common cases
         if (bestDistance > 10 && occurrences.length > 1) {
@@ -3059,7 +2823,6 @@ export class DiagnosticVisualizer {
                 // For lowercase letters, prefer occurrences that are mid-word (not at sentence start)
                 if (char === char.toLowerCase() && char !== char.toUpperCase()) {
                     if (beforeChar !== ' ' && beforeChar !== '.' && beforeChar !== '!' && beforeChar !== '?') {
-                        this.vscodeLog(`🎯 Selected occurrence at ${occurrence} - mid-word lowercase context`);
                         return occurrence;
                     }
                 }
@@ -3067,7 +2830,6 @@ export class DiagnosticVisualizer {
                 // For uppercase letters, prefer occurrences at word/sentence start
                 if (char === char.toUpperCase() && char !== char.toLowerCase()) {
                     if (beforeChar === ' ' || beforeChar === '.' || beforeChar === '!' || beforeChar === '?' || occurrence === 0) {
-                        this.vscodeLog(`🎯 Selected occurrence at ${occurrence} - sentence-start uppercase context`);
                         return occurrence;
                     }
                 }
@@ -3107,7 +2869,6 @@ export class DiagnosticVisualizer {
                 const relativeStart = position - currentPosition;
                 const relativeEnd = Math.min(relativeStart + length, content.length);
                 
-                this.vscodeLog(`🎨 Wrapping text in node at relative position ${relativeStart}-${relativeEnd}: "${content.substring(relativeStart, relativeEnd)}"`);
                 return this.wrapTextWithDiagnostic(textNode, relativeStart, relativeEnd, diagnostic);
             }
             
@@ -3128,7 +2889,6 @@ export class DiagnosticVisualizer {
         // Add hover tooltip
         this.addHoverableTooltip(element, diagnostic);
         
-        this.vscodeLog(`🎨 Added diagnostic styling to entire element: ${element.tagName}`);
     }
 
     /**
@@ -3163,12 +2923,10 @@ export class DiagnosticVisualizer {
                                    lineNumber !== applied.lineNumber;
             
             if (hasCharOverlap) {
-                this.vscodeLog(`🚫 Character range overlap detected: new(${startChar}-${endChar}) vs applied(${applied.startChar}-${applied.endChar})`);
                 return true;
             }
             
             if (hasDifferentLine && hasCharOverlap) {
-                this.vscodeLog(`🚫 Different line numbers with overlapping ranges: line ${lineNumber} vs line ${applied.lineNumber}`);
                 return true;
             }
         }
@@ -3224,7 +2982,6 @@ export class DiagnosticVisualizer {
             }
         }
         
-        this.vscodeLog(`📝 Recorded applied diagnostic: ${diagnosticId} at chars ${startChar}-${endChar} on line ${lineNumber}`);
     }
 
     /**
@@ -3239,7 +2996,6 @@ export class DiagnosticVisualizer {
         this.wrappedKeys.clear();
         this.tokenSpanCache.clear();
         this.tokenDiagnostics.clear();
-        this.vscodeLog(`🧹 Cleared applied diagnostic tracking and duplicate detection state`);
     }
 
     /**
@@ -3271,7 +3027,6 @@ export class DiagnosticVisualizer {
      */
     private verifyDiagnosticElementsExist(): boolean {
         if (!this.diagnosticsApplied || this.diagnostics.length === 0) {
-            this.vscodeLog(`🔍 DOM VERIFY: No diagnostics expected (applied: ${this.diagnosticsApplied}, count: ${this.diagnostics.length})`);
             return true; // No diagnostics expected, so this is "correct"
         }
 
@@ -3292,7 +3047,6 @@ export class DiagnosticVisualizer {
         const diagnosticElements = editor.querySelectorAll('[class*="vscode-diagnostic-"]');
         const wrappedKeysCount = this.wrappedKeys.size;
         
-        this.vscodeLog(`🔍 DOM VERIFY: Found ${diagnosticElements.length} DOM elements, expected ${this.diagnostics.length} diagnostics, wrapped keys: ${wrappedKeysCount}`);
         
         // If we expect diagnostics but have no DOM elements, something cleared them
         if (this.diagnostics.length > 0 && diagnosticElements.length === 0) {
@@ -3305,13 +3059,11 @@ export class DiagnosticVisualizer {
         // Check if the number of elements is roughly what we expect
         const expectedMinElements = Math.min(this.diagnostics.length, wrappedKeysCount);
         if (diagnosticElements.length < expectedMinElements * 0.5) { // Allow some tolerance
-            this.vscodeLog(`⚠️ DOM VERIFY: Found ${diagnosticElements.length} elements but expected at least ${expectedMinElements} - some may be missing`);
             // AGGRESSIVE RESET: Clear all tracking state to allow re-application
             this.clearAppliedDiagnosticTracking();
             return false;
         }
         
-        this.vscodeLog(`✅ DOM VERIFY: Diagnostic elements exist as expected (${diagnosticElements.length} elements)`);
         return true;
     }
 
@@ -3327,7 +3079,6 @@ export class DiagnosticVisualizer {
      * This preserves diagnostics that are still valid and removes invalid ones
      */
     private revalidateExistingDiagnostics(): void {
-        this.vscodeLog(`🔍 Revalidating existing diagnostics without full clear/reapply`);
         
         // For now, use the simple approach of checking if diagnostic elements still exist and are valid
         // This is a lighter weight operation than full clear/reapply
@@ -3347,7 +3098,6 @@ export class DiagnosticVisualizer {
         
         // Check if existing diagnostic elements are still valid
         const existingDiagnosticElements = editor.querySelectorAll('[class*="vscode-diagnostic-"]');
-        this.vscodeLog(`🔍 Found ${existingDiagnosticElements.length} existing diagnostic elements to revalidate`);
         
         // Simple revalidation: if content changed significantly, we might need to reapply
         // For now, we'll trust that the diagnostics are still valid unless they're clearly broken
@@ -3358,17 +3108,14 @@ export class DiagnosticVisualizer {
             
             // Check if the element still makes sense in context
             if (!textContent.trim() || textContent.includes('💡')) {
-                this.vscodeLog(`⚠️ Invalid diagnostic element ${index}: "${textContent}"`);
                 invalidElements++;
             }
         });
         
         if (invalidElements > 0) {
-            this.vscodeLog(`⚠️ Found ${invalidElements} invalid diagnostic elements - triggering full reapply`);
             this.clearDiagnosticStyles();
             this.applyDiagnosticStyles();
         } else {
-            this.vscodeLog(`✅ All ${existingDiagnosticElements.length} diagnostic elements are still valid`);
         }
     }
 
@@ -3411,7 +3158,6 @@ export class DiagnosticVisualizer {
             }
         }
         
-        this.vscodeLog(`🔄 Normalized diagnostic: line ${normalized.range?.start?.line} (was ${diagnostic.startLineNumber}), message: "${normalized.message}"`);
         return normalized;
     }
 
@@ -3419,7 +3165,6 @@ export class DiagnosticVisualizer {
      * Setup focus awareness to prevent diagnostic updates while user is typing
      */
     private setupFocusAwareness(): void {
-        this.vscodeLog(`🎯 FOCUS AWARE: Setting up focus awareness for diagnostic updates`);
         
         // Track focus changes on the document
         document.addEventListener('focusin', (event) => {
@@ -3470,7 +3215,6 @@ export class DiagnosticVisualizer {
         if (!element) return;
         
         const elementInfo = `${element.tagName}.${element.className || '(no-class)'}`;
-        this.vscodeLog(`🎯 FOCUS AWARE: Focus ${isFocused ? 'IN' : 'OUT'} on ${elementInfo}`);
         
         if (isFocused) {
             // Store previous focused element before updating current
@@ -3479,11 +3223,9 @@ export class DiagnosticVisualizer {
             
             // Check if focus changed to a different element
             if (this.previousFocusedElement && this.previousFocusedElement !== element) {
-                this.vscodeLog(`🎯 FOCUS CHANGE: Focus moved from ${this.previousFocusedElement.tagName} to ${element.tagName}`);
                 
                 // Apply pending diagnostics to the element that lost focus
                 if (this.pendingDiagnosticUpdate) {
-                    this.vscodeLog(`🎯 FOCUS CHANGE: Applying pending diagnostics due to focus change`);
                     setTimeout(() => {
                         this.applyPendingDiagnosticUpdateForElement(this.previousFocusedElement);
                     }, 50); // Small delay to ensure focus transition is complete
@@ -3493,7 +3235,6 @@ export class DiagnosticVisualizer {
             // Check if current element has diagnostics
             const hasDiagnostics = this.elementHasDiagnostics(element);
             if (hasDiagnostics) {
-                this.vscodeLog(`🎯 FOCUS AWARE: Focused element has diagnostics - will defer updates`);
             }
         } else {
             // Element lost focus - apply any pending diagnostic updates
@@ -3501,7 +3242,6 @@ export class DiagnosticVisualizer {
             this.focusedElement = null;
             
             if (this.pendingDiagnosticUpdate) {
-                this.vscodeLog(`🎯 FOCUS AWARE: Element lost focus - applying pending diagnostic updates`);
                 setTimeout(() => {
                     this.applyPendingDiagnosticUpdate();
                 }, 100); // Small delay to ensure focus has fully moved
@@ -3527,18 +3267,15 @@ export class DiagnosticVisualizer {
         // Set typing to false after a longer pause to be more conservative
         this.typingTimeout = setTimeout(() => {
             this.isUserTyping = false;
-            this.vscodeLog(`🎯 FOCUS AWARE: User stopped typing - checking for pending updates`);
             
             // Wait a bit more before applying updates to ensure user has really stopped
             setTimeout(() => {
                 if (this.pendingDiagnosticUpdate && this.isSafeToUpdateDiagnostics()) {
-                    this.vscodeLog(`🎯 FOCUS AWARE: Applying pending diagnostic updates after extended pause`);
                     this.applyPendingDiagnosticUpdate();
                 }
             }, 1000); // Additional 1 second delay
         }, 2000); // 2 second pause to determine when user stops typing
         
-        this.vscodeLog(`🎯 FOCUS AWARE: User input detected on ${element.tagName} - typing state: ${this.isUserTyping}`);
     }
 
     /**
@@ -3554,7 +3291,6 @@ export class DiagnosticVisualizer {
             
             // If cursor moved from one element to another, apply pending diagnostics to the previous element
             if (this.previousCursorElement && this.previousCursorElement !== currentCursor && this.pendingDiagnosticUpdate) {
-                this.vscodeLog(`🎯 CURSOR MOVE: Cursor moved from ${this.previousCursorElement.tagName} to ${currentCursor?.tagName || 'null'}`);
                 
                 setTimeout(() => {
                     this.applyPendingDiagnosticUpdateForElement(this.previousCursorElement);
@@ -3603,7 +3339,6 @@ export class DiagnosticVisualizer {
         
         const safe = !hasActiveFocus && !recentTyping && !cursorInEditor;
         
-        this.vscodeLog(`🎯 FOCUS AWARE: Safe to update diagnostics? ${safe} (focus: ${!!hasActiveFocus}, typing: ${recentTyping}, cursor: ${cursorInEditor}, timeSince: ${timeSinceInput}ms)`);
         
         return safe;
     }
@@ -3649,7 +3384,6 @@ export class DiagnosticVisualizer {
             return;
         }
         
-        this.vscodeLog(`🎯 FOCUS AWARE: Applying pending diagnostic update`);
         this.pendingDiagnosticUpdate = false;
         
         // Apply the update now
@@ -3664,20 +3398,17 @@ export class DiagnosticVisualizer {
             return;
         }
         
-        this.vscodeLog(`🎯 ELEMENT FOCUS: Applying pending diagnostics for specific element: ${targetElement.tagName}.${targetElement.className || '(no-class)'}`);
         
         // Check if it's now safe to update this specific element
         const currentCursor = this.getCursorContainerElement();
         const elementIsSafe = !currentCursor || (currentCursor !== targetElement && !this.isDescendantOf(targetElement, currentCursor) && !this.isDescendantOf(currentCursor, targetElement));
         
         if (elementIsSafe) {
-            this.vscodeLog(`🎯 ELEMENT FOCUS: Element is safe to update, applying diagnostics`);
             this.pendingDiagnosticUpdate = false;
             
             // Apply diagnostics but exclude the current cursor element
             this.applyDiagnosticStyles();
         } else {
-            this.vscodeLog(`🎯 ELEMENT FOCUS: Element still contains cursor, keeping diagnostics pending`);
         }
     }
 
@@ -3685,12 +3416,10 @@ export class DiagnosticVisualizer {
      * Handle external changes (like quick fixes) by applying pending diagnostics after a small delay
      */
     public handleExternalChange(): void {
-        this.vscodeLog(`🔄 EXTERNAL CHANGE: External change detected, will apply pending diagnostics with delay`);
         
         // Apply pending diagnostics after a small delay to ensure external change is processed
         setTimeout(() => {
             if (this.pendingDiagnosticUpdate) {
-                this.vscodeLog(`🔄 EXTERNAL CHANGE: Applying pending diagnostics after external change`);
                 this.applyPendingDiagnosticUpdate();
             }
         }, 200); // 200ms delay to ensure external change is fully processed
@@ -3706,7 +3435,6 @@ export class DiagnosticVisualizer {
         
         // Check if it's safe to update
         if (!force && !this.isSafeToUpdateDiagnostics()) {
-            this.vscodeLog(`🎯 FOCUS AWARE: User is typing - deferring diagnostic update`);
             this.pendingDiagnosticUpdate = true;
             return;
         }
@@ -3715,7 +3443,6 @@ export class DiagnosticVisualizer {
         this.updateTimer = setTimeout(() => {
             // Double-check safety before actually updating
             if (!force && !this.isSafeToUpdateDiagnostics()) {
-                this.vscodeLog(`🎯 FOCUS AWARE: Still not safe to update - deferring again`);
                 this.pendingDiagnosticUpdate = true;
                 return;
             }
@@ -3728,25 +3455,21 @@ export class DiagnosticVisualizer {
             const diagnosticsChanged = currentDiagnosticsHash !== this.lastDiagnosticsHash;
             const noDiagnosticsApplied = !this.diagnosticsApplied || this.wrappedKeys.size === 0;
             
-            this.vscodeLog(`🎯 FOCUS AWARE UPDATE CHECK: content=${contentChanged ? 'CHANGED' : 'unchanged'}, diagnostics=${diagnosticsChanged ? 'CHANGED' : 'unchanged'}, applied=${this.diagnosticsApplied}, keys=${this.wrappedKeys.size}, force=${force}`);
             
             // Only update if there's a real change or we're forced to
             if (force || contentChanged || diagnosticsChanged || noDiagnosticsApplied) {
                 if (diagnosticsChanged || noDiagnosticsApplied || force) {
-                    this.vscodeLog(`🔄 Diagnostics changed or not applied - full update needed`);
                     this.clearDiagnosticStyles();
                     this.applyDiagnosticStyles();
                     this.lastDiagnosticsHash = currentDiagnosticsHash;
                     this.diagnosticsApplied = true;
                 } else if (contentChanged) {
                     // Content changed but diagnostics are the same - try to preserve existing diagnostics
-                    this.vscodeLog(`📝 Content changed but diagnostics unchanged - preserving existing diagnostics`);
                     // Only revalidate diagnostics without full clear/reapply
                     this.revalidateExistingDiagnostics();
                 }
                 this.lastContent = currentContent;
             } else {
-                this.vscodeLog(`✅ Content and diagnostics unchanged, diagnostics applied - skipping update`);
             }
             this.updateTimer = null;
         }, 150); // Reduced debounce time

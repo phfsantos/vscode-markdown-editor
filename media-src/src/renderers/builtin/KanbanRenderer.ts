@@ -52,7 +52,6 @@ export class KanbanRenderer extends BaseRenderer implements IRenderer {
     // Match pattern: <!-- board: board-3 --> or <!-- board: my-board-name -->
     const boardIdMatch = textContent.match(/<!--\s*board:\s*([^\s>]+)\s*-->/);
     if (boardIdMatch) {
-      console.log(`🔍 KANBAN RENDERER: Extracted boardId from comment: '${boardIdMatch[1]}'`);
       return boardIdMatch[1];
     }
     
@@ -61,12 +60,9 @@ export class KanbanRenderer extends BaseRenderer implements IRenderer {
     const currentIndex = allBlocks.indexOf(element);
     
     if (currentIndex > 0) {
-      const generatedId = `board-${currentIndex + 1}`;
-      console.log(`🔍 KANBAN RENDERER: Generated boardId from position: '${generatedId}'`);
-      return generatedId;
+      return `board-${currentIndex + 1}`;
     }
     
-    console.log(`🔍 KANBAN RENDERER: Using default boardId`);
     return 'default';
   }
 
@@ -90,11 +86,6 @@ export class KanbanRenderer extends BaseRenderer implements IRenderer {
       const textContent = codeElement.textContent || '';
       const boardId = this.extractId(codeElement);
       const requestedFilename = this.extractFilename(codeElement);
-      
-      console.log(`📋 KANBAN RENDERER: Rendering board '${boardId}'`);
-      console.log(`   Code block content (first 200 chars):`, textContent.substring(0, 200));
-      console.log(`   Extracted boardId: '${boardId}'`);
-      console.log(`   Extracted filename: '${requestedFilename}'`);
 
       // Check for backwards compatibility - inline JSON data
       const inlineData = this.extractInlineData(textContent);
@@ -118,14 +109,10 @@ export class KanbanRenderer extends BaseRenderer implements IRenderer {
           // Preview mode - make read-only
           this.makeReadOnly(element);
         }
-        
-        console.log(`✅ KANBAN RENDERER: Successfully rendered board '${boardId}'`);
       } catch (error) {
-        console.error(`❌ KANBAN RENDERER: Error loading board '${boardId}'`, error);
-        this.showError(element, `Failed to load board: ${error instanceof Error ? error.message : String(error)}`);
+        // Error already shown to user via showError
       }
     } catch (error) {
-      console.error('❌ KANBAN RENDERER: Render error', error);
       this.showError(element, `Render error: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
@@ -142,7 +129,7 @@ export class KanbanRenderer extends BaseRenderer implements IRenderer {
       if (jsonContent && jsonContent.startsWith('{')) {
         const parsedData = JSON.parse(jsonContent);
         if (parsedData.columns && Array.isArray(parsedData.columns)) {
-          console.log('📋 KANBAN RENDERER: Found inline JSON data (backwards compatibility)');
+          // Using inline JSON data for backwards compatibility
           return parsedData;
         }
       }
@@ -165,7 +152,7 @@ export class KanbanRenderer extends BaseRenderer implements IRenderer {
     
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
-        console.warn(`⚠️ KANBAN RENDERER: Timeout loading board '${boardId}', using default data`);
+        // Timeout - use default data
         resolve({
           data: this.getDefaultData(),
           filename: this.getDefaultFilename(context, boardId),
@@ -180,7 +167,6 @@ export class KanbanRenderer extends BaseRenderer implements IRenderer {
           removeListener();
           
           if (message.error) {
-            console.warn(`⚠️ KANBAN RENDERER: Error loading '${boardId}':`, message.error);
             // Use default data on error
             resolve({
               data: this.getDefaultData(),
@@ -188,7 +174,6 @@ export class KanbanRenderer extends BaseRenderer implements IRenderer {
               dataSource: 'default'
             });
           } else {
-            console.log(`✅ KANBAN RENDERER: Loaded board '${boardId}' from ${message.dataSource}`);
             resolve({
               data: message.data,
               filename: this.getDefaultFilename(context, boardId),
@@ -228,12 +213,10 @@ export class KanbanRenderer extends BaseRenderer implements IRenderer {
       if (board && board.setData) {
         const success = board.setData(data, false); // false = don't dispatch kanban-change event on initial set
         if (!success) {
-          console.error(`❌ KANBAN RENDERER: Failed to set data for board '${boardId}' - validation failed`);
           this.showError(container, 'Invalid kanban board data. Please check the console for details.');
         }
       } else if (board) {
         // Fallback for older versions that don't have setData()
-        console.warn(`⚠️ KANBAN RENDERER: Using deprecated data attribute for board '${boardId}' - update to v1.3.0+`);
         board.setAttribute('data', encodeURIComponent(JSON.stringify(data)));
       }
     }, 100);
@@ -274,7 +257,6 @@ export class KanbanRenderer extends BaseRenderer implements IRenderer {
       kanbanBoard.addEventListener('kanban-change', (event: any) => {
         const data = event.detail.data;      // v1.3.0: data is nested in event.detail.data
         const timestamp = event.detail.timestamp || Date.now();
-        console.log(`💾 KANBAN RENDERER: Saving board '${boardId}' at ${new Date(timestamp).toISOString()}`, data);
         
         context.messageHandler.send('renderer-save-data', {
           rendererId: this.id,
@@ -286,13 +268,6 @@ export class KanbanRenderer extends BaseRenderer implements IRenderer {
       // v1.3.0: Listen for 'kanban-error' event for validation and operation errors
       kanbanBoard.addEventListener('kanban-error', (event: any) => {
         const error = event.detail;
-        console.error(`❌ KANBAN RENDERER: Error for board '${boardId}'`, {
-          type: error.type,              // 'validation' | 'operation' | 'system'
-          message: error.message,         // Technical error message
-          userMessage: error.userMessage, // User-friendly message
-          details: error.details          // Additional error details
-        });
-        
         // Show user-friendly error message
         const errorMsg = error.userMessage || error.message || 'An error occurred with the kanban board';
         this.showError(container, errorMsg);
@@ -301,12 +276,7 @@ export class KanbanRenderer extends BaseRenderer implements IRenderer {
       // Handle save confirmation using generic renderer protocol
       const handleSaveConfirmation = (message: any) => {
         if (message.rendererId === this.id && message.boardId === boardId) {
-          if (message.error) {
-            console.error(`❌ KANBAN RENDERER: Save error for '${boardId}'`, message.error);
-            // Could show error UI here
-          } else {
-            console.log(`✅ KANBAN RENDERER: Successfully saved board '${boardId}'`);
-          }
+          // Save completed (errors are shown via kanban-error event)
         }
       };
 

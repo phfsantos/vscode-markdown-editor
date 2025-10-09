@@ -46,13 +46,10 @@ export class PlaygroundRenderer extends BaseRenderer implements IRenderer {
    * Render the code playground
    */
   async render(element: HTMLElement, vditor: any, context: IRenderContext): Promise<void> {
-    console.log('🎮 PLAYGROUND RENDERER: Starting render...', context);
-
     try {
       // Check if already rendered
       const existingContainer = element.querySelector('.playground-container');
       if (existingContainer) {
-        console.log('🎮 PLAYGROUND RENDERER: Already rendered, skipping...');
         return;
       }
 
@@ -80,8 +77,6 @@ export class PlaygroundRenderer extends BaseRenderer implements IRenderer {
 
       // Setup event listeners
       this.setupPlaygroundEventListeners(container, playgroundId, code, context);
-
-      console.log('✅ PLAYGROUND RENDERER: Successfully rendered playground', { playgroundId });
 
     } catch (error) {
       console.error('❌ PLAYGROUND RENDERER: Render failed', error);
@@ -245,8 +240,6 @@ export class PlaygroundRenderer extends BaseRenderer implements IRenderer {
    * Run code in sandboxed iframe
    */
   private runCode(code: string, outputElement: HTMLElement, statusElement: HTMLElement, iframe: HTMLIFrameElement): void {
-    console.log('🎮 PLAYGROUND: Running code...', code.substring(0, 100));
-    
     // Clear previous output
     outputElement.innerHTML = '';
     statusElement.textContent = '⏳ Running...';
@@ -581,6 +574,5 @@ export class PlaygroundRenderer extends BaseRenderer implements IRenderer {
     }
     
     this.playgroundInstances.delete(instanceKey);
-    console.log('🧹 PLAYGROUND RENDERER: Cleaned up instance', instanceKey);
   }
 }

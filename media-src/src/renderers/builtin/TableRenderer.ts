@@ -54,7 +54,6 @@ export class TableRenderer extends BaseRenderer implements IRenderer {
     // Match pattern: <!-- table: table-3 --> or <!-- table: my-table-name -->
     const tableIdMatch = textContent.match(/<!--\s*table:\s*([^\s>]+)\s*-->/);
     if (tableIdMatch) {
-      console.log(`🔍 TABLE RENDERER: Extracted tableId from comment: '${tableIdMatch[1]}'`);
       return tableIdMatch[1];
     }
     
@@ -63,12 +62,9 @@ export class TableRenderer extends BaseRenderer implements IRenderer {
     const currentIndex = allBlocks.indexOf(element);
     
     if (currentIndex > 0) {
-      const generatedId = `table-${currentIndex + 1}`;
-      console.log(`🔍 TABLE RENDERER: Generated tableId from position: '${generatedId}'`);
-      return generatedId;
+      return `table-${currentIndex + 1}`;
     }
     
-    console.log(`🔍 TABLE RENDERER: Using default tableId`);
     return 'default';
   }
 
@@ -76,18 +72,9 @@ export class TableRenderer extends BaseRenderer implements IRenderer {
    * Render the interactive table
    */
   async render(element: HTMLElement, vditor: any, context: IRenderContext): Promise<void> {
-    console.log('📊 TABLE RENDERER: Starting render...', { element, context, tagName: element.tagName });
-
     try {
       // Use boardId from context (already calculated by init.ts)
       const tableId = context.boardId || 'default';
-      
-      console.log('📊 TABLE RENDERER: Using tableId from context', { 
-        tableId, 
-        boardId: context.boardId,
-        instanceId: context.instanceId 
-      });
-
       const instanceKey = `${context.documentUri}-${tableId}`;
 
       // Show loading state
@@ -98,7 +85,6 @@ export class TableRenderer extends BaseRenderer implements IRenderer {
 
       // Ensure data has proper structure
       if (!tableData || !tableData.columns || !tableData.rows) {
-        console.warn('📊 TABLE RENDERER: Invalid data structure, using defaults');
         const defaultData = this.createDefaultTableData();
         await context.fileSystemHelper.saveRendererData(this.id, tableId, defaultData);
         // Don't re-render, just use default data
@@ -127,7 +113,6 @@ export class TableRenderer extends BaseRenderer implements IRenderer {
     // But we'll make the table cells editable separately
     if (element.hasAttribute('contenteditable')) {
       element.setAttribute('contenteditable', 'false');
-      console.log('🛡️ TABLE: Set code element contenteditable=false to prevent Vditor interference', { tableId });
     }
 
     // Create table container
@@ -143,13 +128,11 @@ export class TableRenderer extends BaseRenderer implements IRenderer {
     // CRITICAL: Setup table event listeners on container FIRST
     // These must be registered before event stoppers so they fire first in capture phase
     this.setupTableEventListeners(container, tableId, context);
-    console.log('🎯 TABLE: Event listeners setup on container', { tableId });
 
     // THEN setup event stoppers on containerNode
     // These will fire AFTER container's listeners and prevent Vditor from capturing events
     if (containerNode) {
       this.setupVditorEventStoppers(container, containerNode);
-      console.log('🛡️ TABLE: Event stoppers setup on containerNode', { tableId });
     }
 
     // REMOVE OLD EVENT STOPPER CODE BELOW
@@ -160,8 +143,6 @@ export class TableRenderer extends BaseRenderer implements IRenderer {
     // Show file info
     const filename = await this.getTableFilename(tableId, context);
     this.showFileInfo(element, filename, tableId);
-
-    console.log('✅ TABLE RENDERER: Successfully rendered table', { tableId, filename });
   }
 
   /**
@@ -172,7 +153,6 @@ export class TableRenderer extends BaseRenderer implements IRenderer {
     
     return new Promise((resolve) => {
       const timeout = setTimeout(() => {
-        console.warn(`⚠️ TABLE RENDERER: Timeout loading table '${tableId}', using default data`);
         resolve(this.createDefaultTableData());
       }, 5000);
 
@@ -183,10 +163,8 @@ export class TableRenderer extends BaseRenderer implements IRenderer {
           removeListener();
           
           if (message.error) {
-            console.warn(`⚠️ TABLE RENDERER: Error loading '${tableId}', using default:`, message.error);
             resolve(this.createDefaultTableData());
           } else {
-            console.log(`✅ TABLE RENDERER: Loaded table '${tableId}' from ${message.dataSource}`);
             resolve(message.data);
           }
         }
@@ -338,12 +316,10 @@ export class TableRenderer extends BaseRenderer implements IRenderer {
   private setupVditorEventStoppers(container: HTMLElement, node: HTMLElement): void {
     if (!node) return;
 
-    console.log('🛡️ TABLE: Setting up backup event stoppers on parent node');
-
     // Backup blocker - fires in BUBBLE phase AFTER container handles events
     const backupBlocker = (e: Event) => {
       if (container.contains(e.target as Node)) {
-        console.log('🛡️ TABLE: BACKUP blocker fired in bubble phase', { type: e.type });
+
         e.stopPropagation(); // Stop from reaching Vditor
       }
     };
@@ -359,13 +335,10 @@ export class TableRenderer extends BaseRenderer implements IRenderer {
     events.forEach(eventName => {
       node.addEventListener(eventName, backupBlocker, false); // BUBBLE PHASE!
     });
-    
-    console.log('✅ TABLE: Backup event stoppers configured (bubble phase)');
   }  /**
    * Setup event listeners for table interactions using event delegation
    */
   private setupTableEventListeners(container: HTMLElement, tableId: string, context: IRenderContext): void {
-    console.log('🎯 TABLE: setupTableEventListeners called', { tableId, containerClass: container.className });
     
     let autoSaveTimeout: any = null;
     
@@ -373,7 +346,6 @@ export class TableRenderer extends BaseRenderer implements IRenderer {
     const debouncedSave = () => {
       if (autoSaveTimeout) clearTimeout(autoSaveTimeout);
       autoSaveTimeout = setTimeout(() => {
-        console.log('💾 TABLE: Auto-saving after edit...', { tableId });
         this.saveTableData(container, tableId, context);
       }, 500); // Wait 500ms after last edit
     };
@@ -386,17 +358,11 @@ export class TableRenderer extends BaseRenderer implements IRenderer {
       e.preventDefault(); // Prevent default behavior
       
       const target = e.target as HTMLElement;
-      console.log('🖱️ TABLE: Click event', { 
-        tagName: target.tagName, 
-        classList: Array.from(target.classList),
-        tableId 
-      });
       
       // Toolbar button clicks - use closest() to handle clicks on button content
       const toolbarBtn = target.closest('.table-toolbar-btn') as HTMLElement;
       if (toolbarBtn) {
         const action = toolbarBtn.getAttribute('data-action');
-        console.log('🔧 TABLE: Toolbar action', { action, tableId });
         if (action) {
           this.handleToolbarAction(action, container, tableId, context);
         }
@@ -406,7 +372,6 @@ export class TableRenderer extends BaseRenderer implements IRenderer {
       // Row delete buttons - use closest() to handle clicks on emoji text
       const deleteBtn = target.closest('.table-delete-row-btn') as HTMLElement;
       if (deleteBtn) {
-        console.log('🗑️ TABLE: Delete button clicked', { tableId });
         const row = deleteBtn.closest('tr');
         if (row) {
           this.showConfirmDialog('Delete this row?').then(confirmed => {
@@ -421,22 +386,13 @@ export class TableRenderer extends BaseRenderer implements IRenderer {
       
       // Cell clicks - allow focus but don't propagate
       if (target.tagName === 'TD' || target.tagName === 'TH') {
-        console.log('📝 TABLE: Cell clicked - allowing edit', { tag: target.tagName });
         // Don't return - let cell handle click for cursor positioning
       }
     }, false); // Use BUBBLE phase - critical for child handlers!
     
-    console.log('✅ TABLE: Click listener registered on container', { tableId, containerTag: container.tagName });
-    
     // DEBUG: Add mousedown listener to see if clicks are being captured at all
     container.addEventListener('mousedown', (e) => {
       const target = e.target as HTMLElement;
-      console.log('🖱️ TABLE: Mousedown event', { 
-        tagName: target.tagName, 
-        classList: Array.from(target.classList),
-        contentEditable: container.getAttribute('contenteditable'),
-        tableId 
-      });
     }, false); // Use BUBBLE phase
     
     // Cell editing - debounced auto-save on input
@@ -444,12 +400,6 @@ export class TableRenderer extends BaseRenderer implements IRenderer {
     container.addEventListener('input', (e) => {
       e.stopPropagation(); // Prevent Vditor from seeing input
       const target = e.target as HTMLElement;
-      console.log('⌨️ TABLE: Input event', {
-        contentEditable: target.contentEditable,
-        tagName: target.tagName,
-        value: target.textContent?.substring(0, 20),
-        tableId 
-      });
       if (target.contentEditable === 'true') {
         debouncedSave();
       }
@@ -457,25 +407,17 @@ export class TableRenderer extends BaseRenderer implements IRenderer {
     // CRITICAL: Use bubble phase so parent's capture blocker doesn't prevent this
     container.addEventListener('keydown', (e) => {
       e.stopPropagation(); // Critical: stop Vditor from seeing this
-      console.log('⌨️ TABLE: Keydown event', { key: e.key, tableId });
     }, false); // Use BUBBLE phase
     
     // Also save on blur for immediate save when leaving a cell
     container.addEventListener('blur', (e) => {
       e.stopPropagation(); // Prevent from reaching Vditor
       const target = e.target as HTMLElement;
-      console.log('🔵 TABLE: Blur event', { 
-        contentEditable: target.contentEditable,
-        tagName: target.tagName,
-        tableId 
-      });
       if (target.contentEditable === 'true') {
         if (autoSaveTimeout) clearTimeout(autoSaveTimeout);
         this.saveTableData(container, tableId, context);
       }
     }, false); // Use BUBBLE phase
-    
-    console.log('✅ TABLE: Event listeners setup complete', { tableId });
   }
 
   /**
@@ -649,16 +591,12 @@ export class TableRenderer extends BaseRenderer implements IRenderer {
       const table = container.querySelector('.interactive-table') as HTMLTableElement;
       const data = this.extractTableData(table);
       
-      console.log('💾 TABLE RENDERER: Saving table data', { tableId });
-      
       // Send save message to extension host (like KanbanRenderer)
       context.messageHandler.send('renderer-save-data', {
         rendererId: this.id,
         boardId: tableId,
         data: data
       });
-      
-      console.log('✅ TABLE RENDERER: Save request sent', { tableId });
       
     } catch (error) {
       console.error('❌ TABLE RENDERER: Save failed', error);
@@ -813,7 +751,6 @@ export class TableRenderer extends BaseRenderer implements IRenderer {
         // Only add if no existing metadata
         if (!currentContent.includes('<!-- file:') && !currentContent.includes('<!-- table:')) {
           codeBlock.textContent = `${filenameComment}${tableComment}\n${currentContent}`;
-          console.log('📝 TABLE: Added file comments to code block', { filename, tableId });
         }
       }
     }
@@ -1199,6 +1136,6 @@ export class TableRenderer extends BaseRenderer implements IRenderer {
   async onDestroy(context: IRenderContext): Promise<void> {
     const instanceKey = `${context.documentUri}-${context.instanceId}`;
     this.tableInstances.delete(instanceKey);
-    console.log('🧹 TABLE RENDERER: Cleaned up instance', instanceKey);
+
   }
 }

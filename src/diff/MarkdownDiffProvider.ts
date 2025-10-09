@@ -44,16 +44,16 @@ export class MarkdownDiffProvider {
   });
 
   constructor(private context: vscode.ExtensionContext) {
-    console.log('🔍 DIFF PROVIDER: Constructor called');
+
     (global as any).markdownEditorLog?.('🔍 DIFF PROVIDER: Constructor called');
     this.registerCommands();
     this.setupEventHandlers();
-    console.log('✅ DIFF PROVIDER: Initialization complete');
+
     (global as any).markdownEditorLog?.('✅ DIFF PROVIDER: Initialization complete');
   }
 
   private registerCommands(): void {
-    console.log('🔍 DIFF PROVIDER: Registering commands...');
+
     (global as any).markdownEditorLog?.('🔍 DIFF PROVIDER: Registering commands...');
     
     // Command to compare current file with another file
@@ -64,7 +64,7 @@ export class MarkdownDiffProvider {
         this
       )
     );
-    console.log('✅ DIFF: Registered command: markdown-editor.compareWithFile');
+
     (global as any).markdownEditorLog?.('✅ DIFF: Registered command: markdown-editor.compareWithFile');
 
     // Command to compare with clipboard content
@@ -75,7 +75,7 @@ export class MarkdownDiffProvider {
         this
       )
     );
-    console.log('✅ DIFF: Registered command: markdown-editor.compareWithClipboard');
+
     (global as any).markdownEditorLog?.('✅ DIFF: Registered command: markdown-editor.compareWithClipboard');
 
     // Command to use native VS Code diff editor
@@ -86,7 +86,7 @@ export class MarkdownDiffProvider {
         this
       )
     );
-    console.log('✅ DIFF: Registered command: markdown-editor.openInDiffEditor');
+
     (global as any).markdownEditorLog?.('✅ DIFF: Registered command: markdown-editor.openInDiffEditor');
 
     // Command to compare with previous version (git)
@@ -97,7 +97,7 @@ export class MarkdownDiffProvider {
         this
       )
     );
-    console.log('✅ DIFF: Registered command: markdown-editor.compareWithPrevious');
+
     (global as any).markdownEditorLog?.('✅ DIFF: Registered command: markdown-editor.compareWithPrevious');
 
     // Command to toggle scroll sync
@@ -108,10 +108,9 @@ export class MarkdownDiffProvider {
         this
       )
     );
-    console.log('✅ DIFF: Registered command: markdown-editor.toggleScrollSync');
+
     (global as any).markdownEditorLog?.('✅ DIFF: Registered command: markdown-editor.toggleScrollSync');
-    
-    console.log('✅ DIFF PROVIDER: All 5 commands registered successfully');
+
     (global as any).markdownEditorLog?.('✅ DIFF PROVIDER: All 5 commands registered successfully');
   }
 
@@ -138,18 +137,17 @@ export class MarkdownDiffProvider {
    * Compare current markdown file with another file
    */
   private async compareWithFile(): Promise<void> {
-    console.log('🔍 DIFF: compareWithFile() called');
+
     (global as any).markdownEditorLog?.('🔍 DIFF: compareWithFile() called');
     
     const currentEditor = vscode.window.activeTextEditor;
     if (!currentEditor) {
-      console.log('❌ DIFF: No active editor found');
+
       (global as any).markdownEditorLog?.('❌ DIFF: No active editor found');
       vscode.window.showErrorMessage('No active editor found');
       return;
     }
 
-    console.log('📄 DIFF: Current editor:', currentEditor.document.uri.toString());
     (global as any).markdownEditorLog?.('📄 DIFF: Current editor: ' + currentEditor.document.uri.toString());
 
     // Show file picker
@@ -165,12 +163,11 @@ export class MarkdownDiffProvider {
     });
 
     if (!fileUri || fileUri.length === 0) {
-      console.log('⚠️ DIFF: No file selected');
+
       (global as any).markdownEditorLog?.('⚠️ DIFF: No file selected');
       return;
     }
 
-    console.log('📄 DIFF: Selected file:', fileUri[0].toString());
     (global as any).markdownEditorLog?.('📄 DIFF: Selected file: ' + fileUri[0].toString());
     
     await this.performComparison(currentEditor.document.uri, fileUri[0]);
@@ -180,7 +177,7 @@ export class MarkdownDiffProvider {
    * Compare with clipboard content
    */
   private async compareWithClipboard(): Promise<void> {
-    console.log('🔍 DIFF: compareWithClipboard() called');
+
     (global as any).markdownEditorLog?.('🔍 DIFF: compareWithClipboard() called');
     
     const currentEditor = vscode.window.activeTextEditor;
@@ -304,13 +301,10 @@ export class MarkdownDiffProvider {
     rightUri: vscode.Uri
   ): Promise<void> {
     try {
-      console.log(`🔍 Starting comparison: ${this.getFileName(leftUri)} vs ${this.getFileName(rightUri)}`);
-      
+
       // Open both documents
       const leftDoc = await vscode.workspace.openTextDocument(leftUri);
       const rightDoc = await vscode.workspace.openTextDocument(rightUri);
-
-      console.log(`📄 Documents loaded: left=${leftDoc.lineCount} lines, right=${rightDoc.lineCount} lines`);
 
       // Show documents side by side
       const leftEditor = await vscode.window.showTextDocument(leftDoc, {
@@ -324,8 +318,6 @@ export class MarkdownDiffProvider {
         preserveFocus: false,
         preview: false, // Don't use preview mode - open as regular editor
       });
-
-      console.log(`👁️ Editors opened: left=${leftEditor.document.uri}, right=${rightEditor.document.uri}`);
 
       // Wait a bit for editors to fully render
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -371,8 +363,6 @@ export class MarkdownDiffProvider {
     // Calculate diff using simple line-by-line comparison
     const diff = this.calculateDiff(leftText, rightText);
 
-    console.log(`🎨 Applying diff decorations: ${diff.leftChanges.length} left changes, ${diff.rightChanges.length} right changes`);
-
     // Apply decorations to left editor (deletions and modifications)
     const leftRanges: vscode.Range[] = [];
     const leftDeletedRanges: vscode.Range[] = [];
@@ -386,17 +376,15 @@ export class MarkdownDiffProvider {
       
       if (change.type === 'deleted') {
         leftDeletedRanges.push(range);
-        console.log(`🔴 Left deleted line ${change.lineNumber}: "${lineText}"`);
+
       } else {
         leftRanges.push(range);
-        console.log(`🟡 Left modified line ${change.lineNumber}: "${lineText}"`);
+
       }
     });
 
     leftEditor.setDecorations(this.deletedLineDecoration, leftDeletedRanges);
     leftEditor.setDecorations(this.modifiedLineDecoration, leftRanges);
-    
-    console.log(`✅ Applied ${leftDeletedRanges.length} deleted + ${leftRanges.length} modified decorations to left editor`);
 
     // Apply decorations to right editor (additions and modifications)
     const rightRanges: vscode.Range[] = [];
@@ -411,17 +399,15 @@ export class MarkdownDiffProvider {
       
       if (change.type === 'added') {
         rightAddedRanges.push(range);
-        console.log(`🟢 Right added line ${change.lineNumber}: "${lineText}"`);
+
       } else {
         rightRanges.push(range);
-        console.log(`🟡 Right modified line ${change.lineNumber}: "${lineText}"`);
+
       }
     });
 
     rightEditor.setDecorations(this.addedLineDecoration, rightAddedRanges);
     rightEditor.setDecorations(this.modifiedLineDecoration, rightRanges);
-    
-    console.log(`✅ Applied ${rightAddedRanges.length} added + ${rightRanges.length} modified decorations to right editor`);
 
     // Store decorations for cleanup
     const leftKey = leftEditor.document.uri.toString();
@@ -435,8 +421,7 @@ export class MarkdownDiffProvider {
       this.addedLineDecoration,
       this.modifiedLineDecoration,
     ]);
-    
-    console.log(`📦 Stored decorations for cleanup: left=${leftKey}, right=${rightKey}`);
+
   }
 
   /**
@@ -449,8 +434,6 @@ export class MarkdownDiffProvider {
   } {
     const leftLines = leftText.split('\n');
     const rightLines = rightText.split('\n');
-
-    console.log(`📊 Calculating diff: left=${leftLines.length} lines, right=${rightLines.length} lines`);
 
     const leftChanges: Array<{ lineNumber: number; lineText: string; type: 'deleted' | 'modified' }> = [];
     const rightChanges: Array<{ lineNumber: number; lineText: string; type: 'added' | 'modified' }> = [];
@@ -466,26 +449,25 @@ export class MarkdownDiffProvider {
         if (i < leftLines.length && leftLine.trim() !== '') {
           if (i >= rightLines.length) {
             leftChanges.push({ lineNumber: i, lineText: leftLine, type: 'deleted' });
-            console.log(`  🔴 Line ${i}: deleted (left only)`);
+
           } else {
             leftChanges.push({ lineNumber: i, lineText: leftLine, type: 'modified' });
-            console.log(`  🟡 Line ${i}: modified (different)`);
+
           }
         }
 
         if (i < rightLines.length && rightLine.trim() !== '') {
           if (i >= leftLines.length) {
             rightChanges.push({ lineNumber: i, lineText: rightLine, type: 'added' });
-            console.log(`  🟢 Line ${i}: added (right only)`);
+
           } else {
             rightChanges.push({ lineNumber: i, lineText: rightLine, type: 'modified' });
-            console.log(`  🟡 Line ${i}: modified (different)`);
+
           }
         }
       }
     }
 
-    console.log(`📈 Diff result: ${leftChanges.length} left changes, ${rightChanges.length} right changes`);
     return { leftChanges, rightChanges };
   }
 
@@ -502,10 +484,9 @@ export class MarkdownDiffProvider {
     this.scrollSyncMap.set(leftKey, rightEditor);
     this.scrollSyncMap.set(rightKey, leftEditor);
 
-    console.log(`✅ Scroll sync enabled between:`);
-    console.log(`   Left: ${this.getFileName(leftEditor.document.uri)} (${leftKey})`);
-    console.log(`   Right: ${this.getFileName(rightEditor.document.uri)} (${rightKey})`);
-    console.log(`   Map size: ${this.scrollSyncMap.size}`);
+
+
+
   }
 
   /**
@@ -555,8 +536,7 @@ export class MarkdownDiffProvider {
       );
 
       targetEditor.revealRange(targetRange, vscode.TextEditorRevealType.AtTop);
-      
-      console.log(`🔄 Scroll sync: ${this.getFileName(sourceEditor.document.uri)} (${scrollPercent.toFixed(2)}%) → ${this.getFileName(targetEditor.document.uri)} (line ${targetLine})`);
+
     } finally {
       // Restore reverse sync after a small delay to prevent immediate triggering
       setTimeout(() => {

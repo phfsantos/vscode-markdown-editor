@@ -23,7 +23,6 @@ export class MessageHandler implements IMessageHandler {
     
     if ((window as any).vscode) {
       (window as any).vscode.postMessage(message);
-      console.log(`📤 MESSAGE: Sent '${command}'`, payload);
     } else {
       console.error('❌ MESSAGE: VS Code API not available');
     }
@@ -39,7 +38,6 @@ export class MessageHandler implements IMessageHandler {
     }
     
     this.listeners.get(command)!.add(handler);
-    console.log(`👂 MESSAGE: Added listener for '${command}'`);
     
     // Return disposable
     return () => {
@@ -49,7 +47,6 @@ export class MessageHandler implements IMessageHandler {
         if (handlers.size === 0) {
           this.listeners.delete(command);
         }
-        console.log(`🔇 MESSAGE: Removed listener for '${command}'`);
       }
     };
   }
@@ -63,8 +60,6 @@ export class MessageHandler implements IMessageHandler {
     if (!message.command) {
       return;
     }
-    
-    console.log(`📥 MESSAGE: Received '${message.command}'`, message);
     
     const handlers = this.listeners.get(message.command);
     if (handlers) {
@@ -125,7 +120,6 @@ export class MessageHandler implements IMessageHandler {
    */
   dispose(): void {
     this.listeners.clear();
-    console.log('🧹 MESSAGE: Disposed all listeners');
   }
 }
 

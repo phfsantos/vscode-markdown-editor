@@ -35,62 +35,40 @@ export class DiffVisualizer {
   }
 
   private setupMessageListener(): void {
-    console.log('🎨 DIFF VISUALIZER: Setting up message listener');
     
     window.addEventListener('message', (event) => {
       const message = event.data;
-      console.log('🎨 DIFF VISUALIZER: Received message', { type: message.type, data: message });
       
       if (message.type === 'diff-view-detected') {
-        console.log('🎨 DIFF VISUALIZER: Received diff info from extension', message.diffInfo);
         this.diffInfo = message.diffInfo;
         this.isInDiffView = true;
         this.applyDiffVisualizations();
       } else if (message.type === 'diff-scroll-sync') {
         // Receive scroll sync from other editor
-        console.log('� DIFF VISUALIZER: Received scroll sync from other editor', {
-          percentage: message.scrollPercentage,
-          myRole: this.diffInfo?.role,
-          syncEnabled: this.scrollSyncEnabled
-        });
         this.applyScrollFromOther(message.scrollPercentage);
       }
     });
     
-    console.log('🎨 DIFF VISUALIZER: Message listener setup complete');
   }
 
   /**
    * Apply diff visualizations to the editor
    */
   private applyDiffVisualizations(): void {
-    console.log('🎨 DIFF VISUALIZER: applyDiffVisualizations called', {
-      hasDiffInfo: !!this.diffInfo,
-      role: this.diffInfo?.role,
-      changesCount: this.diffInfo?.changes.length
-    });
     
     if (!this.diffInfo) {
-      console.log('⚠️ DIFF VISUALIZER: No diff info, exiting');
       return;
     }
 
-    console.log('🎨 DIFF VISUALIZER: Applying visualizations', {
-      role: this.diffInfo.role,
-      changes: this.diffInfo.changes.length,
-      stats: this.diffInfo.stats
-    });
 
     // Add a header showing diff stats
     this.addDiffHeader();
 
     // Wait for Vditor to render, then apply line decorations and setup scroll sync
     setTimeout(() => {
-      console.log('🎨 DIFF VISUALIZER: Timeout elapsed, applying line decorations');
       this.applyLineDecorations();
       
       // Setup scroll sync after visualizations are applied
-      console.log('🔄 DIFF VISUALIZER: Setting up scroll sync after visualizations');
       this.setupScrollSyncListeners();
     }, 1000);
   }
@@ -99,10 +77,8 @@ export class DiffVisualizer {
    * Add a header showing diff statistics
    */
   private addDiffHeader(): void {
-    console.log('🎨 DIFF VISUALIZER: addDiffHeader called');
     
     if (!this.diffInfo) {
-      console.log('⚠️ DIFF VISUALIZER: No diff info in addDiffHeader');
       return;
     }
 
@@ -110,7 +86,6 @@ export class DiffVisualizer {
       // Remove any existing diff header
       const existingHeader = document.querySelector('.diff-view-header');
       if (existingHeader) {
-        console.log('🎨 DIFF VISUALIZER: Removing existing header');
         existingHeader.remove();
       }
 
@@ -118,15 +93,12 @@ export class DiffVisualizer {
       
       if (!vditorElement || !vditorElement.parentElement) {
         if (attempt < 10) {
-          console.log(`⚠️ DIFF VISUALIZER: Vditor not ready, retrying (attempt ${attempt}/10)...`);
           setTimeout(() => tryAddHeader(attempt + 1), 300);
         } else {
-          console.log('⚠️ DIFF VISUALIZER: Vditor element not found after 10 attempts');
         }
         return;
       }
 
-      console.log('✅ DIFF VISUALIZER: Found Vditor element, inserting header');
 
       const header = document.createElement('div');
       header.className = 'diff-view-header';
@@ -167,7 +139,6 @@ export class DiffVisualizer {
       header.appendChild(stats);
       vditorElement.parentElement!.insertBefore(header, vditorElement);
       
-      console.log('✅ DIFF VISUALIZER: Header inserted successfully');
     };
     
     tryAddHeader();
@@ -177,14 +148,11 @@ export class DiffVisualizer {
    * Apply line-level diff decorations
    */
   private applyLineDecorations(): void {
-    console.log('🎨 DIFF VISUALIZER: applyLineDecorations called');
     
     if (!this.diffInfo) {
-      console.log('⚠️ DIFF VISUALIZER: No diff info in applyLineDecorations');
       return;
     }
 
-    console.log('🎨 DIFF VISUALIZER: Applying line decorations to', this.diffInfo.changes.length, 'changes');
 
     // Get the Vditor content container
     const contentElement = document.querySelector('.vditor-ir') || 
@@ -196,7 +164,6 @@ export class DiffVisualizer {
       return;
     }
     
-    console.log('✅ DIFF VISUALIZER: Found content element:', contentElement.className);
 
     // Get all text-containing elements
     const allTextNodes: { element: HTMLElement; text: string }[] = [];
@@ -209,12 +176,10 @@ export class DiffVisualizer {
       }
     });
     
-    console.log('🎨 DIFF VISUALIZER: Found', allTextNodes.length, 'text nodes');
     
     // Build a mapping from source text lines to DOM elements
     // This accounts for Vditor's rendering (e.g., trimming empty lines)
     const sourceLines = this.diffInfo.documentText ? this.diffInfo.documentText.split('\n') : [];
-    console.log('🎨 DIFF VISUALIZER: Source document has', sourceLines.length, 'text lines');
     
     // Build line-to-DOM mapping by matching text content sequentially
     const lineToDom: Map<number, HTMLElement> = new Map();
@@ -246,15 +211,9 @@ export class DiffVisualizer {
       // If no exact match found, the line might be part of a multi-line DOM node
       // Skip it for now - we'll handle via fallback matching
       if (!found) {
-        console.log(`⚠️ DIFF VISUALIZER: Could not map source line ${lineNum}: "${sourceLine.substring(0, 40)}..."`);
       }
     }
     
-    console.log('🎨 DIFF VISUALIZER: Built line-to-DOM mapping with', lineToDom.size, 'entries');
-    console.log('🎨 DIFF VISUALIZER: Mapping details:', Array.from(lineToDom.entries()).slice(0, 20).map(([line, el]) => ({
-      line,
-      text: el.textContent?.trim().substring(0, 30) + '...'
-    })));
     
     // Add spacer blocks for missing lines BEFORE applying decorations
     this.addSpacerBlocks(lineToDom, sourceLines);
@@ -265,7 +224,6 @@ export class DiffVisualizer {
       c.side === this.diffInfo!.role || c.side === 'both'
     );
     
-    console.log(`🎨 DIFF VISUALIZER: Highlighting ${relevantChangesForHighlight.length} changes for ${this.diffInfo.role} side`);
     
     // Match changes using the line-to-DOM mapping
     let matchedCount = 0;
@@ -275,13 +233,11 @@ export class DiffVisualizer {
       const changeText = change.content.trim();
       
       if (!changeText) {
-        console.log(`⚠️ DIFF VISUALIZER: Change ${index + 1} has empty content, skipping`);
         return;
       }
       
       const targetLineNumber = change.lineNumber;
       
-      console.log(`🔍 DIFF VISUALIZER: Looking for change ${index + 1} (${change.type}) at line ${targetLineNumber}: "${changeText.substring(0, 40)}..."`);
       
       // Try to find via line mapping first
       let targetElement = lineToDom.get(targetLineNumber);
@@ -290,13 +246,10 @@ export class DiffVisualizer {
         // Verify the text matches
         const elementText = targetElement.textContent?.trim() || '';
         if (elementText === changeText || elementText.includes(changeText)) {
-          console.log(`✅ DIFF VISUALIZER: Found exact match via line mapping at line ${targetLineNumber}`);
         } else {
-          console.log(`⚠️ DIFF VISUALIZER: Line mapping found element but text doesn't match. Looking for alternative...`);
           targetElement = null;
         }
       } else if (targetElement) {
-        console.log(`⚠️ DIFF VISUALIZER: Line mapping found element but it's already matched. Looking for alternative...`);
         targetElement = null;
       }
       
@@ -308,7 +261,6 @@ export class DiffVisualizer {
         
         if (matchingNodes.length === 1) {
           targetElement = matchingNodes[0].element;
-          console.log(`✅ DIFF VISUALIZER: Found single text match`);
         } else if (matchingNodes.length > 1) {
           // Multiple matches - use relative position as hint
           const relativePosition = targetLineNumber / Math.max(sourceLines.length, 1);
@@ -322,7 +274,6 @@ export class DiffVisualizer {
               : closest;
           }, matchingNodes[0].element);
           
-          console.log(`✅ DIFF VISUALIZER: Found ${matchingNodes.length} text matches, chose one using relative position (~${Math.floor(relativePosition * 100)}%)`);
         }
       }
       
@@ -336,13 +287,10 @@ export class DiffVisualizer {
         alreadyMatched.add(targetElement);
         matchedCount++;
         
-        console.log(`✅ DIFF VISUALIZER: Applied ${change.type} decoration`);
       } else {
-        console.log(`⚠️ DIFF VISUALIZER: No match for change ${index + 1}`);
       }
     });
 
-    console.log(`✅ DIFF VISUALIZER: Applied ${matchedCount}/${relevantChangesForHighlight.length} decorations`);
   }
 
   /**
@@ -402,7 +350,6 @@ export class DiffVisualizer {
    * Setup scroll synchronization between diff editors
    */
   private setupScrollSync(): void {
-    console.log('🔄 DIFF VISUALIZER: setupScrollSync called (initial setup)');
     // This method is called from constructor but doesn't do anything yet
     // Actual setup happens in setupScrollSyncListeners() after diff view is detected
   }
@@ -411,7 +358,6 @@ export class DiffVisualizer {
    * Setup scroll event listeners (called after diff view is confirmed)
    */
   private setupScrollSyncListeners(): void {
-    console.log('🔄 DIFF VISUALIZER: Setting up scroll sync listeners');
     
     // In VS Code webviews, the scroll often happens on the html or body element
     // Let's check all possible scroll containers including document level
@@ -435,25 +381,16 @@ export class DiffVisualizer {
         const overflowY = window.getComputedStyle(el).overflowY;
         const tagName = el.tagName || 'unknown';
         
-        console.log(`🔍 DIFF VISUALIZER: Checking ${tagName}.${el.className}:`, {
-          scrollHeight: el.scrollHeight,
-          clientHeight: el.clientHeight,
-          hasScroll,
-          overflowY,
-          isScrollable: hasScroll || el === document.documentElement || el === document.body
-        });
         
         // For document.documentElement and document.body, we always want to listen
         // even if scrollHeight === clientHeight at setup time
         if (el === document.documentElement || el === document.body) {
           scrollableElement = el;
-          console.log(`✅ DIFF VISUALIZER: Using document-level scroll: ${tagName}`);
           break;
         }
         
         if (hasScroll && (overflowY === 'auto' || overflowY === 'scroll')) {
           scrollableElement = el;
-          console.log(`✅ DIFF VISUALIZER: Found scrollable element: ${tagName}.${el.className}`);
           break;
         }
       }
@@ -465,7 +402,6 @@ export class DiffVisualizer {
     }
     
     const elementName = scrollableElement.tagName || scrollableElement.className || 'unknown';
-    console.log(`✅ DIFF VISUALIZER: Attaching scroll listener to: ${elementName}`);
     
     // Add scroll event listener with capture to catch it early
     const scrollHandler = (e: Event) => {
@@ -474,7 +410,6 @@ export class DiffVisualizer {
       }
       
       const target = e.target as HTMLElement;
-      console.log('🔄 DIFF VISUALIZER: Scroll event fired on:', target.tagName, target.className);
       
       // Use the actual element that scrolled, not the one we're listening on
       this.handleScroll(target);
@@ -487,20 +422,13 @@ export class DiffVisualizer {
       if (!this.scrollSyncEnabled || this.isScrolling) {
         return;
       }
-      console.log('🔄 DIFF VISUALIZER: Window scroll detected');
       this.handleScroll(document.documentElement);
     };
     
     window.addEventListener('scroll', windowScrollHandler, { passive: true });
     
-    console.log('✅ DIFF VISUALIZER: Scroll listeners attached successfully');
     
     // Log current scroll position to verify element
-    console.log('📍 DIFF VISUALIZER: Initial scroll position:', {
-      scrollTop: scrollableElement.scrollTop,
-      scrollHeight: scrollableElement.scrollHeight,
-      clientHeight: scrollableElement.clientHeight
-    });
   }
 
   /**
@@ -511,7 +439,6 @@ export class DiffVisualizer {
       return;
     }
     
-    console.log('📏 DIFF VISUALIZER: Adding spacer blocks for alignment');
     
     // Get the main content container
     const contentElement = document.querySelector('.vditor-ir') || 
@@ -523,24 +450,15 @@ export class DiffVisualizer {
       return;
     }
     
-    console.log('✅ DIFF VISUALIZER: Found content element for spacers:', contentElement.className);
     
     // Get ALL changes from BOTH sides
     // Now we receive all changes and can filter appropriately for spacers and highlights
     
-    console.log(`📏 DIFF VISUALIZER: Processing ${this.diffInfo.changes.length} total changes for ${this.diffInfo.role} editor`);
-    console.log(`📏 DIFF VISUALIZER: Changes breakdown:`, this.diffInfo.changes.map(c => ({
-      type: c.type,
-      line: c.lineNumber,
-      side: c.side,
-      content: c.content.substring(0, 30) + '...'
-    })));
     
     // Separate changes by side
     const leftSideChanges = this.diffInfo.changes.filter(c => c.side === 'left');
     const rightSideChanges = this.diffInfo.changes.filter(c => c.side === 'right');
     
-    console.log(`📏 DIFF VISUALIZER: Left side (deletions): ${leftSideChanges.length}, Right side (additions): ${rightSideChanges.length}`);
     
     // For spacers, we need OPPOSITE side changes:
     // - Left editor (original) needs spacers for what was ADDED on right (where lines don't exist in left)
@@ -572,7 +490,6 @@ export class DiffVisualizer {
       );
       
       if (matchingAddition) {
-        console.log(`📏 DIFF VISUALIZER: Detected replacement pair - left line ${deletion.lineNumber} ↔ right line ${matchingAddition.lineNumber} (both excluded)`);
         excludedRightLines.add(matchingAddition.lineNumber);  // Don't add spacer on left for this right addition
         excludedLeftLines.add(deletion.lineNumber);           // Don't add spacer on right for this left deletion
       }
@@ -593,18 +510,8 @@ export class DiffVisualizer {
           c.content.trim().length > 0  // Ignore empty lines
         );
     
-    console.log(`📏 DIFF VISUALIZER: Adding ${relevantChanges.length} spacer blocks for ${this.diffInfo.role} editor`);
-    console.log(`📏 DIFF VISUALIZER: Excluded ${excludedRightLines.size} right lines (replacements):`, Array.from(excludedRightLines));
-    console.log(`📏 DIFF VISUALIZER: Excluded ${excludedLeftLines.size} left lines (replacements):`, Array.from(excludedLeftLines));
-    console.log(`📏 DIFF VISUALIZER: Relevant changes for spacers:`, relevantChanges.map(c => ({
-      line: c.lineNumber,
-      type: c.type,
-      side: c.side,
-      content: c.content.substring(0, 30)
-    })));
     
     if (relevantChanges.length === 0) {
-      console.log('📏 DIFF VISUALIZER: No spacers needed');
       return;
     }
     
@@ -622,26 +529,21 @@ export class DiffVisualizer {
       if (change.lineNumber === currentBlock.endLine + 1) {
         currentBlock.endLine = change.lineNumber;
         currentBlock.lineCount++;
-        console.log(`📏 DIFF VISUALIZER: Extended block to include line ${change.lineNumber}, block now ${currentBlock.startLine}-${currentBlock.endLine}`);
       } else {
         // Save current block and start a new one
         spacerBlocks.push(currentBlock);
-        console.log(`📏 DIFF VISUALIZER: Completed block ${currentBlock.startLine}-${currentBlock.endLine} (${currentBlock.lineCount} lines)`);
         currentBlock = { startLine: change.lineNumber, endLine: change.lineNumber, lineCount: 1 };
       }
     }
     
     // Don't forget the last block
     spacerBlocks.push(currentBlock);
-    console.log(`📏 DIFF VISUALIZER: Final block ${currentBlock.startLine}-${currentBlock.endLine} (${currentBlock.lineCount} lines)`);
     
-    console.log(`📏 DIFF VISUALIZER: Grouped into ${spacerBlocks.length} spacer blocks:`, spacerBlocks);
     
     // Insert spacer blocks from bottom to top to maintain positioning
     for (let i = spacerBlocks.length - 1; i >= 0; i--) {
       const block = spacerBlocks[i];
       
-      console.log(`📏 DIFF VISUALIZER: Processing spacer block for lines ${block.startLine}-${block.endLine} (${block.lineCount} lines)`);
       
       // Find a reference element for insertion
       // CRITICAL: block.startLine is from the OPPOSITE side (right for left editor, left for right editor)
@@ -658,7 +560,6 @@ export class DiffVisualizer {
         const additionsBeforeThis = rightAdditions.filter(a => a.lineNumber < block.startLine).length;
         targetLineNum = block.startLine - additionsBeforeThis;
         
-        console.log(`📏 DIFF VISUALIZER: Left editor: block at right line ${block.startLine}, inserting at left line ~${targetLineNum}`);
       } else {
         // Right editor: inserting spacers for LEFT side deletions  
         // block.startLine is the line number on the LEFT where content was deleted
@@ -668,7 +569,6 @@ export class DiffVisualizer {
         const additionsBeforeThis = rightAdditions.filter(a => a.lineNumber < block.startLine).length;
         targetLineNum = block.startLine - deletionsBeforeThis + additionsBeforeThis;
         
-        console.log(`📏 DIFF VISUALIZER: Right editor: block at left line ${block.startLine}, inserting at right line ~${targetLineNum}`);
       }
       
       // Try exact match first
@@ -679,7 +579,6 @@ export class DiffVisualizer {
         for (let offset = 1; offset <= 5; offset++) {
           targetElement = lineToDom.get(targetLineNum - offset);
           if (targetElement) {
-            console.log(`📏 DIFF VISUALIZER: Found nearby element at offset -${offset} (line ${targetLineNum - offset})`);
             break;
           }
         }
@@ -689,7 +588,6 @@ export class DiffVisualizer {
           for (let offset = 1; offset <= 5; offset++) {
             targetElement = lineToDom.get(targetLineNum + offset);
             if (targetElement) {
-              console.log(`📏 DIFF VISUALIZER: Found nearby element at offset +${offset} (line ${targetLineNum + offset})`);
               break;
             }
           }
@@ -701,7 +599,6 @@ export class DiffVisualizer {
         continue;
       }
       
-      console.log(`📏 DIFF VISUALIZER: Target element for spacer block:`, targetElement.tagName, targetElement.className);
       
       // Verify that targetElement is a child of contentElement
       let parentElement = targetElement.parentElement;
@@ -725,12 +622,6 @@ export class DiffVisualizer {
       const singleLineHeight = this.estimateLineHeight(targetElement);
       const totalHeight = singleLineHeight * block.lineCount;
       
-      console.log(`📏 DIFF VISUALIZER: Estimated line height: ${singleLineHeight}px × ${block.lineCount} lines = ${totalHeight}px total`, {
-        tag: targetElement.tagName,
-        offsetHeight: targetElement.offsetHeight,
-        computedLineHeight: window.getComputedStyle(targetElement).lineHeight,
-        fontSize: window.getComputedStyle(targetElement).fontSize
-      });
       
       // Create spacer block
       const spacer = document.createElement('div');
@@ -770,18 +661,15 @@ export class DiffVisualizer {
           } else {
             targetElement.parentElement!.appendChild(spacer);
           }
-          console.log(`📏 DIFF VISUALIZER: ✅ Inserted spacer AFTER line ${targetLineNum} (left/original) for block ${block.startLine}-${block.endLine}`);
         } else {
           // For modified (right) editor, insert BEFORE the target element (where deleted lines were)
           targetElement.parentElement!.insertBefore(spacer, targetElement);
-          console.log(`📏 DIFF VISUALIZER: ✅ Inserted spacer BEFORE line ${targetLineNum} (right/modified) for block ${block.startLine}-${block.endLine}`);
         }
       } catch (error) {
         console.error(`❌ DIFF VISUALIZER: Failed to insert spacer for block ${block.startLine}-${block.endLine}:`, error);
       }
     }
     
-    console.log('📏 DIFF VISUALIZER: Spacer blocks insertion complete');
   }
 
   /**
@@ -830,11 +718,9 @@ export class DiffVisualizer {
    * Handle scroll event and send to other editor
    */
   private handleScroll(element: HTMLElement): void {
-    console.log('🔄 DIFF VISUALIZER: handleScroll called');
     
     // Prevent infinite loop
     if (this.isScrolling) {
-      console.log('🔄 DIFF VISUALIZER: Scroll ignored - isScrolling is true');
       return;
     }
     
@@ -847,16 +733,6 @@ export class DiffVisualizer {
     const scrollableHeight = scrollHeight - clientHeight;
     const scrollPercentage = scrollableHeight > 0 ? scrollTop / scrollableHeight : 0;
     
-    console.log('🔄 DIFF VISUALIZER: Scroll detected', {
-      element: element.tagName + '.' + element.className,
-      scrollTop: scrollTop,
-      scrollHeight: scrollHeight,
-      clientHeight: clientHeight,
-      scrollableHeight: scrollableHeight,
-      percentage: scrollPercentage,
-      hasVscode: !!(window as any).vscode,
-      diffRole: this.diffInfo?.role
-    });
     
     // Only send if we have a valid percentage
     if (isNaN(scrollPercentage)) {
@@ -867,7 +743,6 @@ export class DiffVisualizer {
     // Send scroll sync message to extension
     const vscode = (window as any).vscode;
     if (vscode) {
-      console.log('🔄 DIFF VISUALIZER: Sending scroll sync message to extension', { percentage: scrollPercentage });
       vscode.postMessage({
         command: 'diff-scroll-sync',
         scrollPercentage: scrollPercentage,
@@ -883,7 +758,6 @@ export class DiffVisualizer {
    */
   public applyScrollFromOther(scrollPercentage: number): void {
     if (!this.scrollSyncEnabled) {
-      console.log('🔄 DIFF VISUALIZER: Scroll sync disabled, ignoring');
       return;
     }
     
@@ -902,13 +776,6 @@ export class DiffVisualizer {
     
     const element = scrollableElement as HTMLElement;
     
-    console.log('🔄 DIFF VISUALIZER: Target element for scroll sync:', {
-      tag: element.tagName,
-      classes: element.className,
-      scrollHeight: element.scrollHeight,
-      clientHeight: element.clientHeight,
-      currentScrollTop: element.scrollTop
-    });
     
     // Prevent our own scroll from triggering sync
     this.isScrolling = true;
@@ -928,15 +795,6 @@ export class DiffVisualizer {
     const targetScrollTop = scrollPercentage * scrollableHeight;
     element.scrollTop = targetScrollTop;
     
-    console.log('✅ DIFF VISUALIZER: Applied scroll sync', {
-      element: element.tagName + '.' + element.className,
-      percentage: scrollPercentage,
-      scrollHeight: element.scrollHeight,
-      clientHeight: element.clientHeight,
-      scrollableHeight: scrollableHeight,
-      targetScrollTop: targetScrollTop,
-      actualScrollTop: element.scrollTop
-    });
     
     // Clear the flag after a short delay
     if (this.scrollTimeout) {
@@ -953,7 +811,6 @@ export class DiffVisualizer {
    */
   public toggleScrollSync(): void {
     this.scrollSyncEnabled = !this.scrollSyncEnabled;
-    console.log('🔄 DIFF VISUALIZER: Scroll sync', this.scrollSyncEnabled ? 'enabled' : 'disabled');
   }
 
   /**
@@ -972,6 +829,4 @@ export class DiffVisualizer {
 }
 
 // Export singleton instance
-console.log('🎨 DIFF VISUALIZER: Module loading, creating singleton instance');
 export const diffVisualizer = new DiffVisualizer();
-console.log('🎨 DIFF VISUALIZER: Singleton instance created');

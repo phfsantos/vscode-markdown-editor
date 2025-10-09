@@ -46,7 +46,7 @@ export class VSCodeIntegrator {
       vscode.languages.registerHoverProvider('markdown', hoverProvider)
     );
 
-    this.log('✅ Language features registered successfully');
+    // Removed debug log - feature registered successfully
   }
 
   /**
@@ -55,7 +55,7 @@ export class VSCodeIntegrator {
   public async writeToClipboard(text: string): Promise<boolean> {
     try {
       await vscode.env.clipboard.writeText(text);
-      this.log(`📋 Clipboard write: ${text.length} characters`);
+      // Removed debug log - clipboard write successful
       return true;
     } catch (error) {
       this.log(`❌ Clipboard write failed: ${error}`);
@@ -66,7 +66,7 @@ export class VSCodeIntegrator {
   public async readFromClipboard(): Promise<string> {
     try {
       const text = await vscode.env.clipboard.readText();
-      this.log(`📋 Clipboard read: ${text.length} characters`);
+      // Removed debug log - clipboard read successful
       return text;
     } catch (error) {
       this.log(`❌ Clipboard read failed: ${error}`);
@@ -88,7 +88,7 @@ export class VSCodeIntegrator {
         range
       ) || [];
 
-      this.log(`🔧 Found ${actions.length} code actions at ${range.start.line}:${range.start.character}`);
+      // Removed debug log - code actions retrieved successfully
       return actions;
     } catch (error) {
       this.log(`❌ Failed to get code actions: ${error}`);
@@ -111,7 +111,7 @@ export class VSCodeIntegrator {
         );
       }
 
-      this.log(`✅ Code action executed: ${action.title}`);
+      // Removed debug log - code action executed successfully
       return true;
     } catch (error) {
       this.log(`❌ Code action failed: ${error}`);
@@ -126,7 +126,7 @@ export class VSCodeIntegrator {
     const timestamp = new Date().toISOString();
     const formattedMessage = `[${timestamp}] ${message}`;
     this.outputChannel.appendLine(formattedMessage);
-    console.log(`MD Editor Integration: ${formattedMessage}`);
+    // Removed console.log - use VS Code Output Channel instead
   }
 
   /**
@@ -135,7 +135,7 @@ export class VSCodeIntegrator {
   public async showContextMenu(): Promise<void> {
     try {
       await vscode.commands.executeCommand('editor.action.showContextMenu');
-      this.log('🔧 Context menu shown');
+      // Removed debug log - context menu shown successfully
     } catch (error) {
       this.log(`❌ Failed to show context menu: ${error}`);
     }

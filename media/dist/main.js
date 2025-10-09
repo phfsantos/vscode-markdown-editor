@@ -28734,24 +28734,16 @@ window.addEventListener("message", (e) => {
       this.renderers = new Map();
     }
     register(renderer, source = "builtin") {
-      if (this.renderers.has(renderer.id)) {
-        console.warn(`\u26A0\uFE0F RENDERER REGISTRY: Renderer '${renderer.id}' already registered, replacing`);
-      }
       const registration = {
         renderer,
         registeredAt: new Date(),
         source
       };
       this.renderers.set(renderer.id, registration);
-      console.log(`\u2705 RENDERER REGISTRY: Registered '${renderer.name}' (${renderer.id}) from ${source}`);
       return () => this.unregister(renderer.id);
     }
     unregister(id2) {
-      const removed = this.renderers.delete(id2);
-      if (removed) {
-        console.log(`\u{1F5D1}\uFE0F RENDERER REGISTRY: Unregistered '${id2}'`);
-      }
-      return removed;
+      return this.renderers.delete(id2);
     }
     get(id2) {
       return this.renderers.get(id2)?.renderer;
@@ -28778,7 +28770,6 @@ window.addEventListener("message", (e) => {
     }
     clear() {
       this.renderers.clear();
-      console.log("\u{1F9F9} RENDERER REGISTRY: Cleared all renderers");
     }
     get count() {
       return this.renderers.size;
@@ -28805,7 +28796,6 @@ window.addEventListener("message", (e) => {
       };
       if (window.vscode) {
         window.vscode.postMessage(message);
-        console.log(`\u{1F4E4} MESSAGE: Sent '${command}'`, payload);
       } else {
         console.error("\u274C MESSAGE: VS Code API not available");
       }
@@ -28815,7 +28805,6 @@ window.addEventListener("message", (e) => {
         this.listeners.set(command, new Set());
       }
       this.listeners.get(command).add(handler);
-      console.log(`\u{1F442} MESSAGE: Added listener for '${command}'`);
       return () => {
         const handlers = this.listeners.get(command);
         if (handlers) {
@@ -28823,7 +28812,6 @@ window.addEventListener("message", (e) => {
           if (handlers.size === 0) {
             this.listeners.delete(command);
           }
-          console.log(`\u{1F507} MESSAGE: Removed listener for '${command}'`);
         }
       };
     }
@@ -28832,7 +28820,6 @@ window.addEventListener("message", (e) => {
       if (!message.command) {
         return;
       }
-      console.log(`\u{1F4E5} MESSAGE: Received '${message.command}'`, message);
       const handlers = this.listeners.get(message.command);
       if (handlers) {
         handlers.forEach((handler) => {
@@ -28868,7 +28855,6 @@ window.addEventListener("message", (e) => {
     }
     dispose() {
       this.listeners.clear();
-      console.log("\u{1F9F9} MESSAGE: Disposed all listeners");
     }
   };
   var messageHandlerInstance = null;
@@ -28886,7 +28872,6 @@ window.addEventListener("message", (e) => {
     }
     async loadRendererData(rendererId, boardId) {
       try {
-        console.log(`\u{1F4C2} FILE SYSTEM: Loading data for ${rendererId}/${boardId}`);
         const response = await this.messageHandler.sendAndWait("renderer-load-data", {rendererId, boardId}, "renderer-data-loaded");
         return response.data;
       } catch (error2) {
@@ -28896,9 +28881,7 @@ window.addEventListener("message", (e) => {
     }
     async saveRendererData(rendererId, boardId, data) {
       try {
-        console.log(`\u{1F4BE} FILE SYSTEM: Saving data for ${rendererId}/${boardId}`);
         await this.messageHandler.sendAndWait("renderer-save-data", {rendererId, boardId, data}, "renderer-data-saved");
-        console.log(`\u2705 FILE SYSTEM: Saved data for ${rendererId}/${boardId}`);
       } catch (error2) {
         console.error(`\u274C FILE SYSTEM: Failed to save data for ${rendererId}/${boardId}`, error2);
         throw error2;
@@ -28906,7 +28889,6 @@ window.addEventListener("message", (e) => {
     }
     async hasRendererData(rendererId, boardId) {
       try {
-        console.log(`\u{1F50D} FILE SYSTEM: Checking if data exists for ${rendererId}/${boardId}`);
         const response = await this.messageHandler.sendAndWait("renderer-check-data", {rendererId, boardId}, "renderer-data-exists");
         return response.exists;
       } catch (error2) {
@@ -28927,20 +28909,16 @@ window.addEventListener("message", (e) => {
   var _BaseRenderer = class {
     loadScript(url2) {
       if (_BaseRenderer.loadedScripts.has(url2)) {
-        console.log(`\u{1F4DC} RENDERER: Script already loaded: ${url2}`);
         return Promise.resolve();
       }
       return new Promise((resolve, reject) => {
-        console.log(`\u{1F4DC} RENDERER: Loading script: ${url2}`);
         const script = document.createElement("script");
         script.src = url2;
         script.onload = () => {
           _BaseRenderer.loadedScripts.add(url2);
-          console.log(`\u2705 RENDERER: Loaded script: ${url2}`);
           resolve();
         };
         script.onerror = () => {
-          console.error(`\u274C RENDERER: Failed to load script: ${url2}`);
           reject(new Error(`Failed to load script: ${url2}`));
         };
         document.head.appendChild(script);
@@ -28948,16 +28926,13 @@ window.addEventListener("message", (e) => {
     }
     loadStylesheet(url2) {
       return new Promise((resolve, reject) => {
-        console.log(`\u{1F3A8} RENDERER: Loading stylesheet: ${url2}`);
         const link = document.createElement("link");
         link.rel = "stylesheet";
         link.href = url2;
         link.onload = () => {
-          console.log(`\u2705 RENDERER: Loaded stylesheet: ${url2}`);
           resolve();
         };
         link.onerror = () => {
-          console.error(`\u274C RENDERER: Failed to load stylesheet: ${url2}`);
           reject(new Error(`Failed to load stylesheet: ${url2}`));
         };
         document.head.appendChild(link);
@@ -28979,17 +28954,14 @@ window.addEventListener("message", (e) => {
       });
     }
     extractId(element) {
-      console.log(`\u26A0\uFE0F BASE RENDERER: Using default extractId() - subclass should override this method`);
       return "default";
     }
     extractFilename(element) {
       const textContent = element.textContent || "";
       const filenameMatch = textContent.match(/<!--\s*file:\s*([^\s>]+)\s*-->/);
       if (filenameMatch) {
-        console.log(`\u{1F50D} BASE RENDERER: Extracted filename: '${filenameMatch[1]}'`);
         return filenameMatch[1];
       }
-      console.log(`\u{1F50D} BASE RENDERER: No filename found in comments`);
       return null;
     }
     showError(element, error2) {
@@ -39372,17 +39344,13 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
       const textContent = element.textContent || "";
       const boardIdMatch = textContent.match(/<!--\s*board:\s*([^\s>]+)\s*-->/);
       if (boardIdMatch) {
-        console.log(`\u{1F50D} KANBAN RENDERER: Extracted boardId from comment: '${boardIdMatch[1]}'`);
         return boardIdMatch[1];
       }
       const allBlocks = Array.from(document.querySelectorAll("code.language-kanban-board"));
       const currentIndex = allBlocks.indexOf(element);
       if (currentIndex > 0) {
-        const generatedId = `board-${currentIndex + 1}`;
-        console.log(`\u{1F50D} KANBAN RENDERER: Generated boardId from position: '${generatedId}'`);
-        return generatedId;
+        return `board-${currentIndex + 1}`;
       }
-      console.log(`\u{1F50D} KANBAN RENDERER: Using default boardId`);
       return "default";
     }
     async render(element, vditor2, context) {
@@ -39398,10 +39366,6 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
         const textContent = codeElement.textContent || "";
         const boardId = this.extractId(codeElement);
         const requestedFilename = this.extractFilename(codeElement);
-        console.log(`\u{1F4CB} KANBAN RENDERER: Rendering board '${boardId}'`);
-        console.log(`   Code block content (first 200 chars):`, textContent.substring(0, 200));
-        console.log(`   Extracted boardId: '${boardId}'`);
-        console.log(`   Extracted filename: '${requestedFilename}'`);
         const inlineData = this.extractInlineData(textContent);
         this.showLoading(element, `Loading kanban board '${boardId}'...`);
         try {
@@ -39415,13 +39379,9 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
           } else {
             this.makeReadOnly(element);
           }
-          console.log(`\u2705 KANBAN RENDERER: Successfully rendered board '${boardId}'`);
         } catch (error2) {
-          console.error(`\u274C KANBAN RENDERER: Error loading board '${boardId}'`, error2);
-          this.showError(element, `Failed to load board: ${error2 instanceof Error ? error2.message : String(error2)}`);
         }
       } catch (error2) {
-        console.error("\u274C KANBAN RENDERER: Render error", error2);
         this.showError(element, `Render error: ${error2 instanceof Error ? error2.message : String(error2)}`);
       }
     }
@@ -39432,7 +39392,6 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
         if (jsonContent && jsonContent.startsWith("{")) {
           const parsedData = JSON.parse(jsonContent);
           if (parsedData.columns && Array.isArray(parsedData.columns)) {
-            console.log("\u{1F4CB} KANBAN RENDERER: Found inline JSON data (backwards compatibility)");
             return parsedData;
           }
         }
@@ -39444,7 +39403,6 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
       const requestId = Math.random().toString(36).substring(2, 15);
       return new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
-          console.warn(`\u26A0\uFE0F KANBAN RENDERER: Timeout loading board '${boardId}', using default data`);
           resolve({
             data: this.getDefaultData(),
             filename: this.getDefaultFilename(context, boardId),
@@ -39456,14 +39414,12 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
             clearTimeout(timeout);
             removeListener();
             if (message.error) {
-              console.warn(`\u26A0\uFE0F KANBAN RENDERER: Error loading '${boardId}':`, message.error);
               resolve({
                 data: this.getDefaultData(),
                 filename: this.getDefaultFilename(context, boardId),
                 dataSource: "default"
               });
             } else {
-              console.log(`\u2705 KANBAN RENDERER: Loaded board '${boardId}' from ${message.dataSource}`);
               resolve({
                 data: message.data,
                 filename: this.getDefaultFilename(context, boardId),
@@ -39491,11 +39447,9 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
         if (board && board.setData) {
           const success2 = board.setData(data, false);
           if (!success2) {
-            console.error(`\u274C KANBAN RENDERER: Failed to set data for board '${boardId}' - validation failed`);
             this.showError(container, "Invalid kanban board data. Please check the console for details.");
           }
         } else if (board) {
-          console.warn(`\u26A0\uFE0F KANBAN RENDERER: Using deprecated data attribute for board '${boardId}' - update to v1.3.0+`);
           board.setAttribute("data", encodeURIComponent(JSON.stringify(data)));
         }
       }, 100);
@@ -39528,7 +39482,6 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
         kanbanBoard.addEventListener("kanban-change", (event) => {
           const data = event.detail.data;
           const timestamp = event.detail.timestamp || Date.now();
-          console.log(`\u{1F4BE} KANBAN RENDERER: Saving board '${boardId}' at ${new Date(timestamp).toISOString()}`, data);
           context.messageHandler.send("renderer-save-data", {
             rendererId: this.id,
             boardId,
@@ -39537,22 +39490,11 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
         });
         kanbanBoard.addEventListener("kanban-error", (event) => {
           const error2 = event.detail;
-          console.error(`\u274C KANBAN RENDERER: Error for board '${boardId}'`, {
-            type: error2.type,
-            message: error2.message,
-            userMessage: error2.userMessage,
-            details: error2.details
-          });
           const errorMsg = error2.userMessage || error2.message || "An error occurred with the kanban board";
           this.showError(container, errorMsg);
         });
         const handleSaveConfirmation = (message) => {
           if (message.rendererId === this.id && message.boardId === boardId) {
-            if (message.error) {
-              console.error(`\u274C KANBAN RENDERER: Save error for '${boardId}'`, message.error);
-            } else {
-              console.log(`\u2705 KANBAN RENDERER: Successfully saved board '${boardId}'`);
-            }
           }
         };
         context.messageHandler.on("renderer-data-saved", handleSaveConfirmation);
@@ -39664,33 +39606,22 @@ ${currentContent}`;
       const textContent = element.textContent || "";
       const tableIdMatch = textContent.match(/<!--\s*table:\s*([^\s>]+)\s*-->/);
       if (tableIdMatch) {
-        console.log(`\u{1F50D} TABLE RENDERER: Extracted tableId from comment: '${tableIdMatch[1]}'`);
         return tableIdMatch[1];
       }
       const allBlocks = Array.from(document.querySelectorAll("code.language-table"));
       const currentIndex = allBlocks.indexOf(element);
       if (currentIndex > 0) {
-        const generatedId = `table-${currentIndex + 1}`;
-        console.log(`\u{1F50D} TABLE RENDERER: Generated tableId from position: '${generatedId}'`);
-        return generatedId;
+        return `table-${currentIndex + 1}`;
       }
-      console.log(`\u{1F50D} TABLE RENDERER: Using default tableId`);
       return "default";
     }
     async render(element, vditor2, context) {
-      console.log("\u{1F4CA} TABLE RENDERER: Starting render...", {element, context, tagName: element.tagName});
       try {
         const tableId = context.boardId || "default";
-        console.log("\u{1F4CA} TABLE RENDERER: Using tableId from context", {
-          tableId,
-          boardId: context.boardId,
-          instanceId: context.instanceId
-        });
         const instanceKey = `${context.documentUri}-${tableId}`;
         this.showLoading(element, "Loading table data...");
         const tableData = await this.loadTableData(tableId, context);
         if (!tableData || !tableData.columns || !tableData.rows) {
-          console.warn("\u{1F4CA} TABLE RENDERER: Invalid data structure, using defaults");
           const defaultData = this.createDefaultTableData();
           await context.fileSystemHelper.saveRendererData(this.id, tableId, defaultData);
           return this.renderWithData(element, tableId, defaultData, context);
@@ -39708,30 +39639,25 @@ ${currentContent}`;
       const containerNode = ir__node || wysiwyg__node;
       if (element.hasAttribute("contenteditable")) {
         element.setAttribute("contenteditable", "false");
-        console.log("\u{1F6E1}\uFE0F TABLE: Set code element contenteditable=false to prevent Vditor interference", {tableId});
       }
       const container = this.createTableContainer(tableId, tableData, context);
       element.innerHTML = "";
       element.appendChild(container);
       this.tableInstances.set(instanceKey, container);
       this.setupTableEventListeners(container, tableId, context);
-      console.log("\u{1F3AF} TABLE: Event listeners setup on container", {tableId});
       if (containerNode) {
         this.setupVditorEventStoppers(container, containerNode);
-        console.log("\u{1F6E1}\uFE0F TABLE: Event stoppers setup on containerNode", {tableId});
       }
       if (false) {
         this.setupVditorEventStoppers(container, containerNode);
       }
       const filename = await this.getTableFilename(tableId, context);
       this.showFileInfo(element, filename, tableId);
-      console.log("\u2705 TABLE RENDERER: Successfully rendered table", {tableId, filename});
     }
     async loadTableData(tableId, context) {
       const requestId = Math.random().toString(36).substring(2, 15);
       return new Promise((resolve) => {
         const timeout = setTimeout(() => {
-          console.warn(`\u26A0\uFE0F TABLE RENDERER: Timeout loading table '${tableId}', using default data`);
           resolve(this.createDefaultTableData());
         }, 5e3);
         const removeListener = context.messageHandler.on("renderer-data-loaded", (message) => {
@@ -39739,10 +39665,8 @@ ${currentContent}`;
             clearTimeout(timeout);
             removeListener();
             if (message.error) {
-              console.warn(`\u26A0\uFE0F TABLE RENDERER: Error loading '${tableId}', using default:`, message.error);
               resolve(this.createDefaultTableData());
             } else {
-              console.log(`\u2705 TABLE RENDERER: Loaded table '${tableId}' from ${message.dataSource}`);
               resolve(message.data);
             }
           }
@@ -39869,16 +39793,13 @@ ${currentContent}`;
       events.forEach((eventName) => {
         node.addEventListener(eventName, backupBlocker, false);
       });
-      console.log("\u2705 TABLE: Backup event stoppers configured (bubble phase)");
     }
     setupTableEventListeners(container, tableId, context) {
-      console.log("\u{1F3AF} TABLE: setupTableEventListeners called", {tableId, containerClass: container.className});
       let autoSaveTimeout = null;
       const debouncedSave = () => {
         if (autoSaveTimeout)
           clearTimeout(autoSaveTimeout);
         autoSaveTimeout = setTimeout(() => {
-          console.log("\u{1F4BE} TABLE: Auto-saving after edit...", {tableId});
           this.saveTableData(container, tableId, context);
         }, 500);
       };
@@ -39886,15 +39807,9 @@ ${currentContent}`;
         e7.stopPropagation();
         e7.preventDefault();
         const target = e7.target;
-        console.log("\u{1F5B1}\uFE0F TABLE: Click event", {
-          tagName: target.tagName,
-          classList: Array.from(target.classList),
-          tableId
-        });
         const toolbarBtn = target.closest(".table-toolbar-btn");
         if (toolbarBtn) {
           const action = toolbarBtn.getAttribute("data-action");
-          console.log("\u{1F527} TABLE: Toolbar action", {action, tableId});
           if (action) {
             this.handleToolbarAction(action, container, tableId, context);
           }
@@ -39902,7 +39817,6 @@ ${currentContent}`;
         }
         const deleteBtn = target.closest(".table-delete-row-btn");
         if (deleteBtn) {
-          console.log("\u{1F5D1}\uFE0F TABLE: Delete button clicked", {tableId});
           const row = deleteBtn.closest("tr");
           if (row) {
             this.showConfirmDialog("Delete this row?").then((confirmed) => {
@@ -39915,51 +39829,30 @@ ${currentContent}`;
           return;
         }
         if (target.tagName === "TD" || target.tagName === "TH") {
-          console.log("\u{1F4DD} TABLE: Cell clicked - allowing edit", {tag: target.tagName});
         }
       }, false);
-      console.log("\u2705 TABLE: Click listener registered on container", {tableId, containerTag: container.tagName});
       container.addEventListener("mousedown", (e7) => {
         const target = e7.target;
-        console.log("\u{1F5B1}\uFE0F TABLE: Mousedown event", {
-          tagName: target.tagName,
-          classList: Array.from(target.classList),
-          contentEditable: container.getAttribute("contenteditable"),
-          tableId
-        });
       }, false);
       container.addEventListener("input", (e7) => {
         e7.stopPropagation();
         const target = e7.target;
-        console.log("\u2328\uFE0F TABLE: Input event", {
-          contentEditable: target.contentEditable,
-          tagName: target.tagName,
-          value: target.textContent?.substring(0, 20),
-          tableId
-        });
         if (target.contentEditable === "true") {
           debouncedSave();
         }
       }, false);
       container.addEventListener("keydown", (e7) => {
         e7.stopPropagation();
-        console.log("\u2328\uFE0F TABLE: Keydown event", {key: e7.key, tableId});
       }, false);
       container.addEventListener("blur", (e7) => {
         e7.stopPropagation();
         const target = e7.target;
-        console.log("\u{1F535} TABLE: Blur event", {
-          contentEditable: target.contentEditable,
-          tagName: target.tagName,
-          tableId
-        });
         if (target.contentEditable === "true") {
           if (autoSaveTimeout)
             clearTimeout(autoSaveTimeout);
           this.saveTableData(container, tableId, context);
         }
       }, false);
-      console.log("\u2705 TABLE: Event listeners setup complete", {tableId});
     }
     async handleToolbarAction(action, container, tableId, context) {
       const table = container.querySelector(".interactive-table");
@@ -40076,13 +39969,11 @@ ${currentContent}`;
       try {
         const table = container.querySelector(".interactive-table");
         const data = this.extractTableData(table);
-        console.log("\u{1F4BE} TABLE RENDERER: Saving table data", {tableId});
         context.messageHandler.send("renderer-save-data", {
           rendererId: this.id,
           boardId: tableId,
           data
         });
-        console.log("\u2705 TABLE RENDERER: Save request sent", {tableId});
       } catch (error2) {
         console.error("\u274C TABLE RENDERER: Save failed", error2);
         this.showToast(container, `\u274C Save failed: ${error2 instanceof Error ? error2.message : String(error2)}`, "error");
@@ -40192,7 +40083,6 @@ ${currentContent}`;
           if (!currentContent.includes("<!-- file:") && !currentContent.includes("<!-- table:")) {
             codeBlock.textContent = `${filenameComment}${tableComment}
 ${currentContent}`;
-            console.log("\u{1F4DD} TABLE: Added file comments to code block", {filename, tableId});
           }
         }
       }
@@ -40549,11 +40439,9 @@ ${currentContent}`;
       this.playgroundInstances = new Map();
     }
     async render(element, vditor2, context) {
-      console.log("\u{1F3AE} PLAYGROUND RENDERER: Starting render...", context);
       try {
         const existingContainer = element.querySelector(".playground-container");
         if (existingContainer) {
-          console.log("\u{1F3AE} PLAYGROUND RENDERER: Already rendered, skipping...");
           return;
         }
         const ir__node = element.closest(".vditor-ir__node");
@@ -40569,7 +40457,6 @@ ${currentContent}`;
           this.setupVditorEventStoppers(container, containerNode);
         }
         this.setupPlaygroundEventListeners(container, playgroundId, code, context);
-        console.log("\u2705 PLAYGROUND RENDERER: Successfully rendered playground", {playgroundId});
       } catch (error2) {
         console.error("\u274C PLAYGROUND RENDERER: Render failed", error2);
         this.showError(element, `Failed to render playground: ${error2 instanceof Error ? error2.message : String(error2)}`);
@@ -40692,7 +40579,6 @@ ${currentContent}`;
       });
     }
     runCode(code, outputElement, statusElement, iframe) {
-      console.log("\u{1F3AE} PLAYGROUND: Running code...", code.substring(0, 100));
       outputElement.innerHTML = "";
       statusElement.textContent = "\u23F3 Running...";
       statusElement.className = "playground-status status-running";
@@ -40986,13 +40872,11 @@ ${currentContent}`;
         instance.iframe.remove();
       }
       this.playgroundInstances.delete(instanceKey);
-      console.log("\u{1F9F9} PLAYGROUND RENDERER: Cleaned up instance", instanceKey);
     }
   };
 
   // src/renderers/init.ts
   function initializeRendererSystem() {
-    console.log("\u{1F680} RENDERER SYSTEM: Initializing...");
     const registry2 = getRendererRegistry();
     const kanbanRenderer = new KanbanRenderer();
     registry2.register(kanbanRenderer, "builtin");
@@ -41000,7 +40884,6 @@ ${currentContent}`;
     registry2.register(tableRenderer, "builtin");
     const playgroundRenderer = new PlaygroundRenderer();
     registry2.register(playgroundRenderer, "builtin");
-    console.log(`\u2705 RENDERER SYSTEM: Initialized with ${registry2.count} renderer(s)`);
   }
   function generateVditorCustomRenders(documentUri, vditor2) {
     const registry2 = getRendererRegistry();
@@ -41008,7 +40891,6 @@ ${currentContent}`;
     const fileSystemHelper = getFileSystemHelper();
     const customRenders = [];
     for (const renderer of registry2.getAll()) {
-      console.log(`\u{1F527} RENDERER SYSTEM: Creating Vditor render function for '${renderer.id}'`);
       customRenders.push({
         language: renderer.language,
         render: (code) => {
@@ -41016,23 +40898,19 @@ ${currentContent}`;
             try {
               const existingContainer = code.querySelector(`.interactive-table-container, .kanban-board-container, .playground-container`);
               if (existingContainer) {
-                console.log(`\u2705 RENDERER SYSTEM: '${renderer.id}' has interactive container, already rendered, skipping...`);
                 resolve(true);
                 return;
               }
               if (code.hasAttribute(`data-${renderer.language}-rendered`)) {
-                console.log(`\u2705 RENDERER SYSTEM: '${renderer.id}' has render attribute, skipping...`);
                 resolve(true);
                 return;
               }
               if (code.classList.contains("interactive-table-container") || code.classList.contains("kanban-board-container") || code.classList.contains("playground-container")) {
-                console.log(`\u2705 RENDERER SYSTEM: '${renderer.id}' code element IS container, skipping...`);
                 resolve(true);
                 return;
               }
               const hasGenericContainer = code.querySelector(`.${renderer.language}-container`);
               if (hasGenericContainer) {
-                console.log(`\u2705 RENDERER SYSTEM: '${renderer.id}' has ${renderer.language}-container, skipping...`);
                 resolve(true);
                 return;
               }
@@ -41045,11 +40923,6 @@ ${currentContent}`;
                 codeElement = code.querySelector(`code.language-${renderer.language}`);
               }
               const boardId = codeElement ? renderer.extractId(codeElement) : "default";
-              console.log(`\u{1F50D} RENDERER SYSTEM: Extracted boardId='${boardId}' from code element`, {
-                hasCodeElement: !!codeElement,
-                codeTagName: code.tagName,
-                codeClasses: Array.from(code.classList || [])
-              });
               const context = {
                 documentUri,
                 instanceId,
@@ -41058,14 +40931,12 @@ ${currentContent}`;
                 messageHandler,
                 fileSystemHelper
               };
-              console.log(`\u{1F3A8} RENDERER SYSTEM: Rendering '${renderer.id}' (board: ${boardId}, instance: ${instanceId})`);
               if (renderer.onLoad) {
                 await renderer.onLoad(context);
               }
               await renderer.render(code, vditor2, context);
               resolve(true);
             } catch (error2) {
-              console.error(`\u274C RENDERER SYSTEM: Error rendering '${renderer.id}'`, error2);
               code.innerHTML = `
               <div class="renderer-error" style="
                 padding: 16px;
@@ -41085,7 +40956,6 @@ ${currentContent}`;
         }
       });
     }
-    console.log(`\u2705 RENDERER SYSTEM: Generated ${customRenders.length} Vditor custom render(s)`);
     return customRenders;
   }
 
@@ -41124,16 +40994,13 @@ ${currentContent}`;
       const currentHash = this.generateDiagnosticsHash();
       const visualElementsExist = this.verifyDiagnosticElementsExist();
       if (newHash === currentHash && this.diagnosticsApplied && visualElementsExist) {
-        this.vscodeLog(`\u2705 SMART APPLY: Diagnostics unchanged and visual elements exist - skipping clear/reapply`);
         return;
       }
       if (!this.isSafeToUpdateDiagnostics()) {
-        this.vscodeLog(`\u{1F3AF} FOCUS AWARE: User is typing - deferring diagnostic application`);
         this.diagnostics = diagnostics;
         this.pendingDiagnosticUpdate = true;
         return;
       }
-      this.vscodeLog(`\u{1F504} SMART APPLY: Applying diagnostics - hash changed: ${newHash !== currentHash}, applied: ${this.diagnosticsApplied}, visual: ${visualElementsExist}`);
       requestAnimationFrame(() => {
         this.clearDiagnosticStyles();
         this.wrappedKeys.clear();
@@ -41184,14 +41051,12 @@ ${currentContent}`;
           if (parent) {
             parent.replaceChild(fragment, textNode);
             this.wrappedKeys.add(tokenKey);
-            this.vscodeLog(`\u2705 Successfully styled text: "${diagnosticText}" with tokenKey: ${tokenKey}`);
             return true;
           } else {
             this.vscodeLog(`\u274C No parent node found for text node containing: "${diagnosticText}"`);
             return false;
           }
         } else {
-          this.vscodeLog(`\u26A0\uFE0F Duplicate detected - text already wrapped: "${diagnosticText}" with tokenKey: ${tokenKey}`);
           return false;
         }
       } catch (error2) {
@@ -41287,26 +41152,21 @@ ${currentContent}`;
       const contentChanged = currentContent !== this.lastContent;
       const diagnosticsChanged = currentDiagnosticsHash !== this.lastDiagnosticsHash;
       const noDiagnosticsApplied = !this.diagnosticsApplied || this.wrappedKeys.size === 0;
-      this.vscodeLog(`\uFFFD SMART UPDATE CHECK: content=${contentChanged ? "CHANGED" : "unchanged"}, diagnostics=${diagnosticsChanged ? "CHANGED" : "unchanged"}, applied=${this.diagnosticsApplied}, keys=${this.wrappedKeys.size}, force=${force}`);
       if (force || contentChanged || diagnosticsChanged || noDiagnosticsApplied) {
         if (diagnosticsChanged || noDiagnosticsApplied || force) {
-          this.vscodeLog(`\u{1F504} Diagnostics changed or not applied - full update needed`);
           this.clearDiagnosticStyles();
           this.applyDiagnosticStyles();
           this.lastDiagnosticsHash = currentDiagnosticsHash;
           this.diagnosticsApplied = true;
         } else if (contentChanged) {
-          this.vscodeLog(`\u{1F4DD} Content changed but diagnostics unchanged - preserving existing diagnostics`);
           this.revalidateExistingDiagnostics();
         }
         this.lastContent = currentContent;
       } else {
-        this.vscodeLog(`\u2705 Content and diagnostics unchanged, diagnostics applied - skipping update`);
       }
       this.updateTimer = null;
     }
     clearDiagnosticStyles() {
-      this.vscodeLog(`\u{1F9F9} Starting clearDiagnosticStyles() - preserving ALL content structure`);
       let editor = document.querySelector(".vditor-ir .vditor-reset");
       if (!editor) {
         editor = document.querySelector(".vditor-wysiwyg .vditor-reset");
@@ -41319,11 +41179,8 @@ ${currentContent}`;
         console.warn("DiagnosticVisualizer: Could not find Vditor editor element for cleanup");
         return;
       }
-      this.vscodeLog(`\u{1F3AF} Found editor element: ${editor.className}`);
       const beforeContent = editor.textContent?.length || 0;
-      this.vscodeLog(`\u{1F4CA} Content length before cleanup: ${beforeContent} characters`);
       const elements = editor.querySelectorAll('[class*="vscode-diagnostic-"]');
-      this.vscodeLog(`\u{1F50D} Found ${elements.length} elements with diagnostic classes`);
       elements.forEach((el, index2) => {
         const originalClasses = el.className;
         const originalContent = el.textContent || "";
@@ -41336,10 +41193,8 @@ ${currentContent}`;
         if (originalContent !== newContent) {
           this.vscodeLog(`\u26A0\uFE0F Content changed in element ${index2}: "${originalContent}" \u2192 "${newContent}"`);
         }
-        this.vscodeLog(`\u{1F4DD} Element ${index2}: classes "${originalClasses}" \u2192 "${el.className}"`);
       });
       const diagnosticSpans = editor.querySelectorAll(".vscode-diagnostic-span");
-      this.vscodeLog(`\u{1F50D} Found ${diagnosticSpans.length} diagnostic spans to process`);
       diagnosticSpans.forEach((span, index2) => {
         const originalContent = span.textContent || "";
         span.className = span.className.replace(/\bvscode-diagnostic-\w+\b/g, "").trim();
@@ -41351,19 +41206,15 @@ ${currentContent}`;
         if (!span.className.trim() && !span.hasAttributes()) {
           const parent = span.parentNode;
           if (parent) {
-            this.vscodeLog(`\u{1F4E6} Unwrapping empty span ${index2} with ${span.childNodes.length} child nodes`);
             const fragment = document.createDocumentFragment();
             while (span.firstChild) {
               fragment.appendChild(span.firstChild);
             }
             parent.insertBefore(fragment, span);
             parent.removeChild(span);
-            this.vscodeLog(`\u2705 Successfully unwrapped span ${index2}`);
           } else {
-            this.vscodeLog(`\u26A0\uFE0F Span ${index2} has no parent, keeping as-is`);
           }
         } else {
-          this.vscodeLog(`\u{1F4DD} Span ${index2} kept with classes: "${span.className}"`);
         }
         const currentContent = span.parentNode?.textContent || span.textContent || "";
         if (!currentContent.includes(originalContent) && originalContent.trim()) {
@@ -41371,30 +41222,23 @@ ${currentContent}`;
         }
       });
       const afterContent = editor.textContent?.length || 0;
-      this.vscodeLog(`\u{1F4CA} Content length after cleanup: ${afterContent} characters`);
       if (beforeContent !== afterContent) {
-        this.vscodeLog(`\u{1F6A8} CONTENT LENGTH CHANGED: ${beforeContent} \u2192 ${afterContent} (diff: ${afterContent - beforeContent})`);
       } else {
-        this.vscodeLog(`\u2705 Content length preserved: ${afterContent} characters`);
       }
       this.cleanupLightbulbOverlays();
       this.clearAppliedDiagnosticTracking();
-      this.vscodeLog(`\u2705 clearDiagnosticStyles completed - processed ${elements.length} elements and ${diagnosticSpans.length} spans`);
     }
     cleanupQuickFixUI() {
       this.cleanupTransientUI();
     }
     cleanupTransientUI() {
-      this.vscodeLog(`\u{1F50D} DEBUG: cleanupTransientUI() called - cleaning up ONLY overlays, preserving ALL content`);
       const editor = document.querySelector(".vditor-ir .vditor-reset") || document.querySelector(".vditor-wysiwyg .vditor-reset") || document.querySelector(".vditor-sv .vditor-reset");
       if (!editor) {
         this.vscodeLog("\u{1F50D} DEBUG: Could not find Vditor editor element - cleaning body overlays only");
       } else {
-        this.vscodeLog(`\u{1F50D} DEBUG: Found editor element: ${editor.className}`);
       }
       this.cleanupLightbulbOverlays();
       const bodyOverlays = document.body.querySelectorAll('[data-diagnostic-ui="true"]');
-      this.vscodeLog(`\u{1F50D} DEBUG: Found ${bodyOverlays.length} overlay elements in document.body to clean up`);
       let removedCount = 0;
       bodyOverlays.forEach((element) => {
         const elementInfo = {
@@ -41404,8 +41248,6 @@ ${currentContent}`;
           textContent: element.textContent?.substring(0, 50) || "no-text",
           attributes: Array.from(element.attributes).map((attr) => `${attr.name}="${attr.value}"`).join(" ")
         };
-        this.vscodeLog(`\u{1F5D1}\uFE0F REMOVING OVERLAY: ${elementInfo.tag}.${elementInfo.classes} (${elementInfo.textContent})`);
-        this.vscodeLog(`   \u{1F4CB} Element details: id="${elementInfo.id}", attrs="${elementInfo.attributes}"`);
         element.remove();
         removedCount++;
       });
@@ -41414,21 +41256,14 @@ ${currentContent}`;
         const diagnosticElements = editor.querySelectorAll(".vscode-diagnostic-error, .vscode-diagnostic-warning, .vscode-diagnostic-info, .vscode-diagnostic-hint");
         diagnosticCount = diagnosticElements.length;
         if (diagnosticCount > 0) {
-          this.vscodeLog(`\u{1F6E1}\uFE0F PRESERVED: ${diagnosticCount} diagnostic styling elements in editor (content styling, never removed)`);
         }
       }
-      this.vscodeLog(`\u2705 cleanupTransientUI() completed:`);
-      this.vscodeLog(`   \u{1F5D1}\uFE0F Removed ${removedCount} true overlay elements from document.body`);
-      this.vscodeLog(`   \u{1F6E1}\uFE0F Preserved ${diagnosticCount} diagnostic styling elements (content)`);
-      this.vscodeLog(`   \u{1F6AB} NEVER removed ANY elements from editor content - only cleaned overlays`);
       if (editor) {
         const contentLength = editor.textContent?.length || 0;
-        this.vscodeLog(`\u{1F4CA} Editor content length after cleanup: ${contentLength} characters (should be unchanged)`);
       }
     }
     applyDiagnosticStyles() {
       if (this.diagnostics.length === 0) {
-        this.vscodeLog("DiagnosticVisualizer: No diagnostics to apply");
         return;
       }
       let editor = document.querySelector(".vditor-ir .vditor-reset");
@@ -41444,7 +41279,6 @@ ${currentContent}`;
       }
       const cursorElement = this.getCursorContainerElement();
       if (cursorElement) {
-        this.vscodeLog(`\u{1F3AF} CURSOR AWARE: Found cursor in element ${cursorElement.tagName}.${cursorElement.className || "(no-class)"} - will exclude from diagnostic updates`);
       }
       this.applySinglePassDiagnostics(editor, cursorElement);
     }
@@ -41482,20 +41316,15 @@ ${currentContent}`;
       return false;
     }
     applySinglePassDiagnostics(editor, cursorElement) {
-      this.vscodeLog(`\u{1F680} Starting single-pass diagnostic application for ${this.diagnostics.length} diagnostics`);
       const sortedDiagnostics = this.prepareSortedDiagnostics();
       if (sortedDiagnostics.length === 0) {
-        this.vscodeLog("No valid diagnostics to process after filtering");
         return;
       }
       const blockElements = this.getMarkdownBlockElements(editor);
-      this.vscodeLog(`Found ${blockElements.length} block elements to process`);
       const safeElements = cursorElement ? blockElements.filter((item) => item.element !== cursorElement && !this.isDescendantOf(item.element, cursorElement) && !this.isDescendantOf(cursorElement, item.element)) : blockElements;
       if (cursorElement && safeElements.length < blockElements.length) {
-        this.vscodeLog(`\u{1F3AF} CURSOR AWARE: Excluded ${blockElements.length - safeElements.length} elements containing cursor from diagnostic updates`);
       }
       this.matchDiagnosticsToElements(safeElements, sortedDiagnostics);
-      this.vscodeLog(`\u2705 Single-pass diagnostic application completed`);
     }
     applyDiagnosticWithPrecision(editor, diagnostic) {
       const message = diagnostic.message?.toLowerCase() || "";
@@ -41507,7 +41336,6 @@ ${currentContent}`;
         return this.handleImageAltDiagnosticPrecise(editor, diagnostic);
       }
       if (source === "markdownlint" && message.includes("md012")) {
-        this.vscodeLog(`MD012 diagnostic skipped - Vditor normalizes blank lines in IR mode`);
         return false;
       }
       if (source === "markdownlint" && message.includes("md041")) {
@@ -41519,7 +41347,6 @@ ${currentContent}`;
       if (this.isHighConfidenceDiagnostic(diagnostic)) {
         return this.handleGenericDiagnostic(editor, diagnostic);
       }
-      this.vscodeLog(`Skipping imprecise diagnostic: ${diagnostic.message}`);
       return false;
     }
     handlePreciseTextDiagnostic(editor, diagnostic) {
@@ -41536,10 +41363,8 @@ ${currentContent}`;
         this.vscodeLog(`\u274C Precise text diagnostic failed: empty problemText from range ${startChar}-${endChar}`);
         return false;
       }
-      this.vscodeLog(`\u{1F50D} Looking for precise text: "${problemText}" in line: "${lineText}" (range: ${startChar}-${endChar})`);
       const result = this.findAndWrapExactText(editor, problemText, diagnostic);
       if (result) {
-        this.vscodeLog(`\u2705 Precise text diagnostic succeeded for: "${problemText}"`);
       } else {
         this.vscodeLog(`\u274C Precise text diagnostic failed for: "${problemText}" - no DOM matches found`);
       }
@@ -41549,12 +41374,7 @@ ${currentContent}`;
       const lineKey = `${diagnostic.range?.start?.line ?? "na"}`;
       const tokenKey = `${lineKey}|${targetText}`;
       const lineNumber = diagnostic.range?.start?.line;
-      this.vscodeLog(`\u{1F50D} Starting line-aware text search for "${targetText}" on line ${lineNumber} (tokenKey: ${tokenKey})`);
-      if (lineNumber && (lineNumber >= 70 && lineNumber <= 74)) {
-        this.debugDOMStructure(editor, lineNumber);
-      }
       if (this.wrappedKeys.has(tokenKey)) {
-        this.vscodeLog(`\u26A0\uFE0F Token already wrapped, skipping: ${tokenKey}`);
         return true;
       }
       const lineElement = this.findElementForLine(editor, lineNumber, diagnostic.lineText);
@@ -41562,27 +41382,20 @@ ${currentContent}`;
         this.vscodeLog(`\u274C Could not find DOM element for line ${lineNumber}`);
         return this.fallbackToGlobalSearch(editor, targetText, diagnostic, tokenKey);
       }
-      this.vscodeLog(`\u{1F3AF} Found line element for line ${lineNumber}: ${lineElement.tagName}.${lineElement.className}`);
       return this.searchWithinElement(lineElement, targetText, diagnostic, tokenKey);
     }
     findElementForLine(editor, lineNumber, lineText) {
       if (lineNumber === void 0) {
         return null;
       }
-      this.vscodeLog(`\u{1F50D} DEBUG: Starting findElementForLine for line ${lineNumber}, text: "${lineText}"`);
       const lineElements = editor.querySelectorAll(`[data-line="${lineNumber}"]`);
-      this.vscodeLog(`\u{1F50D} DEBUG: Strategy 1 - Found ${lineElements.length} elements with data-line="${lineNumber}"`);
       if (lineElements.length > 0) {
-        this.vscodeLog(`\u{1F4CD} Found element by data-line attribute: line ${lineNumber}`);
         return lineElements[0];
       }
       const allElements = this.getAllPossibleLineElements(editor);
-      this.vscodeLog(`\u{1F50D} DEBUG: Strategy 2 - getAllPossibleLineElements returned ${allElements.length} elements`);
       if (allElements.length > 0) {
-        this.vscodeLog(`\u{1F50D} DEBUG: First 5 elements from getAllPossibleLineElements:`);
         for (let i6 = 0; i6 < Math.min(5, allElements.length); i6++) {
           const el = allElements[i6];
-          this.vscodeLog(`   ${i6}: ${el.tagName}.${el.className || "(no-class)"} - "${(el.textContent || "").substring(0, 50)}..."`);
         }
       }
       const exactMatches = [];
@@ -41597,11 +41410,9 @@ ${currentContent}`;
           if (this.vditor && typeof this.vditor.html2md === "function") {
             elementMd = this.vditor.html2md(element.outerHTML || "");
             if (index2 < 3) {
-              this.vscodeLog(`\u{1F504} html2md conversion for element ${index2}: "${element.outerHTML?.substring(0, 100)}..." \u2192 "${elementMd?.substring(0, 100)}..."`);
             }
           } else {
             if (index2 === 0) {
-              this.vscodeLog(`\u26A0\uFE0F Vditor html2md not available: vditor=${!!this.vditor}, html2md=${this.vditor ? typeof this.vditor.html2md : "N/A"}`);
             }
           }
         } catch (e7) {
@@ -41613,73 +41424,57 @@ ${currentContent}`;
         if (elementText.trim() === lineText.trim() || elementMd.trim() === lineText.trim()) {
           const confidence = this.calculateMatchConfidence(element, lineText, index2, lineNumber);
           exactMatches.push({element, index: index2, confidence});
-          this.vscodeLog(`\u{1F4CD} Found exact match at index ${index2} for line ${lineNumber}: "${elementText.trim()}" (confidence: ${confidence})`);
         } else if (elementText.includes(lineText.trim()) || lineText.trim().includes(elementText.trim()) || elementMd.includes(lineText.trim()) || lineText.trim().includes(elementMd.trim())) {
           if (this.fuzzyLineMatch(elementText, lineText) || this.fuzzyLineMatch(elementMd, lineText)) {
             const confidence = this.calculateMatchConfidence(element, lineText, index2, lineNumber);
             fuzzyMatches.push({element, index: index2, confidence});
-            this.vscodeLog(`\u{1F4CD} Found fuzzy match at index ${index2} for line ${lineNumber}: "${elementText.trim()}" (confidence: ${confidence})`);
           }
         }
       });
-      this.vscodeLog(`\u{1F50D} DEBUG: Strategy 2a - Found ${exactMatches.length} exact matches, ${fuzzyMatches.length} fuzzy matches`);
       const bestMatch = this.selectBestMatch(exactMatches, fuzzyMatches, lineNumber);
       if (bestMatch) {
-        this.vscodeLog(`\u{1F3AF} Selected best match at index ${bestMatch.index} for line ${lineNumber} (confidence: ${bestMatch.confidence})`);
         return bestMatch.element;
       }
       const vditorElements = Array.from(editor.querySelectorAll(".vditor-ir__node, .vditor-ir__marker"));
-      this.vscodeLog(`\u{1F50D} DEBUG: Strategy 3 - Found ${vditorElements.length} Vditor IR elements`);
       let vditorMatches = 0;
       for (const element of vditorElements) {
         const elementText = element.textContent || "";
         if (elementText.includes(lineText.trim())) {
           vditorMatches++;
           if (this.fuzzyLineMatch(elementText, lineText)) {
-            this.vscodeLog(`\u{1F4CD} Found Vditor IR element for line ${lineNumber}: ${element.tagName}.${element.className}`);
             return element;
           }
         }
       }
-      this.vscodeLog(`\u{1F50D} DEBUG: Strategy 3 - Found ${vditorMatches} Vditor elements containing text`);
       const listItems = Array.from(editor.querySelectorAll("li, p, h1, h2, h3, h4, h5, h6"));
-      this.vscodeLog(`\u{1F50D} DEBUG: Strategy 4 - Found ${listItems.length} list/heading items`);
       let listMatches = 0;
       for (const element of listItems) {
         const elementText = element.textContent || "";
         if (elementText.includes(lineText.trim())) {
           listMatches++;
           if (lineText.match(/^\d+\./) && elementText.includes(lineText.replace(/^\d+\.\s*/, ""))) {
-            this.vscodeLog(`\u{1F4CD} Found numbered list item for line ${lineNumber}: "${elementText.trim()}"`);
             return element;
           }
           if (this.fuzzyLineMatch(elementText, lineText)) {
-            this.vscodeLog(`\u{1F4CD} Found list/heading item for line ${lineNumber}: "${elementText.trim()}"`);
             return element;
           }
         }
       }
-      this.vscodeLog(`\u{1F50D} DEBUG: Strategy 4 - Found ${listMatches} list/heading elements containing text`);
       const blockElements = this.getBlockElements(editor);
-      this.vscodeLog(`\u{1F50D} DEBUG: Strategy 5 - Found ${blockElements.length} block elements`);
       if (blockElements.length > 0) {
-        this.vscodeLog(`\u{1F50D} DEBUG: First 3 block elements:`);
         for (let i6 = 0; i6 < Math.min(3, blockElements.length); i6++) {
           const el = blockElements[i6];
-          this.vscodeLog(`   ${i6}: ${el.tagName}.${el.className || "(no-class)"} - "${(el.textContent || "").substring(0, 50)}..."`);
         }
       }
       if (lineNumber > 0 && lineNumber <= blockElements.length * 2) {
         const approximateIndex = Math.min(Math.floor(lineNumber / 3), blockElements.length - 1);
         const approximateElement = blockElements[approximateIndex];
-        this.vscodeLog(`\u{1F4CD} Using enhanced approximate mapping: line ${lineNumber} \u2192 element ${approximateIndex} (${approximateElement.tagName})`);
         return approximateElement;
       }
       this.vscodeLog(`\u274C DEBUG: All strategies failed for line ${lineNumber}. No DOM element found.`);
       return null;
     }
     getAllPossibleLineElements(editor) {
-      this.vscodeLog(`\u{1F50D} DEBUG: getAllPossibleLineElements - editor element: ${editor.tagName}.${editor.className || "(no-class)"}`);
       const elements = [];
       const selectors = [
         "p",
@@ -41699,48 +41494,16 @@ ${currentContent}`;
       ];
       selectors.forEach((selector) => {
         const found = Array.from(editor.querySelectorAll(selector));
-        this.vscodeLog(`\u{1F50D} DEBUG: Selector "${selector}" found ${found.length} elements`);
         found.forEach((el) => {
           if (el instanceof HTMLElement && el.textContent && el.textContent.trim()) {
             elements.push(el);
           }
         });
       });
-      this.vscodeLog(`\u{1F50D} DEBUG: Editor has ${editor.children.length} direct children:`);
       for (let i6 = 0; i6 < Math.min(10, editor.children.length); i6++) {
         const child = editor.children[i6];
-        this.vscodeLog(`   Child ${i6}: ${child.tagName}.${child.className || "(no-class)"} - "${(child.textContent || "").substring(0, 30)}..."`);
       }
-      this.vscodeLog(`\u{1F50D} DEBUG: getAllPossibleLineElements returning ${elements.length} total elements`);
       return elements;
-    }
-    debugDOMStructure(editor, lineNumber) {
-      this.vscodeLog(`\u{1F3D7}\uFE0F DOM STRUCTURE DEBUG for line ${lineNumber}:`);
-      this.vscodeLog(`\u{1F3D7}\uFE0F Editor: ${editor.tagName}.${editor.className || "(no-class)"} with ${editor.children.length} children`);
-      Array.from(editor.children).forEach((child, i6) => {
-        if (child instanceof HTMLElement) {
-          const text = (child.textContent || "").substring(0, 60);
-          this.vscodeLog(`   ${i6}: ${child.tagName}.${child.className || "(no-class)"} - "${text}${text.length > 60 ? "..." : ""}"`);
-          if (child.tagName === "UL" || child.tagName === "OL" || child.tagName === "DIV") {
-            Array.from(child.children).forEach((grandChild, j2) => {
-              if (grandChild instanceof HTMLElement && j2 < 5) {
-                const grandText = (grandChild.textContent || "").substring(0, 40);
-                this.vscodeLog(`      ${i6}.${j2}: ${grandChild.tagName}.${grandChild.className || "(no-class)"} - "${grandText}${grandText.length > 40 ? "..." : ""}"`);
-              }
-            });
-          }
-        }
-      });
-      const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT, null);
-      let textNodeCount = 0;
-      let textNode;
-      this.vscodeLog(`\u{1F3D7}\uFE0F Text nodes in editor (first 10):`);
-      while ((textNode = walker.nextNode()) && textNodeCount < 10) {
-        if (textNode.textContent && textNode.textContent.trim()) {
-          this.vscodeLog(`   TextNode ${textNodeCount}: "${textNode.textContent.substring(0, 50)}${textNode.textContent.length > 50 ? "..." : ""}"`);
-          textNodeCount++;
-        }
-      }
     }
     fuzzyLineMatch(elementText, lineText) {
       const elementWords = elementText.toLowerCase().split(/\s+/).filter((w3) => w3.length > 2);
@@ -41769,7 +41532,6 @@ ${currentContent}`;
         const positionDifference = Math.abs(expectedPositionRatio - actualPositionRatio);
         const positionConfidence = Math.max(0, 30 * (1 - positionDifference * 2));
         confidence += positionConfidence;
-        this.vscodeLog(`\u{1F3AF} Position calc for element ${elementIndex}: line ${targetLineNumber}/${totalMarkdownLines} (${expectedPositionRatio.toFixed(2)}) vs element ${elementIndex}/${totalElements} (${actualPositionRatio.toFixed(2)}) \u2192 confidence +${positionConfidence.toFixed(1)}`);
       }
       if (element.tagName.match(/^H[1-6]$/)) {
         confidence += 10;
@@ -41811,13 +41573,11 @@ ${currentContent}`;
       const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null);
       let textNode;
       let attemptCount = 0;
-      this.vscodeLog(`\u{1F50D} Searching within element for "${targetText}"`);
       while (textNode = walker.nextNode()) {
         const content = textNode.textContent || "";
         attemptCount++;
         if (content.trim().length === 0)
           continue;
-        this.vscodeLog(`\u{1F50D} Checking text node ${attemptCount} within element: "${content.substring(0, 50)}${content.length > 50 ? "..." : ""}"`);
         const strategies = [
           {name: "exact", index: content.indexOf(targetText)},
           {name: "case-insensitive", index: content.toLowerCase().indexOf(targetText.toLowerCase())},
@@ -41826,10 +41586,8 @@ ${currentContent}`;
         ];
         for (const strategy of strategies) {
           if (strategy.index !== -1) {
-            this.vscodeLog(`\u{1F3AF} Found match using ${strategy.name} strategy at index ${strategy.index} in: "${content}"`);
             const success2 = this.wrapTextWithDiagnostic(textNode, strategy.index, strategy.index + targetText.length, diagnostic);
             if (success2) {
-              this.vscodeLog(`\u2705 Successfully wrapped text: "${targetText}" using ${strategy.name} strategy in correct line element`);
               return true;
             } else {
               this.vscodeLog(`\u274C Failed to wrap text: "${targetText}" using ${strategy.name} strategy`);
@@ -41841,7 +41599,6 @@ ${currentContent}`;
       return false;
     }
     fallbackToGlobalSearch(editor, targetText, diagnostic, tokenKey) {
-      this.vscodeLog(`\u{1F504} Falling back to global search for "${targetText}"`);
       const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT, null);
       let textNode;
       let attemptCount = 0;
@@ -41849,10 +41606,8 @@ ${currentContent}`;
         const content = textNode.textContent || "";
         attemptCount++;
         if (content.indexOf(targetText) !== -1) {
-          this.vscodeLog(`\u{1F3AF} Found match in global search at text node ${attemptCount}: "${content}"`);
           const success2 = this.wrapTextWithDiagnostic(textNode, content.indexOf(targetText), content.indexOf(targetText) + targetText.length, diagnostic);
           if (success2) {
-            this.vscodeLog(`\u2705 Successfully wrapped text: "${targetText}" using global search fallback`);
             return true;
           }
         }
@@ -41887,59 +41642,44 @@ ${currentContent}`;
       ];
       const isTrustedSource = trustedSources.some((pattern) => source.toLowerCase().includes(pattern.toLowerCase()));
       if (!isTrustedSource) {
-        this.vscodeLog(`\u26A0\uFE0F Untrusted diagnostic source: "${source}"`);
         return false;
       }
       if (range && range.start && range.end) {
         const hasValidRange = typeof range.start.line === "number" && typeof range.start.character === "number" && typeof range.end.line === "number" && typeof range.end.character === "number";
         if (!hasValidRange) {
-          this.vscodeLog(`\u26A0\uFE0F Diagnostic has invalid range information`);
           return false;
         }
       }
       if (source.toLowerCase().includes("spell") || source.toLowerCase().includes("cspell")) {
         const hasSpellingPatterns = message.includes("misspelled") || message.includes("unknown word") || message.includes("not found") || message.includes("spelling");
         if (hasSpellingPatterns && range) {
-          this.vscodeLog(`\u2705 High-confidence spelling diagnostic: "${message}"`);
           return true;
         }
       }
       if (source.toLowerCase().includes("markdownlint")) {
-        this.vscodeLog(`\u2705 High-confidence markdownlint diagnostic: "${message}"`);
         return true;
       }
       if (source.toLowerCase().includes("grammar") || source.toLowerCase().includes("languagetool")) {
-        this.vscodeLog(`\u2705 High-confidence grammar diagnostic: "${message}"`);
         return true;
       }
       if (source.toLowerCase().includes("link-check") || message.includes("broken") || message.includes("missing")) {
-        this.vscodeLog(`\u2705 High-confidence link/reference diagnostic: "${message}"`);
         return true;
       }
-      this.vscodeLog(`\u2705 High-confidence diagnostic from trusted source "${source}": "${message}"`);
       return true;
     }
     handleMD041Diagnostic(editor, diagnostic) {
-      this.vscodeLog("DiagnosticVisualizer: Handling MD041 - First line should be heading");
       const firstElement = editor.querySelector("p, div, h1, h2, h3, h4, h5, h6, blockquote, ul, ol, pre");
       if (firstElement) {
         this.applyDiagnosticStyleToElement(firstElement, diagnostic);
-        this.vscodeLog("MD041: Applied diagnostic to first content element");
         return true;
       }
       return false;
-      this.vscodeLog(`DiagnosticVisualizer: Applying ${this.diagnostics.length} diagnostics to editor`);
       let successCount = 0;
       const failedDiagnostics = [];
       this.diagnostics.forEach((diagnostic2, index2) => {
-        this.vscodeLog(`
-=== Processing Diagnostic ${index2 + 1}/${this.diagnostics.length} ===`);
-        this.vscodeLog(`Message: ${diagnostic2.message}`);
-        this.vscodeLog(`Source: ${diagnostic2.source}`);
         const success2 = this.applyDiagnosticByContentMatch(editor, diagnostic2);
         if (success2) {
           successCount++;
-          this.vscodeLog(`\u2705 Diagnostic ${index2 + 1} applied successfully`);
         } else {
           failedDiagnostics.push({
             index: index2 + 1,
@@ -41957,24 +41697,19 @@ ${currentContent}`;
       const message = diagnostic.message || "";
       const matchedText = diagnostic.matchedText || "";
       const source = diagnostic.source || "";
-      this.vscodeLog(`Applying diagnostic: ${message}, source: ${source}, matchedText: "${matchedText}"`);
       let handled = false;
       if (message.includes("Potentially broken link:")) {
         handled = this.handleBrokenLinkDiagnostic(editor, diagnostic, message);
       } else if (message.includes("Image missing alt text")) {
         handled = this.handleImageAltDiagnostic(editor, diagnostic);
       } else if (message.includes("Multiple consecutive blank lines") || source === "markdownlint" && message.includes("MD012")) {
-        this.vscodeLog(`MD012 diagnostic skipped in generic handler - Vditor normalizes blank lines`);
         handled = false;
       } else if (source === "markdownlint" || diagnostic.range) {
-        this.vscodeLog(`Using generic diagnostic matching for: ${message}`);
         handled = this.handleGenericDiagnostic(editor, diagnostic);
       } else if (matchedText) {
-        this.vscodeLog(`Using text matching for: ${message}`);
         handled = this.findExactTextMatch(editor, matchedText, diagnostic);
       }
       if (!handled) {
-        this.vscodeLog(`Diagnostic not applied (avoiding false positives): ${message}`);
       }
       return handled;
     }
@@ -42015,14 +41750,10 @@ ${currentContent}`;
       return found;
     }
     handleImageAltDiagnosticPrecise(editor, diagnostic) {
-      this.vscodeLog("\u{1F5BC}\uFE0F DiagnosticVisualizer: Handling MD045 image alt text diagnostic with Vditor IR awareness");
       const lineNumber = diagnostic.range?.start?.line;
       const lineText = diagnostic.lineText;
-      this.vscodeLog(`\u{1F5BC}\uFE0F Image alt diagnostic on line ${lineNumber}: "${lineText}"`);
       const vditorImageNodes = editor.querySelectorAll('.vditor-ir__node[data-type="img"]');
-      this.vscodeLog(`\u{1F5BC}\uFE0F Found ${vditorImageNodes.length} Vditor IR image nodes`);
       vditorImageNodes.forEach((node, i6) => {
-        this.vscodeLog(`\u{1F5BC}\uFE0F Node ${i6} structure: ${node.outerHTML.substring(0, 200)}...`);
       });
       for (let i6 = 0; i6 < vditorImageNodes.length; i6++) {
         const imageNode = vditorImageNodes[i6];
@@ -42031,7 +41762,6 @@ ${currentContent}`;
         const imgAlt = img?.getAttribute("alt") || "";
         const pathSpans = imageNode.querySelectorAll(".vditor-ir__marker ~ span");
         const allText = imageNode.textContent || "";
-        this.vscodeLog(`\u{1F5BC}\uFE0F Vditor image node ${i6}: img src="${imgSrc}", alt="${imgAlt}", text="${allText}"`);
         if (lineText) {
           const imgPathMatch = lineText.match(/!\[([^\]]*)\]\(([^)]+)\)/);
           if (imgPathMatch) {
@@ -42052,21 +41782,18 @@ ${currentContent}`;
               }
             }
             if (isMatch && (!expectedAltText.trim() || imgAlt === expectedAltText)) {
-              this.vscodeLog(`\u2705 Found matching Vditor image with missing/empty alt text`);
               this.applyDiagnosticStyleToVditorNode(imageNode, diagnostic);
               return true;
             }
           }
         } else {
           if (img && !imgAlt.trim()) {
-            this.vscodeLog(`\u2705 Found Vditor image without alt text (no line text provided)`);
             this.applyDiagnosticStyleToVditorNode(imageNode, diagnostic);
             return true;
           }
         }
       }
       const images = editor.querySelectorAll("img");
-      this.vscodeLog(`\u{1F5BC}\uFE0F Fallback: Found ${images.length} regular img elements`);
       for (let i6 = 0; i6 < images.length; i6++) {
         const img = images[i6];
         const src = img.getAttribute("src") || "";
@@ -42081,13 +41808,11 @@ ${currentContent}`;
               isMatch = true;
             }
             if (isMatch && (!alt.trim() || alt === expectedAlt)) {
-              this.vscodeLog(`\u2705 Found matching fallback image with missing alt text`);
               this.applyDiagnosticStyleToElement(img, diagnostic);
               return true;
             }
           }
         } else if (!alt.trim()) {
-          this.vscodeLog(`\u2705 Found fallback image without alt text`);
           this.applyDiagnosticStyleToElement(img, diagnostic);
           return true;
         }
@@ -42098,7 +41823,6 @@ ${currentContent}`;
     applyDiagnosticStyleToVditorNode(vditorNode, diagnostic) {
       const severity = this.getDiagnosticSeverityString(diagnostic.severity);
       const cssClass = `vscode-diagnostic-${severity}`;
-      this.vscodeLog(`\u{1F3AF} Applying diagnostic to Vditor IR node: ${cssClass}`);
       vditorNode.classList.add(cssClass);
       vditorNode.setAttribute("data-diagnostic-message", diagnostic.message || "");
       vditorNode.setAttribute("data-diagnostic-source", diagnostic.source || "");
@@ -42110,19 +41834,14 @@ ${currentContent}`;
         this.addHoverableTooltip(img, diagnostic);
         this.addIntegratedQuickFixLightbulb(img, diagnostic);
       }
-      this.vscodeLog(`\u2705 Applied ${cssClass} to Vditor IR image node`);
     }
     handleMD012Diagnostic(editor, diagnostic) {
-      this.vscodeLog("DiagnosticVisualizer: Handling MD012 - Multiple consecutive blank lines");
       const lineNumber = diagnostic.range?.start?.line;
       if (lineNumber === void 0) {
-        this.vscodeLog("MD012: No line number provided");
         return false;
       }
-      this.vscodeLog(`MD012: Looking for multiple blank lines around line ${lineNumber}`);
       const vditorContent = this.vditor ? this.vditor.getValue() : "";
       const lines = vditorContent.split("\n");
-      this.vscodeLog(`MD012: Raw markdown has ${lines.length} lines, checking around line ${lineNumber}`);
       let consecutiveBlankLines = 0;
       let blankLineStart = -1;
       for (let i6 = 0; i6 < lines.length; i6++) {
@@ -42133,7 +41852,6 @@ ${currentContent}`;
           consecutiveBlankLines++;
         } else {
           if (consecutiveBlankLines >= 2) {
-            this.vscodeLog(`MD012: Found ${consecutiveBlankLines} consecutive blank lines from line ${blankLineStart} to ${i6 - 1}`);
             if (Math.abs(blankLineStart - lineNumber) <= 2 || Math.abs(i6 - 1 - lineNumber) <= 2) {
               return this.findElementsForBlankLineArea(editor, blankLineStart, i6 - 1, diagnostic);
             }
@@ -42165,7 +41883,6 @@ ${currentContent}`;
         }
       });
       if (targetElements.length > 0) {
-        this.vscodeLog(`MD012: Found ${targetElements.length} elements representing multiple blank lines`);
         targetElements.forEach((element) => {
           this.applyDiagnosticStyleToElement(element, diagnostic);
         });
@@ -42186,7 +41903,6 @@ ${currentContent}`;
             consecutiveBrs.forEach((br) => {
               this.applyDiagnosticStyleToElement(br, diagnostic);
             });
-            this.vscodeLog(`MD012: Applied diagnostic to ${consecutiveBrs.length} consecutive br elements`);
             return true;
           }
           consecutiveBrs = [];
@@ -42196,17 +41912,13 @@ ${currentContent}`;
         consecutiveBrs.forEach((br) => {
           this.applyDiagnosticStyleToElement(br, diagnostic);
         });
-        this.vscodeLog(`MD012: Applied diagnostic to ${consecutiveBrs.length} consecutive br elements (final group)`);
         return true;
       }
-      this.vscodeLog("MD012: Using fallback line mapping approach");
       return this.findElementByLineMapping(editor, diagnostic);
     }
     findElementsForBlankLineArea(editor, startLine, endLine, diagnostic) {
-      this.vscodeLog(`MD012: Trying to find DOM elements for blank line area from line ${startLine} to ${endLine}`);
       const blockElements = editor.querySelectorAll("p, div, br, .vditor-ir__node");
       if (blockElements.length === 0) {
-        this.vscodeLog("MD012: No block elements found in editor");
         return false;
       }
       const targetIndex = Math.floor(blockElements.length * (startLine / (this.vditor ? this.vditor.getValue().split("\n").length : 100)));
@@ -42215,7 +41927,6 @@ ${currentContent}`;
         this.vscodeLog("MD012: Could not find target element for blank line area");
         return false;
       }
-      this.vscodeLog(`MD012: Applying diagnostic to element at index ${targetIndex} (${element.tagName})`);
       this.applyDiagnosticStyleToElement(element, diagnostic);
       return true;
     }
@@ -42333,7 +42044,6 @@ ${currentContent}`;
       if (element.getAttribute("data-has-lightbulb") === "true") {
         return;
       }
-      this.vscodeLog(`\uFFFD Adding integrated lightbulb to diagnostic span: ${diagnostic.message} (${diagnostic.source})`);
       element.style.position = "relative";
       element.style.cursor = "pointer";
       element.setAttribute("data-has-lightbulb", "true");
@@ -42344,11 +42054,9 @@ ${currentContent}`;
         if (clickX > elementWidth * 0.75) {
           e7.preventDefault();
           e7.stopPropagation();
-          this.vscodeLog(`\u{1F527} Lightbulb clicked - triggering quick fix for: ${diagnostic.message}`);
           this.triggerQuickFix(diagnostic);
         }
       });
-      this.vscodeLog(`\u2705 Integrated lightbulb added to diagnostic span (using main.css styles)`);
     }
     addQuickFixLightbulb(element, diagnostic) {
       this.addIntegratedQuickFixLightbulb(element, diagnostic);
@@ -42362,7 +42070,6 @@ ${currentContent}`;
         htmlElement.style.removeProperty("--lightbulb-display");
         removedCount++;
       });
-      this.vscodeLog(`\u2705 Cleaned up integrated lightbulbs: removed ${removedCount} lightbulb attributes`);
     }
     diagnosticHasQuickFix(diagnostic) {
       const source = diagnostic.source?.toLowerCase() || "";
@@ -42489,22 +42196,18 @@ ${currentContent}`;
     applyDiagnosticStyleToElement(element, diagnostic) {
       const severity = this.getDiagnosticSeverityString(diagnostic.severity);
       const cssClass = `vscode-diagnostic-${severity}`;
-      this.vscodeLog(`\u{1F50D} APPLYING DIAGNOSTIC: ${cssClass} to ${element.tagName}.${element.className} for "${diagnostic.message}"`);
       element.classList.add(cssClass);
       const message = diagnostic.message || "Diagnostic issue";
       element.setAttribute("data-diagnostic-message", message);
       element.setAttribute("data-diagnostic-source", diagnostic.source || "");
       this.addHoverableTooltip(element, diagnostic);
       this.addIntegratedQuickFixLightbulb(element, diagnostic);
-      this.vscodeLog(`\u2705 Applied ${cssClass} to ${element.tagName} element`);
     }
     triggerQuickFix(diagnostic) {
-      this.vscodeLog(`\u{1F527} Opening VS Code problems panel for: ${diagnostic.message}`);
       if (window.vscode) {
         window.vscode.postMessage({
           command: "openProblemsPanel"
         });
-        this.vscodeLog(`\u{1F4E4} Problems panel open request sent to VS Code`);
       } else {
         this.vscodeLog(`\u274C VS Code API not available for opening problems panel`);
       }
@@ -42530,14 +42233,11 @@ ${currentContent}`;
       const normalizedDiagnostics = diagnostics.map((diag) => this.normalizeDiagnostic(diag, context));
       const newDiagnosticsHash = this.generateDiagnosticsHashForArray(normalizedDiagnostics);
       const diagnosticsActuallyChanged = newDiagnosticsHash !== this.lastDiagnosticsHash;
-      this.vscodeLog(`\u{1F50D} DIAGNOSTIC UPDATE: ${diagnostics.length} diagnostics, hash changed: ${diagnosticsActuallyChanged}`);
       const visualElementsExist = this.verifyDiagnosticElementsExist();
       if (diagnosticsActuallyChanged || !this.diagnosticsApplied || !visualElementsExist) {
-        this.vscodeLog(`\u{1F504} Diagnostics update needed - changed: ${diagnosticsActuallyChanged}, applied: ${this.diagnosticsApplied}, visual: ${visualElementsExist}`);
         this.diagnostics = normalizedDiagnostics;
         this.scheduleUpdate();
       } else {
-        this.vscodeLog(`\u2705 Diagnostics unchanged and visual elements exist - keeping existing visualization`);
         this.diagnostics = normalizedDiagnostics;
       }
     }
@@ -42546,13 +42246,10 @@ ${currentContent}`;
     }
     addSimpleDiagnostics() {
       const content = this.vditor?.getValue() || "";
-      this.vscodeLog(`DiagnosticVisualizer: Checking content for simple diagnostics, length: ${content.length}`);
       if (content === this.lastContent) {
-        this.vscodeLog("Content unchanged, skipping simple diagnostic update");
         return;
       }
       if (this.diagnosticsApplied && this.wrappedKeys.size > 0) {
-        this.vscodeLog(`Simple diagnostics already applied (${this.wrappedKeys.size} items), checking if still valid`);
         let editor = document.querySelector(".vditor-ir .vditor-reset");
         if (!editor) {
           editor = document.querySelector(".vditor-wysiwyg .vditor-reset");
@@ -42560,7 +42257,6 @@ ${currentContent}`;
         if (editor) {
           const existingDiagnostics = editor.querySelectorAll('[class*="vscode-diagnostic-"]');
           if (existingDiagnostics.length > 0) {
-            this.vscodeLog(`Found ${existingDiagnostics.length} existing diagnostic elements - skipping simple diagnostic update`);
             this.lastContent = content;
             return;
           }
@@ -42605,11 +42301,9 @@ ${currentContent}`;
           }
         }
       });
-      this.vscodeLog(`DiagnosticVisualizer: Generated ${simpleDiagnostics.length} simple diagnostics`);
       if (simpleDiagnostics.length > 0 || this.diagnostics.length > 0) {
         this.applyDiagnosticsToEditor(simpleDiagnostics);
       } else {
-        this.vscodeLog(`No simple diagnostics found and no existing diagnostics to clear`);
       }
     }
     isValidUrl(url2) {
@@ -42638,7 +42332,6 @@ ${currentContent}`;
       for (const diagnostic of this.diagnostics) {
         const key = `${diagnostic.range?.start?.line}:${diagnostic.range?.start?.character}-${diagnostic.range?.end?.line}:${diagnostic.range?.end?.character}|${diagnostic.message}|${diagnostic.code || ""}`;
         if (seen.has(key)) {
-          this.vscodeLog(`\u{1F9EA} De-dup skipped duplicate diagnostic: ${diagnostic.message}`);
           continue;
         }
         seen.add(key);
@@ -42652,14 +42345,11 @@ ${currentContent}`;
               lineText: lineText.trim()
             });
           } else {
-            this.vscodeLog(`\u26A0\uFE0F Skipped low-confidence diagnostic: ${diagnostic.message}`);
           }
         } else {
-          this.vscodeLog(`\u26A0\uFE0F Skipped diagnostic without line info: ${diagnostic.message}`);
         }
       }
       validDiagnostics.sort((a5, b4) => a5.lineNumber - b4.lineNumber);
-      this.vscodeLog(`\u{1F4CB} Prepared ${validDiagnostics.length} sorted diagnostics from ${this.diagnostics.length} total`);
       return validDiagnostics;
     }
     getMarkdownBlockElements(editor) {
@@ -42699,7 +42389,6 @@ ${currentContent}`;
       blockElements.forEach((item, idx) => {
         item.index = idx;
       });
-      this.vscodeLog(`\u{1F3D7}\uFE0F Found ${blockElements.length} block elements representing document structure`);
       return blockElements;
     }
     isCompleteWord(text, targetText, startIndex) {
@@ -42715,7 +42404,6 @@ ${currentContent}`;
       return cleanElement === cleanLine;
     }
     matchDiagnosticsToElements(blockElements, sortedDiagnostics) {
-      this.vscodeLog(`\u{1F3AF} Starting content-based matching: ${blockElements.length} elements vs ${sortedDiagnostics.length} diagnostics`);
       let appliedCount = 0;
       for (const {diagnostic, lineNumber, lineText} of sortedDiagnostics) {
         const range = diagnostic.range;
@@ -42730,7 +42418,6 @@ ${currentContent}`;
           this.vscodeLog(`\u274C Skipping diagnostic - target text "${targetText}" doesn't match line text at position ${startChar}-${endChar}: "${lineText.substring(startChar, endChar)}"`);
           continue;
         }
-        this.vscodeLog(`\u{1F50D} Finding element for line ${lineNumber} diagnostic: "${targetText}" from "${lineText}"`);
         let bestMatch = null;
         for (let i6 = 0; i6 < blockElements.length; i6++) {
           const {element, index: index2} = blockElements[i6];
@@ -42745,11 +42432,9 @@ ${currentContent}`;
           }
           const tokenKey = `${lineNumber}|${targetText}`;
           if (this.wrappedKeys.has(tokenKey)) {
-            this.vscodeLog(`\u26A0\uFE0F Element already has diagnostic for "${targetText}" on line ${lineNumber}, skipping`);
             continue;
           }
           if (this.hasOverlappingDiagnostic(element, startChar, endChar, lineNumber, diagnostic)) {
-            this.vscodeLog(`\u26A0\uFE0F Element ${index2} already has overlapping diagnostic for chars ${startChar}-${endChar}, skipping`);
             continue;
           }
           let confidence = 0;
@@ -42805,10 +42490,8 @@ ${currentContent}`;
             } else if (charPosDiff <= 20) {
               charPositionBonus = 25;
             }
-            this.vscodeLog(`\u{1F4CD} Multiple "${targetText}" occurrences at positions: [${targetOccurrences.join(", ")}], expected: ${expectedCharPos}, best: ${bestOccurrence}, bonus: ${charPositionBonus}`);
           }
           confidence += proximityBonus + charPositionBonus;
-          this.vscodeLog(`\u{1F3AF} Element ${index2} contains "${targetText}" - confidence: ${confidence.toFixed(1)} (${matchType}) pos-diff: ${positionDifference} proximity-bonus: ${proximityBonus} char-bonus: ${charPositionBonus} line-match: ${index2 === lineNumber}`);
           if (!bestMatch || confidence > bestMatch.confidence || confidence === bestMatch.confidence && matchType === "exact-line-match") {
             bestMatch = {element, index: index2, confidence, matchType};
           }
@@ -42817,7 +42500,6 @@ ${currentContent}`;
         const isLineContained = bestMatch?.matchType === "line-contained";
         const isReasonableProximity = bestMatch ? Math.abs(lineNumber - bestMatch.index) <= 15 : false;
         if (bestMatch && (isStrictMatch || isLineContained || bestMatch.confidence >= 100 && isReasonableProximity)) {
-          this.vscodeLog(`\u2705 SELECTED: Element ${bestMatch.index} with confidence ${bestMatch.confidence.toFixed(1)} (${bestMatch.matchType})`);
           const matchResult = {
             matched: true,
             confidence: bestMatch.confidence,
@@ -42827,13 +42509,11 @@ ${currentContent}`;
           };
           if (this.applyDiagnosticToMatchedElement(bestMatch.element, diagnostic, matchResult)) {
             appliedCount++;
-            this.vscodeLog(`\u{1F3A8} Applied diagnostic "${diagnostic.message}" to element ${bestMatch.index}`);
           } else {
             this.vscodeLog(`\u274C Failed to apply diagnostic despite good match`);
           }
         } else {
           if (bestMatch && bestMatch.confidence >= 80) {
-            this.vscodeLog(`\u{1F7E1} FALLBACK MATCH: Applying lower-confidence match for "${targetText}" (confidence: ${bestMatch.confidence.toFixed(1)})`);
             const matchResult = {
               matched: true,
               confidence: bestMatch.confidence,
@@ -42843,7 +42523,6 @@ ${currentContent}`;
             };
             if (this.applyDiagnosticToMatchedElement(bestMatch.element, diagnostic, matchResult)) {
               appliedCount++;
-              this.vscodeLog(`\u{1F3A8} Applied fallback diagnostic "${diagnostic.message}" to element ${bestMatch.index}`);
             } else {
               this.vscodeLog(`\u274C Failed to apply fallback diagnostic despite match`);
             }
@@ -42853,13 +42532,11 @@ ${currentContent}`;
             for (let i6 = Math.max(0, lineNumber - 3); i6 < Math.min(blockElements.length, lineNumber + 3); i6++) {
               if (i6 < blockElements.length) {
                 const elementText = (blockElements[i6].element.textContent || "").substring(0, 50);
-                this.vscodeLog(`\u{1F4CD} Element ${i6}: "${elementText}${elementText.length >= 50 ? "..." : ""}"`);
               }
             }
           }
         }
       }
-      this.vscodeLog(`\u{1F4CA} Content-based matching completed: ${appliedCount}/${sortedDiagnostics.length} diagnostics applied`);
     }
     tryMatchDiagnosticToElement(element, diagnostic, lineText, positionDifference) {
       const elementText = element.textContent || "";
@@ -42872,9 +42549,7 @@ ${currentContent}`;
         this.vscodeLog(`\u274C No target text extracted from range ${startChar}-${endChar} in line: "${lineText}"`);
         return {matched: false, confidence: 0, matchType: "no-target-text"};
       }
-      this.vscodeLog(`\u{1F3AF} Looking for precise target text: "${targetText}" (chars ${startChar}-${endChar}) in element: "${elementText.substring(0, 100)}..."`);
       if (this.hasOverlappingDiagnostic(element, startChar, endChar, lineNumber, diagnostic)) {
-        this.vscodeLog(`\u26A0\uFE0F Skipping diagnostic - overlaps with already applied diagnostic`);
         return {matched: false, confidence: 0, matchType: "overlap-conflict"};
       }
       let confidence = 0;
@@ -42883,13 +42558,11 @@ ${currentContent}`;
       if (targetIndex !== -1) {
         confidence = 95;
         matchType = "exact-target-match";
-        this.vscodeLog(`\u2705 Found exact target text "${targetText}" at position ${targetIndex} in element`);
       } else {
         const targetIndexCI = elementText.toLowerCase().indexOf(targetText.toLowerCase());
         if (targetIndexCI !== -1) {
           confidence = 90;
           matchType = "case-insensitive-target";
-          this.vscodeLog(`\u2705 Found case-insensitive target text "${targetText}" at position ${targetIndexCI} in element`);
         }
       }
       if (confidence === 0) {
@@ -42901,18 +42574,15 @@ ${currentContent}`;
           if (elementText.includes(targetText)) {
             confidence = 85;
             matchType = "full-line-exact";
-            this.vscodeLog(`\u2705 Element matches full line text exactly AND contains target`);
           } else {
             this.vscodeLog(`\u274C STRICT CHECK FAILED: Element matches line but missing target text "${targetText}"`);
           }
         } else if (elementText.includes(lineText.trim()) && elementText.includes(targetText)) {
           confidence = 75;
           matchType = "full-line-contains";
-          this.vscodeLog(`\u2705 Element contains full line text AND target text`);
         } else if (elementText.includes(targetText) && this.fuzzyLineMatch(elementText, lineText)) {
           confidence = 65;
           matchType = "full-line-fuzzy-with-target";
-          this.vscodeLog(`\u2705 Element matches line via fuzzy matching AND contains target text`);
         } else {
           this.vscodeLog(`\u274C STRICT REJECTION: Element doesn't contain target text "${targetText}"`);
         }
@@ -42924,11 +42594,9 @@ ${currentContent}`;
           if (targetInMd !== -1) {
             confidence = 80;
             matchType = "html2md-target-match";
-            this.vscodeLog(`\u2705 Found target text "${targetText}" in html2md converted element`);
           } else if (elementMd.trim() === lineText.trim() && lineText.includes(targetText)) {
             confidence = 70;
             matchType = "html2md-line-match";
-            this.vscodeLog(`\u2705 html2md element matches line text and line contains target`);
           }
         } catch (e7) {
           this.vscodeLog(`\u274C html2md conversion failed: ${e7}`);
@@ -42945,7 +42613,6 @@ ${currentContent}`;
       }
       const matched = confidence >= 70;
       if (matched) {
-        this.vscodeLog(`\u{1F3AF} Match found: ${matchType} (confidence: ${confidence.toFixed(1)}, target: "${targetText}")`);
         return {
           matched,
           confidence,
@@ -42973,11 +42640,9 @@ ${currentContent}`;
         this.vscodeLog(`\u274C Cannot apply diagnostic: no target text identified`);
         return false;
       }
-      this.vscodeLog(`\u{1F3A8} Applying diagnostic to element: targeting "${targetText}" (chars ${startChar}-${endChar})`);
       const applied = this.findAndWrapPreciseTextInElement(element, targetText, diagnostic, startChar, endChar);
       if (applied) {
         this.recordAppliedDiagnostic(element, startChar, endChar, lineNumber, diagnostic);
-        this.vscodeLog(`\u2705 Successfully applied diagnostic: "${diagnostic.message}"`);
       } else {
         this.vscodeLog(`\u274C Failed to apply diagnostic: could not locate target text "${targetText}"`);
       }
@@ -42998,7 +42663,6 @@ ${currentContent}`;
     }
     findAndWrapPreciseTextInElement(element, targetText, diagnostic, originalStartChar, originalEndChar) {
       const elementText = element.textContent || "";
-      this.vscodeLog(`\u{1F50D} Precise search for "${targetText}" in element text: "${elementText.substring(0, 100)}..."`);
       let targetIndex = elementText.indexOf(targetText);
       if (targetIndex !== -1) {
         const allOccurrences = [];
@@ -43007,10 +42671,8 @@ ${currentContent}`;
           allOccurrences.push(searchIndex);
           searchIndex += targetText.length;
         }
-        this.vscodeLog(`\u{1F50D} Found ${allOccurrences.length} occurrences of "${targetText}" at positions: [${allOccurrences.join(", ")}]`);
         if (allOccurrences.length > 1) {
           targetIndex = this.selectBestOccurrenceByPosition(allOccurrences, originalStartChar, elementText, targetText);
-          this.vscodeLog(`\u{1F3AF} Selected occurrence at position ${targetIndex} based on character position analysis`);
         }
       }
       if (targetIndex === -1) {
@@ -43018,7 +42680,6 @@ ${currentContent}`;
         const lowerTargetText = targetText.toLowerCase();
         targetIndex = lowerElementText.indexOf(lowerTargetText);
         if (targetIndex !== -1) {
-          this.vscodeLog(`\u{1F50D} Found case-insensitive match at position ${targetIndex}`);
           targetText = elementText.substring(targetIndex, targetIndex + targetText.length);
         }
       }
@@ -43039,7 +42700,6 @@ ${currentContent}`;
           bestIndex = occurrence;
         }
       }
-      this.vscodeLog(`\u{1F3AF} Best occurrence analysis: target char ${originalCharPosition}, selected position ${bestIndex} (distance: ${bestDistance})`);
       if (bestDistance > 10 && occurrences.length > 1) {
         bestIndex = this.selectOccurrenceByContext(occurrences, originalCharPosition, elementText, targetText);
       }
@@ -43053,13 +42713,11 @@ ${currentContent}`;
           const afterChar = occurrence < elementText.length - 1 ? elementText[occurrence + 1] : " ";
           if (char === char.toLowerCase() && char !== char.toUpperCase()) {
             if (beforeChar !== " " && beforeChar !== "." && beforeChar !== "!" && beforeChar !== "?") {
-              this.vscodeLog(`\u{1F3AF} Selected occurrence at ${occurrence} - mid-word lowercase context`);
               return occurrence;
             }
           }
           if (char === char.toUpperCase() && char !== char.toLowerCase()) {
             if (beforeChar === " " || beforeChar === "." || beforeChar === "!" || beforeChar === "?" || occurrence === 0) {
-              this.vscodeLog(`\u{1F3AF} Selected occurrence at ${occurrence} - sentence-start uppercase context`);
               return occurrence;
             }
           }
@@ -43077,7 +42735,6 @@ ${currentContent}`;
         if (position >= currentPosition && position < nodeEnd) {
           const relativeStart = position - currentPosition;
           const relativeEnd = Math.min(relativeStart + length, content.length);
-          this.vscodeLog(`\u{1F3A8} Wrapping text in node at relative position ${relativeStart}-${relativeEnd}: "${content.substring(relativeStart, relativeEnd)}"`);
           return this.wrapTextWithDiagnostic(textNode, relativeStart, relativeEnd, diagnostic);
         }
         currentPosition = nodeEnd;
@@ -43089,7 +42746,6 @@ ${currentContent}`;
       const severityClass = this.getSeverityClass(diagnostic.severity || 1);
       element.classList.add(severityClass);
       this.addHoverableTooltip(element, diagnostic);
-      this.vscodeLog(`\u{1F3A8} Added diagnostic styling to entire element: ${element.tagName}`);
     }
     hasOverlappingDiagnostic(element, startChar, endChar, lineNumber, diagnostic) {
       if (!this.appliedDiagnostics.has(element)) {
@@ -43104,11 +42760,9 @@ ${currentContent}`;
         const hasCharOverlap = startChar < applied.endChar && endChar > applied.startChar;
         const hasDifferentLine = lineNumber !== void 0 && applied.lineNumber !== void 0 && lineNumber !== applied.lineNumber;
         if (hasCharOverlap) {
-          this.vscodeLog(`\u{1F6AB} Character range overlap detected: new(${startChar}-${endChar}) vs applied(${applied.startChar}-${applied.endChar})`);
           return true;
         }
         if (hasDifferentLine && hasCharOverlap) {
-          this.vscodeLog(`\u{1F6AB} Different line numbers with overlapping ranges: line ${lineNumber} vs line ${applied.lineNumber}`);
           return true;
         }
       }
@@ -43143,7 +42797,6 @@ ${currentContent}`;
           this.elementsByLine.get(lineNumber).push(element);
         }
       }
-      this.vscodeLog(`\u{1F4DD} Recorded applied diagnostic: ${diagnosticId} at chars ${startChar}-${endChar} on line ${lineNumber}`);
     }
     clearAppliedDiagnosticTracking() {
       this.appliedDiagnostics.clear();
@@ -43153,7 +42806,6 @@ ${currentContent}`;
       this.wrappedKeys.clear();
       this.tokenSpanCache.clear();
       this.tokenDiagnostics.clear();
-      this.vscodeLog(`\u{1F9F9} Cleared applied diagnostic tracking and duplicate detection state`);
     }
     generateDiagnosticsHash() {
       return this.generateDiagnosticsHashForArray(this.diagnostics);
@@ -43169,7 +42821,6 @@ ${currentContent}`;
     }
     verifyDiagnosticElementsExist() {
       if (!this.diagnosticsApplied || this.diagnostics.length === 0) {
-        this.vscodeLog(`\u{1F50D} DOM VERIFY: No diagnostics expected (applied: ${this.diagnosticsApplied}, count: ${this.diagnostics.length})`);
         return true;
       }
       let editor = document.querySelector(".vditor-ir .vditor-reset");
@@ -43185,7 +42836,6 @@ ${currentContent}`;
       }
       const diagnosticElements = editor.querySelectorAll('[class*="vscode-diagnostic-"]');
       const wrappedKeysCount = this.wrappedKeys.size;
-      this.vscodeLog(`\u{1F50D} DOM VERIFY: Found ${diagnosticElements.length} DOM elements, expected ${this.diagnostics.length} diagnostics, wrapped keys: ${wrappedKeysCount}`);
       if (this.diagnostics.length > 0 && diagnosticElements.length === 0) {
         this.vscodeLog(`\u274C DOM VERIFY: Expected ${this.diagnostics.length} diagnostics but found 0 DOM elements - visual elements missing!`);
         this.clearAppliedDiagnosticTracking();
@@ -43193,18 +42843,15 @@ ${currentContent}`;
       }
       const expectedMinElements = Math.min(this.diagnostics.length, wrappedKeysCount);
       if (diagnosticElements.length < expectedMinElements * 0.5) {
-        this.vscodeLog(`\u26A0\uFE0F DOM VERIFY: Found ${diagnosticElements.length} elements but expected at least ${expectedMinElements} - some may be missing`);
         this.clearAppliedDiagnosticTracking();
         return false;
       }
-      this.vscodeLog(`\u2705 DOM VERIFY: Diagnostic elements exist as expected (${diagnosticElements.length} elements)`);
       return true;
     }
     verifyDiagnosticElementsAfterCleanup() {
       return this.verifyDiagnosticElementsExist();
     }
     revalidateExistingDiagnostics() {
-      this.vscodeLog(`\u{1F50D} Revalidating existing diagnostics without full clear/reapply`);
       let editor = document.querySelector(".vditor-ir .vditor-reset");
       if (!editor) {
         editor = document.querySelector(".vditor-wysiwyg .vditor-reset");
@@ -43217,22 +42864,18 @@ ${currentContent}`;
         return;
       }
       const existingDiagnosticElements = editor.querySelectorAll('[class*="vscode-diagnostic-"]');
-      this.vscodeLog(`\u{1F50D} Found ${existingDiagnosticElements.length} existing diagnostic elements to revalidate`);
       let invalidElements = 0;
       existingDiagnosticElements.forEach((element, index2) => {
         const textContent = element.textContent || "";
         const diagnosticMessage = element.getAttribute("data-diagnostic-message") || "";
         if (!textContent.trim() || textContent.includes("\u{1F4A1}")) {
-          this.vscodeLog(`\u26A0\uFE0F Invalid diagnostic element ${index2}: "${textContent}"`);
           invalidElements++;
         }
       });
       if (invalidElements > 0) {
-        this.vscodeLog(`\u26A0\uFE0F Found ${invalidElements} invalid diagnostic elements - triggering full reapply`);
         this.clearDiagnosticStyles();
         this.applyDiagnosticStyles();
       } else {
-        this.vscodeLog(`\u2705 All ${existingDiagnosticElements.length} diagnostic elements are still valid`);
       }
     }
     normalizeDiagnostic(diagnostic, context) {
@@ -43262,11 +42905,9 @@ ${currentContent}`;
           normalized.lineText = `placeholder text with ${spellMatch[1]} for targeting`;
         }
       }
-      this.vscodeLog(`\u{1F504} Normalized diagnostic: line ${normalized.range?.start?.line} (was ${diagnostic.startLineNumber}), message: "${normalized.message}"`);
       return normalized;
     }
     setupFocusAwareness() {
-      this.vscodeLog(`\u{1F3AF} FOCUS AWARE: Setting up focus awareness for diagnostic updates`);
       document.addEventListener("focusin", (event) => {
         this.focusedElement = event.target;
         this.handleFocusChange(event.target, true);
@@ -43300,14 +42941,11 @@ ${currentContent}`;
       if (!element)
         return;
       const elementInfo = `${element.tagName}.${element.className || "(no-class)"}`;
-      this.vscodeLog(`\u{1F3AF} FOCUS AWARE: Focus ${isFocused ? "IN" : "OUT"} on ${elementInfo}`);
       if (isFocused) {
         this.previousFocusedElement = this.focusedElement;
         this.focusedElement = element;
         if (this.previousFocusedElement && this.previousFocusedElement !== element) {
-          this.vscodeLog(`\u{1F3AF} FOCUS CHANGE: Focus moved from ${this.previousFocusedElement.tagName} to ${element.tagName}`);
           if (this.pendingDiagnosticUpdate) {
-            this.vscodeLog(`\u{1F3AF} FOCUS CHANGE: Applying pending diagnostics due to focus change`);
             setTimeout(() => {
               this.applyPendingDiagnosticUpdateForElement(this.previousFocusedElement);
             }, 50);
@@ -43315,13 +42953,11 @@ ${currentContent}`;
         }
         const hasDiagnostics = this.elementHasDiagnostics(element);
         if (hasDiagnostics) {
-          this.vscodeLog(`\u{1F3AF} FOCUS AWARE: Focused element has diagnostics - will defer updates`);
         }
       } else {
         this.previousFocusedElement = this.focusedElement;
         this.focusedElement = null;
         if (this.pendingDiagnosticUpdate) {
-          this.vscodeLog(`\u{1F3AF} FOCUS AWARE: Element lost focus - applying pending diagnostic updates`);
           setTimeout(() => {
             this.applyPendingDiagnosticUpdate();
           }, 100);
@@ -43337,15 +42973,12 @@ ${currentContent}`;
       }
       this.typingTimeout = setTimeout(() => {
         this.isUserTyping = false;
-        this.vscodeLog(`\u{1F3AF} FOCUS AWARE: User stopped typing - checking for pending updates`);
         setTimeout(() => {
           if (this.pendingDiagnosticUpdate && this.isSafeToUpdateDiagnostics()) {
-            this.vscodeLog(`\u{1F3AF} FOCUS AWARE: Applying pending diagnostic updates after extended pause`);
             this.applyPendingDiagnosticUpdate();
           }
         }, 1e3);
       }, 2e3);
-      this.vscodeLog(`\u{1F3AF} FOCUS AWARE: User input detected on ${element.tagName} - typing state: ${this.isUserTyping}`);
     }
     trackCursorPosition() {
       const currentCursor = this.getCursorContainerElement();
@@ -43353,7 +42986,6 @@ ${currentContent}`;
         this.previousCursorElement = this.currentCursorElement;
         this.currentCursorElement = currentCursor;
         if (this.previousCursorElement && this.previousCursorElement !== currentCursor && this.pendingDiagnosticUpdate) {
-          this.vscodeLog(`\u{1F3AF} CURSOR MOVE: Cursor moved from ${this.previousCursorElement.tagName} to ${currentCursor?.tagName || "null"}`);
           setTimeout(() => {
             this.applyPendingDiagnosticUpdateForElement(this.previousCursorElement);
           }, 100);
@@ -43377,7 +43009,6 @@ ${currentContent}`;
       const recentTyping = this.isUserTyping || timeSinceInput < 3e3;
       const cursorInEditor = this.isCursorActiveInEditor();
       const safe = !hasActiveFocus && !recentTyping && !cursorInEditor;
-      this.vscodeLog(`\u{1F3AF} FOCUS AWARE: Safe to update diagnostics? ${safe} (focus: ${!!hasActiveFocus}, typing: ${recentTyping}, cursor: ${cursorInEditor}, timeSince: ${timeSinceInput}ms)`);
       return safe;
     }
     isCursorActiveInEditor() {
@@ -43404,7 +43035,6 @@ ${currentContent}`;
       if (!this.pendingDiagnosticUpdate) {
         return;
       }
-      this.vscodeLog(`\u{1F3AF} FOCUS AWARE: Applying pending diagnostic update`);
       this.pendingDiagnosticUpdate = false;
       this.applyDiagnosticStyles();
     }
@@ -43412,22 +43042,17 @@ ${currentContent}`;
       if (!this.pendingDiagnosticUpdate || !targetElement) {
         return;
       }
-      this.vscodeLog(`\u{1F3AF} ELEMENT FOCUS: Applying pending diagnostics for specific element: ${targetElement.tagName}.${targetElement.className || "(no-class)"}`);
       const currentCursor = this.getCursorContainerElement();
       const elementIsSafe = !currentCursor || currentCursor !== targetElement && !this.isDescendantOf(targetElement, currentCursor) && !this.isDescendantOf(currentCursor, targetElement);
       if (elementIsSafe) {
-        this.vscodeLog(`\u{1F3AF} ELEMENT FOCUS: Element is safe to update, applying diagnostics`);
         this.pendingDiagnosticUpdate = false;
         this.applyDiagnosticStyles();
       } else {
-        this.vscodeLog(`\u{1F3AF} ELEMENT FOCUS: Element still contains cursor, keeping diagnostics pending`);
       }
     }
     handleExternalChange() {
-      this.vscodeLog(`\u{1F504} EXTERNAL CHANGE: External change detected, will apply pending diagnostics with delay`);
       setTimeout(() => {
         if (this.pendingDiagnosticUpdate) {
-          this.vscodeLog(`\u{1F504} EXTERNAL CHANGE: Applying pending diagnostics after external change`);
           this.applyPendingDiagnosticUpdate();
         }
       }, 200);
@@ -43437,13 +43062,11 @@ ${currentContent}`;
         clearTimeout(this.updateTimer);
       }
       if (!force && !this.isSafeToUpdateDiagnostics()) {
-        this.vscodeLog(`\u{1F3AF} FOCUS AWARE: User is typing - deferring diagnostic update`);
         this.pendingDiagnosticUpdate = true;
         return;
       }
       this.updateTimer = setTimeout(() => {
         if (!force && !this.isSafeToUpdateDiagnostics()) {
-          this.vscodeLog(`\u{1F3AF} FOCUS AWARE: Still not safe to update - deferring again`);
           this.pendingDiagnosticUpdate = true;
           return;
         }
@@ -43452,21 +43075,17 @@ ${currentContent}`;
         const contentChanged = currentContent !== this.lastContent;
         const diagnosticsChanged = currentDiagnosticsHash !== this.lastDiagnosticsHash;
         const noDiagnosticsApplied = !this.diagnosticsApplied || this.wrappedKeys.size === 0;
-        this.vscodeLog(`\u{1F3AF} FOCUS AWARE UPDATE CHECK: content=${contentChanged ? "CHANGED" : "unchanged"}, diagnostics=${diagnosticsChanged ? "CHANGED" : "unchanged"}, applied=${this.diagnosticsApplied}, keys=${this.wrappedKeys.size}, force=${force}`);
         if (force || contentChanged || diagnosticsChanged || noDiagnosticsApplied) {
           if (diagnosticsChanged || noDiagnosticsApplied || force) {
-            this.vscodeLog(`\u{1F504} Diagnostics changed or not applied - full update needed`);
             this.clearDiagnosticStyles();
             this.applyDiagnosticStyles();
             this.lastDiagnosticsHash = currentDiagnosticsHash;
             this.diagnosticsApplied = true;
           } else if (contentChanged) {
-            this.vscodeLog(`\u{1F4DD} Content changed but diagnostics unchanged - preserving existing diagnostics`);
             this.revalidateExistingDiagnostics();
           }
           this.lastContent = currentContent;
         } else {
-          this.vscodeLog(`\u2705 Content and diagnostics unchanged, diagnostics applied - skipping update`);
         }
         this.updateTimer = null;
       }, 150);
@@ -44200,635 +43819,6 @@ console.log('Hello, World!');
       });
     }
   };
-
-  // src/diff-visualizer.ts
-  var DiffVisualizer = class {
-    constructor() {
-      this.diffInfo = null;
-      this.isInDiffView = false;
-      this.scrollSyncEnabled = true;
-      this.isScrolling = false;
-      this.scrollTimeout = null;
-      this.setupMessageListener();
-      this.setupScrollSync();
-    }
-    setupMessageListener() {
-      console.log("\u{1F3A8} DIFF VISUALIZER: Setting up message listener");
-      window.addEventListener("message", (event) => {
-        const message = event.data;
-        console.log("\u{1F3A8} DIFF VISUALIZER: Received message", {type: message.type, data: message});
-        if (message.type === "diff-view-detected") {
-          console.log("\u{1F3A8} DIFF VISUALIZER: Received diff info from extension", message.diffInfo);
-          this.diffInfo = message.diffInfo;
-          this.isInDiffView = true;
-          this.applyDiffVisualizations();
-        } else if (message.type === "diff-scroll-sync") {
-          console.log("\uFFFD DIFF VISUALIZER: Received scroll sync from other editor", {
-            percentage: message.scrollPercentage,
-            myRole: this.diffInfo?.role,
-            syncEnabled: this.scrollSyncEnabled
-          });
-          this.applyScrollFromOther(message.scrollPercentage);
-        }
-      });
-      console.log("\u{1F3A8} DIFF VISUALIZER: Message listener setup complete");
-    }
-    applyDiffVisualizations() {
-      console.log("\u{1F3A8} DIFF VISUALIZER: applyDiffVisualizations called", {
-        hasDiffInfo: !!this.diffInfo,
-        role: this.diffInfo?.role,
-        changesCount: this.diffInfo?.changes.length
-      });
-      if (!this.diffInfo) {
-        console.log("\u26A0\uFE0F DIFF VISUALIZER: No diff info, exiting");
-        return;
-      }
-      console.log("\u{1F3A8} DIFF VISUALIZER: Applying visualizations", {
-        role: this.diffInfo.role,
-        changes: this.diffInfo.changes.length,
-        stats: this.diffInfo.stats
-      });
-      this.addDiffHeader();
-      setTimeout(() => {
-        console.log("\u{1F3A8} DIFF VISUALIZER: Timeout elapsed, applying line decorations");
-        this.applyLineDecorations();
-        console.log("\u{1F504} DIFF VISUALIZER: Setting up scroll sync after visualizations");
-        this.setupScrollSyncListeners();
-      }, 1e3);
-    }
-    addDiffHeader() {
-      console.log("\u{1F3A8} DIFF VISUALIZER: addDiffHeader called");
-      if (!this.diffInfo) {
-        console.log("\u26A0\uFE0F DIFF VISUALIZER: No diff info in addDiffHeader");
-        return;
-      }
-      const tryAddHeader = (attempt = 1) => {
-        const existingHeader = document.querySelector(".diff-view-header");
-        if (existingHeader) {
-          console.log("\u{1F3A8} DIFF VISUALIZER: Removing existing header");
-          existingHeader.remove();
-        }
-        const vditorElement = document.querySelector(".vditor");
-        if (!vditorElement || !vditorElement.parentElement) {
-          if (attempt < 10) {
-            console.log(`\u26A0\uFE0F DIFF VISUALIZER: Vditor not ready, retrying (attempt ${attempt}/10)...`);
-            setTimeout(() => tryAddHeader(attempt + 1), 300);
-          } else {
-            console.log("\u26A0\uFE0F DIFF VISUALIZER: Vditor element not found after 10 attempts");
-          }
-          return;
-        }
-        console.log("\u2705 DIFF VISUALIZER: Found Vditor element, inserting header");
-        const header = document.createElement("div");
-        header.className = "diff-view-header";
-        header.style.cssText = `
-        position: sticky;
-        top: 0;
-        z-index: 1000;
-        background: var(--vscode-editor-background);
-        border-bottom: 1px solid var(--vscode-panel-border);
-        padding: 8px 12px;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        font-family: var(--vscode-font-family);
-        font-size: 12px;
-      `;
-        const roleLabel = document.createElement("span");
-        roleLabel.textContent = this.diffInfo.role === "left" ? "\u{1F4C4} Original" : "\u{1F4DD} Modified";
-        roleLabel.style.cssText = `
-        font-weight: 600;
-        color: var(--vscode-foreground);
-      `;
-        const stats = document.createElement("span");
-        stats.innerHTML = `
-        <span style="color: var(--vscode-gitDecoration-addedResourceForeground);">+${this.diffInfo.stats.added}</span>
-        <span style="color: var(--vscode-gitDecoration-deletedResourceForeground);">-${this.diffInfo.stats.deleted}</span>
-        <span style="color: var(--vscode-gitDecoration-modifiedResourceForeground);">~${this.diffInfo.stats.modified}</span>
-      `;
-        stats.style.cssText = `
-        display: flex;
-        gap: 8px;
-        margin-left: auto;
-      `;
-        header.appendChild(roleLabel);
-        header.appendChild(stats);
-        vditorElement.parentElement.insertBefore(header, vditorElement);
-        console.log("\u2705 DIFF VISUALIZER: Header inserted successfully");
-      };
-      tryAddHeader();
-    }
-    applyLineDecorations() {
-      console.log("\u{1F3A8} DIFF VISUALIZER: applyLineDecorations called");
-      if (!this.diffInfo) {
-        console.log("\u26A0\uFE0F DIFF VISUALIZER: No diff info in applyLineDecorations");
-        return;
-      }
-      console.log("\u{1F3A8} DIFF VISUALIZER: Applying line decorations to", this.diffInfo.changes.length, "changes");
-      const contentElement = document.querySelector(".vditor-ir") || document.querySelector(".vditor-wysiwyg") || document.querySelector(".vditor-sv");
-      if (!contentElement) {
-        console.warn("\u26A0\uFE0F DIFF VISUALIZER: Could not find Vditor content element");
-        return;
-      }
-      console.log("\u2705 DIFF VISUALIZER: Found content element:", contentElement.className);
-      const allTextNodes = [];
-      const elements = contentElement.querySelectorAll(".vditor-ir__node, .vditor-wysiwyg__block, p, div, h1, h2, h3, h4, h5, h6, li, pre, blockquote");
-      elements.forEach((el) => {
-        const text = el.textContent?.trim() || "";
-        if (text.length > 0) {
-          allTextNodes.push({element: el, text});
-        }
-      });
-      console.log("\u{1F3A8} DIFF VISUALIZER: Found", allTextNodes.length, "text nodes");
-      const sourceLines = this.diffInfo.documentText ? this.diffInfo.documentText.split("\n") : [];
-      console.log("\u{1F3A8} DIFF VISUALIZER: Source document has", sourceLines.length, "text lines");
-      const lineToDom = new Map();
-      let domIndex = 0;
-      for (let lineNum = 0; lineNum < sourceLines.length && domIndex < allTextNodes.length; lineNum++) {
-        const sourceLine = sourceLines[lineNum].trim();
-        if (!sourceLine) {
-          continue;
-        }
-        let found = false;
-        for (let i6 = domIndex; i6 < allTextNodes.length; i6++) {
-          const domNode = allTextNodes[i6];
-          const domText = domNode.text.trim();
-          if (domText === sourceLine) {
-            lineToDom.set(lineNum, domNode.element);
-            domIndex = i6 + 1;
-            found = true;
-            break;
-          }
-        }
-        if (!found) {
-          console.log(`\u26A0\uFE0F DIFF VISUALIZER: Could not map source line ${lineNum}: "${sourceLine.substring(0, 40)}..."`);
-        }
-      }
-      console.log("\u{1F3A8} DIFF VISUALIZER: Built line-to-DOM mapping with", lineToDom.size, "entries");
-      console.log("\u{1F3A8} DIFF VISUALIZER: Mapping details:", Array.from(lineToDom.entries()).slice(0, 20).map(([line, el]) => ({
-        line,
-        text: el.textContent?.trim().substring(0, 30) + "..."
-      })));
-      this.addSpacerBlocks(lineToDom, sourceLines);
-      const relevantChangesForHighlight = this.diffInfo.changes.filter((c5) => c5.side === this.diffInfo.role || c5.side === "both");
-      console.log(`\u{1F3A8} DIFF VISUALIZER: Highlighting ${relevantChangesForHighlight.length} changes for ${this.diffInfo.role} side`);
-      let matchedCount = 0;
-      const alreadyMatched = new Set();
-      relevantChangesForHighlight.forEach((change, index2) => {
-        const changeText = change.content.trim();
-        if (!changeText) {
-          console.log(`\u26A0\uFE0F DIFF VISUALIZER: Change ${index2 + 1} has empty content, skipping`);
-          return;
-        }
-        const targetLineNumber = change.lineNumber;
-        console.log(`\u{1F50D} DIFF VISUALIZER: Looking for change ${index2 + 1} (${change.type}) at line ${targetLineNumber}: "${changeText.substring(0, 40)}..."`);
-        let targetElement = lineToDom.get(targetLineNumber);
-        if (targetElement && !alreadyMatched.has(targetElement)) {
-          const elementText = targetElement.textContent?.trim() || "";
-          if (elementText === changeText || elementText.includes(changeText)) {
-            console.log(`\u2705 DIFF VISUALIZER: Found exact match via line mapping at line ${targetLineNumber}`);
-          } else {
-            console.log(`\u26A0\uFE0F DIFF VISUALIZER: Line mapping found element but text doesn't match. Looking for alternative...`);
-            targetElement = null;
-          }
-        } else if (targetElement) {
-          console.log(`\u26A0\uFE0F DIFF VISUALIZER: Line mapping found element but it's already matched. Looking for alternative...`);
-          targetElement = null;
-        }
-        if (!targetElement) {
-          const matchingNodes = allTextNodes.filter((node) => !alreadyMatched.has(node.element) && node.text === changeText);
-          if (matchingNodes.length === 1) {
-            targetElement = matchingNodes[0].element;
-            console.log(`\u2705 DIFF VISUALIZER: Found single text match`);
-          } else if (matchingNodes.length > 1) {
-            const relativePosition = targetLineNumber / Math.max(sourceLines.length, 1);
-            const targetIndex = Math.floor(relativePosition * allTextNodes.length);
-            targetElement = matchingNodes.reduce((closest, node) => {
-              const nodeIndex = allTextNodes.indexOf(node);
-              const closestIndex = allTextNodes.indexOf(allTextNodes.find((n5) => n5.element === closest));
-              return Math.abs(nodeIndex - targetIndex) < Math.abs(closestIndex - targetIndex) ? node.element : closest;
-            }, matchingNodes[0].element);
-            console.log(`\u2705 DIFF VISUALIZER: Found ${matchingNodes.length} text matches, chose one using relative position (~${Math.floor(relativePosition * 100)}%)`);
-          }
-        }
-        if (targetElement) {
-          const color = this.getChangeColor(change.type);
-          targetElement.style.backgroundColor = color.bg;
-          targetElement.style.borderLeft = `3px solid ${color.border}`;
-          targetElement.style.paddingLeft = "4px";
-          targetElement.title = this.getChangeTooltip(change);
-          alreadyMatched.add(targetElement);
-          matchedCount++;
-          console.log(`\u2705 DIFF VISUALIZER: Applied ${change.type} decoration`);
-        } else {
-          console.log(`\u26A0\uFE0F DIFF VISUALIZER: No match for change ${index2 + 1}`);
-        }
-      });
-      console.log(`\u2705 DIFF VISUALIZER: Applied ${matchedCount}/${relevantChangesForHighlight.length} decorations`);
-    }
-    calculateSimilarity(text1, text2) {
-      const longer = text1.length > text2.length ? text1 : text2;
-      const shorter = text1.length > text2.length ? text2 : text1;
-      if (longer.length === 0)
-        return 1;
-      const matches = shorter.split("").filter((char, i6) => longer[i6] === char).length;
-      return matches / longer.length;
-    }
-    getChangeColor(type) {
-      switch (type) {
-        case "added":
-          return {
-            bg: "var(--vscode-diffEditor-insertedTextBackground, rgba(155, 185, 85, 0.2))",
-            border: "var(--vscode-gitDecoration-addedResourceForeground, #81b88b)"
-          };
-        case "deleted":
-          return {
-            bg: "var(--vscode-diffEditor-removedTextBackground, rgba(255, 0, 0, 0.2))",
-            border: "var(--vscode-gitDecoration-deletedResourceForeground, #c74e39)"
-          };
-        case "modified":
-          return {
-            bg: "var(--vscode-diffEditor-insertedTextBackground, rgba(155, 185, 85, 0.15))",
-            border: "var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d)"
-          };
-      }
-    }
-    getChangeTooltip(change) {
-      switch (change.type) {
-        case "added":
-          return "Added in this version";
-        case "deleted":
-          return "Deleted from original";
-        case "modified":
-          return `Modified from: ${change.oldContent}`;
-        default:
-          return "";
-      }
-    }
-    setupScrollSync() {
-      console.log("\u{1F504} DIFF VISUALIZER: setupScrollSync called (initial setup)");
-    }
-    setupScrollSyncListeners() {
-      console.log("\u{1F504} DIFF VISUALIZER: Setting up scroll sync listeners");
-      const possibleContainers = [
-        document.documentElement,
-        document.body,
-        document.querySelector(".vditor"),
-        document.querySelector(".vditor-content"),
-        document.querySelector(".vditor-ir"),
-        document.querySelector(".vditor-wysiwyg"),
-        document.querySelector(".vditor-sv")
-      ];
-      let scrollableElement = null;
-      for (const element of possibleContainers) {
-        if (element) {
-          const el = element;
-          const hasScroll = el.scrollHeight > el.clientHeight;
-          const overflowY = window.getComputedStyle(el).overflowY;
-          const tagName = el.tagName || "unknown";
-          console.log(`\u{1F50D} DIFF VISUALIZER: Checking ${tagName}.${el.className}:`, {
-            scrollHeight: el.scrollHeight,
-            clientHeight: el.clientHeight,
-            hasScroll,
-            overflowY,
-            isScrollable: hasScroll || el === document.documentElement || el === document.body
-          });
-          if (el === document.documentElement || el === document.body) {
-            scrollableElement = el;
-            console.log(`\u2705 DIFF VISUALIZER: Using document-level scroll: ${tagName}`);
-            break;
-          }
-          if (hasScroll && (overflowY === "auto" || overflowY === "scroll")) {
-            scrollableElement = el;
-            console.log(`\u2705 DIFF VISUALIZER: Found scrollable element: ${tagName}.${el.className}`);
-            break;
-          }
-        }
-      }
-      if (!scrollableElement) {
-        console.error("\u274C DIFF VISUALIZER: Could not find any scroll element, defaulting to document.documentElement");
-        scrollableElement = document.documentElement;
-      }
-      const elementName = scrollableElement.tagName || scrollableElement.className || "unknown";
-      console.log(`\u2705 DIFF VISUALIZER: Attaching scroll listener to: ${elementName}`);
-      const scrollHandler = (e7) => {
-        if (!this.scrollSyncEnabled || this.isScrolling) {
-          return;
-        }
-        const target = e7.target;
-        console.log("\u{1F504} DIFF VISUALIZER: Scroll event fired on:", target.tagName, target.className);
-        this.handleScroll(target);
-      };
-      scrollableElement.addEventListener("scroll", scrollHandler, {passive: true, capture: true});
-      const windowScrollHandler = () => {
-        if (!this.scrollSyncEnabled || this.isScrolling) {
-          return;
-        }
-        console.log("\u{1F504} DIFF VISUALIZER: Window scroll detected");
-        this.handleScroll(document.documentElement);
-      };
-      window.addEventListener("scroll", windowScrollHandler, {passive: true});
-      console.log("\u2705 DIFF VISUALIZER: Scroll listeners attached successfully");
-      console.log("\u{1F4CD} DIFF VISUALIZER: Initial scroll position:", {
-        scrollTop: scrollableElement.scrollTop,
-        scrollHeight: scrollableElement.scrollHeight,
-        clientHeight: scrollableElement.clientHeight
-      });
-    }
-    addSpacerBlocks(lineToDom, sourceLines) {
-      if (!this.diffInfo) {
-        return;
-      }
-      console.log("\u{1F4CF} DIFF VISUALIZER: Adding spacer blocks for alignment");
-      const contentElement = document.querySelector(".vditor-ir") || document.querySelector(".vditor-wysiwyg") || document.querySelector(".vditor-sv");
-      if (!contentElement) {
-        console.warn("\u26A0\uFE0F DIFF VISUALIZER: Could not find content element for spacers");
-        return;
-      }
-      console.log("\u2705 DIFF VISUALIZER: Found content element for spacers:", contentElement.className);
-      console.log(`\u{1F4CF} DIFF VISUALIZER: Processing ${this.diffInfo.changes.length} total changes for ${this.diffInfo.role} editor`);
-      console.log(`\u{1F4CF} DIFF VISUALIZER: Changes breakdown:`, this.diffInfo.changes.map((c5) => ({
-        type: c5.type,
-        line: c5.lineNumber,
-        side: c5.side,
-        content: c5.content.substring(0, 30) + "..."
-      })));
-      const leftSideChanges = this.diffInfo.changes.filter((c5) => c5.side === "left");
-      const rightSideChanges = this.diffInfo.changes.filter((c5) => c5.side === "right");
-      console.log(`\u{1F4CF} DIFF VISUALIZER: Left side (deletions): ${leftSideChanges.length}, Right side (additions): ${rightSideChanges.length}`);
-      const leftDeletions = this.diffInfo.changes.filter((c5) => c5.side === "left" && c5.type === "deleted");
-      const rightAdditions = this.diffInfo.changes.filter((c5) => c5.side === "right" && c5.type === "added");
-      const excludedRightLines = new Set();
-      const excludedLeftLines = new Set();
-      for (const deletion of leftDeletions) {
-        const previousAdditions = rightAdditions.filter((a5) => a5.lineNumber < deletion.lineNumber).length;
-        const previousDeletions = leftDeletions.filter((d5) => d5.lineNumber < deletion.lineNumber).length;
-        const offset = previousAdditions - previousDeletions;
-        const expectedRightLine = deletion.lineNumber + offset;
-        const matchingAddition = rightAdditions.find((a5) => Math.abs(a5.lineNumber - expectedRightLine) <= 2);
-        if (matchingAddition) {
-          console.log(`\u{1F4CF} DIFF VISUALIZER: Detected replacement pair - left line ${deletion.lineNumber} \u2194 right line ${matchingAddition.lineNumber} (both excluded)`);
-          excludedRightLines.add(matchingAddition.lineNumber);
-          excludedLeftLines.add(deletion.lineNumber);
-        }
-      }
-      const relevantChanges = this.diffInfo.role === "left" ? this.diffInfo.changes.filter((c5) => c5.side === "right" && c5.type === "added" && !excludedRightLines.has(c5.lineNumber) && c5.content.trim().length > 0) : this.diffInfo.changes.filter((c5) => c5.side === "left" && c5.type === "deleted" && !excludedLeftLines.has(c5.lineNumber) && c5.content.trim().length > 0);
-      console.log(`\u{1F4CF} DIFF VISUALIZER: Adding ${relevantChanges.length} spacer blocks for ${this.diffInfo.role} editor`);
-      console.log(`\u{1F4CF} DIFF VISUALIZER: Excluded ${excludedRightLines.size} right lines (replacements):`, Array.from(excludedRightLines));
-      console.log(`\u{1F4CF} DIFF VISUALIZER: Excluded ${excludedLeftLines.size} left lines (replacements):`, Array.from(excludedLeftLines));
-      console.log(`\u{1F4CF} DIFF VISUALIZER: Relevant changes for spacers:`, relevantChanges.map((c5) => ({
-        line: c5.lineNumber,
-        type: c5.type,
-        side: c5.side,
-        content: c5.content.substring(0, 30)
-      })));
-      if (relevantChanges.length === 0) {
-        console.log("\u{1F4CF} DIFF VISUALIZER: No spacers needed");
-        return;
-      }
-      const spacerBlocks = [];
-      const sortedChanges = [...relevantChanges].sort((a5, b4) => a5.lineNumber - b4.lineNumber);
-      let currentBlock = {startLine: sortedChanges[0].lineNumber, endLine: sortedChanges[0].lineNumber, lineCount: 1};
-      for (let i6 = 1; i6 < sortedChanges.length; i6++) {
-        const change = sortedChanges[i6];
-        if (change.lineNumber === currentBlock.endLine + 1) {
-          currentBlock.endLine = change.lineNumber;
-          currentBlock.lineCount++;
-          console.log(`\u{1F4CF} DIFF VISUALIZER: Extended block to include line ${change.lineNumber}, block now ${currentBlock.startLine}-${currentBlock.endLine}`);
-        } else {
-          spacerBlocks.push(currentBlock);
-          console.log(`\u{1F4CF} DIFF VISUALIZER: Completed block ${currentBlock.startLine}-${currentBlock.endLine} (${currentBlock.lineCount} lines)`);
-          currentBlock = {startLine: change.lineNumber, endLine: change.lineNumber, lineCount: 1};
-        }
-      }
-      spacerBlocks.push(currentBlock);
-      console.log(`\u{1F4CF} DIFF VISUALIZER: Final block ${currentBlock.startLine}-${currentBlock.endLine} (${currentBlock.lineCount} lines)`);
-      console.log(`\u{1F4CF} DIFF VISUALIZER: Grouped into ${spacerBlocks.length} spacer blocks:`, spacerBlocks);
-      for (let i6 = spacerBlocks.length - 1; i6 >= 0; i6--) {
-        const block = spacerBlocks[i6];
-        console.log(`\u{1F4CF} DIFF VISUALIZER: Processing spacer block for lines ${block.startLine}-${block.endLine} (${block.lineCount} lines)`);
-        let targetElement = null;
-        let targetLineNum;
-        if (this.diffInfo.role === "left") {
-          const additionsBeforeThis = rightAdditions.filter((a5) => a5.lineNumber < block.startLine).length;
-          targetLineNum = block.startLine - additionsBeforeThis;
-          console.log(`\u{1F4CF} DIFF VISUALIZER: Left editor: block at right line ${block.startLine}, inserting at left line ~${targetLineNum}`);
-        } else {
-          const deletionsBeforeThis = leftDeletions.filter((d5) => d5.lineNumber < block.startLine && !excludedLeftLines.has(d5.lineNumber)).length;
-          const additionsBeforeThis = rightAdditions.filter((a5) => a5.lineNumber < block.startLine).length;
-          targetLineNum = block.startLine - deletionsBeforeThis + additionsBeforeThis;
-          console.log(`\u{1F4CF} DIFF VISUALIZER: Right editor: block at left line ${block.startLine}, inserting at right line ~${targetLineNum}`);
-        }
-        targetElement = lineToDom.get(targetLineNum) || null;
-        if (!targetElement) {
-          for (let offset = 1; offset <= 5; offset++) {
-            targetElement = lineToDom.get(targetLineNum - offset);
-            if (targetElement) {
-              console.log(`\u{1F4CF} DIFF VISUALIZER: Found nearby element at offset -${offset} (line ${targetLineNum - offset})`);
-              break;
-            }
-          }
-          if (!targetElement) {
-            for (let offset = 1; offset <= 5; offset++) {
-              targetElement = lineToDom.get(targetLineNum + offset);
-              if (targetElement) {
-                console.log(`\u{1F4CF} DIFF VISUALIZER: Found nearby element at offset +${offset} (line ${targetLineNum + offset})`);
-                break;
-              }
-            }
-          }
-        }
-        if (!targetElement) {
-          console.warn(`\u26A0\uFE0F DIFF VISUALIZER: Could not find target element for block starting at line ${block.startLine}, skipping spacer`);
-          continue;
-        }
-        console.log(`\u{1F4CF} DIFF VISUALIZER: Target element for spacer block:`, targetElement.tagName, targetElement.className);
-        let parentElement = targetElement.parentElement;
-        let insertionParent = null;
-        while (parentElement) {
-          if (parentElement === contentElement) {
-            insertionParent = contentElement;
-            break;
-          }
-          parentElement = parentElement.parentElement;
-        }
-        if (!insertionParent) {
-          console.warn(`\u26A0\uFE0F DIFF VISUALIZER: Target element is not a child of content element, skipping spacer for block at line ${block.startLine}`);
-          continue;
-        }
-        const singleLineHeight = this.estimateLineHeight(targetElement);
-        const totalHeight = singleLineHeight * block.lineCount;
-        console.log(`\u{1F4CF} DIFF VISUALIZER: Estimated line height: ${singleLineHeight}px \xD7 ${block.lineCount} lines = ${totalHeight}px total`, {
-          tag: targetElement.tagName,
-          offsetHeight: targetElement.offsetHeight,
-          computedLineHeight: window.getComputedStyle(targetElement).lineHeight,
-          fontSize: window.getComputedStyle(targetElement).fontSize
-        });
-        const spacer = document.createElement("div");
-        spacer.className = "diff-spacer-block";
-        spacer.setAttribute("data-line-start", block.startLine.toString());
-        spacer.setAttribute("data-line-end", block.endLine.toString());
-        spacer.style.cssText = `
-        height: ${totalHeight}px;
-        min-height: ${totalHeight}px;
-        background-color: var(--vscode-diffEditor-removedTextBackground, rgba(255, 0, 0, 0.1));
-        border-left: 3px solid var(--vscode-gitDecoration-deletedResourceForeground, #c74e39);
-        margin: 0;
-        padding: 0;
-        position: relative;
-        display: block;
-        box-sizing: border-box;
-      `;
-        spacer.innerHTML = `<span style="
-        position: absolute;
-        left: 10px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: var(--vscode-descriptionForeground);
-        font-size: 11px;
-        opacity: 0.5;
-        user-select: none;
-      ">\xB7\xB7\xB7</span>`;
-        try {
-          if (this.diffInfo.role === "left") {
-            if (targetElement.nextSibling) {
-              targetElement.parentElement.insertBefore(spacer, targetElement.nextSibling);
-            } else {
-              targetElement.parentElement.appendChild(spacer);
-            }
-            console.log(`\u{1F4CF} DIFF VISUALIZER: \u2705 Inserted spacer AFTER line ${targetLineNum} (left/original) for block ${block.startLine}-${block.endLine}`);
-          } else {
-            targetElement.parentElement.insertBefore(spacer, targetElement);
-            console.log(`\u{1F4CF} DIFF VISUALIZER: \u2705 Inserted spacer BEFORE line ${targetLineNum} (right/modified) for block ${block.startLine}-${block.endLine}`);
-          }
-        } catch (error2) {
-          console.error(`\u274C DIFF VISUALIZER: Failed to insert spacer for block ${block.startLine}-${block.endLine}:`, error2);
-        }
-      }
-      console.log("\u{1F4CF} DIFF VISUALIZER: Spacer blocks insertion complete");
-    }
-    estimateLineHeight(element) {
-      const computedStyle = window.getComputedStyle(element);
-      const lineHeightStr = computedStyle.lineHeight;
-      if (lineHeightStr === "normal" || lineHeightStr === "") {
-        const fontSize = parseFloat(computedStyle.fontSize);
-        if (!isNaN(fontSize)) {
-          return Math.ceil(fontSize * 1.2);
-        }
-      } else {
-        const lineHeight = parseFloat(lineHeightStr);
-        if (!isNaN(lineHeight)) {
-          return Math.ceil(lineHeight);
-        }
-      }
-      const elementHeight = element.offsetHeight;
-      if (elementHeight > 40) {
-        const fontSize = parseFloat(computedStyle.fontSize);
-        if (!isNaN(fontSize)) {
-          return Math.ceil(fontSize * 1.2);
-        }
-        return 24;
-      }
-      return elementHeight || 24;
-    }
-    handleScroll(element) {
-      console.log("\u{1F504} DIFF VISUALIZER: handleScroll called");
-      if (this.isScrolling) {
-        console.log("\u{1F504} DIFF VISUALIZER: Scroll ignored - isScrolling is true");
-        return;
-      }
-      const scrollHeight = element.scrollHeight;
-      const clientHeight = element.clientHeight;
-      const scrollTop = element.scrollTop;
-      const scrollableHeight = scrollHeight - clientHeight;
-      const scrollPercentage = scrollableHeight > 0 ? scrollTop / scrollableHeight : 0;
-      console.log("\u{1F504} DIFF VISUALIZER: Scroll detected", {
-        element: element.tagName + "." + element.className,
-        scrollTop,
-        scrollHeight,
-        clientHeight,
-        scrollableHeight,
-        percentage: scrollPercentage,
-        hasVscode: !!window.vscode,
-        diffRole: this.diffInfo?.role
-      });
-      if (isNaN(scrollPercentage)) {
-        console.warn("\u26A0\uFE0F DIFF VISUALIZER: Invalid scroll percentage (NaN), skipping");
-        return;
-      }
-      const vscode2 = window.vscode;
-      if (vscode2) {
-        console.log("\u{1F504} DIFF VISUALIZER: Sending scroll sync message to extension", {percentage: scrollPercentage});
-        vscode2.postMessage({
-          command: "diff-scroll-sync",
-          scrollPercentage,
-          role: this.diffInfo?.role
-        });
-      } else {
-        console.warn("\u26A0\uFE0F DIFF VISUALIZER: vscode object not available!");
-      }
-    }
-    applyScrollFromOther(scrollPercentage) {
-      if (!this.scrollSyncEnabled) {
-        console.log("\u{1F504} DIFF VISUALIZER: Scroll sync disabled, ignoring");
-        return;
-      }
-      const scrollableElement = document.querySelector(".vditor-ir pre.vditor-reset") || document.querySelector(".vditor-wysiwyg pre.vditor-reset") || document.querySelector(".vditor-sv pre.vditor-reset") || document.querySelector("pre.vditor-reset") || document.documentElement;
-      if (!scrollableElement) {
-        console.warn("\u26A0\uFE0F DIFF VISUALIZER: No element found to apply scroll");
-        return;
-      }
-      const element = scrollableElement;
-      console.log("\u{1F504} DIFF VISUALIZER: Target element for scroll sync:", {
-        tag: element.tagName,
-        classes: element.className,
-        scrollHeight: element.scrollHeight,
-        clientHeight: element.clientHeight,
-        currentScrollTop: element.scrollTop
-      });
-      this.isScrolling = true;
-      const scrollableHeight = element.scrollHeight - element.clientHeight;
-      if (scrollableHeight <= 0) {
-        console.warn("\u26A0\uFE0F DIFF VISUALIZER: Element is not scrollable!", {
-          scrollHeight: element.scrollHeight,
-          clientHeight: element.clientHeight,
-          element: element.tagName + "." + element.className
-        });
-        this.isScrolling = false;
-        return;
-      }
-      const targetScrollTop = scrollPercentage * scrollableHeight;
-      element.scrollTop = targetScrollTop;
-      console.log("\u2705 DIFF VISUALIZER: Applied scroll sync", {
-        element: element.tagName + "." + element.className,
-        percentage: scrollPercentage,
-        scrollHeight: element.scrollHeight,
-        clientHeight: element.clientHeight,
-        scrollableHeight,
-        targetScrollTop,
-        actualScrollTop: element.scrollTop
-      });
-      if (this.scrollTimeout) {
-        clearTimeout(this.scrollTimeout);
-      }
-      this.scrollTimeout = window.setTimeout(() => {
-        this.isScrolling = false;
-      }, 100);
-    }
-    toggleScrollSync() {
-      this.scrollSyncEnabled = !this.scrollSyncEnabled;
-      console.log("\u{1F504} DIFF VISUALIZER: Scroll sync", this.scrollSyncEnabled ? "enabled" : "disabled");
-    }
-    inDiffView() {
-      return this.isInDiffView;
-    }
-    getDiffInfo() {
-      return this.diffInfo;
-    }
-  };
-  console.log("\u{1F3A8} DIFF VISUALIZER: Module loading, creating singleton instance");
-  var diffVisualizer = new DiffVisualizer();
-  console.log("\u{1F3A8} DIFF VISUALIZER: Singleton instance created");
 
   // src/cursor-manager.ts
   var CursorManager = class {
@@ -46085,7 +45075,6 @@ console.log('Hello, World!');
   var vscodeIntegrator = null;
   var cursorManager = null;
   var findReplaceManager = null;
-  console.log("\u{1F4CB} MAIN: Diff visualizer loaded:", !!diffVisualizer);
   window.__vditorHandledContextMenu = false;
   var __lastContextMenuBuild = 0;
   var __lastMousePos = {x: 200, y: 200};
@@ -46271,7 +45260,6 @@ console.log('Hello, World!');
         submenuEl.style.left = `${finalX}px`;
         submenuEl.style.top = `${finalY}px`;
         submenuEl.style.visibility = "visible";
-        console.log(`\u{1F4CB} SUBMENU: Positioned at (${finalX}, ${finalY}) - Submenu: ${submenuWidth}x${submenuHeight}, Viewport: ${viewportWidth}x${viewportHeight}`);
       };
       const scheduleClose = () => {
         if (closeTimer)
@@ -46306,7 +45294,6 @@ console.log('Hello, World!');
             const text = await navigator.clipboard.readText();
             if (text) {
               window.vditor.insertValue(text);
-              console.log("\u{1F527} Paste via Vditor.insertValue succeeded");
               return;
             }
           }
@@ -46314,13 +45301,10 @@ console.log('Hello, World!');
         try {
           const success2 = document.execCommand("paste");
           if (success2) {
-            console.log("\u{1F527} Paste via execCommand succeeded");
             return;
           }
         } catch (err) {
-          console.warn("\u{1F527} execCommand paste failed:", err);
         }
-        console.log("\u{1F527} Requesting paste from extension as fallback");
         vscode.postMessage({command: "clipboardReadRequest"});
       } else {
         const {text, range} = getRobustSelectionSnapshot();
@@ -46338,14 +45322,14 @@ console.log('Hello, World!');
                 try {
                   activeRange.deleteContents();
                 } catch (errDel2) {
-                  console.warn("\u{1F527} Cut delete fallback failed", errDel2);
+                  vscodeLog(`Cut delete fallback failed: ${errDel2}`);
                 }
               }
               window.vditor?.vditor?.ir?.element?.dispatchEvent(new InputEvent("input", {bubbles: true}));
             }
             return;
           } catch (err) {
-            console.warn("\u{1F527} navigator.clipboard writeText failed, will fallback", err);
+            vscodeLog(`Clipboard writeText failed, falling back to execCommand: ${err}`);
           }
         }
         const execOk = document.execCommand(kind);
@@ -46365,7 +45349,7 @@ console.log('Hello, World!');
               try {
                 activeRange.deleteContents();
               } catch (errDel3) {
-                console.warn("\u{1F527} ExecCommand cut fallback failed", errDel3);
+                vscodeLog(`ExecCommand cut fallback failed: ${errDel3}`);
               }
             }
             window.vditor?.vditor?.ir?.element?.dispatchEvent(new InputEvent("input", {bubbles: true}));
@@ -46375,7 +45359,7 @@ console.log('Hello, World!');
         vscode.postMessage({command: "clipboardWriteRequest", kind, text});
       }
     } catch (err) {
-      console.warn(`\u{1F527} Clipboard action ${kind} failed:`, err);
+      vscodeLog(`Clipboard action ${kind} failed: ${err}`);
       if (kind === "paste") {
         vscode.postMessage({command: "clipboardReadRequest"});
       } else {
@@ -46474,7 +45458,7 @@ console.log('Hello, World!');
         try {
           attachMenuKeyboardNavigation(root);
         } catch (err) {
-          console.warn("\u{1F527} Keyboard nav attach (mouse) failed", err);
+          vscodeLog(`Keyboard nav attach (mouse) failed: ${err}`);
         }
       }
     }
@@ -46502,7 +45486,7 @@ console.log('Hello, World!');
           try {
             attachMenuKeyboardNavigation(root);
           } catch (err) {
-            console.warn("\u{1F527} Keyboard nav attach (keyboard) failed", err);
+            vscodeLog(`Keyboard nav attach (keyboard) failed: ${err}`);
           }
         }
       }
@@ -46510,73 +45494,12 @@ console.log('Hello, World!');
       e7.stopPropagation();
     }
   });
-  function setupDebugLogging() {
-    const editor = document.querySelector(".vditor-ir .vditor-reset");
-    if (!editor) {
-      vscodeLog("\u274C Could not find editor element for debug logging");
-      return;
-    }
-    editor.addEventListener("beforeinput", (e7) => {
-      vscodeLog(`\u{1F50D} BEFOREINPUT: type=${e7.inputType}, data="${e7.data}", isComposing=${e7.isComposing}`);
-    }, true);
-    editor.addEventListener("input", (e7) => {
-      vscodeLog(`\u{1F50D} INPUT: type=${e7.inputType}, data="${e7.data}", isComposing=${e7.isComposing}`);
-    });
-    editor.addEventListener("keydown", (e7) => {
-      if (e7.key === " " || e7.key === "Enter") {
-        vscodeLog(`\u{1F50D} KEYDOWN: key="${e7.key}", ctrlKey=${e7.ctrlKey}, shiftKey=${e7.shiftKey}, altKey=${e7.altKey}`);
-        const selection = window.getSelection();
-        if (selection && selection.rangeCount > 0) {
-          const range = selection.getRangeAt(0);
-          vscodeLog(`\u{1F50D} CURSOR BEFORE: container=${range.startContainer.nodeName}, offset=${range.startOffset}`);
-        }
-      }
-    });
-    editor.addEventListener("keyup", (e7) => {
-      if (e7.key === " " || e7.key === "Enter") {
-        vscodeLog(`\u{1F50D} KEYUP: key="${e7.key}"`);
-        setTimeout(() => {
-          const selection = window.getSelection();
-          if (selection && selection.rangeCount > 0) {
-            const range = selection.getRangeAt(0);
-            vscodeLog(`\u{1F50D} CURSOR AFTER: container=${range.startContainer.nodeName}, offset=${range.startOffset}`);
-          }
-        }, 10);
-      }
-    });
-    const mutationObserver = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.type === "childList") {
-          if (mutation.addedNodes.length > 0) {
-            vscodeLog(`\u{1F50D} DOM MUTATION: Added ${mutation.addedNodes.length} nodes`);
-          }
-          if (mutation.removedNodes.length > 0) {
-            vscodeLog(`\u{1F50D} DOM MUTATION: Removed ${mutation.removedNodes.length} nodes`);
-          }
-        }
-        if (mutation.type === "characterData") {
-          vscodeLog(`\u{1F50D} DOM MUTATION: Text content changed`);
-        }
-      });
-    });
-    mutationObserver.observe(editor, {
-      childList: true,
-      subtree: true,
-      characterData: true
-    });
-    vscodeLog("\u2705 Debug logging setup complete - monitoring space/enter key behavior");
-  }
-  function setupFormatPrevention() {
-    vscodeLog("\u26A0\uFE0F Format prevention DISABLED for debugging - testing vanilla Vditor behavior");
-  }
   function vscodeLog(message) {
     vscode.postMessage({
       command: "log",
       message
     });
   }
-  vscodeLog("Main.ts: Webview script loaded and vscodeLog function initialized");
-  vscodeLog("Main.ts: Starting VS Code integration improvements...");
   initializeRendererSystem();
   function initVditor(msg) {
     let predictionary = null;
@@ -46591,9 +45514,8 @@ console.log('Hello, World!');
         addToDictionary: dictionaryKey
       });
       predictionary.useDictionaries([dictionaryKey]);
-      console.log("\u2705 Predictionary v1.6.0 loaded successfully");
     } catch (error2) {
-      console.warn("\u26A0\uFE0F Predictionary initialization failed:", error2);
+      vscodeLog(`Predictionary initialization failed: ${error2}`);
       predictionary = null;
     }
     let inputTimer;
@@ -46767,7 +45689,6 @@ console.log('Hello, World!');
         try {
           if (vscodeIntegrator) {
             const menuItems = vscodeIntegrator.createVditorContextMenu(event);
-            vscodeLog(`\u{1F3AF} MAIN.TS: \u2705 Returning ${menuItems.length} menu items to Vditor`);
             setTimeout(() => {
               const menus = document.querySelectorAll(".vditor-menu, .vditor-contextmenu, .vditor-context-menu");
               menus.forEach((menu) => {
@@ -46776,32 +45697,23 @@ console.log('Hello, World!');
                   const rect = menuEl.getBoundingClientRect();
                   const viewportHeight = window.innerHeight;
                   const viewportWidth = window.innerWidth;
-                  let currentTop = parseFloat(menuEl.style.top || "0");
-                  let currentLeft = parseFloat(menuEl.style.left || "0");
                   if (rect.bottom > viewportHeight) {
-                    const newTop = Math.max(0, viewportHeight - rect.height - 10);
-                    menuEl.style.top = `${newTop}px`;
-                    vscodeLog(`\u{1F4CB} MENU FIX: Adjusted top from ${currentTop}px to ${newTop}px (viewport height: ${viewportHeight}px)`);
+                    menuEl.style.top = `${Math.max(0, viewportHeight - rect.height - 10)}px`;
                   }
                   if (rect.right > viewportWidth) {
-                    const newLeft = Math.max(0, viewportWidth - rect.width - 10);
-                    menuEl.style.left = `${newLeft}px`;
-                    vscodeLog(`\u{1F4CB} MENU FIX: Adjusted left from ${currentLeft}px to ${newLeft}px (viewport width: ${viewportWidth}px)`);
+                    menuEl.style.left = `${Math.max(0, viewportWidth - rect.width - 10)}px`;
                   }
                   if (rect.top < 0) {
                     menuEl.style.top = "10px";
-                    vscodeLog(`\u{1F4CB} MENU FIX: Adjusted top to 10px (was off-screen)`);
                   }
                   if (rect.left < 0) {
                     menuEl.style.left = "10px";
-                    vscodeLog(`\u{1F4CB} MENU FIX: Adjusted left to 10px (was off-screen)`);
                   }
                 }
               });
             }, 10);
             return menuItems;
           } else {
-            vscodeLog(`\u274C MAIN.TS: vscodeIntegrator not yet initialized - providing immediate basic menu`);
             return [
               {label: "Cut", click: () => {
                 document.execCommand("cut");
@@ -46826,8 +45738,6 @@ console.log('Hello, World!');
             ];
           }
         } catch (error2) {
-          console.error(`\u274C MAIN.TS: Critical error in contextmenu callback:`, error2);
-          vscodeLog(`\u274C MAIN.TS: Critical error in contextmenu callback: ${error2}`);
           return [
             {label: "Cut", click: () => document.execCommand("cut")},
             {label: "Copy", click: () => document.execCommand("copy")},
@@ -46844,8 +45754,6 @@ console.log('Hello, World!');
       },
       ...defaultOptions2,
       after() {
-        vscodeLog(`\u{1F50D} VDITOR AFTER CALLBACK: Editor initialized in mode: ${window.vditor?.getCurrentMode() || "unknown"}`);
-        vscodeLog(`\u{1F50D} VDITOR CONFIG: Vditor instance created with IR mode`);
         fixDarkTheme();
         document.addEventListener("contextmenu", (e7) => {
           const isEditorEvent = e7.target && (e7.target.closest(".vditor-ir") || e7.target.closest(".vditor-wysiwyg") || e7.target.closest(".vditor-sv"));
@@ -46853,7 +45761,7 @@ console.log('Hello, World!');
             try {
               const result = window.vditor.options.contextmenu(e7);
             } catch (error2) {
-              console.error(`\u274C GLOBAL DEBUG: Manual callback error:`, error2);
+              vscodeLog(`Error in Vditor contextmenu callback: ${error2}`);
             }
           }
         }, false);
@@ -46944,7 +45852,6 @@ console.log('Hello, World!');
           menu.style.left = `${finalX}px`;
           menu.style.top = `${finalY}px`;
           menu.style.visibility = "visible";
-          console.log(`\u{1F4CB} CONTEXT MENU: Positioned at (${finalX}, ${finalY}) - Menu: ${menuWidth}x${menuHeight}, Viewport: ${viewportWidth}x${viewportHeight}`);
           const removeMenu = (e7) => {
             if (!menu.contains(e7.target)) {
               menu.remove();
@@ -47021,17 +45928,14 @@ console.log('Hello, World!');
           };
           document.addEventListener("keydown", keyHandler, true);
         };
-        vscodeLog("\u2705 Re-enabling DiagnosticVisualizer, VSCodeIntegrator, and CursorManager");
         try {
           diagnosticVisualizer = new DiagnosticVisualizer(window.vditor);
           window.__lastDiagnosticUpdate = Date.now();
-          vscodeLog("\u2705 DiagnosticVisualizer initialized successfully");
         } catch (error2) {
-          vscodeLog(`\u274C Failed to initialize DiagnosticVisualizer: ${error2}`);
+          vscodeLog(`Failed to initialize DiagnosticVisualizer: ${error2}`);
         }
         try {
           vscodeIntegrator = new VSCodeWebviewIntegrator(window.vditor);
-          vscodeLog("\u2705 VSCodeWebviewIntegrator initialized successfully");
           window.testContextMenu = () => {
             if (vscodeIntegrator) {
               const testEvent = new MouseEvent("contextmenu", {
@@ -47046,42 +45950,33 @@ console.log('Hello, World!');
             return [];
           };
         } catch (error2) {
-          vscodeLog(`\u274C Failed to initialize VSCodeWebviewIntegrator: ${error2}`);
+          vscodeLog(`Failed to initialize VSCodeWebviewIntegrator: ${error2}`);
         }
         try {
           cursorManager = new CursorManager(window.vditor);
-          vscodeLog("\u2705 CursorManager initialized successfully");
           if (vscodeIntegrator) {
             vscodeIntegrator.setCursorManager(cursorManager);
-            vscodeLog("\u2705 CursorManager connected to VSCodeIntegrator");
           }
         } catch (error2) {
-          vscodeLog(`\u274C Failed to initialize CursorManager: ${error2}`);
+          vscodeLog(`Failed to initialize CursorManager: ${error2}`);
         }
         try {
           findReplaceManager = new FindReplaceManager(window.vditor);
           findReplaceManager.initialize();
           window.findReplaceManager = findReplaceManager;
-          vscodeLog("\u2705 FindReplaceManager initialized successfully");
         } catch (error2) {
-          vscodeLog(`\u274C Failed to initialize FindReplaceManager: ${error2}`);
-          console.error("\u274C FindReplaceManager initialization error:", error2);
+          vscodeLog(`FindReplaceManager initialization error: ${error2}`);
         }
-        setupDebugLogging();
-        setupFormatPrevention();
         setTimeout(() => {
           if (diagnosticVisualizer) {
             diagnosticVisualizer.addSimpleDiagnostics();
           }
         }, 500);
-        vscodeLog("\u{1F50D} VDITOR SETUP: Ready to test vanilla behavior with space and enter keys");
       },
       input(value) {
         const timestamp = Date.now();
-        vscodeLog(`\u{1F50D} CURSOR DEBUG - Vditor input callback triggered at ${timestamp}`);
         inputTimer && clearTimeout(inputTimer);
         inputTimer = setTimeout(() => {
-          vscodeLog(`\u{1F50D} CURSOR DEBUG - Processing content update after delay (${Date.now() - timestamp}ms elapsed)`);
           const customRenderTriggers = document.querySelectorAll(".vditor-copy");
           let shouldResetValue = false;
           customRenderTriggers.forEach((trigger) => {
@@ -47094,7 +45989,6 @@ console.log('Hello, World!');
           if (shouldResetValue) {
             const currentValue = vditor.getValue();
             vditor.setValue(currentValue);
-            vscodeLog(`\u{1F504} Custom renderer trigger detected - reset editor content to re-render blocks`);
           }
           const selection = window.getSelection();
           if (selection && selection.rangeCount > 0) {
@@ -47104,31 +45998,15 @@ console.log('Hello, World!');
               const textContent = editor2.textContent || "";
               const beforeCursor = textContent.substring(0, range.startOffset);
               const lines = beforeCursor.split("\n");
-              const cursorInfo = {
-                line: lines.length - 1,
-                character: lines[lines.length - 1].length,
-                containerType: range.startContainer.nodeName,
-                offset: range.startOffset
-              };
-              vscodeLog(`\u{1F50D} CURSOR DEBUG - Sending cursor position: line ${cursorInfo.line}, char ${cursorInfo.character}`);
               vscode.postMessage({
                 command: "cursorPosition",
-                line: cursorInfo.line,
-                character: cursorInfo.character
+                line: lines.length - 1,
+                character: lines[lines.length - 1].length
               });
             }
           }
           if (diagnosticVisualizer) {
             diagnosticVisualizer.cleanupTransientUI();
-            setTimeout(() => {
-              if (diagnosticVisualizer) {
-                const stillExist = diagnosticVisualizer.verifyDiagnosticElementsAfterCleanup();
-                if (!stillExist) {
-                  vscodeLog(`\u{1F6A8} INPUT CALLBACK: Diagnostic elements missing after cleanup - triggering reapplication`);
-                  diagnosticVisualizer.addSimpleDiagnostics();
-                }
-              }
-            }, 50);
           }
           const editor = document.querySelector(".vditor-ir .vditor-reset") || document.querySelector(".vditor-wysiwyg .vditor-reset") || document.querySelector(".vditor-sv .vditor-reset");
           if (editor) {
@@ -47143,55 +46021,12 @@ console.log('Hello, World!');
             textNodesToFix.forEach((node) => {
               const cleanText = node.textContent.replace(/💡/g, "");
               if (cleanText !== node.textContent) {
-                vscodeLog(`\u{1F527} Removed lightbulb from text node: "${node.textContent}" -> "${cleanText}"`);
                 node.textContent = cleanText;
               }
             });
           }
           setTimeout(() => {
-            const editor2 = document.querySelector(".vditor-ir .vditor-reset") || document.querySelector(".vditor-wysiwyg .vditor-reset") || document.querySelector(".vditor-sv .vditor-reset");
-            if (editor2) {
-              const editorLightbulbs = editor2.querySelectorAll(".vscode-quickfix-lightbulb");
-              const editorElementsWithLightbulb = Array.from(editor2.querySelectorAll("*")).filter((el) => el.textContent && el.textContent.includes("\u{1F4A1}"));
-              if (editorLightbulbs.length > 0) {
-                vscodeLog(`\u{1F6A8} Found ${editorLightbulbs.length} lightbulbs still in editor DOM before getValue()!`);
-                console.error(`\u{1F6A8} Found ${editorLightbulbs.length} lightbulbs still in editor DOM before getValue()!`);
-                editorLightbulbs.forEach((lb) => lb.remove());
-              }
-              if (editorElementsWithLightbulb.length > 0) {
-                vscodeLog(`\uFFFD Found ${editorElementsWithLightbulb.length} elements with lightbulb text in editor DOM!`);
-                console.error(`\u{1F6A8} Found ${editorElementsWithLightbulb.length} elements with lightbulb text in editor DOM!`);
-                editorElementsWithLightbulb.forEach((el) => {
-                  vscodeLog(`Element: ${el.tagName}.${el.className}, text: "${el.textContent}"`);
-                  console.error(`Element: ${el.tagName}.${el.className}, text: "${el.textContent}"`);
-                });
-              }
-            }
             const content = vditor.getValue();
-            vscodeLog(`\uFFFD\u{1F50D} VDITOR CONTENT LENGTH: ${content.length} characters`);
-            if (content.includes("\u{1F4A1}")) {
-              vscodeLog(`\u{1F6A8} LIGHTBULB FOUND IN CONTENT! This should not happen.`);
-              console.error(`\u{1F6A8} LIGHTBULB FOUND IN CONTENT! This should not happen. Our fix may need adjustment.`);
-              const lightbulbIndex = content.indexOf("\u{1F4A1}");
-              const snippet = content.substring(Math.max(0, lightbulbIndex - 100), lightbulbIndex + 100);
-              vscodeLog(`Content snippet around lightbulb: ${snippet}`);
-              console.error(`Content snippet around lightbulb: ${snippet}`);
-              const lines = content.split("\n");
-              for (let i6 = 0; i6 < lines.length; i6++) {
-                if (lines[i6].includes("\u{1F4A1}")) {
-                  vscodeLog(`Lightbulb found on line ${i6}: "${lines[i6]}"`);
-                  console.error(`Lightbulb found on line ${i6}: "${lines[i6]}"`);
-                  if (i6 > 0)
-                    vscodeLog(`Previous line: "${lines[i6 - 1]}"`);
-                  if (i6 < lines.length - 1)
-                    vscodeLog(`Next line: "${lines[i6 + 1]}"`);
-                }
-              }
-            }
-            if (content.includes("data-diagnostic-ui")) {
-              vscodeLog(`\u{1F6A8} DIAGNOSTIC UI ATTRIBUTES FOUND IN CONTENT! This should not happen.`);
-              console.error(`\u{1F6A8} DIAGNOSTIC UI ATTRIBUTES FOUND IN CONTENT! This should not happen.`);
-            }
             vscodeLog(`\u{1F50D} CURSOR DEBUG - Sending edit message to VS Code (content length: ${content.length})`);
             vscode.postMessage({command: "edit", content});
           }, 10);
@@ -47239,7 +46074,7 @@ console.log('Hello, World!');
       case "update": {
         if (msg.documentFilename) {
           window.currentDocumentFilename = msg.documentFilename;
-          console.log(`\u{1F4C4} MAIN: Stored document filename: ${msg.documentFilename}`);
+          vscodeLog(`Stored document filename: ${msg.documentFilename}`);
         }
         if (msg.type === "init") {
           if (msg.options && msg.options.useVscodeThemeColor) {
@@ -47250,7 +46085,7 @@ console.log('Hello, World!');
           try {
             initVditor(msg);
           } catch (error2) {
-            console.error(error2);
+            vscodeLog(`Error initializing Vditor: ${error2}`);
             initVditor({content: msg.content});
             saveVditorOptions();
           }
@@ -47320,7 +46155,7 @@ console.log('Hello, World!');
             documentLines: msg.documentLines
           });
         } else {
-          console.warn("Main.ts: DiagnosticVisualizer not initialized when diagnostics received");
+          vscodeLog("DiagnosticVisualizer not initialized when diagnostics received");
         }
         break;
       }
@@ -47348,20 +46183,20 @@ console.log('Hello, World!');
         break;
       }
       case "showFind": {
-        vscodeLog(`Main.ts: Show Find command received`);
+        vscodeLog(`Show Find command received`);
         if (findReplaceManager) {
           findReplaceManager.showFind();
         } else {
-          console.warn("FindReplaceManager not initialized");
+          vscodeLog("FindReplaceManager not initialized");
         }
         break;
       }
       case "showFindReplace": {
-        vscodeLog(`Main.ts: Show Find and Replace command received`);
+        vscodeLog(`Show Find and Replace command received`);
         if (findReplaceManager) {
           findReplaceManager.showFindReplace();
         } else {
-          console.warn("FindReplaceManager not initialized");
+          vscodeLog("FindReplaceManager not initialized");
         }
         break;
       }

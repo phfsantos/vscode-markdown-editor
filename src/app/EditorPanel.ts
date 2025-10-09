@@ -287,16 +287,10 @@ export class EditorPanel {
           }
           case "diff-scroll-sync": {
             // Handle scroll synchronization in diff view
-            console.log('📥 EDITOR PANEL: Received diff-scroll-sync message', {
-              uri: this._uri?.toString(),
-              percentage: message.scrollPercentage,
-              role: message.role
-            });
             
             if (this._uri) {
               const diffSupport = (global as any).markdownDiffViewSupport;
-              console.log('📥 EDITOR PANEL: diffSupport exists:', !!diffSupport);
-              
+
               if (diffSupport) {
                 diffSupport.handleScrollSync(this._uri, message.scrollPercentage);
               } else {
@@ -579,23 +573,17 @@ export class EditorPanel {
   private async _checkDiffViewContext(): Promise<void> {
     const diffSupport = (global as any).markdownDiffViewSupport;
     if (!diffSupport) {
-      console.log('⚠️ DIFF VIEW: No diff support available');
+
       return;
     }
 
     // Give VS Code time to set up the layout and run detection
     // Try multiple times with increasing delays
     const checkDiff = async (attempt: number = 1): Promise<void> => {
-      console.log(`🔍 DIFF VIEW: Checking diff context (attempt ${attempt}) for ${this._uri.toString()}`);
-      
+
       const diffInfo = diffSupport.getDiffInfo(this._uri);
       
       if (diffInfo) {
-        console.log('🔍 DIFF VIEW: Editor is in diff view!', {
-          thisUri: diffInfo.thisUri.toString(),
-          otherUri: diffInfo.otherUri.toString(),
-          role: diffInfo.role
-        });
 
         // Calculate diff
         const leftUri = diffInfo.role === 'left' ? diffInfo.thisUri : diffInfo.otherUri;
@@ -611,12 +599,6 @@ export class EditorPanel {
         const thisDoc = await vscode.workspace.openTextDocument(diffInfo.thisUri);
         const documentText = thisDoc.getText();
         
-        console.log('📊 DIFF VIEW: All changes:', allChanges.map((c: any) => ({
-          type: c.type,
-          line: c.lineNumber,
-          content: c.content.substring(0, 30) + '...',
-          side: c.side
-        })));
         
         // Send diff information to webview with ALL changes
         this._panel.webview.postMessage({
@@ -630,16 +612,11 @@ export class EditorPanel {
           }
         });
 
-        console.log('✅ DIFF VIEW: Sent diff info to webview', {
-          role: diffInfo.role,
-          allChanges: allChanges.length,
-          stats: diffResult.stats
-        });
       } else if (attempt < 3) {
         // Try again after a longer delay
         setTimeout(() => checkDiff(attempt + 1), 1000);
       } else {
-        console.log('ℹ️ DIFF VIEW: Not in diff context after 3 attempts');
+
       }
     };
 

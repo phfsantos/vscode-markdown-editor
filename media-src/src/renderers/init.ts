@@ -17,8 +17,6 @@ import type Vditor from 'vditor';
  * Registers all built-in renderers
  */
 export function initializeRendererSystem(): void {
-  console.log('🚀 RENDERER SYSTEM: Initializing...');
-  
   const registry = getRendererRegistry();
   
   // Register built-in renderers
@@ -30,8 +28,6 @@ export function initializeRendererSystem(): void {
   
   const playgroundRenderer = new PlaygroundRenderer();
   registry.register(playgroundRenderer, 'builtin');
-  
-  console.log(`✅ RENDERER SYSTEM: Initialized with ${registry.count} renderer(s)`);
 }
 
 /**
@@ -46,8 +42,6 @@ export function generateVditorCustomRenders(documentUri: string, vditor: Vditor)
   const customRenders: any[] = [];
   
   for (const renderer of registry.getAll()) {
-    console.log(`🔧 RENDERER SYSTEM: Creating Vditor render function for '${renderer.id}'`);
-    
     customRenders.push({
       language: renderer.language,
       render: (code: HTMLElement) => {
@@ -57,14 +51,12 @@ export function generateVditorCustomRenders(documentUri: string, vditor: Vditor)
             // Check for the actual interactive container, not just an attribute
             const existingContainer = code.querySelector(`.interactive-table-container, .kanban-board-container, .playground-container`);
             if (existingContainer) {
-              console.log(`✅ RENDERER SYSTEM: '${renderer.id}' has interactive container, already rendered, skipping...`);
               resolve(true);
               return;
             }
             
             // Also check the data attribute as backup
             if (code.hasAttribute(`data-${renderer.language}-rendered`)) {
-              console.log(`✅ RENDERER SYSTEM: '${renderer.id}' has render attribute, skipping...`);
               resolve(true);
               return;
             }
@@ -73,7 +65,6 @@ export function generateVditorCustomRenders(documentUri: string, vditor: Vditor)
             if (code.classList.contains('interactive-table-container') || 
                 code.classList.contains('kanban-board-container') ||
                 code.classList.contains('playground-container')) {
-              console.log(`✅ RENDERER SYSTEM: '${renderer.id}' code element IS container, skipping...`);
               resolve(true);
               return;
             }
@@ -81,7 +72,6 @@ export function generateVditorCustomRenders(documentUri: string, vditor: Vditor)
             // Check for generic container class based on language
             const hasGenericContainer = code.querySelector(`.${renderer.language}-container`);
             if (hasGenericContainer) {
-              console.log(`✅ RENDERER SYSTEM: '${renderer.id}' has ${renderer.language}-container, skipping...`);
               resolve(true);
               return;
             }
@@ -108,12 +98,6 @@ export function generateVditorCustomRenders(documentUri: string, vditor: Vditor)
             // Each renderer implements its own ID extraction logic
             const boardId = codeElement ? renderer.extractId(codeElement) : 'default';
             
-            console.log(`🔍 RENDERER SYSTEM: Extracted boardId='${boardId}' from code element`, { 
-              hasCodeElement: !!codeElement,
-              codeTagName: code.tagName,
-              codeClasses: Array.from(code.classList || [])
-            });
-            
             // Create render context
             const context: IRenderContext = {
               documentUri,
@@ -123,8 +107,6 @@ export function generateVditorCustomRenders(documentUri: string, vditor: Vditor)
               messageHandler,
               fileSystemHelper
             };
-            
-            console.log(`🎨 RENDERER SYSTEM: Rendering '${renderer.id}' (board: ${boardId}, instance: ${instanceId})`);
             
             // Load renderer dependencies if needed
             if (renderer.onLoad) {
@@ -136,7 +118,6 @@ export function generateVditorCustomRenders(documentUri: string, vditor: Vditor)
             
             resolve(true);
           } catch (error) {
-            console.error(`❌ RENDERER SYSTEM: Error rendering '${renderer.id}'`, error);
             code.innerHTML = `
               <div class="renderer-error" style="
                 padding: 16px;
@@ -157,7 +138,6 @@ export function generateVditorCustomRenders(documentUri: string, vditor: Vditor)
     });
   }
   
-  console.log(`✅ RENDERER SYSTEM: Generated ${customRenders.length} Vditor custom render(s)`);
   return customRenders;
 }
 

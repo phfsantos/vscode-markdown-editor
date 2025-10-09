@@ -20,10 +20,6 @@ export class RendererRegistry {
     renderer: IRenderer, 
     source: 'builtin' | 'extension' | 'user' = 'builtin'
   ): () => void {
-    if (this.renderers.has(renderer.id)) {
-      console.warn(`⚠️ RENDERER REGISTRY: Renderer '${renderer.id}' already registered, replacing`);
-    }
-    
     const registration: IRendererRegistration = {
       renderer,
       registeredAt: new Date(),
@@ -31,7 +27,6 @@ export class RendererRegistry {
     };
     
     this.renderers.set(renderer.id, registration);
-    console.log(`✅ RENDERER REGISTRY: Registered '${renderer.name}' (${renderer.id}) from ${source}`);
     
     // Return disposable
     return () => this.unregister(renderer.id);
@@ -41,11 +36,7 @@ export class RendererRegistry {
    * Unregister a renderer
    */
   unregister(id: string): boolean {
-    const removed = this.renderers.delete(id);
-    if (removed) {
-      console.log(`🗑️ RENDERER REGISTRY: Unregistered '${id}'`);
-    }
-    return removed;
+    return this.renderers.delete(id);
   }
   
   /**
@@ -102,7 +93,6 @@ export class RendererRegistry {
    */
   clear(): void {
     this.renderers.clear();
-    console.log('🧹 RENDERER REGISTRY: Cleared all renderers');
   }
   
   /**

@@ -16,8 +16,6 @@ export class FileSystemHelper implements IFileSystemHelper {
    */
   async loadRendererData(rendererId: string, boardId: string): Promise<any> {
     try {
-      console.log(`📂 FILE SYSTEM: Loading data for ${rendererId}/${boardId}`);
-      
       const response = await this.messageHandler.sendAndWait(
         'renderer-load-data',
         { rendererId, boardId },
@@ -36,15 +34,11 @@ export class FileSystemHelper implements IFileSystemHelper {
    */
   async saveRendererData(rendererId: string, boardId: string, data: any): Promise<void> {
     try {
-      console.log(`💾 FILE SYSTEM: Saving data for ${rendererId}/${boardId}`);
-      
       await this.messageHandler.sendAndWait(
         'renderer-save-data',
         { rendererId, boardId, data },
         'renderer-data-saved'
       );
-      
-      console.log(`✅ FILE SYSTEM: Saved data for ${rendererId}/${boardId}`);
     } catch (error) {
       console.error(`❌ FILE SYSTEM: Failed to save data for ${rendererId}/${boardId}`, error);
       throw error;
@@ -56,8 +50,6 @@ export class FileSystemHelper implements IFileSystemHelper {
    */
   async hasRendererData(rendererId: string, boardId: string): Promise<boolean> {
     try {
-      console.log(`🔍 FILE SYSTEM: Checking if data exists for ${rendererId}/${boardId}`);
-      
       const response = await this.messageHandler.sendAndWait(
         'renderer-check-data',
         { rendererId, boardId },

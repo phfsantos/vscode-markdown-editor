@@ -29,21 +29,17 @@ export abstract class BaseRenderer implements IRenderer {
    */
   protected loadScript(url: string): Promise<void> {
     if (BaseRenderer.loadedScripts.has(url)) {
-      console.log(`📜 RENDERER: Script already loaded: ${url}`);
       return Promise.resolve();
     }
     
     return new Promise((resolve, reject) => {
-      console.log(`📜 RENDERER: Loading script: ${url}`);
       const script = document.createElement('script');
       script.src = url;
       script.onload = () => {
         BaseRenderer.loadedScripts.add(url);
-        console.log(`✅ RENDERER: Loaded script: ${url}`);
         resolve();
       };
       script.onerror = () => {
-        console.error(`❌ RENDERER: Failed to load script: ${url}`);
         reject(new Error(`Failed to load script: ${url}`));
       };
       document.head.appendChild(script);
@@ -55,16 +51,13 @@ export abstract class BaseRenderer implements IRenderer {
    */
   protected loadStylesheet(url: string): Promise<void> {
     return new Promise((resolve, reject) => {
-      console.log(`🎨 RENDERER: Loading stylesheet: ${url}`);
       const link = document.createElement('link');
       link.rel = 'stylesheet';
       link.href = url;
       link.onload = () => {
-        console.log(`✅ RENDERER: Loaded stylesheet: ${url}`);
         resolve();
       };
       link.onerror = () => {
-        console.error(`❌ RENDERER: Failed to load stylesheet: ${url}`);
         reject(new Error(`Failed to load stylesheet: ${url}`));
       };
       document.head.appendChild(link);
@@ -112,7 +105,6 @@ export abstract class BaseRenderer implements IRenderer {
    * Default implementation returns 'default' - not useful for most renderers.
    */
   extractId(element: HTMLElement): string {
-    console.log(`⚠️ BASE RENDERER: Using default extractId() - subclass should override this method`);
     return 'default';
   }
   
@@ -124,10 +116,8 @@ export abstract class BaseRenderer implements IRenderer {
     // Match pattern: <!-- file: assets/my-file.json -->
     const filenameMatch = textContent.match(/<!--\s*file:\s*([^\s>]+)\s*-->/);
     if (filenameMatch) {
-      console.log(`🔍 BASE RENDERER: Extracted filename: '${filenameMatch[1]}'`);
       return filenameMatch[1];
     }
-    console.log(`🔍 BASE RENDERER: No filename found in comments`);
     return null;
   }
   
