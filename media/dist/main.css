@@ -2436,6 +2436,45 @@ img.vscode-diagnostic-info {
 .vscode-diagnostic-span[data-has-lightbulb=true]:hover {
   --lightbulb-display: inline-block;
 }
+.vditor-ir__node[data-type=wiki-link] {
+  display: inline;
+  position: relative;
+}
+.vditor-ir__node[data-type=wiki-link] > .vditor-ir__marker {
+  display: none;
+}
+.vditor-ir__node[data-type=wiki-link] > .vditor-ir__marker {
+  display: none;
+}
+.vditor-ir__node[data-type=wiki-link].vditor-ir__node--expand > .vditor-ir__marker {
+  display: inline;
+  color: var(--vscode-editorBracketMatch-border, #888);
+  user-select: none;
+}
+.vditor-ir__node[data-type=wiki-link] > .vditor-ir__preview {
+  display: inline;
+  color: var(--vscode-textLink-foreground, #4080d0);
+  cursor: pointer;
+  text-decoration: underline;
+  transition: color 0.2s ease;
+}
+.vditor-ir__node[data-type=wiki-link] > .vditor-ir__preview:hover {
+  color: var(--vscode-textLink-activeForeground, #6ca8ff);
+}
+.vditor-ir__node[data-type=wiki-link].vditor-ir__node--expand > .vditor-ir__preview {
+  color: var(--vscode-editor-foreground);
+  text-decoration: none;
+  cursor: text;
+}
+.vditor-ir__node[data-type=wiki-link].vditor-ir__node--expand > .vditor-ir__preview::before {
+  content: attr(data-link-content);
+}
+.vditor-ir__node[data-type=wiki-link].vditor-ir__node--expand > .vditor-ir__preview {
+  font-size: 0;
+}
+.vditor-ir__node[data-type=wiki-link].vditor-ir__node--expand > .vditor-ir__preview::before {
+  font-size: initial;
+}
 
 /* src/vscode-integration.css */
 .vscode-context-menu {

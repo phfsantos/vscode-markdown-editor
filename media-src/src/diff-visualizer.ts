@@ -28,21 +28,60 @@ export class DiffVisualizer {
   private scrollSyncEnabled = true;
   private isScrolling = false;
   private scrollTimeout: number | null = null;
+  private initialized = false;
 
-  constructor() {
+  /**
+   * Initialize the diff visualizer by setting up message listeners.
+   * This should be called once during application startup.
+   */
+  public initialize(): void {
+    if (this.initialized) {
+      return;
+    }
     this.setupMessageListener();
     this.setupScrollSync();
+    this.initialized = true;
   }
 
   private setupMessageListener(): void {
+    console.log('🔍 DIFF-DEBUG: Setting up diff visualizer message listener');
     
     window.addEventListener('message', (event) => {
       const message = event.data;
+      console.log('🔍 DIFF-DEBUG: Received message:', message.type);
       
       if (message.type === 'diff-view-detected') {
+        console.log('🔍 DIFF-DEBUG: Diff view DETECTED!', {
+          role: message.diffInfo.role,
+          otherUri: message.diffInfo.otherUri,
+          changesCount: message.diffInfo.changes.length,
+          stats: message.diffInfo.stats,
+          clearExistingSpacers: message.diffInfo.clearExistingSpacers,
+          reapplyDiagnostics: message.diffInfo.reapplyDiagnostics
+        });
         this.diffInfo = message.diffInfo;
         this.isInDiffView = true;
+        
+        // Clear existing spacers if requested (to prevent duplication)
+        if (message.diffInfo.clearExistingSpacers) {
+          this.clearSpacerBlocks();
+        }
+        
         this.applyDiffVisualizations();
+        
+        // Re-apply diagnostics if requested
+        if (message.diffInfo.reapplyDiagnostics && (window as any).diagnosticVisualizer) {
+          console.log('🔍 DIFF-DEBUG: Re-applying diagnostics after diff update');
+          // Use setTimeout to ensure diff visualizations are applied first
+          // Force re-application to bypass smart checks since DOM may have been modified
+          setTimeout(() => {
+            (window as any).diagnosticVisualizer.addSimpleDiagnostics(true);
+          }, 50);
+        }
+      } else if (message.type === 'diff-view-cleared') {
+        console.log('🔍 DIFF-DEBUG: Diff view CLEARED');
+        // Clear diff visualization
+        this.clearDiffVisualizations();
       } else if (message.type === 'diff-scroll-sync') {
         // Receive scroll sync from other editor
         this.applyScrollFromOther(message.scrollPercentage);
@@ -55,11 +94,17 @@ export class DiffVisualizer {
    * Apply diff visualizations to the editor
    */
   private applyDiffVisualizations(): void {
+    console.log('🔍 DIFF-DEBUG: applyDiffVisualizations() called');
     
     if (!this.diffInfo) {
+      console.log('🔍 DIFF-DEBUG: ❌ No diffInfo, aborting');
       return;
     }
 
+    console.log('🔍 DIFF-DEBUG: Applying diff visualizations...', {
+      role: this.diffInfo.role,
+      changesCount: this.diffInfo.changes.length
+    });
 
     // Add a header showing diff stats
     this.addDiffHeader();
@@ -71,6 +116,62 @@ export class DiffVisualizer {
       // Setup scroll sync after visualizations are applied
       this.setupScrollSyncListeners();
     }, 1000);
+  }
+
+  /**
+   * Clear all diff visualizations from the editor
+   */
+  private clearDiffVisualizations(): void {
+    console.log('🔍 DIFF-DEBUG: clearDiffVisualizations() called');
+    
+    // Reset state
+    this.diffInfo = null;
+    this.isInDiffView = false;
+    
+    // Remove diff header
+    const existingHeader = document.querySelector('.diff-view-header');
+    if (existingHeader) {
+      console.log('🔍 DIFF-DEBUG: Removing diff header');
+      existingHeader.remove();
+    }
+    
+    // Remove all spacer blocks
+    const spacers = document.querySelectorAll('.diff-spacer-block');
+    console.log(`🔍 DIFF-DEBUG: Removing ${spacers.length} spacer blocks`);
+    spacers.forEach(spacer => spacer.remove());
+    
+    // Remove all diff decorations (background colors, borders)
+    const contentElement = document.querySelector('.vditor-ir') || 
+                          document.querySelector('.vditor-wysiwyg') ||
+                          document.querySelector('.vditor-sv');
+    
+    if (contentElement) {
+      const allElements = contentElement.querySelectorAll('[style*="background"]');
+      let clearedCount = 0;
+      allElements.forEach(el => {
+        const element = el as HTMLElement;
+        // Only clear if it looks like a diff decoration
+        if (element.style.borderLeft && element.style.borderLeft.includes('3px solid')) {
+          element.style.backgroundColor = '';
+          element.style.borderLeft = '';
+          element.style.paddingLeft = '';
+          element.title = '';
+          clearedCount++;
+        }
+      });
+      console.log(`🔍 DIFF-DEBUG: Cleared ${clearedCount} diff decorations`);
+    }
+    
+    console.log('🔍 DIFF-DEBUG: ✅ Diff visualizations cleared');
+  }
+
+  /**
+   * Clear only spacer blocks (used before re-applying to prevent duplication)
+   */
+  private clearSpacerBlocks(): void {
+    const spacers = document.querySelectorAll('.diff-spacer-block');
+    console.log(`🔍 DIFF-DEBUG: Clearing ${spacers.length} existing spacer blocks`);
+    spacers.forEach(spacer => spacer.remove());
   }
 
   /**
@@ -359,49 +460,34 @@ export class DiffVisualizer {
    */
   private setupScrollSyncListeners(): void {
     
-    // In VS Code webviews, the scroll often happens on the html or body element
-    // Let's check all possible scroll containers including document level
+    // CRITICAL: In Vditor, the actual scrollable element is pre.vditor-reset
+    // NOT the container divs (.vditor, .vditor-content, .vditor-ir, etc.)
+    // We must target the same element for both listening and applying scroll
     const possibleContainers = [
-      document.documentElement, // <html>
-      document.body,            // <body>
-      document.querySelector('.vditor'),
-      document.querySelector('.vditor-content'),
-      document.querySelector('.vditor-ir'),
-      document.querySelector('.vditor-wysiwyg'),
-      document.querySelector('.vditor-sv')
+      document.querySelector('.vditor-ir pre.vditor-reset'),
+      document.querySelector('.vditor-wysiwyg pre.vditor-reset'),
+      document.querySelector('.vditor-sv pre.vditor-reset'),
+      document.querySelector('pre.vditor-reset'),
+      document.documentElement  // Fallback only
     ];
     
     let scrollableElement: HTMLElement | null = null;
     
-    // Find which element is actually scrollable
+    // Find the vditor-reset element (the actual scrollable content)
     for (const element of possibleContainers) {
       if (element) {
-        const el = element as HTMLElement;
-        const hasScroll = el.scrollHeight > el.clientHeight;
-        const overflowY = window.getComputedStyle(el).overflowY;
-        const tagName = el.tagName || 'unknown';
-        
-        
-        // For document.documentElement and document.body, we always want to listen
-        // even if scrollHeight === clientHeight at setup time
-        if (el === document.documentElement || el === document.body) {
-          scrollableElement = el;
-          break;
-        }
-        
-        if (hasScroll && (overflowY === 'auto' || overflowY === 'scroll')) {
-          scrollableElement = el;
-          break;
-        }
+        scrollableElement = element as HTMLElement;
+        break;
       }
     }
     
     if (!scrollableElement) {
-      console.error('❌ DIFF VISUALIZER: Could not find any scroll element, defaulting to document.documentElement');
+      console.error('❌ DIFF VISUALIZER: Could not find pre.vditor-reset element, defaulting to document.documentElement');
       scrollableElement = document.documentElement;
     }
     
     const elementName = scrollableElement.tagName || scrollableElement.className || 'unknown';
+    console.log(`📜 DIFF VISUALIZER: Setting up scroll sync on: ${elementName}.${scrollableElement.className}`);
     
     // Add scroll event listener with capture to catch it early
     const scrollHandler = (e: Event) => {
@@ -440,13 +526,24 @@ export class DiffVisualizer {
     }
     
     
-    // Get the main content container
-    const contentElement = document.querySelector('.vditor-ir') || 
-                          document.querySelector('.vditor-wysiwyg') ||
-                          document.querySelector('.vditor-sv');
+    // Get the main content container - this should be pre.vditor-reset which is the scrollable element
+    // NOT the outer containers (.vditor-ir, .vditor-wysiwyg, .vditor-sv)
+    const contentElement = document.querySelector('.vditor-ir pre.vditor-reset') || 
+                          document.querySelector('.vditor-wysiwyg pre.vditor-reset') ||
+                          document.querySelector('.vditor-sv pre.vditor-reset') ||
+                          document.querySelector('pre.vditor-reset');
     
     if (!contentElement) {
-      console.warn('⚠️ DIFF VISUALIZER: Could not find content element for spacers');
+      console.warn('⚠️ DIFF VISUALIZER: Could not find pre.vditor-reset element for spacers');
+      return;
+    }
+    
+    console.log(`📦 DIFF VISUALIZER: Adding spacer blocks to: ${contentElement.tagName}.${contentElement.className}`);
+    
+    // CRITICAL: Check if spacers already exist - if so, skip adding new ones
+    const existingSpacers = document.querySelectorAll('.diff-spacer-block');
+    if (existingSpacers.length > 0) {
+      console.log(`🔍 DIFF-DEBUG: ⏭️  Spacers already exist (${existingSpacers.length}), skipping re-addition`);
       return;
     }
     
@@ -476,7 +573,8 @@ export class DiffVisualizer {
     const excludedRightLines = new Set<number>();  // Right additions that are replacements
     const excludedLeftLines = new Set<number>();   // Left deletions that have replacements
     
-    // For each deletion on left, check if there's a corresponding addition on right
+    // IMPROVED: For each deletion on left, check if there's a corresponding addition on right
+    // Consider both position proximity AND content similarity
     for (const deletion of leftDeletions) {
       // Calculate expected line number on right accounting for all previous additions
       const previousAdditions = rightAdditions.filter(a => a.lineNumber < deletion.lineNumber).length;
@@ -484,14 +582,39 @@ export class DiffVisualizer {
       const offset = previousAdditions - previousDeletions;
       const expectedRightLine = deletion.lineNumber + offset;
       
-      // Check if there's an addition within ±2 lines (tolerance for offset calculation errors)
-      const matchingAddition = rightAdditions.find(a => 
-        Math.abs(a.lineNumber - expectedRightLine) <= 2
+      // Check if there's an addition within ±3 lines (increased tolerance)
+      const nearbyAdditions = rightAdditions.filter(a => 
+        Math.abs(a.lineNumber - expectedRightLine) <= 3 && !excludedRightLines.has(a.lineNumber)
       );
       
-      if (matchingAddition) {
-        excludedRightLines.add(matchingAddition.lineNumber);  // Don't add spacer on left for this right addition
-        excludedLeftLines.add(deletion.lineNumber);           // Don't add spacer on right for this left deletion
+      if (nearbyAdditions.length > 0) {
+        // If multiple candidates, prefer the one with most similar content or closest position
+        let bestMatch = nearbyAdditions[0];
+        let bestScore = 0;
+        
+        for (const addition of nearbyAdditions) {
+          // Calculate similarity score (0-1) based on content
+          const similarity = this.calculateSimilarity(deletion.content, addition.content);
+          // Calculate position score (closer is better)
+          const positionScore = 1 - Math.abs(addition.lineNumber - expectedRightLine) / 4;
+          // Combined score (favor content similarity more)
+          const score = similarity * 0.7 + positionScore * 0.3;
+          
+          if (score > bestScore) {
+            bestScore = score;
+            bestMatch = addition;
+          }
+        }
+        
+        // Only exclude if there's a reasonable match (similarity > 0.3 or very close position)
+        const similarity = this.calculateSimilarity(deletion.content, bestMatch.content);
+        const positionDiff = Math.abs(bestMatch.lineNumber - expectedRightLine);
+        
+        if (similarity > 0.3 || positionDiff <= 1) {
+          excludedRightLines.add(bestMatch.lineNumber);  // Don't add spacer on left for this right addition
+          excludedLeftLines.add(deletion.lineNumber);    // Don't add spacer on right for this left deletion
+          console.log(`🔍 DIFF-DEBUG: Excluding replacement pair: L${deletion.lineNumber} ↔ R${bestMatch.lineNumber} (similarity: ${similarity.toFixed(2)})`);
+        }
       }
     }
     
@@ -631,13 +754,22 @@ export class DiffVisualizer {
       spacer.style.cssText = `
         height: ${totalHeight}px;
         min-height: ${totalHeight}px;
-        background-color: var(--vscode-diffEditor-removedTextBackground, rgba(255, 0, 0, 0.1));
-        border-left: 3px solid var(--vscode-gitDecoration-deletedResourceForeground, #c74e39);
+        background: repeating-linear-gradient(
+          45deg,
+          var(--vscode-diffEditor-removedTextBackground, rgba(255, 0, 0, 0.05)),
+          var(--vscode-diffEditor-removedTextBackground, rgba(255, 0, 0, 0.05)) 10px,
+          transparent 10px,
+          transparent 20px
+        );
+        border-left: 3px dashed var(--vscode-gitDecoration-deletedResourceForeground, #c74e39);
         margin: 0;
+        margin-bottom: 16px;
         padding: 0;
+        padding-bottom: 4px;
         position: relative;
         display: block;
         box-sizing: border-box;
+        opacity: 0.6;
       `;
       
       // Add a subtle indicator
@@ -648,9 +780,10 @@ export class DiffVisualizer {
         transform: translateY(-50%);
         color: var(--vscode-descriptionForeground);
         font-size: 11px;
-        opacity: 0.5;
+        opacity: 0.7;
         user-select: none;
-      ">···</span>`;
+        font-style: italic;
+      ">⋯ ${block.lineCount} line${block.lineCount > 1 ? 's' : ''} not in this file</span>`;
       
       // Insert spacer - insert as a sibling of targetElement using its parent
       try {

@@ -1,0 +1,605 @@
+/**
+ * Sidebar styles - Obsidian-inspired design
+ */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  color: var(--vscode-foreground);
+  background-color: var(--vscode-sideBar-background);
+  padding: 0;
+  overflow-x: hidden;
+}
+
+.sidebar-container {
+  padding: 8px;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px;
+  margin-bottom: 12px;
+}
+
+/* Graph filters */
+.graph-filters {
+  display: flex;
+  gap: 16px;
+  padding: 8px 8px 12px 8px;
+  background: var(--vscode-sideBar-background);
+  border-bottom: 1px solid var(--vscode-sideBar-border);
+  flex-wrap: wrap;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 100px;
+}
+
+.filter-group-checkbox {
+  flex-direction: row;
+  align-items: center;
+  min-width: auto;
+}
+
+.filter-group-checkbox label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.filter-group-checkbox input[type="checkbox"] {
+  cursor: pointer;
+  margin: 0;
+}
+
+.filter-group label {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  font-weight: 500;
+}
+
+.filter-group label span {
+  color: var(--vscode-focusBorder);
+  font-weight: 600;
+}
+
+.graph-slider {
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--vscode-sideBar-border);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.graph-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--vscode-focusBorder);
+  cursor: pointer;
+}
+
+.graph-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--vscode-focusBorder);
+  cursor: pointer;
+  border: none;
+}
+
+.graph-slider:hover::-webkit-slider-thumb {
+  background: var(--vscode-button-hoverBackground);
+}
+
+.graph-slider:hover::-moz-range-thumb {
+  background: var(--vscode-button-hoverBackground);
+}
+
+/* Current file section */
+.current-file-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--vscode-sideBar-border);
+}
+
+.current-file {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.refresh-btn {
+  background: none;
+  border: none;
+  color: var(--vscode-foreground);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.refresh-btn:hover {
+  opacity: 1;
+}
+
+/* No Document State */
+.no-document {
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.no-document .icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.no-document p {
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+/* Info Banners */
+.info-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  margin-bottom: 16px;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.info-banner.success {
+  background-color: var(--vscode-terminal-ansiGreen);
+  color: var(--vscode-terminal-ansiBlack);
+  opacity: 0.15;
+  border: 1px solid var(--vscode-terminal-ansiGreen);
+}
+
+.info-banner.warning {
+  background-color: var(--vscode-inputValidation-warningBackground);
+  color: var(--vscode-inputValidation-warningForeground);
+  border: 1px solid var(--vscode-inputValidation-warningBorder);
+  font-weight: 500;
+}
+
+.info-banner .codicon {
+  flex-shrink: 0;
+}
+
+.info-banner .link-btn {
+  margin-left: auto;
+  background: none;
+  border: 1px solid currentColor;
+  color: var(--vscode-button-foreground);
+  background-color: var(--vscode-button-background);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.info-banner .link-btn:hover {
+  background-color: var(--vscode-button-hoverBackground);
+}
+
+.info-banner .dismiss-btn {
+  background: none;
+  border: none;
+  color: currentColor;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  opacity: 0.7;
+  margin-left: 4px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.info-banner .dismiss-btn:hover {
+  opacity: 1;
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Sections */
+.section {
+  margin-bottom: 16px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--vscode-sideBarSectionHeader-foreground);
+  background-color: var(--vscode-sideBarSectionHeader-background);
+  border-radius: 3px;
+  margin-bottom: 8px;
+}
+
+.section-header h4 {
+  flex: 1;
+  font-size: 11px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.section-header .count {
+  font-size: 10px;
+  padding: 2px 6px;
+  background-color: var(--vscode-badge-background);
+  color: var(--vscode-badge-foreground);
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.empty {
+  padding: 12px 8px;
+  color: var(--vscode-descriptionForeground);
+  font-size: 12px;
+  font-style: italic;
+}
+
+/* Templates */
+.templates {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 0 4px;
+}
+
+.template-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 8px;
+  background-color: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+  border: 1px solid var(--vscode-button-border);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  transition: background-color 0.2s;
+}
+
+.template-btn:hover {
+  background-color: var(--vscode-button-secondaryHoverBackground);
+}
+
+.template-btn .codicon {
+  font-size: 16px;
+}
+
+/* Links List */
+.links-list,
+.files-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.link-item,
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-size: 12px;
+}
+
+.link-item:hover,
+.file-item:hover {
+  background-color: var(--vscode-list-hoverBackground);
+}
+
+.link-item.unresolved {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.link-item.unresolved:hover {
+  background-color: transparent;
+}
+
+.link-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.file-path,
+.file-proximity {
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.codicon {
+  flex-shrink: 0;
+}
+
+/* Graph Button */
+.graph-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px;
+  background-color: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.graph-btn:hover {
+  background-color: var(--vscode-button-hoverBackground);
+}
+
+/* Graph View */
+.graph-container {
+  padding: 8px;
+  background-color: var(--vscode-editor-background);
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.graph-svg {
+  display: block;
+  margin: 0 auto;
+  background-color: var(--vscode-editor-background);
+  border-radius: 4px;
+}
+
+.graph-edge {
+  stroke: var(--vscode-descriptionForeground);
+  stroke-width: 1.5;
+  opacity: 0.4;
+  transition: opacity 0.2s;
+}
+
+.graph-edge.edge-backlink {
+  stroke-dasharray: 4, 2;
+}
+
+.graph-node {
+  cursor: pointer;
+}
+
+.node-circle {
+  fill: var(--vscode-button-background);
+  stroke: var(--vscode-button-foreground);
+  stroke-width: 2;
+  transition: fill 0.2s, stroke-width 0.2s, r 0.2s;
+}
+
+.node-focus .node-circle {
+  fill: var(--vscode-focusBorder);
+  stroke: var(--vscode-focusBorder);
+  stroke-width: 3;
+}
+
+.node-hover .node-circle {
+  fill: var(--vscode-button-hoverBackground);
+  stroke-width: 3;
+  /* Increase radius slightly on hover - handled via CSS variable */
+}
+
+.node-label {
+  fill: var(--vscode-foreground);
+  font-size: 9px;
+  font-family: var(--vscode-font-family);
+  pointer-events: none;
+  user-select: none;
+}
+
+.graph-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  color: var(--vscode-descriptionForeground);
+  text-align: center;
+}
+
+.graph-empty .codicon {
+  font-size: 32px;
+  margin-bottom: 8px;
+  opacity: 0.5;
+}
+
+.graph-empty p {
+  font-size: 12px;
+  margin: 4px 0;
+  font-weight: 500;
+}
+
+.graph-empty-hint {
+  font-size: 10px;
+  opacity: 0.7;
+  margin-top: 4px;
+}
+
+/* Graph Loading State */
+.graph-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--vscode-sideBar-border);
+  border-top-color: var(--vscode-focusBorder);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 12px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.graph-loading p {
+  font-size: 11px;
+  margin: 0;
+}
+
+/* Graph Legend */
+.graph-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  background: var(--vscode-sideBar-background);
+  border-top: 1px solid var(--vscode-sideBar-border);
+  font-size: 10px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.legend-item svg {
+  flex-shrink: 0;
+}
+
+.legend-node-focus {
+  fill: var(--vscode-focusBorder);
+  stroke: var(--vscode-focusBorder);
+  stroke-width: 2;
+}
+
+.legend-node-regular {
+  fill: var(--vscode-button-background);
+  stroke: var(--vscode-button-foreground);
+  stroke-width: 1.5;
+}
+
+.legend-edge-link {
+  stroke: var(--vscode-descriptionForeground);
+  stroke-width: 1.5;
+  opacity: 0.6;
+}
+
+.legend-edge-backlink {
+  stroke: var(--vscode-descriptionForeground);
+  stroke-width: 1.5;
+  opacity: 0.4;
+}
+
+/* Graph Controls */
+.graph-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px;
+  border-top: 1px solid var(--vscode-sideBar-border);
+}
+
+.graph-control-label {
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.graph-expand-btn {
+  padding: 4px 8px;
+  font-size: 10px;
+  background: none;
+  border: 1px solid var(--vscode-button-border);
+  color: var(--vscode-foreground);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.graph-expand-btn:hover {
+  background-color: var(--vscode-button-secondaryHoverBackground);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--vscode-scrollbarSlider-background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--vscode-scrollbarSlider-hoverBackground);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--vscode-scrollbarSlider-activeBackground);
+}

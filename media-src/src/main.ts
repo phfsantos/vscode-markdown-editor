@@ -30,14 +30,56 @@ import { VSCodeWebviewIntegrator } from "./vscode-integrator";
 import { diffVisualizer } from "./diff-visualizer";
 import { CursorManager } from "./cursor-manager";
 import { FindReplaceManager } from "./find-replace";
+import { WikiLinkAutocomplete } from "./wiki-link-autocomplete";
+import { WikiLinkHandler } from "./wiki-link-handler";
 
 // Global instances
 let diagnosticVisualizer: DiagnosticVisualizer | null = null;
 let vscodeIntegrator: VSCodeWebviewIntegrator | null = null;
 let cursorManager: CursorManager | null = null;
 let findReplaceManager: FindReplaceManager | null = null;
+let wikiLinkAutocomplete: WikiLinkAutocomplete | null = null;
+let wikiLinkHandler: WikiLinkHandler | null = null;
 
-// Ensure diff visualizer is loaded (singleton is created on import)
+/**
+ * Process wiki-links and diagnostics after Vditor renders/re-renders content
+ * Called after: initial load, setValue (undo/redo), and any content refresh
+ */
+function processAfterRender() {
+  console.log('[Main.ts] 🔄 processAfterRender called');
+  
+  // Re-process wiki-links to restore IR structure
+  if (wikiLinkHandler) {
+    console.log('[Main.ts] 🔗 Re-processing wiki-links after render');
+    wikiLinkHandler.processWikiLinksInEditor();
+  }
+  
+  // Re-apply diagnostics
+  if (diagnosticVisualizer) {
+    console.log('[Main.ts] 🩺 Re-applying diagnostics after render');
+    diagnosticVisualizer.addSimpleDiagnostics();
+  }
+  
+  // Re-apply diff visualizations if we're in diff view
+  if (diffVisualizer && diffVisualizer.inDiffView()) {
+    console.log('[Main.ts] 🔄 Re-applying diff visualizations after render');
+    // Give Vditor a moment to finish rendering before applying diff
+    setTimeout(() => {
+      const diffInfo = diffVisualizer.getDiffInfo();
+      if (diffInfo) {
+        // Trigger re-application by simulating the diff-view-detected message
+        window.postMessage({
+          type: 'diff-view-detected',
+          diffInfo: diffInfo
+        }, '*');
+      }
+    }, 100);
+  }
+}
+
+// Initialize diff visualizer - must be called to set up message listeners
+diffVisualizer.initialize();
+
 // Coordination flag to avoid duplicate custom menu builds
 (window as any).__vditorHandledContextMenu = false;
 let __lastContextMenuBuild = 0;
@@ -119,7 +161,19 @@ function buildVSCodeContextMenu(event?: MouseEvent) {
     { label: 'Cut', click: () => performClipboardAction('cut'), disabled: !selection.hasSelection },
     { label: 'Copy', click: () => performClipboardAction('copy'), disabled: !selection.hasSelection },
     { label: 'Paste', click: () => performClipboardAction('paste') },
-    { label: 'Select All', click: () => document.execCommand('selectAll') },
+    { label: 'Select All', click: () => {
+      // Modern Selection API instead of deprecated execCommand
+      const sel = window.getSelection();
+      const editor = document.querySelector('.vditor-ir .vditor-reset') || 
+                     document.querySelector('.vditor-wysiwyg .vditor-reset') ||
+                     document.querySelector('.vditor-sv .vditor-reset');
+      if (sel && editor) {
+        const range = document.createRange();
+        range.selectNodeContents(editor);
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+    }},
   );
   items.push({ separator: true });
   // Editing / diagnostics group
@@ -298,86 +352,95 @@ function enhanceManualMenuForSubmenus(menuRoot: HTMLElement) {
   });
 }
 
-// Robust clipboard handling utilities
+// Flag to prevent duplicate paste operations
+let isProgrammaticPaste = false;
+// Expose to window for vscode-integrator access
+(window as any).isProgrammaticPaste = false;
+
+// Robust clipboard handling utilities using modern Clipboard API
 async function performClipboardAction(kind: 'cut' | 'copy' | 'paste') {
   try {
     if (kind === 'paste') {
-      // Try Vditor's paste handling first
-      if (window.vditor && typeof window.vditor.insertValue === 'function') {
-        // For paste, we need to get clipboard content
-        if (navigator.clipboard && navigator.clipboard.readText) {
-          const text = await navigator.clipboard.readText();
-          if (text) {
-            window.vditor.insertValue(text);
-            return; // SUCCESS - STOP HERE
-          }
-        }
-      }
-      // Try execCommand only if Vditor failed
+      vscodeLog(`[paste-debug] 🔵 performClipboardAction('paste') called`);
+      vscodeLog(`[paste-debug] 🔵 Call stack: ${new Error().stack?.split('\n').slice(1, 5).join(' | ')}`);
+      vscodeLog(`[paste-debug] 🔵 Current isProgrammaticPaste flag: ${isProgrammaticPaste}`);
+      
+      // Set flag to prevent duplicate paste from event listener
+      isProgrammaticPaste = true;
+      (window as any).isProgrammaticPaste = true;
+      vscodeLog(`[paste-debug] 🔵 Set isProgrammaticPaste flag to TRUE`);
+      
       try {
-        const success = document.execCommand('paste');
-        if (success) {
-          return; // SUCCESS - STOP HERE
+        // Modern Clipboard API approach
+        if (navigator.clipboard && navigator.clipboard.readText) {
+          vscodeLog(`[paste-debug] 🔵 Clipboard API available, reading text...`);
+          const text = await navigator.clipboard.readText();
+          vscodeLog(`[paste-debug] 🔵 Read ${text?.length || 0} chars from clipboard: "${text?.substring(0, 50)}..."`);
+          
+          if (text && window.vditor && typeof window.vditor.insertValue === 'function') {
+            vscodeLog(`[paste-debug] 🔵 Calling vditor.insertValue() with ${text.length} chars`);
+            window.vditor.insertValue(text);
+            vscodeLog(`[paste-debug] ✅ Paste successful via Clipboard API (${text.length} chars)`);
+            return; // SUCCESS - STOP HERE
+          } else {
+            vscodeLog(`[paste-debug] ⚠️ Conditions not met: text=${!!text}, vditor=${!!window.vditor}, insertValue=${typeof window.vditor?.insertValue}`);
+          }
+        } else {
+          vscodeLog(`[paste-debug] ⚠️ Clipboard API not available`);
         }
-      } catch (err) {/* empty */}
-      // Fallback: ask extension only if both above failed
-      vscode.postMessage({ command: 'clipboardReadRequest' });
-    } else {
+        
+        // Fallback: ask extension if Clipboard API failed
+        vscodeLog(`[paste-debug] 🔵 Falling back to extension clipboard read request`);
+        vscode.postMessage({ command: 'clipboardReadRequest' });
+      } finally {
+        // Reset flag after a short delay to allow event to be suppressed
+        vscodeLog(`[paste-debug] 🔵 Setting timeout to reset isProgrammaticPaste flag in 100ms`);
+        setTimeout(() => { 
+          isProgrammaticPaste = false;
+          (window as any).isProgrammaticPaste = false;
+          vscodeLog(`[paste-debug] 🔵 Reset isProgrammaticPaste flag to FALSE`);
+        }, 100);
+      }
+    } else if (kind === 'copy' || kind === 'cut') {
       // Unified robust selection capture
       const { text, range } = getRobustSelectionSnapshot();
       const sel = window.getSelection();
 
-      // Preferred path: modern API
-      if (text && navigator.clipboard?.writeText) {
+      if (!text) {
+        vscodeLog(`⚠️ No text selected for ${kind}`);
+        return;
+      }
+
+      // Modern Clipboard API approach
+      if (navigator.clipboard && navigator.clipboard.writeText) {
         try {
           await navigator.clipboard.writeText(text);
-          if (kind === 'cut' && (range || (sel && sel.rangeCount > 0))) {
-            const activeRange = range || sel.getRangeAt(0);
-            try {
-              if (!document.execCommand('insertText', false, '')) {
+          vscodeLog(`✅ ${kind} successful via Clipboard API (${text.length} chars)`);
+          
+          // If cut, delete the selection
+          if (kind === 'cut') {
+            const activeRange = range || (sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null);
+            if (activeRange) {
+              try {
                 activeRange.deleteContents();
+                // Trigger Vditor content change
+                window.vditor?.vditor?.ir?.element?.dispatchEvent(new InputEvent('input', { bubbles: true }));
+              } catch (errDel) {
+                vscodeLog(`❌ Cut delete failed: ${errDel}`);
               }
-            } catch (errDel) {
-              try { activeRange.deleteContents(); } catch (errDel2) { vscodeLog(`Cut delete fallback failed: ${errDel2}`); }
             }
-            // Trigger Vditor content change
-            window.vditor?.vditor?.ir?.element?.dispatchEvent(new InputEvent('input', { bubbles: true }));
           }
           return;
         } catch (err) {
-          vscodeLog(`Clipboard writeText failed, falling back to execCommand: ${err}`);
+          vscodeLog(`❌ Clipboard API ${kind} failed: ${err}`);
         }
-      }
-
-      // Try execCommand next
-      const execOk = document.execCommand(kind);
-      if (execOk) {
-        // Some environments lie about success for copy; validate by reading back if possible
-        if (kind === 'copy' && navigator.clipboard?.readText && text) {
-          try {
-            const probe = await navigator.clipboard.readText();
-            if (!probe || probe !== text) {
-              await navigator.clipboard.writeText(text);
-            }
-          } catch {
-            // Ignore clipboard probe errors
-          }
-        }
-        if (kind === 'cut' && (range || (sel && sel.rangeCount > 0))) {
-          const activeRange = range || sel.getRangeAt(0);
-            if (!document.execCommand('insertText', false, '')) {
-              try { activeRange.deleteContents(); } catch (errDel3) { vscodeLog(`ExecCommand cut fallback failed: ${errDel3}`); }
-            }
-            window.vditor?.vditor?.ir?.element?.dispatchEvent(new InputEvent('input', { bubbles: true }));
-        }
-        return;
       }
 
       // Fallback: extension messaging
       vscode.postMessage({ command: 'clipboardWriteRequest', kind, text });
     }
   } catch (err) {
-    vscodeLog(`Clipboard action ${kind} failed: ${err}`);
+    vscodeLog(`❌ Clipboard action ${kind} failed: ${err}`);
     if (kind === 'paste') {
       vscode.postMessage({ command: 'clipboardReadRequest' });
     } else {
@@ -547,18 +610,47 @@ function initVditor(msg) {
   }
   
   let inputTimer;
+  
+  // Initialize wiki-link autocomplete BEFORE building hint configuration
+  if (!wikiLinkAutocomplete) {
+    wikiLinkAutocomplete = new WikiLinkAutocomplete();
+    vscodeLog('[WikiLinkAutocomplete] 📦 Created new WikiLinkAutocomplete instance');
+  }
+  
+  // Build hint configuration for both predictionary and wiki-links
+  const hintExtensions = [];
+  
+  // Add predictionary hints if available
+  if (predictionary) {
+    hintExtensions.push({
+      key: "{{",
+      hint: (word) => {
+        return predictionary
+          .predict(word || "a", { maxPredictions: 5 })
+          .map((w) => ({ html: w, value: w }));
+      },
+    });
+    vscodeLog('[Predictionary] ✅ Added predictionary hints to Vditor configuration');
+  }
+  
+  // Add wiki-link hints if autocomplete is available
+  if (wikiLinkAutocomplete) {
+    const wikiHintConfig = wikiLinkAutocomplete.getHintConfig();
+    if (wikiHintConfig) {
+      hintExtensions.push(wikiHintConfig);
+      vscodeLog('[WikiLinkAutocomplete] ✅ Added wiki-link hints to Vditor configuration');
+    } else {
+      vscodeLog('[WikiLinkAutocomplete] ❌ getHintConfig() returned null or undefined');
+    }
+  } else {
+    vscodeLog('[WikiLinkAutocomplete] ❌ wikiLinkAutocomplete is null');
+  }
+  
+  vscodeLog(`[Hints] Total hint extensions configured: ${hintExtensions.length}`);
+  
   let defaultOptions: any = {
     hint: {
-      extend: predictionary ? [
-        {
-          key: "{{",
-          hint: (word) => {
-            return predictionary
-              .predict(word || "a", { maxPredictions: 5 })
-              .map((w) => ({ html: w, value: w }));
-          },
-        },
-      ] : [],
+      extend: hintExtensions,
     },
   };
   if (msg.theme === "dark") {
@@ -615,15 +707,14 @@ function initVditor(msg) {
     outline: {
       enable: false, // Disable outline that might cause DOM changes
     },
-    // Disable formatting behaviors
-    hint: {
-      parse: false, // Disable hint parsing that could trigger reformatting
-    },
+    // Hint configuration removed from defaultOptions - set in Vditor constructor below
   });
+  
   if (window.vditor) {
     vditor.destroy();
     window.vditor = null;
   }
+  
   window.vditor = new Vditor("app", {
     width: "100vw",
     height: "100vh",
@@ -654,11 +745,22 @@ function initVditor(msg) {
       // Guard: if integrator not ready, synthesize enriched fallback now instead of only basic trio
       if (!vscodeIntegrator) {
         return [
-          { label: "Cut", click: () => document.execCommand('cut') },
-          { label: "Copy", click: () => document.execCommand('copy') },
-          { label: "Paste", click: () => document.execCommand('paste') },
+          { label: "Cut", click: () => performClipboardAction('cut') },
+          { label: "Copy", click: () => performClipboardAction('copy') },
+          { label: "Paste", click: () => performClipboardAction('paste') },
           { separator: true },
-          { label: "Select All", click: () => document.execCommand('selectAll') },
+          { label: "Select All", click: () => {
+            const sel = window.getSelection();
+            const editor = document.querySelector('.vditor-ir .vditor-reset') || 
+                           document.querySelector('.vditor-wysiwyg .vditor-reset') ||
+                           document.querySelector('.vditor-sv .vditor-reset');
+            if (sel && editor) {
+              const range = document.createRange();
+              range.selectNodeContents(editor);
+              sel.removeAllRanges();
+              sel.addRange(range);
+            }
+          }},
           { separator: true },
           { label: "Format Document", click: () => vscode.postMessage({ command: 'formatDocument' }) },
           { label: "Show Problems", click: () => vscode.postMessage({ command: 'showProblems' }) },
@@ -717,18 +819,21 @@ function initVditor(msg) {
 
           // Return comprehensive menu directly without vscodeIntegrator
           return [
-            { label: "Cut", click: () => {
-              document.execCommand('cut');
-            }},
-            { label: "Copy", click: () => {
-              document.execCommand('copy');
-            }},
-            { label: "Paste", click: () => {
-              document.execCommand('paste');
-            }},
+            { label: "Cut", click: () => performClipboardAction('cut') },
+            { label: "Copy", click: () => performClipboardAction('copy') },
+            { label: "Paste", click: () => performClipboardAction('paste') },
             { separator: true },
             { label: "Select All", click: () => {
-              document.execCommand('selectAll');
+              const sel = window.getSelection();
+              const editor = document.querySelector('.vditor-ir .vditor-reset') || 
+                             document.querySelector('.vditor-wysiwyg .vditor-reset') ||
+                             document.querySelector('.vditor-sv .vditor-reset');
+              if (sel && editor) {
+                const range = document.createRange();
+                range.selectNodeContents(editor);
+                sel.removeAllRanges();
+                sel.addRange(range);
+              }
             }},
             { separator: true },
             { label: "Format Document", click: () => {
@@ -748,11 +853,6 @@ function initVditor(msg) {
       }
     },
     // Removed menu: [] to enable context menu system (toolbar visibility controlled via CSS)
-    // Disable content reformatting that causes cursor jumps
-    hint: {
-      parse: false, // Disable hint parsing
-      delay: 0, // Disable hint delays
-    },
     // Disable automatic content processing
     link: {
       isValidDomain: () => false, // Disable link validation that might reformat content
@@ -760,6 +860,23 @@ function initVditor(msg) {
     ...defaultOptions,
     after() {
       fixDarkTheme();
+
+      // Initialize wiki-link autocomplete with vditor instance
+      if (wikiLinkAutocomplete && window.vditor) {
+        const documentPath = (msg as any).documentPath || 'untitled';
+        wikiLinkAutocomplete.initialize(documentPath, window.vditor);
+      }
+
+      // Initialize wiki-link handler
+      if (window.vditor) {
+        wikiLinkHandler = new WikiLinkHandler(window.vditor);
+        const documentPath = (msg as any).documentPath || 'untitled';
+        wikiLinkHandler.initialize(documentPath);
+        vscodeLog('[WikiLinkHandler] 🔗 Initialized wiki-link handler');
+      }
+
+      // Process wiki-links and diagnostics after render completes
+      processAfterRender();
 
       // Add a simple global context menu event listener to debug the event flow
 
@@ -1153,6 +1270,30 @@ function initVditor(msg) {
         } else {
           vscodeLog(`🔍 INPUT CALLBACK: Skipping diagnostic update (only ${timeSinceLastDiagnosticUpdate}ms since last update)`);
         }
+
+        // Initialize wiki-link handler if not already done and process links
+        vscodeLog('[Main.ts] 📍 Input callback - checking wiki-link handler status');
+        if (wikiLinkHandler && !(wikiLinkHandler as any).isSetup) {
+          const vdt = window.vditor as any;
+          const editorElement = vdt.vditor?.ir?.element || vdt.vditor?.wysiwyg?.element;
+          if (editorElement) {
+            vscodeLog('[Main.ts] ✅ Setting up wiki-link handler on first input');
+            (wikiLinkHandler as any).isSetup = true;
+            (wikiLinkHandler as any).editorElement = editorElement;
+          } else {
+            vscodeLog('[Main.ts] ⚠️ No editor element available for wiki-link setup');
+          }
+        }
+        
+        // Process wiki-links on every input (after setup check)
+        if (wikiLinkHandler && (wikiLinkHandler as any).isSetup) {
+          vscodeLog('[Main.ts] 🔄 Calling handleInputForProcessing');
+          (wikiLinkHandler as any).handleInputForProcessing?.();
+        } else if (wikiLinkHandler) {
+          vscodeLog('[Main.ts] ⏭️ Skipping wiki-link processing - handler not set up yet');
+        } else {
+          vscodeLog('[Main.ts] ⚠️ No wiki-link handler instance');
+        }
       }, 200); // ENHANCED: Increased delay to prevent cursor jumping after newlines
     },
     upload: {
@@ -1232,6 +1373,10 @@ window.addEventListener("message", (e) => {
         if (diagnosticVisualizer) {
           diagnosticVisualizer.handleExternalChange();
         }
+        
+        // Re-process wiki-links and diagnostics after setValue
+        // setValue is called on undo/redo/external changes
+        processAfterRender();
       }
       break;
     }

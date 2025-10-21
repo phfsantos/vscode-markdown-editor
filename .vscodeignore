@@ -1,6 +1,8 @@
 .vscode
+.github
 src/
-media-src
+media-src/
+sidebar-src/
 node_modules
 tsconfig.json
 webpack.config.js

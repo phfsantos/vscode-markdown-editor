@@ -305,7 +305,6 @@ export class DiagnosticVisualizer {
             editor = document.querySelector('.vditor-sv .vditor-reset'); // Source mode
         }
         if (!editor) {
-            this.vscodeLog('❌ DiagnosticVisualizer: Could not find Vditor editor element for cleanup');
             console.warn('DiagnosticVisualizer: Could not find Vditor editor element for cleanup');
             return;
         }
@@ -317,9 +316,6 @@ export class DiagnosticVisualizer {
         const elements = editor.querySelectorAll('[class*="vscode-diagnostic-"]');
         
         elements.forEach((el, index) => {
-            const originalClasses = el.className;
-            const originalContent = el.textContent || '';
-            
             // Remove only diagnostic-related classes, preserve ALL others
             const classes = el.className.split(' ').filter(cls => 
                 !cls.startsWith('vscode-diagnostic-')
@@ -329,13 +325,6 @@ export class DiagnosticVisualizer {
             el.removeAttribute('data-diagnostic-message');
             el.removeAttribute('data-diagnostic-severity');
             el.removeAttribute('data-single-char');
-            
-            // Verify content preservation
-            const newContent = el.textContent || '';
-            if (originalContent !== newContent) {
-                this.vscodeLog(`⚠️ Content changed in element ${index}: "${originalContent}" → "${newContent}"`);
-            }
-            
         });
 
         // Handle diagnostic spans with EXTREME care - preserve ALL child content and structure
@@ -356,7 +345,6 @@ export class DiagnosticVisualizer {
             if (!span.className.trim() && !span.hasAttributes()) {
                 const parent = span.parentNode;
                 if (parent) {
-                    
                     // Create document fragment to safely move children
                     const fragment = document.createDocumentFragment();
                     
@@ -368,16 +356,7 @@ export class DiagnosticVisualizer {
                     // Insert fragment before span, then remove span
                     parent.insertBefore(fragment, span);
                     parent.removeChild(span);
-                    
-                } else {
                 }
-            } else {
-            }
-            
-            // Verify content preservation
-            const currentContent = span.parentNode?.textContent || span.textContent || '';
-            if (!currentContent.includes(originalContent) && originalContent.trim()) {
-                this.vscodeLog(`❌ CONTENT LOST in span ${index}: "${originalContent}"`);
             }
         });
 
@@ -639,7 +618,6 @@ export class DiagnosticVisualizer {
         const lineText = diagnostic.lineText || '';
         
         if (!range || !lineText.trim()) {
-            this.vscodeLog(`❌ Precise text diagnostic failed: missing range or lineText`);
             return false;
         }
         
@@ -649,18 +627,12 @@ export class DiagnosticVisualizer {
         const problemText = lineText.substring(startChar, endChar);
         
         if (!problemText.trim()) {
-            this.vscodeLog(`❌ Precise text diagnostic failed: empty problemText from range ${startChar}-${endChar}`);
             return false;
         }
         
         
         // Find exact text match in the DOM
         const result = this.findAndWrapExactText(editor, problemText, diagnostic);
-        
-        if (result) {
-        } else {
-            this.vscodeLog(`❌ Precise text diagnostic failed for: "${problemText}" - no DOM matches found`);
-        }
         
         return result;
     }
@@ -683,7 +655,6 @@ export class DiagnosticVisualizer {
         const lineElement = this.findElementForLine(editor, lineNumber, diagnostic.lineText);
         
         if (!lineElement) {
-            this.vscodeLog(`❌ Could not find DOM element for line ${lineNumber}`);
             return this.fallbackToGlobalSearch(editor, targetText, diagnostic, tokenKey);
         }
         
@@ -733,19 +704,8 @@ export class DiagnosticVisualizer {
             try {
                 if (this.vditor && typeof this.vditor.html2md === 'function') {
                     elementMd = this.vditor.html2md(element.outerHTML || '');
-                    // Log html2md conversion for debugging (only for first few elements)
-                    if (index < 3) {
-                    }
-                } else {
-                    // Log if vditor or html2md is not available
-                    if (index === 0) {
-                    }
-                }
+                } 
             } catch (e) {
-                // Log html2md conversion errors
-                if (index < 3) {
-                    this.vscodeLog(`❌ html2md conversion failed for element ${index}: ${e}`);
-                }
                 // Fallback to text content if html2md fails
                 elementMd = elementText;
             }
@@ -820,8 +780,7 @@ export class DiagnosticVisualizer {
             const approximateElement = blockElements[approximateIndex];
             return approximateElement;
         }
-        
-        this.vscodeLog(`❌ DEBUG: All strategies failed for line ${lineNumber}. No DOM element found.`);
+
         return null;
     }
     
@@ -1015,14 +974,11 @@ export class DiagnosticVisualizer {
                     
                     if (success) {
                         return true;
-                    } else {
-                        this.vscodeLog(`❌ Failed to wrap text: "${targetText}" using ${strategy.name} strategy`);
                     }
                 }
             }
         }
-        
-        this.vscodeLog(`❌ No matches found for "${targetText}" within line element after checking ${attemptCount} text nodes`);
+
         return false;
     }
     
@@ -1059,7 +1015,6 @@ export class DiagnosticVisualizer {
             }
         }
         
-        this.vscodeLog(`❌ Global search failed for "${targetText}" after checking ${attemptCount} text nodes`);
         return false;
     }
     
@@ -1403,7 +1358,6 @@ export class DiagnosticVisualizer {
             }
         }
         
-        this.vscodeLog(`❌ No matching image found for MD045 diagnostic`);
         return false;
     }
 
@@ -2022,9 +1976,6 @@ export class DiagnosticVisualizer {
             (window as any).vscode.postMessage({
                 command: 'openProblemsPanel'
             });
-            
-        } else {
-            this.vscodeLog(`❌ VS Code API not available for opening problems panel`);
         }
     }
 
@@ -2084,17 +2035,18 @@ export class DiagnosticVisualizer {
 
     /**
      * Simple pattern matching for broken links and images without alt text
+     * @param force - Force re-application even if content hasn't changed (useful after DOM manipulation)
      */
-    public addSimpleDiagnostics(): void {
+    public addSimpleDiagnostics(force: boolean = false): void {
         const content = this.vditor?.getValue() || '';
         
         // SMART CHECK: Only update if content changed significantly to prevent unnecessary updates
-        if (content === this.lastContent) {
+        if (!force && content === this.lastContent) {
             return;
         }
         
         // Check if diagnostics are already applied and still valid
-        if (this.diagnosticsApplied && this.wrappedKeys.size > 0) {
+        if (!force && this.diagnosticsApplied && this.wrappedKeys.size > 0) {
             
             // Quick validation: if existing diagnostics are mostly still valid, skip update
             let editor = document.querySelector('.vditor-ir .vditor-reset') as HTMLElement;
@@ -2331,13 +2283,11 @@ export class DiagnosticVisualizer {
             const targetText = lineText.substring(startChar, endChar);
             
             if (!targetText.trim()) {
-                this.vscodeLog(`❌ Skipping diagnostic - no target text from range ${startChar}-${endChar} in line: "${lineText}"`);
                 continue;
             }
             
             // Validate that the target text actually appears in the line at the expected position
             if (lineText.substring(startChar, endChar) !== targetText) {
-                this.vscodeLog(`❌ Skipping diagnostic - target text "${targetText}" doesn't match line text at position ${startChar}-${endChar}: "${lineText.substring(startChar, endChar)}"`);
                 continue;
             }
             
@@ -2357,7 +2307,6 @@ export class DiagnosticVisualizer {
                 
                 // CRITICAL: Validate word boundaries to prevent partial matches
                 if (!this.isCompleteWord(elementText, targetText, targetIndex)) {
-                    this.vscodeLog(`❌ Rejected partial word match: "${targetText}" in "${elementText.substring(Math.max(0, targetIndex-10), targetIndex+targetText.length+10)}"`);
                     continue;
                 }
                 
@@ -2481,8 +2430,6 @@ export class DiagnosticVisualizer {
                 
                 if (this.applyDiagnosticToMatchedElement(bestMatch.element, diagnostic, matchResult)) {
                     appliedCount++;
-                } else {
-                    this.vscodeLog(`❌ Failed to apply diagnostic despite good match`);
                 }
             } else {
                 // FALLBACK: If we have a word-boundary validated match but it's just below threshold, be more lenient
@@ -2498,14 +2445,11 @@ export class DiagnosticVisualizer {
                     
                     if (this.applyDiagnosticToMatchedElement(bestMatch.element, diagnostic, matchResult)) {
                         appliedCount++;
-                    } else {
-                        this.vscodeLog(`❌ Failed to apply fallback diagnostic despite match`);
                     }
                 } else {
                     const reason = bestMatch ? 
                         `confidence ${bestMatch.confidence.toFixed(1)} < 100 or proximity ${Math.abs(lineNumber - bestMatch.index)} > 15` : 
                         'no match found';
-                    this.vscodeLog(`❌ NO SUITABLE MATCH: Best confidence was ${bestMatch?.confidence?.toFixed(1) || 0} for "${targetText}" on line ${lineNumber} (${reason})`);
                     
                     // Log some elements that might have been close
                     for (let i = Math.max(0, lineNumber - 3); i < Math.min(blockElements.length, lineNumber + 3); i++) {
@@ -2538,7 +2482,6 @@ export class DiagnosticVisualizer {
         const targetText = lineText.substring(startChar, endChar);
         
         if (!targetText.trim()) {
-            this.vscodeLog(`❌ No target text extracted from range ${startChar}-${endChar} in line: "${lineText}"`);
             return {matched: false, confidence: 0, matchType: 'no-target-text'};
         }
         
@@ -2573,7 +2516,6 @@ export class DiagnosticVisualizer {
             
             // First, verify line text contains target text (sanity check)
             if (!lineText.includes(targetText)) {
-                this.vscodeLog(`❌ VALIDATION FAILED: Target text "${targetText}" not found in line text "${lineText}"`);
                 return {matched: false, confidence: 0, matchType: 'target-not-in-line'};
             }
             
@@ -2583,8 +2525,6 @@ export class DiagnosticVisualizer {
                 if (elementText.includes(targetText)) {
                     confidence = 85;
                     matchType = 'full-line-exact';
-                } else {
-                    this.vscodeLog(`❌ STRICT CHECK FAILED: Element matches line but missing target text "${targetText}"`);
                 }
             } else if (elementText.includes(lineText.trim()) && elementText.includes(targetText)) {
                 confidence = 75;
@@ -2593,9 +2533,6 @@ export class DiagnosticVisualizer {
                 // STRICT: Only allow fuzzy match if target text is actually present in element
                 confidence = 65;
                 matchType = 'full-line-fuzzy-with-target';
-            } else {
-                // REJECTED: Element doesn't contain target text
-                this.vscodeLog(`❌ STRICT REJECTION: Element doesn't contain target text "${targetText}"`);
             }
         }
         
@@ -2658,7 +2595,6 @@ export class DiagnosticVisualizer {
         const lineNumber = range?.start?.line;
         
         if (!range || !lineText.trim()) {
-            this.vscodeLog(`❌ Cannot apply diagnostic: missing range or lineText`);
             return false;
         }
         
@@ -2683,32 +2619,6 @@ export class DiagnosticVisualizer {
         }
         
         return applied;
-    }
-
-    /**
-     * Find and wrap specific text within an element with diagnostic styling
-     */
-    private findAndWrapTextInElement(element: HTMLElement, targetText: string, diagnostic: any): boolean {
-        const walker = document.createTreeWalker(
-            element,
-            NodeFilter.SHOW_TEXT,
-            null
-        );
-        
-        let textNode: Text | null;
-        while ((textNode = walker.nextNode() as Text)) {
-            const content = textNode.textContent || '';
-            const index = content.indexOf(targetText);
-            
-            if (index !== -1) {
-                // Found the target text, wrap it
-                return this.wrapTextWithDiagnostic(textNode, index, index + targetText.length, diagnostic);
-            }
-        }
-        
-        // Fallback: apply styling to entire element
-        this.addDiagnosticStylingToElement(element, diagnostic);
-        return true;
     }
 
     /**
@@ -2874,8 +2784,7 @@ export class DiagnosticVisualizer {
             
             currentPosition = nodeEnd;
         }
-        
-        this.vscodeLog(`❌ Could not find text node containing position ${position}`);
+
         return false;
     }
 
@@ -3039,7 +2948,6 @@ export class DiagnosticVisualizer {
         }
         
         if (!editor) {
-            this.vscodeLog(`❌ DOM VERIFY: Could not find editor element`);
             return false;
         }
         
@@ -3050,7 +2958,6 @@ export class DiagnosticVisualizer {
         
         // If we expect diagnostics but have no DOM elements, something cleared them
         if (this.diagnostics.length > 0 && diagnosticElements.length === 0) {
-            this.vscodeLog(`❌ DOM VERIFY: Expected ${this.diagnostics.length} diagnostics but found 0 DOM elements - visual elements missing!`);
             // AGGRESSIVE RESET: Clear all tracking state since visual elements are gone
             this.clearAppliedDiagnosticTracking();
             return false;
@@ -3092,7 +2999,6 @@ export class DiagnosticVisualizer {
         }
         
         if (!editor) {
-            this.vscodeLog(`❌ Could not find editor for revalidation`);
             return;
         }
         

@@ -11,6 +11,8 @@ import { MarkdownCodeLensProvider, MarkdownDecorationProvider } from './decorati
 import { MarkdownCommandProvider } from './commands/MarkdownCommandProvider';
 import { VSCodeIntegrator } from './integration/VSCodeIntegrator';
 import { MarkdownDiffViewSupport } from './diff/MarkdownDiffViewSupport';
+import { MarkdownSidebarProvider } from './sidebar/MarkdownSidebarProvider';
+import { WikiLinkCompletionProvider } from './providers/WikiLinkCompletionProvider';
 
 // Create a global output channel for logging
 let outputChannel: vscode.OutputChannel;
@@ -65,6 +67,27 @@ export function activate(context: vscode.ExtensionContext) {
   const commandProvider = new MarkdownCommandProvider(context);
   context.subscriptions.push(commandProvider);
 
+  // Initialize Obsidian-style sidebar
+  const sidebarProvider = new MarkdownSidebarProvider(context.extensionUri, context);
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(
+      MarkdownSidebarProvider.viewType,
+      sidebarProvider
+    ),
+    sidebarProvider  // Dispose sidebar provider when extension deactivates
+  );
+
+  // Initialize wiki-link completion provider for Obsidian-style [[filename]] autocomplete
+  const wikiLinkProvider = WikiLinkCompletionProvider.getInstance();
+  context.subscriptions.push(
+    vscode.languages.registerCompletionItemProvider(
+      'markdown',
+      wikiLinkProvider,
+      '[', '[' // Trigger characters - fires on second [
+    )
+  );
+  (global as any).markdownEditorLog('✅ Wiki-Link Completion Provider registered for [[filename]] autocomplete');
+
   // Initialize markdown diff view support (detects when editors are in diff view)
   (global as any).markdownEditorLog('🔍 DIFF: Initializing Markdown Diff View Support...');
   const diffViewSupport = new MarkdownDiffViewSupport(context);
@@ -104,9 +127,30 @@ export function activate(context: vscode.ExtensionContext) {
     )
   )
 
+  // Add command for graph view (placeholder for Phase 4)
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'markdown-editor.openGraphView',
+      async (docUri?: string) => {
+        console.log('[Extension] markdown-editor.openGraphView command called', docUri);
+        try {
+          const { GraphViewPanel } = await import('./app/GraphViewPanel');
+          console.log('[Extension] GraphViewPanel imported, calling createOrShow');
+          GraphViewPanel.createOrShow(context, docUri);
+        } catch (error) {
+          console.error('[Extension] Error creating GraphViewPanel:', error);
+          vscode.window.showErrorMessage(`Failed to open graph view: ${error}`);
+        }
+      }
+    )
+  )
+
   context.globalState.setKeysForSync([KeyVditorOptions])
 
   // Register custom editor with enhanced provider
+  // CRITICAL: Allow multiple editors per document so diff view and individual tabs
+  // each get their own webview instance. This prevents constant clearing/reapplying
+  // of diff visualizations when switching between tabs.
   context.subscriptions.push(
     vscode.window.registerCustomEditorProvider(
       'markdown-editor',
@@ -115,9 +159,46 @@ export function activate(context: vscode.ExtensionContext) {
         webviewOptions: {
           retainContextWhenHidden: true,
         },
-        supportsMultipleEditorsPerDocument: false,
+        supportsMultipleEditorsPerDocument: true, // Allow separate instances for diff vs individual tabs
       }
     ),
+  );
+
+  // Setup file watcher for wiki-link updates on file rename
+  const fileWatcher = vscode.workspace.createFileSystemWatcher('**/*.md');
+  
+  fileWatcher.onDidDelete(async (uri) => {
+    // Invalidate cache when files are deleted
+    const { LinkResolver } = await import('./services/LinkResolver');
+    LinkResolver.getInstance().invalidateCache();
+  });
+
+  fileWatcher.onDidCreate(async (uri) => {
+    // Invalidate cache when files are created
+    const { LinkResolver } = await import('./services/LinkResolver');
+    LinkResolver.getInstance().invalidateCache();
+  });
+
+  context.subscriptions.push(fileWatcher);
+
+  // Watch for file renames to update wiki-links
+  context.subscriptions.push(
+    vscode.workspace.onDidRenameFiles(async (event) => {
+      const { LinkResolver } = await import('./services/LinkResolver');
+      const resolver = LinkResolver.getInstance();
+      
+      for (const file of event.files) {
+        // Update wiki-links in all files that reference the renamed file
+        await resolver.updateLinksForRenamedFile(file.oldUri, file.newUri);
+        
+        (global as any).markdownEditorLog(
+          `📝 Updated wiki-links for renamed file: ${file.oldUri.fsPath} → ${file.newUri.fsPath}`
+        );
+      }
+      
+      // Invalidate cache after renames
+      resolver.invalidateCache();
+    })
   );
 
   // Clean up on deactivation

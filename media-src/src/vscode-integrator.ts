@@ -117,9 +117,26 @@ export class VSCodeWebviewIntegrator {
 
     // Override default paste behavior
     editor.addEventListener('paste', async (e) => {
+      this.vscodeLog(`[paste-debug] PASTE_EVENT Paste event listener triggered`);
+      
+      // CRITICAL: Stop event propagation to prevent Vditor's handler from also running
       e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      
+      // Check if this is a programmatic paste from performClipboardAction
+      const flagValue = (window as any).isProgrammaticPaste;
+      this.vscodeLog(`[paste-debug] PASTE_EVENT Flag check: ${flagValue}`);
+      
+      if (flagValue) {
+        this.vscodeLog('[paste-debug] PASTE_EVENT Skipping - programmatic paste');
+        return;
+      }
+      
+      this.vscodeLog(`[paste-debug] PASTE_EVENT Processing paste`);
       await this.handlePaste(e);
-    });
+      this.vscodeLog(`[paste-debug] PASTE_EVENT Completed`);
+    }, { capture: true });
 
     // Override default cut behavior
     editor.addEventListener('cut', async (e) => {
@@ -205,9 +222,16 @@ export class VSCodeWebviewIntegrator {
     try {
       const selection = this.getSelectedText();
       if (selection) {
-        const success = await this.writeToVSCodeClipboard(selection);
-        if (success) {
-
+        // Use modern Clipboard API
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(selection);
+          this.vscodeLog(`✅ Copy successful via Clipboard API (${selection.length} chars)`);
+        } else {
+          // Fallback to VS Code clipboard
+          const success = await this.writeToVSCodeClipboard(selection);
+          if (success) {
+            this.vscodeLog(`✅ Copy successful via VS Code (${selection.length} chars)`);
+          }
         }
       }
     } catch (error) {
@@ -219,15 +243,36 @@ export class VSCodeWebviewIntegrator {
    * Handle paste operation with VS Code integration
    */
   private async handlePaste(e: Event): Promise<void> {
+    this.vscodeLog(`[paste-debug] 🟡 handlePaste() called in vscode-integrator`);
+    
     try {
-      const text = await this.readFromVSCodeClipboard();
+      let text = '';
+      
+      // Use modern Clipboard API first
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        this.vscodeLog(`[paste-debug] 🟡 Using Clipboard API to read text...`);
+        text = await navigator.clipboard.readText();
+        this.vscodeLog(`[paste-debug] 🟡 Read ${text.length} chars: "${text.substring(0, 50)}..."`);
+        this.vscodeLog(`✅ Paste via Clipboard API (${text.length} chars)`);
+      } else {
+        // Fallback to VS Code clipboard
+        this.vscodeLog(`[paste-debug] 🟡 Falling back to VS Code clipboard read...`);
+        text = await this.readFromVSCodeClipboard();
+        this.vscodeLog(`[paste-debug] 🟡 Read ${text.length} chars from VS Code clipboard`);
+        this.vscodeLog(`✅ Paste via VS Code (${text.length} chars)`);
+      }
+      
       if (text) {
+        this.vscodeLog(`[paste-debug] 🟡 Calling insertTextAtCursor() with ${text.length} chars`);
         this.insertTextAtCursor(text);
 
         // Notify cursor manager to handle positioning after paste
         if (this.cursorManager && this.cursorManager.handleAfterPaste) {
+          this.vscodeLog(`[paste-debug] 🟡 Notifying cursor manager`);
           this.cursorManager.handleAfterPaste();
         }
+      } else {
+        this.vscodeLog(`[paste-debug] ⚠️ No text to paste`);
       }
     } catch (error) {
       this.vscodeLog(`❌ Paste failed: ${error}`);
@@ -241,10 +286,18 @@ export class VSCodeWebviewIntegrator {
     try {
       const selection = this.getSelectedText();
       if (selection) {
-        const success = await this.writeToVSCodeClipboard(selection);
-        if (success) {
+        // Use modern Clipboard API
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(selection);
           this.deleteSelectedText();
-
+          this.vscodeLog(`✅ Cut successful via Clipboard API (${selection.length} chars)`);
+        } else {
+          // Fallback to VS Code clipboard
+          const success = await this.writeToVSCodeClipboard(selection);
+          if (success) {
+            this.deleteSelectedText();
+            this.vscodeLog(`✅ Cut successful via VS Code (${selection.length} chars)`);
+          }
         }
       }
     } catch (error) {
@@ -506,8 +559,15 @@ export class VSCodeWebviewIntegrator {
   }
 
   private insertTextAtCursor(text: string): void {
+    this.vscodeLog(`[paste-debug] 🟣 insertTextAtCursor() called with ${text.length} chars`);
+    this.vscodeLog(`[paste-debug] 🟣 vditor available: ${!!this.vditor}, insertValue available: ${!!this.vditor?.insertValue}`);
+    
     if (this.vditor && this.vditor.insertValue) {
+      this.vscodeLog(`[paste-debug] 🟣 Calling vditor.insertValue()`);
       this.vditor.insertValue(text);
+      this.vscodeLog(`[paste-debug] 🟣 vditor.insertValue() completed`);
+    } else {
+      this.vscodeLog(`[paste-debug] ⚠️ Cannot insert text - vditor or insertValue not available`);
     }
   }
 

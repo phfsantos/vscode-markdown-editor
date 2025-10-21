@@ -3,7 +3,7 @@
   "displayName": "Markdown Editor",
   "icon": "media/logo.png",
   "description": "A full-featured WYSIWYG editor for markdown.",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "publisher": "phfsantos",
   "private": true,
   "engines": {
@@ -23,18 +23,34 @@
   ],
   "activationEvents": [
     "onWebviewPanel:markdown-editor",
-    "onLanguage:markdown"
+    "onLanguage:markdown",
+    "onView:markdown-sidebar"
   ],
   "repository": {
     "type": "git",
     "url": "https://github.com/phfsantos/vscode-markdown-editor.git"
   },
-  "files": [
-    "./media",
-    "./out"
-  ],
   "main": "./out/extension.js",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "markdown-tools",
+          "title": "Markdown Tools",
+          "icon": "media/sidebar-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "markdown-tools": [
+        {
+          "icon": "media/sidebar-icon.svg",
+          "type": "webview",
+          "id": "markdown-sidebar",
+          "name": "Markdown Links & Notes"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "markdown-editor.openEditor",
@@ -69,6 +85,11 @@
       {
         "command": "markdown-editor.validateDocument",
         "title": "Validate Document Structure",
+        "category": "markdown-editor"
+      },
+      {
+        "command": "markdown-editor.openGraphView",
+        "title": "Open Link Graph View",
         "category": "markdown-editor"
       }
     ],
@@ -141,7 +162,11 @@
         },
         "markdown-editor.performanceMode": {
           "type": "string",
-          "enum": ["auto", "performance", "compatibility"],
+          "enum": [
+            "auto",
+            "performance",
+            "compatibility"
+          ],
           "default": "auto",
           "description": "Performance optimization level"
         }

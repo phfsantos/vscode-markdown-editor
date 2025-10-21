@@ -17382,7 +17382,7 @@ onclick="event.stopPropagation();this.previousElementSibling.select();document.e
                   startSpace = false;
                 }
                 if (startSpace) {
-                  processAfterRender(vditor2);
+                  processAfterRender2(vditor2);
                   return;
                 }
                 if (event.inputType === "deleteContentBackward") {
@@ -17392,7 +17392,7 @@ onclick="event.stopPropagation();this.previousElementSibling.select();document.e
                       var openMarkerElement = getSideByType(startContainer, "code-block-open-marker");
                       if (openMarkerElement) {
                         openMarkerElement.textContent = codeBlockMarkerElement.textContent;
-                        processAfterRender(vditor2);
+                        processAfterRender2(vditor2);
                         return;
                       }
                     }
@@ -17400,7 +17400,7 @@ onclick="event.stopPropagation();this.previousElementSibling.select();document.e
                       var openMarkerElement = getSideByType(startContainer, "code-block-close-marker", false);
                       if (openMarkerElement) {
                         openMarkerElement.textContent = codeBlockMarkerElement.textContent;
-                        processAfterRender(vditor2);
+                        processAfterRender2(vditor2);
                         return;
                       }
                     }
@@ -17410,7 +17410,7 @@ onclick="event.stopPropagation();this.previousElementSibling.select();document.e
                     var mathBlockCloseElement = mathBlockMarkerElement.nextElementSibling.nextElementSibling;
                     if (mathBlockCloseElement && mathBlockCloseElement.getAttribute("data-type") === "math-block-close-marker") {
                       mathBlockCloseElement.remove();
-                      processAfterRender(vditor2);
+                      processAfterRender2(vditor2);
                     }
                     return;
                   }
@@ -17426,17 +17426,17 @@ onclick="event.stopPropagation();this.previousElementSibling.select();document.e
                   });
                   var headingElement = (0, hasClosest.a1)(startContainer, "data-type", "heading-marker");
                   if (headingElement && headingElement.textContent.indexOf("#") === -1) {
-                    processAfterRender(vditor2);
+                    processAfterRender2(vditor2);
                     return;
                   }
                 }
                 if ((event.data === " " || event.inputType === "deleteContentBackward") && ((0, hasClosest.a1)(startContainer, "data-type", "padding") || (0, hasClosest.a1)(startContainer, "data-type", "li-marker") || (0, hasClosest.a1)(startContainer, "data-type", "task-marker") || (0, hasClosest.a1)(startContainer, "data-type", "blockquote-marker"))) {
-                  processAfterRender(vditor2);
+                  processAfterRender2(vditor2);
                   return;
                 }
               }
               if (blockElement && blockElement.textContent.trimRight() === "$$") {
-                processAfterRender(vditor2);
+                processAfterRender2(vditor2);
                 return;
               }
               if (!blockElement) {
@@ -17499,7 +17499,7 @@ onclick="event.stopPropagation();this.previousElementSibling.select();document.e
               });
               (0, selection.ib)(vditor2.sv.element, range);
               scrollCenter(vditor2);
-              processAfterRender(vditor2, {
+              processAfterRender2(vditor2, {
                 enableAddUndoStack: true,
                 enableHint: true,
                 enableInput: true
@@ -17534,7 +17534,7 @@ onclick="event.stopPropagation();this.previousElementSibling.select();document.e
                     blockquoteMarkerElement.previousElementSibling.setAttribute("data-action", "enter-remove");
                   }
                   blockquoteMarkerElement.remove();
-                  processAfterRender(vditor2);
+                  processAfterRender2(vditor2);
                   event.preventDefault();
                   return true;
                 }
@@ -17570,7 +17570,7 @@ onclick="event.stopPropagation();this.previousElementSibling.select();document.e
                       }
                       listLastMarkerElement.nextElementSibling.remove();
                       listLastMarkerElement.remove();
-                      processAfterRender(vditor2);
+                      processAfterRender2(vditor2);
                     }
                     event.preventDefault();
                     return true;
@@ -17609,7 +17609,7 @@ onclick="event.stopPropagation();this.previousElementSibling.select();document.e
                 if (spanElement) {
                   if (((_c = spanElement.previousElementSibling) === null || _c === void 0 ? void 0 : _c.getAttribute("data-action")) === "enter-remove") {
                     spanElement.previousElementSibling.remove();
-                    processAfterRender(vditor2);
+                    processAfterRender2(vditor2);
                     event.preventDefault();
                     return true;
                   } else {
@@ -17621,7 +17621,7 @@ onclick="event.stopPropagation();this.previousElementSibling.select();document.e
                 if (blockElement && blockElement.textContent.trim() !== "" && !isFirst) {
                   inputEvent(vditor2);
                 } else {
-                  processAfterRender(vditor2);
+                  processAfterRender2(vditor2);
                 }
                 event.preventDefault();
                 return true;
@@ -17633,7 +17633,7 @@ onclick="event.stopPropagation();this.previousElementSibling.select();document.e
                   if (spanElement.textContent.trim() !== "") {
                     inputEvent(vditor2);
                   } else {
-                    processAfterRender(vditor2);
+                    processAfterRender2(vditor2);
                   }
                   event.preventDefault();
                   return true;
@@ -17656,7 +17656,7 @@ onclick="event.stopPropagation();this.previousElementSibling.select();document.e
                       range.selectNodeContents(previousLastElement.lastChild);
                       range.collapse(false);
                     }
-                    processAfterRender(vditor2);
+                    processAfterRender2(vditor2);
                   }
                   event.preventDefault();
                   return true;
@@ -19765,7 +19765,7 @@ onclick="event.stopPropagation();this.previousElementSibling.select();document.e
                 }
                 vditor2.sv.element.innerHTML = svHTML;
                 combineFootnote(vditor2.sv.element);
-                processAfterRender(vditor2, {
+                processAfterRender2(vditor2, {
                   enableAddUndoStack: true,
                   enableHint: false,
                   enableInput: false
@@ -20114,7 +20114,7 @@ onclick="event.stopPropagation();this.previousElementSibling.select();document.e
               }
               return markerText;
             };
-            var processAfterRender = function(vditor2, options) {
+            var processAfterRender2 = function(vditor2, options) {
               if (options === void 0) {
                 options = {
                   enableAddUndoStack: true,
@@ -20214,7 +20214,7 @@ onclick="event.stopPropagation();this.previousElementSibling.select();document.e
                 }
               }
               (0, selection.ib)(vditor2.sv.element, range);
-              processAfterRender(vditor2);
+              processAfterRender2(vditor2);
             };
             ;
             var getElement = function(vditor2) {
@@ -21203,7 +21203,7 @@ onclick="event.stopPropagation();this.previousElementSibling.select();document.e
               } else if (vditor2.currentMode === "ir") {
                 process_processAfterRender(vditor2, options);
               } else if (vditor2.currentMode === "sv") {
-                processAfterRender(vditor2, options);
+                processAfterRender2(vditor2, options);
               }
             };
             var fixList = function(range, vditor2, pElement, event) {
@@ -23351,7 +23351,7 @@ onclick="event.stopPropagation();this.previousElementSibling.select();document.e
                   }
                   if (_this.preventInput) {
                     _this.preventInput = false;
-                    processAfterRender(vditor2, {
+                    processAfterRender2(vditor2, {
                       enableAddUndoStack: true,
                       enableHint: true,
                       enableInput: true
@@ -26211,7 +26211,7 @@ window.addEventListener("message", (e) => {
                 }
                 if (this.vditor.currentMode === "sv") {
                   this.vditor.sv.element.innerHTML = "<div data-block='0'>".concat(this.vditor.lute.SpinVditorSVDOM(markdown), "</div>");
-                  processAfterRender(this.vditor, {
+                  processAfterRender2(this.vditor, {
                     enableAddUndoStack: true,
                     enableHint: false,
                     enableInput: false
@@ -39773,10 +39773,8 @@ ${currentContent}`;
     setupVditorEventStoppers(container, node) {
       if (!node)
         return;
-      console.log("\u{1F6E1}\uFE0F TABLE: Setting up backup event stoppers on parent node");
       const backupBlocker = (e7) => {
         if (container.contains(e7.target)) {
-          console.log("\u{1F6E1}\uFE0F TABLE: BACKUP blocker fired in bubble phase", {type: e7.type});
           e7.stopPropagation();
         }
       };
@@ -40415,7 +40413,6 @@ ${currentContent}`;
     async onDestroy(context) {
       const instanceKey = `${context.documentUri}-${context.instanceId}`;
       this.tableInstances.delete(instanceKey);
-      console.log("\u{1F9F9} TABLE RENDERER: Cleaned up instance", instanceKey);
     }
   };
 
@@ -41175,24 +41172,17 @@ ${currentContent}`;
         editor = document.querySelector(".vditor-sv .vditor-reset");
       }
       if (!editor) {
-        this.vscodeLog("\u274C DiagnosticVisualizer: Could not find Vditor editor element for cleanup");
         console.warn("DiagnosticVisualizer: Could not find Vditor editor element for cleanup");
         return;
       }
       const beforeContent = editor.textContent?.length || 0;
       const elements = editor.querySelectorAll('[class*="vscode-diagnostic-"]');
       elements.forEach((el, index2) => {
-        const originalClasses = el.className;
-        const originalContent = el.textContent || "";
         const classes = el.className.split(" ").filter((cls) => !cls.startsWith("vscode-diagnostic-"));
         el.className = classes.join(" ");
         el.removeAttribute("data-diagnostic-message");
         el.removeAttribute("data-diagnostic-severity");
         el.removeAttribute("data-single-char");
-        const newContent = el.textContent || "";
-        if (originalContent !== newContent) {
-          this.vscodeLog(`\u26A0\uFE0F Content changed in element ${index2}: "${originalContent}" \u2192 "${newContent}"`);
-        }
       });
       const diagnosticSpans = editor.querySelectorAll(".vscode-diagnostic-span");
       diagnosticSpans.forEach((span, index2) => {
@@ -41212,13 +41202,7 @@ ${currentContent}`;
             }
             parent.insertBefore(fragment, span);
             parent.removeChild(span);
-          } else {
           }
-        } else {
-        }
-        const currentContent = span.parentNode?.textContent || span.textContent || "";
-        if (!currentContent.includes(originalContent) && originalContent.trim()) {
-          this.vscodeLog(`\u274C CONTENT LOST in span ${index2}: "${originalContent}"`);
         }
       });
       const afterContent = editor.textContent?.length || 0;
@@ -41234,7 +41218,6 @@ ${currentContent}`;
     cleanupTransientUI() {
       const editor = document.querySelector(".vditor-ir .vditor-reset") || document.querySelector(".vditor-wysiwyg .vditor-reset") || document.querySelector(".vditor-sv .vditor-reset");
       if (!editor) {
-        this.vscodeLog("\u{1F50D} DEBUG: Could not find Vditor editor element - cleaning body overlays only");
       } else {
       }
       this.cleanupLightbulbOverlays();
@@ -41353,21 +41336,15 @@ ${currentContent}`;
       const range = diagnostic.range;
       const lineText = diagnostic.lineText || "";
       if (!range || !lineText.trim()) {
-        this.vscodeLog(`\u274C Precise text diagnostic failed: missing range or lineText`);
         return false;
       }
       const startChar = range.start?.character || 0;
       const endChar = range.end?.character || startChar + 1;
       const problemText = lineText.substring(startChar, endChar);
       if (!problemText.trim()) {
-        this.vscodeLog(`\u274C Precise text diagnostic failed: empty problemText from range ${startChar}-${endChar}`);
         return false;
       }
       const result = this.findAndWrapExactText(editor, problemText, diagnostic);
-      if (result) {
-      } else {
-        this.vscodeLog(`\u274C Precise text diagnostic failed for: "${problemText}" - no DOM matches found`);
-      }
       return result;
     }
     findAndWrapExactText(editor, targetText, diagnostic) {
@@ -41379,7 +41356,6 @@ ${currentContent}`;
       }
       const lineElement = this.findElementForLine(editor, lineNumber, diagnostic.lineText);
       if (!lineElement) {
-        this.vscodeLog(`\u274C Could not find DOM element for line ${lineNumber}`);
         return this.fallbackToGlobalSearch(editor, targetText, diagnostic, tokenKey);
       }
       return this.searchWithinElement(lineElement, targetText, diagnostic, tokenKey);
@@ -41409,16 +41385,8 @@ ${currentContent}`;
         try {
           if (this.vditor && typeof this.vditor.html2md === "function") {
             elementMd = this.vditor.html2md(element.outerHTML || "");
-            if (index2 < 3) {
-            }
-          } else {
-            if (index2 === 0) {
-            }
           }
         } catch (e7) {
-          if (index2 < 3) {
-            this.vscodeLog(`\u274C html2md conversion failed for element ${index2}: ${e7}`);
-          }
           elementMd = elementText;
         }
         if (elementText.trim() === lineText.trim() || elementMd.trim() === lineText.trim()) {
@@ -41471,7 +41439,6 @@ ${currentContent}`;
         const approximateElement = blockElements[approximateIndex];
         return approximateElement;
       }
-      this.vscodeLog(`\u274C DEBUG: All strategies failed for line ${lineNumber}. No DOM element found.`);
       return null;
     }
     getAllPossibleLineElements(editor) {
@@ -41589,13 +41556,10 @@ ${currentContent}`;
             const success2 = this.wrapTextWithDiagnostic(textNode, strategy.index, strategy.index + targetText.length, diagnostic);
             if (success2) {
               return true;
-            } else {
-              this.vscodeLog(`\u274C Failed to wrap text: "${targetText}" using ${strategy.name} strategy`);
             }
           }
         }
       }
-      this.vscodeLog(`\u274C No matches found for "${targetText}" within line element after checking ${attemptCount} text nodes`);
       return false;
     }
     fallbackToGlobalSearch(editor, targetText, diagnostic, tokenKey) {
@@ -41612,7 +41576,6 @@ ${currentContent}`;
           }
         }
       }
-      this.vscodeLog(`\u274C Global search failed for "${targetText}" after checking ${attemptCount} text nodes`);
       return false;
     }
     findWordBoundaryMatch(content, targetText) {
@@ -41817,7 +41780,6 @@ ${currentContent}`;
           return true;
         }
       }
-      this.vscodeLog(`\u274C No matching image found for MD045 diagnostic`);
       return false;
     }
     applyDiagnosticStyleToVditorNode(vditorNode, diagnostic) {
@@ -41860,7 +41822,6 @@ ${currentContent}`;
           blankLineStart = -1;
         }
       }
-      this.vscodeLog(`MD012: Could not find multiple consecutive blank lines in raw content around line ${lineNumber}`);
       const allElements = editor.querySelectorAll("p, div, br");
       const targetElements = [];
       let consecutiveEmptyCount = 0;
@@ -41924,7 +41885,6 @@ ${currentContent}`;
       const targetIndex = Math.floor(blockElements.length * (startLine / (this.vditor ? this.vditor.getValue().split("\n").length : 100)));
       const element = blockElements[Math.min(targetIndex, blockElements.length - 1)];
       if (!element) {
-        this.vscodeLog("MD012: Could not find target element for blank line area");
         return false;
       }
       this.applyDiagnosticStyleToElement(element, diagnostic);
@@ -42208,8 +42168,6 @@ ${currentContent}`;
         window.vscode.postMessage({
           command: "openProblemsPanel"
         });
-      } else {
-        this.vscodeLog(`\u274C VS Code API not available for opening problems panel`);
       }
     }
     getDiagnosticSeverityString(severity) {
@@ -42244,12 +42202,12 @@ ${currentContent}`;
     updateFromExtension(diagnostics) {
       this.scheduleUpdate();
     }
-    addSimpleDiagnostics() {
+    addSimpleDiagnostics(force = false) {
       const content = this.vditor?.getValue() || "";
-      if (content === this.lastContent) {
+      if (!force && content === this.lastContent) {
         return;
       }
-      if (this.diagnosticsApplied && this.wrappedKeys.size > 0) {
+      if (!force && this.diagnosticsApplied && this.wrappedKeys.size > 0) {
         let editor = document.querySelector(".vditor-ir .vditor-reset");
         if (!editor) {
           editor = document.querySelector(".vditor-wysiwyg .vditor-reset");
@@ -42411,11 +42369,9 @@ ${currentContent}`;
         const endChar = range?.end?.character || startChar + 1;
         const targetText = lineText.substring(startChar, endChar);
         if (!targetText.trim()) {
-          this.vscodeLog(`\u274C Skipping diagnostic - no target text from range ${startChar}-${endChar} in line: "${lineText}"`);
           continue;
         }
         if (lineText.substring(startChar, endChar) !== targetText) {
-          this.vscodeLog(`\u274C Skipping diagnostic - target text "${targetText}" doesn't match line text at position ${startChar}-${endChar}: "${lineText.substring(startChar, endChar)}"`);
           continue;
         }
         let bestMatch = null;
@@ -42427,7 +42383,6 @@ ${currentContent}`;
             continue;
           }
           if (!this.isCompleteWord(elementText, targetText, targetIndex)) {
-            this.vscodeLog(`\u274C Rejected partial word match: "${targetText}" in "${elementText.substring(Math.max(0, targetIndex - 10), targetIndex + targetText.length + 10)}"`);
             continue;
           }
           const tokenKey = `${lineNumber}|${targetText}`;
@@ -42509,8 +42464,6 @@ ${currentContent}`;
           };
           if (this.applyDiagnosticToMatchedElement(bestMatch.element, diagnostic, matchResult)) {
             appliedCount++;
-          } else {
-            this.vscodeLog(`\u274C Failed to apply diagnostic despite good match`);
           }
         } else {
           if (bestMatch && bestMatch.confidence >= 80) {
@@ -42523,12 +42476,9 @@ ${currentContent}`;
             };
             if (this.applyDiagnosticToMatchedElement(bestMatch.element, diagnostic, matchResult)) {
               appliedCount++;
-            } else {
-              this.vscodeLog(`\u274C Failed to apply fallback diagnostic despite match`);
             }
           } else {
             const reason = bestMatch ? `confidence ${bestMatch.confidence.toFixed(1)} < 100 or proximity ${Math.abs(lineNumber - bestMatch.index)} > 15` : "no match found";
-            this.vscodeLog(`\u274C NO SUITABLE MATCH: Best confidence was ${bestMatch?.confidence?.toFixed(1) || 0} for "${targetText}" on line ${lineNumber} (${reason})`);
             for (let i6 = Math.max(0, lineNumber - 3); i6 < Math.min(blockElements.length, lineNumber + 3); i6++) {
               if (i6 < blockElements.length) {
                 const elementText = (blockElements[i6].element.textContent || "").substring(0, 50);
@@ -42546,7 +42496,6 @@ ${currentContent}`;
       const endChar = range?.end?.character || startChar + 1;
       const targetText = lineText.substring(startChar, endChar);
       if (!targetText.trim()) {
-        this.vscodeLog(`\u274C No target text extracted from range ${startChar}-${endChar} in line: "${lineText}"`);
         return {matched: false, confidence: 0, matchType: "no-target-text"};
       }
       if (this.hasOverlappingDiagnostic(element, startChar, endChar, lineNumber, diagnostic)) {
@@ -42567,15 +42516,12 @@ ${currentContent}`;
       }
       if (confidence === 0) {
         if (!lineText.includes(targetText)) {
-          this.vscodeLog(`\u274C VALIDATION FAILED: Target text "${targetText}" not found in line text "${lineText}"`);
           return {matched: false, confidence: 0, matchType: "target-not-in-line"};
         }
         if (elementText.trim() === lineText.trim()) {
           if (elementText.includes(targetText)) {
             confidence = 85;
             matchType = "full-line-exact";
-          } else {
-            this.vscodeLog(`\u274C STRICT CHECK FAILED: Element matches line but missing target text "${targetText}"`);
           }
         } else if (elementText.includes(lineText.trim()) && elementText.includes(targetText)) {
           confidence = 75;
@@ -42583,8 +42529,6 @@ ${currentContent}`;
         } else if (elementText.includes(targetText) && this.fuzzyLineMatch(elementText, lineText)) {
           confidence = 65;
           matchType = "full-line-fuzzy-with-target";
-        } else {
-          this.vscodeLog(`\u274C STRICT REJECTION: Element doesn't contain target text "${targetText}"`);
         }
       }
       if (confidence === 0 && this.vditor && typeof this.vditor.html2md === "function") {
@@ -42630,7 +42574,6 @@ ${currentContent}`;
       const lineText = diagnostic.lineText || "";
       const lineNumber = range?.start?.line;
       if (!range || !lineText.trim()) {
-        this.vscodeLog(`\u274C Cannot apply diagnostic: missing range or lineText`);
         return false;
       }
       const startChar = range.start?.character || 0;
@@ -42647,19 +42590,6 @@ ${currentContent}`;
         this.vscodeLog(`\u274C Failed to apply diagnostic: could not locate target text "${targetText}"`);
       }
       return applied;
-    }
-    findAndWrapTextInElement(element, targetText, diagnostic) {
-      const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null);
-      let textNode;
-      while (textNode = walker.nextNode()) {
-        const content = textNode.textContent || "";
-        const index2 = content.indexOf(targetText);
-        if (index2 !== -1) {
-          return this.wrapTextWithDiagnostic(textNode, index2, index2 + targetText.length, diagnostic);
-        }
-      }
-      this.addDiagnosticStylingToElement(element, diagnostic);
-      return true;
     }
     findAndWrapPreciseTextInElement(element, targetText, diagnostic, originalStartChar, originalEndChar) {
       const elementText = element.textContent || "";
@@ -42739,7 +42669,6 @@ ${currentContent}`;
         }
         currentPosition = nodeEnd;
       }
-      this.vscodeLog(`\u274C Could not find text node containing position ${position}`);
       return false;
     }
     addDiagnosticStylingToElement(element, diagnostic) {
@@ -42831,13 +42760,11 @@ ${currentContent}`;
         editor = document.querySelector(".vditor-sv .vditor-reset");
       }
       if (!editor) {
-        this.vscodeLog(`\u274C DOM VERIFY: Could not find editor element`);
         return false;
       }
       const diagnosticElements = editor.querySelectorAll('[class*="vscode-diagnostic-"]');
       const wrappedKeysCount = this.wrappedKeys.size;
       if (this.diagnostics.length > 0 && diagnosticElements.length === 0) {
-        this.vscodeLog(`\u274C DOM VERIFY: Expected ${this.diagnostics.length} diagnostics but found 0 DOM elements - visual elements missing!`);
         this.clearAppliedDiagnosticTracking();
         return false;
       }
@@ -42860,7 +42787,6 @@ ${currentContent}`;
         editor = document.querySelector(".vditor-sv .vditor-reset");
       }
       if (!editor) {
-        this.vscodeLog(`\u274C Could not find editor for revalidation`);
         return;
       }
       const existingDiagnosticElements = editor.querySelectorAll('[class*="vscode-diagnostic-"]');
@@ -43112,7 +43038,6 @@ ${currentContent}`;
       this.setupClipboardIntegration();
       this.setupCursorManagement();
       this.setupQuickFixIntegration();
-      this.vscodeLog("\u{1F517} VSCodeWebviewIntegrator initialized");
     }
     setupContextMenuIntegration() {
       const editor = this.getEditorElement();
@@ -43120,8 +43045,6 @@ ${currentContent}`;
         return;
       editor.setAttribute("contenteditable", "true");
       editor.setAttribute("tabindex", "0");
-      this.vscodeLog(`\u2705 Context menu integration setup - Vditor will handle display via createVditorContextMenu()`);
-      this.vscodeLog(`\uFFFD Context menu integration ready - removed conflicting event listeners`);
     }
     setupElementSpecificContextMenus() {
       const editor = this.getEditorElement();
@@ -43134,7 +43057,6 @@ ${currentContent}`;
         el.removeAttribute("data-contextmenu");
       });
       editor.addEventListener("contextmenu", (e7) => {
-        this.vscodeLog("\u{1F5B1}\uFE0F Context menu event captured");
         const selection = window.getSelection();
         if (!selection || selection.toString().length === 0) {
           const range = document.createRange();
@@ -43153,7 +43075,6 @@ ${currentContent}`;
           editor.focus();
         });
       }
-      this.vscodeLog("\u{1F527} Enhanced VS Code native context menu integration");
     }
     setupClipboardIntegration() {
       const editor = this.getEditorElement();
@@ -43164,9 +43085,20 @@ ${currentContent}`;
         await this.handleCopy(e7);
       });
       editor.addEventListener("paste", async (e7) => {
+        this.vscodeLog(`[paste-debug] PASTE_EVENT Paste event listener triggered`);
         e7.preventDefault();
+        e7.stopPropagation();
+        e7.stopImmediatePropagation();
+        const flagValue = window.isProgrammaticPaste;
+        this.vscodeLog(`[paste-debug] PASTE_EVENT Flag check: ${flagValue}`);
+        if (flagValue) {
+          this.vscodeLog("[paste-debug] PASTE_EVENT Skipping - programmatic paste");
+          return;
+        }
+        this.vscodeLog(`[paste-debug] PASTE_EVENT Processing paste`);
         await this.handlePaste(e7);
-      });
+        this.vscodeLog(`[paste-debug] PASTE_EVENT Completed`);
+      }, {capture: true});
       editor.addEventListener("cut", async (e7) => {
         e7.preventDefault();
         await this.handleCut(e7);
@@ -43222,9 +43154,14 @@ ${currentContent}`;
       try {
         const selection = this.getSelectedText();
         if (selection) {
-          const success2 = await this.writeToVSCodeClipboard(selection);
-          if (success2) {
-            this.vscodeLog(`\u{1F4CB} Copied: ${selection.length} characters`);
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(selection);
+            this.vscodeLog(`\u2705 Copy successful via Clipboard API (${selection.length} chars)`);
+          } else {
+            const success2 = await this.writeToVSCodeClipboard(selection);
+            if (success2) {
+              this.vscodeLog(`\u2705 Copy successful via VS Code (${selection.length} chars)`);
+            }
           }
         }
       } catch (error2) {
@@ -43232,14 +43169,29 @@ ${currentContent}`;
       }
     }
     async handlePaste(e7) {
+      this.vscodeLog(`[paste-debug] \u{1F7E1} handlePaste() called in vscode-integrator`);
       try {
-        const text = await this.readFromVSCodeClipboard();
+        let text = "";
+        if (navigator.clipboard && navigator.clipboard.readText) {
+          this.vscodeLog(`[paste-debug] \u{1F7E1} Using Clipboard API to read text...`);
+          text = await navigator.clipboard.readText();
+          this.vscodeLog(`[paste-debug] \u{1F7E1} Read ${text.length} chars: "${text.substring(0, 50)}..."`);
+          this.vscodeLog(`\u2705 Paste via Clipboard API (${text.length} chars)`);
+        } else {
+          this.vscodeLog(`[paste-debug] \u{1F7E1} Falling back to VS Code clipboard read...`);
+          text = await this.readFromVSCodeClipboard();
+          this.vscodeLog(`[paste-debug] \u{1F7E1} Read ${text.length} chars from VS Code clipboard`);
+          this.vscodeLog(`\u2705 Paste via VS Code (${text.length} chars)`);
+        }
         if (text) {
+          this.vscodeLog(`[paste-debug] \u{1F7E1} Calling insertTextAtCursor() with ${text.length} chars`);
           this.insertTextAtCursor(text);
-          this.vscodeLog(`\u{1F4CB} Pasted: ${text.length} characters`);
           if (this.cursorManager && this.cursorManager.handleAfterPaste) {
+            this.vscodeLog(`[paste-debug] \u{1F7E1} Notifying cursor manager`);
             this.cursorManager.handleAfterPaste();
           }
+        } else {
+          this.vscodeLog(`[paste-debug] \u26A0\uFE0F No text to paste`);
         }
       } catch (error2) {
         this.vscodeLog(`\u274C Paste failed: ${error2}`);
@@ -43249,10 +43201,16 @@ ${currentContent}`;
       try {
         const selection = this.getSelectedText();
         if (selection) {
-          const success2 = await this.writeToVSCodeClipboard(selection);
-          if (success2) {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(selection);
             this.deleteSelectedText();
-            this.vscodeLog(`\u{1F4CB} Cut: ${selection.length} characters`);
+            this.vscodeLog(`\u2705 Cut successful via Clipboard API (${selection.length} chars)`);
+          } else {
+            const success2 = await this.writeToVSCodeClipboard(selection);
+            if (success2) {
+              this.deleteSelectedText();
+              this.vscodeLog(`\u2705 Cut successful via VS Code (${selection.length} chars)`);
+            }
           }
         }
       } catch (error2) {
@@ -43414,7 +43372,6 @@ ${currentContent}`;
         label: "Paste",
         action: () => this.handlePaste(new Event("paste"))
       });
-      this.vscodeLog(`\u{1F527} Showing context menu with ${menuItems.length} items`);
     }
     getEditorElement() {
       return document.querySelector(".vditor-ir .vditor-reset") || document.querySelector(".vditor-wysiwyg .vditor-reset") || document.querySelector(".vditor-sv .vditor-reset");
@@ -43430,8 +43387,14 @@ ${currentContent}`;
       return selection ? selection.toString() : "";
     }
     insertTextAtCursor(text) {
+      this.vscodeLog(`[paste-debug] \u{1F7E3} insertTextAtCursor() called with ${text.length} chars`);
+      this.vscodeLog(`[paste-debug] \u{1F7E3} vditor available: ${!!this.vditor}, insertValue available: ${!!this.vditor?.insertValue}`);
       if (this.vditor && this.vditor.insertValue) {
+        this.vscodeLog(`[paste-debug] \u{1F7E3} Calling vditor.insertValue()`);
         this.vditor.insertValue(text);
+        this.vscodeLog(`[paste-debug] \u{1F7E3} vditor.insertValue() completed`);
+      } else {
+        this.vscodeLog(`[paste-debug] \u26A0\uFE0F Cannot insert text - vditor or insertValue not available`);
       }
     }
     deleteSelectedText() {
@@ -43455,7 +43418,6 @@ ${currentContent}`;
       });
     }
     triggerQuickFix() {
-      this.vscodeLog("\u{1F527} Triggering quick fix menu");
       this.sendToVSCode({
         command: "triggerQuickFix"
       });
@@ -43512,7 +43474,6 @@ ${currentContent}`;
       });
     }
     requestQuickFix(source, position) {
-      this.vscodeLog(`\u{1F4A1} Requesting quick fix from ${source} at position: ${JSON.stringify(position)}`);
       this.sendToVSCode({
         command: "requestQuickFix",
         source,
@@ -43537,7 +43498,6 @@ ${currentContent}`;
       }
     }
     createVditorContextMenu(event) {
-      this.vscodeLog(`\u{1F4CB} VDITOR CONTEXT MENU: createVditorContextMenu() called!`);
       const position = this.getCursorPositionFromEvent(event);
       const elementType = this.getElementTypeAtPosition(event.target);
       const selectedText = this.getSelectedText();
@@ -43551,11 +43511,9 @@ ${currentContent}`;
       let adjustedY = menuY;
       if (menuY + menuEstimatedHeight > viewportHeight) {
         adjustedY = Math.max(0, menuY - menuEstimatedHeight);
-        this.vscodeLog(`\u{1F4CB} MENU POSITION: Adjusted Y from ${menuY} to ${adjustedY} (viewport overflow)`);
       }
       if (menuX + menuEstimatedWidth > viewportWidth) {
         adjustedX = Math.max(0, menuX - menuEstimatedWidth);
-        this.vscodeLog(`\u{1F4CB} MENU POSITION: Adjusted X from ${menuX} to ${adjustedX} (viewport overflow)`);
       }
       this.sendToVSCode({
         command: "requestContextMenu",
@@ -43569,28 +43527,24 @@ ${currentContent}`;
         {
           label: "Cut",
           click: () => {
-            this.vscodeLog("\u{1F4CB} Cut menu item clicked");
             this.handleCut(new ClipboardEvent("cut"));
           }
         },
         {
           label: "Copy",
           click: () => {
-            this.vscodeLog("\u{1F4CB} Copy menu item clicked");
             this.handleCopy(new ClipboardEvent("copy"));
           }
         },
         {
           label: "Paste",
           click: () => {
-            this.vscodeLog("\u{1F4CB} Paste menu item clicked");
             this.handlePaste(new ClipboardEvent("paste"));
           }
         },
         {
           label: "Select All",
           click: () => {
-            this.vscodeLog("\u{1F4CB} Select All menu item clicked");
             this.sendToVSCode({
               command: "selectAll"
             });
@@ -43600,14 +43554,12 @@ ${currentContent}`;
         {
           label: "Quick Fix...",
           click: () => {
-            this.vscodeLog("\u{1F4CB} Quick Fix menu item clicked");
             this.requestQuickFix("contextMenu", position);
           }
         },
         {
           label: "Show Problems",
           click: () => {
-            this.vscodeLog("\u{1F4CB} Show Problems menu item clicked");
             this.sendToVSCode({
               command: "showProblems"
             });
@@ -43617,7 +43569,6 @@ ${currentContent}`;
         {
           label: "Format Document",
           click: () => {
-            this.vscodeLog("\u{1F4CB} Format Document menu item clicked");
             this.sendToVSCode({
               command: "formatDocument"
             });
@@ -43626,7 +43577,6 @@ ${currentContent}`;
         {
           label: "Format Selection",
           click: () => {
-            this.vscodeLog("\u{1F4CB} Format Selection menu item clicked");
             this.sendToVSCode({
               command: "formatSelection"
             });
@@ -43636,7 +43586,6 @@ ${currentContent}`;
         {
           label: "Find",
           click: () => {
-            this.vscodeLog("\u{1F4CB} Find menu item clicked");
             this.sendToVSCode({
               command: "find"
             });
@@ -43645,7 +43594,6 @@ ${currentContent}`;
         {
           label: "Find and Replace",
           click: () => {
-            this.vscodeLog("\u{1F4CB} Find and Replace menu item clicked");
             this.sendToVSCode({
               command: "findAndReplace"
             });
@@ -43655,7 +43603,6 @@ ${currentContent}`;
         {
           label: "Insert Link",
           click: () => {
-            this.vscodeLog("\u{1F4CB} Insert Link menu item clicked");
             this.sendToVSCode({
               command: "insertLink"
             });
@@ -43664,7 +43611,6 @@ ${currentContent}`;
         {
           label: "Insert Image",
           click: () => {
-            this.vscodeLog("\u{1F4CB} Insert Image menu item clicked");
             this.sendToVSCode({
               command: "insertImage"
             });
@@ -43673,7 +43619,6 @@ ${currentContent}`;
         {
           label: "Insert Table",
           click: () => {
-            this.vscodeLog("\u{1F4CB} Insert Table menu item clicked");
             this.sendToVSCode({
               command: "insertTable"
             });
@@ -43683,7 +43628,6 @@ ${currentContent}`;
         {
           label: "Insert Kanban Board",
           click: () => {
-            this.vscodeLog("\u{1F4CB} Insert Kanban Board menu item clicked");
             this.sendToVSCode({
               command: "requestInsertRenderer",
               rendererType: "kanban-board"
@@ -43693,7 +43637,6 @@ ${currentContent}`;
         {
           label: "Insert Interactive Table",
           click: () => {
-            this.vscodeLog("\u{1F4CB} Insert Interactive Table menu item clicked");
             this.sendToVSCode({
               command: "requestInsertRenderer",
               rendererType: "table"
@@ -43703,7 +43646,6 @@ ${currentContent}`;
         {
           label: "Insert Code Playground",
           click: () => {
-            this.vscodeLog("\u{1F4CB} Insert Code Playground menu item clicked");
             const playgroundText = `
 \`\`\`playground
 console.log('Hello, World!');
@@ -43718,7 +43660,6 @@ console.log('Hello, World!');
         {
           label: "Command Palette",
           click: () => {
-            this.vscodeLog("\u{1F4CB} Command Palette menu item clicked");
             this.sendToVSCode({
               command: "showCommandPalette"
             });
@@ -43727,25 +43668,19 @@ console.log('Hello, World!');
         {
           label: "Toggle Word Wrap",
           click: () => {
-            this.vscodeLog("\u{1F4CB} Toggle Word Wrap menu item clicked");
             this.sendToVSCode({
               command: "toggleWordWrap"
             });
           }
         }
       ];
-      this.vscodeLog(`\u{1F4CB} \u2705 Created Vditor context menu with ${contextMenu.length} items`);
-      this.vscodeLog(`\u{1F4CB} \u{1F3AF} CONTEXT MENU CALLBACK COMPLETE - Setting up display fallback`);
       setTimeout(() => {
         const vditorMenu = document.querySelector(".vditor-menu, .vditor-contextmenu");
         if (!vditorMenu) {
-          this.vscodeLog(`\u{1F4CB} \u{1F527} Vditor menu not detected - creating custom context menu display`);
           this.createAndDisplayContextMenu(event.clientX, event.clientY, contextMenu);
         } else {
-          this.vscodeLog(`\u{1F4CB} \u2705 Vditor menu detected - using Vditor's display`);
         }
       }, 50);
-      this.vscodeLog(`\u{1F4CB} Context menu request: position=${JSON.stringify(position)} elementType=${elementType} selectedText="${selectedText}"`);
       return contextMenu;
     }
     createAndDisplayContextMenu(x3, y5, menuItems) {
@@ -43810,15 +43745,587 @@ console.log('Hello, World!');
         document.addEventListener("click", removeMenu);
         document.addEventListener("keydown", removeMenu);
       }, 100);
-      this.vscodeLog(`\u2705 Custom context menu displayed with ${menuItems.length} items`);
     }
     handleContextMenuActions(actions) {
-      this.vscodeLog(`\u{1F4CB} Received ${actions.length} context menu actions from VS Code`);
       actions.forEach((action, index2) => {
-        this.vscodeLog(`Action ${index2}: ${action.title} (${action.kind})`);
       });
     }
   };
+
+  // src/diff-visualizer.ts
+  var DiffVisualizer = class {
+    constructor() {
+      this.diffInfo = null;
+      this.isInDiffView = false;
+      this.scrollSyncEnabled = true;
+      this.isScrolling = false;
+      this.scrollTimeout = null;
+      this.initialized = false;
+    }
+    initialize() {
+      if (this.initialized) {
+        return;
+      }
+      this.setupMessageListener();
+      this.setupScrollSync();
+      this.initialized = true;
+    }
+    setupMessageListener() {
+      console.log("\u{1F50D} DIFF-DEBUG: Setting up diff visualizer message listener");
+      window.addEventListener("message", (event) => {
+        const message = event.data;
+        console.log("\u{1F50D} DIFF-DEBUG: Received message:", message.type);
+        if (message.type === "diff-view-detected") {
+          console.log("\u{1F50D} DIFF-DEBUG: Diff view DETECTED!", {
+            role: message.diffInfo.role,
+            otherUri: message.diffInfo.otherUri,
+            changesCount: message.diffInfo.changes.length,
+            stats: message.diffInfo.stats,
+            clearExistingSpacers: message.diffInfo.clearExistingSpacers,
+            reapplyDiagnostics: message.diffInfo.reapplyDiagnostics
+          });
+          this.diffInfo = message.diffInfo;
+          this.isInDiffView = true;
+          if (message.diffInfo.clearExistingSpacers) {
+            this.clearSpacerBlocks();
+          }
+          this.applyDiffVisualizations();
+          if (message.diffInfo.reapplyDiagnostics && window.diagnosticVisualizer) {
+            console.log("\u{1F50D} DIFF-DEBUG: Re-applying diagnostics after diff update");
+            setTimeout(() => {
+              window.diagnosticVisualizer.addSimpleDiagnostics(true);
+            }, 50);
+          }
+        } else if (message.type === "diff-view-cleared") {
+          console.log("\u{1F50D} DIFF-DEBUG: Diff view CLEARED");
+          this.clearDiffVisualizations();
+        } else if (message.type === "diff-scroll-sync") {
+          this.applyScrollFromOther(message.scrollPercentage);
+        }
+      });
+    }
+    applyDiffVisualizations() {
+      console.log("\u{1F50D} DIFF-DEBUG: applyDiffVisualizations() called");
+      if (!this.diffInfo) {
+        console.log("\u{1F50D} DIFF-DEBUG: \u274C No diffInfo, aborting");
+        return;
+      }
+      console.log("\u{1F50D} DIFF-DEBUG: Applying diff visualizations...", {
+        role: this.diffInfo.role,
+        changesCount: this.diffInfo.changes.length
+      });
+      this.addDiffHeader();
+      setTimeout(() => {
+        this.applyLineDecorations();
+        this.setupScrollSyncListeners();
+      }, 1e3);
+    }
+    clearDiffVisualizations() {
+      console.log("\u{1F50D} DIFF-DEBUG: clearDiffVisualizations() called");
+      this.diffInfo = null;
+      this.isInDiffView = false;
+      const existingHeader = document.querySelector(".diff-view-header");
+      if (existingHeader) {
+        console.log("\u{1F50D} DIFF-DEBUG: Removing diff header");
+        existingHeader.remove();
+      }
+      const spacers = document.querySelectorAll(".diff-spacer-block");
+      console.log(`\u{1F50D} DIFF-DEBUG: Removing ${spacers.length} spacer blocks`);
+      spacers.forEach((spacer) => spacer.remove());
+      const contentElement = document.querySelector(".vditor-ir") || document.querySelector(".vditor-wysiwyg") || document.querySelector(".vditor-sv");
+      if (contentElement) {
+        const allElements = contentElement.querySelectorAll('[style*="background"]');
+        let clearedCount = 0;
+        allElements.forEach((el) => {
+          const element = el;
+          if (element.style.borderLeft && element.style.borderLeft.includes("3px solid")) {
+            element.style.backgroundColor = "";
+            element.style.borderLeft = "";
+            element.style.paddingLeft = "";
+            element.title = "";
+            clearedCount++;
+          }
+        });
+        console.log(`\u{1F50D} DIFF-DEBUG: Cleared ${clearedCount} diff decorations`);
+      }
+      console.log("\u{1F50D} DIFF-DEBUG: \u2705 Diff visualizations cleared");
+    }
+    clearSpacerBlocks() {
+      const spacers = document.querySelectorAll(".diff-spacer-block");
+      console.log(`\u{1F50D} DIFF-DEBUG: Clearing ${spacers.length} existing spacer blocks`);
+      spacers.forEach((spacer) => spacer.remove());
+    }
+    addDiffHeader() {
+      if (!this.diffInfo) {
+        return;
+      }
+      const tryAddHeader = (attempt = 1) => {
+        const existingHeader = document.querySelector(".diff-view-header");
+        if (existingHeader) {
+          existingHeader.remove();
+        }
+        const vditorElement = document.querySelector(".vditor");
+        if (!vditorElement || !vditorElement.parentElement) {
+          if (attempt < 10) {
+            setTimeout(() => tryAddHeader(attempt + 1), 300);
+          } else {
+          }
+          return;
+        }
+        const header = document.createElement("div");
+        header.className = "diff-view-header";
+        header.style.cssText = `
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        background: var(--vscode-editor-background);
+        border-bottom: 1px solid var(--vscode-panel-border);
+        padding: 8px 12px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-family: var(--vscode-font-family);
+        font-size: 12px;
+      `;
+        const roleLabel = document.createElement("span");
+        roleLabel.textContent = this.diffInfo.role === "left" ? "\u{1F4C4} Original" : "\u{1F4DD} Modified";
+        roleLabel.style.cssText = `
+        font-weight: 600;
+        color: var(--vscode-foreground);
+      `;
+        const stats = document.createElement("span");
+        stats.innerHTML = `
+        <span style="color: var(--vscode-gitDecoration-addedResourceForeground);">+${this.diffInfo.stats.added}</span>
+        <span style="color: var(--vscode-gitDecoration-deletedResourceForeground);">-${this.diffInfo.stats.deleted}</span>
+        <span style="color: var(--vscode-gitDecoration-modifiedResourceForeground);">~${this.diffInfo.stats.modified}</span>
+      `;
+        stats.style.cssText = `
+        display: flex;
+        gap: 8px;
+        margin-left: auto;
+      `;
+        header.appendChild(roleLabel);
+        header.appendChild(stats);
+        vditorElement.parentElement.insertBefore(header, vditorElement);
+      };
+      tryAddHeader();
+    }
+    applyLineDecorations() {
+      if (!this.diffInfo) {
+        return;
+      }
+      const contentElement = document.querySelector(".vditor-ir") || document.querySelector(".vditor-wysiwyg") || document.querySelector(".vditor-sv");
+      if (!contentElement) {
+        console.warn("\u26A0\uFE0F DIFF VISUALIZER: Could not find Vditor content element");
+        return;
+      }
+      const allTextNodes = [];
+      const elements = contentElement.querySelectorAll(".vditor-ir__node, .vditor-wysiwyg__block, p, div, h1, h2, h3, h4, h5, h6, li, pre, blockquote");
+      elements.forEach((el) => {
+        const text = el.textContent?.trim() || "";
+        if (text.length > 0) {
+          allTextNodes.push({element: el, text});
+        }
+      });
+      const sourceLines = this.diffInfo.documentText ? this.diffInfo.documentText.split("\n") : [];
+      const lineToDom = new Map();
+      let domIndex = 0;
+      for (let lineNum = 0; lineNum < sourceLines.length && domIndex < allTextNodes.length; lineNum++) {
+        const sourceLine = sourceLines[lineNum].trim();
+        if (!sourceLine) {
+          continue;
+        }
+        let found = false;
+        for (let i6 = domIndex; i6 < allTextNodes.length; i6++) {
+          const domNode = allTextNodes[i6];
+          const domText = domNode.text.trim();
+          if (domText === sourceLine) {
+            lineToDom.set(lineNum, domNode.element);
+            domIndex = i6 + 1;
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+        }
+      }
+      this.addSpacerBlocks(lineToDom, sourceLines);
+      const relevantChangesForHighlight = this.diffInfo.changes.filter((c5) => c5.side === this.diffInfo.role || c5.side === "both");
+      let matchedCount = 0;
+      const alreadyMatched = new Set();
+      relevantChangesForHighlight.forEach((change, index2) => {
+        const changeText = change.content.trim();
+        if (!changeText) {
+          return;
+        }
+        const targetLineNumber = change.lineNumber;
+        let targetElement = lineToDom.get(targetLineNumber);
+        if (targetElement && !alreadyMatched.has(targetElement)) {
+          const elementText = targetElement.textContent?.trim() || "";
+          if (elementText === changeText || elementText.includes(changeText)) {
+          } else {
+            targetElement = null;
+          }
+        } else if (targetElement) {
+          targetElement = null;
+        }
+        if (!targetElement) {
+          const matchingNodes = allTextNodes.filter((node) => !alreadyMatched.has(node.element) && node.text === changeText);
+          if (matchingNodes.length === 1) {
+            targetElement = matchingNodes[0].element;
+          } else if (matchingNodes.length > 1) {
+            const relativePosition = targetLineNumber / Math.max(sourceLines.length, 1);
+            const targetIndex = Math.floor(relativePosition * allTextNodes.length);
+            targetElement = matchingNodes.reduce((closest, node) => {
+              const nodeIndex = allTextNodes.indexOf(node);
+              const closestIndex = allTextNodes.indexOf(allTextNodes.find((n5) => n5.element === closest));
+              return Math.abs(nodeIndex - targetIndex) < Math.abs(closestIndex - targetIndex) ? node.element : closest;
+            }, matchingNodes[0].element);
+          }
+        }
+        if (targetElement) {
+          const color = this.getChangeColor(change.type);
+          targetElement.style.backgroundColor = color.bg;
+          targetElement.style.borderLeft = `3px solid ${color.border}`;
+          targetElement.style.paddingLeft = "4px";
+          targetElement.title = this.getChangeTooltip(change);
+          alreadyMatched.add(targetElement);
+          matchedCount++;
+        } else {
+        }
+      });
+    }
+    calculateSimilarity(text1, text2) {
+      const longer = text1.length > text2.length ? text1 : text2;
+      const shorter = text1.length > text2.length ? text2 : text1;
+      if (longer.length === 0)
+        return 1;
+      const matches = shorter.split("").filter((char, i6) => longer[i6] === char).length;
+      return matches / longer.length;
+    }
+    getChangeColor(type) {
+      switch (type) {
+        case "added":
+          return {
+            bg: "var(--vscode-diffEditor-insertedTextBackground, rgba(155, 185, 85, 0.2))",
+            border: "var(--vscode-gitDecoration-addedResourceForeground, #81b88b)"
+          };
+        case "deleted":
+          return {
+            bg: "var(--vscode-diffEditor-removedTextBackground, rgba(255, 0, 0, 0.2))",
+            border: "var(--vscode-gitDecoration-deletedResourceForeground, #c74e39)"
+          };
+        case "modified":
+          return {
+            bg: "var(--vscode-diffEditor-insertedTextBackground, rgba(155, 185, 85, 0.15))",
+            border: "var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d)"
+          };
+      }
+    }
+    getChangeTooltip(change) {
+      switch (change.type) {
+        case "added":
+          return "Added in this version";
+        case "deleted":
+          return "Deleted from original";
+        case "modified":
+          return `Modified from: ${change.oldContent}`;
+        default:
+          return "";
+      }
+    }
+    setupScrollSync() {
+    }
+    setupScrollSyncListeners() {
+      const possibleContainers = [
+        document.querySelector(".vditor-ir pre.vditor-reset"),
+        document.querySelector(".vditor-wysiwyg pre.vditor-reset"),
+        document.querySelector(".vditor-sv pre.vditor-reset"),
+        document.querySelector("pre.vditor-reset"),
+        document.documentElement
+      ];
+      let scrollableElement = null;
+      for (const element of possibleContainers) {
+        if (element) {
+          scrollableElement = element;
+          break;
+        }
+      }
+      if (!scrollableElement) {
+        console.error("\u274C DIFF VISUALIZER: Could not find pre.vditor-reset element, defaulting to document.documentElement");
+        scrollableElement = document.documentElement;
+      }
+      const elementName = scrollableElement.tagName || scrollableElement.className || "unknown";
+      console.log(`\u{1F4DC} DIFF VISUALIZER: Setting up scroll sync on: ${elementName}.${scrollableElement.className}`);
+      const scrollHandler = (e7) => {
+        if (!this.scrollSyncEnabled || this.isScrolling) {
+          return;
+        }
+        const target = e7.target;
+        this.handleScroll(target);
+      };
+      scrollableElement.addEventListener("scroll", scrollHandler, {passive: true, capture: true});
+      const windowScrollHandler = () => {
+        if (!this.scrollSyncEnabled || this.isScrolling) {
+          return;
+        }
+        this.handleScroll(document.documentElement);
+      };
+      window.addEventListener("scroll", windowScrollHandler, {passive: true});
+    }
+    addSpacerBlocks(lineToDom, sourceLines) {
+      if (!this.diffInfo) {
+        return;
+      }
+      const contentElement = document.querySelector(".vditor-ir pre.vditor-reset") || document.querySelector(".vditor-wysiwyg pre.vditor-reset") || document.querySelector(".vditor-sv pre.vditor-reset") || document.querySelector("pre.vditor-reset");
+      if (!contentElement) {
+        console.warn("\u26A0\uFE0F DIFF VISUALIZER: Could not find pre.vditor-reset element for spacers");
+        return;
+      }
+      console.log(`\u{1F4E6} DIFF VISUALIZER: Adding spacer blocks to: ${contentElement.tagName}.${contentElement.className}`);
+      const existingSpacers = document.querySelectorAll(".diff-spacer-block");
+      if (existingSpacers.length > 0) {
+        console.log(`\u{1F50D} DIFF-DEBUG: \u23ED\uFE0F  Spacers already exist (${existingSpacers.length}), skipping re-addition`);
+        return;
+      }
+      const leftSideChanges = this.diffInfo.changes.filter((c5) => c5.side === "left");
+      const rightSideChanges = this.diffInfo.changes.filter((c5) => c5.side === "right");
+      const leftDeletions = this.diffInfo.changes.filter((c5) => c5.side === "left" && c5.type === "deleted");
+      const rightAdditions = this.diffInfo.changes.filter((c5) => c5.side === "right" && c5.type === "added");
+      const excludedRightLines = new Set();
+      const excludedLeftLines = new Set();
+      for (const deletion of leftDeletions) {
+        const previousAdditions = rightAdditions.filter((a5) => a5.lineNumber < deletion.lineNumber).length;
+        const previousDeletions = leftDeletions.filter((d5) => d5.lineNumber < deletion.lineNumber).length;
+        const offset = previousAdditions - previousDeletions;
+        const expectedRightLine = deletion.lineNumber + offset;
+        const nearbyAdditions = rightAdditions.filter((a5) => Math.abs(a5.lineNumber - expectedRightLine) <= 3 && !excludedRightLines.has(a5.lineNumber));
+        if (nearbyAdditions.length > 0) {
+          let bestMatch = nearbyAdditions[0];
+          let bestScore = 0;
+          for (const addition of nearbyAdditions) {
+            const similarity2 = this.calculateSimilarity(deletion.content, addition.content);
+            const positionScore = 1 - Math.abs(addition.lineNumber - expectedRightLine) / 4;
+            const score = similarity2 * 0.7 + positionScore * 0.3;
+            if (score > bestScore) {
+              bestScore = score;
+              bestMatch = addition;
+            }
+          }
+          const similarity = this.calculateSimilarity(deletion.content, bestMatch.content);
+          const positionDiff = Math.abs(bestMatch.lineNumber - expectedRightLine);
+          if (similarity > 0.3 || positionDiff <= 1) {
+            excludedRightLines.add(bestMatch.lineNumber);
+            excludedLeftLines.add(deletion.lineNumber);
+            console.log(`\u{1F50D} DIFF-DEBUG: Excluding replacement pair: L${deletion.lineNumber} \u2194 R${bestMatch.lineNumber} (similarity: ${similarity.toFixed(2)})`);
+          }
+        }
+      }
+      const relevantChanges = this.diffInfo.role === "left" ? this.diffInfo.changes.filter((c5) => c5.side === "right" && c5.type === "added" && !excludedRightLines.has(c5.lineNumber) && c5.content.trim().length > 0) : this.diffInfo.changes.filter((c5) => c5.side === "left" && c5.type === "deleted" && !excludedLeftLines.has(c5.lineNumber) && c5.content.trim().length > 0);
+      if (relevantChanges.length === 0) {
+        return;
+      }
+      const spacerBlocks = [];
+      const sortedChanges = [...relevantChanges].sort((a5, b4) => a5.lineNumber - b4.lineNumber);
+      let currentBlock = {startLine: sortedChanges[0].lineNumber, endLine: sortedChanges[0].lineNumber, lineCount: 1};
+      for (let i6 = 1; i6 < sortedChanges.length; i6++) {
+        const change = sortedChanges[i6];
+        if (change.lineNumber === currentBlock.endLine + 1) {
+          currentBlock.endLine = change.lineNumber;
+          currentBlock.lineCount++;
+        } else {
+          spacerBlocks.push(currentBlock);
+          currentBlock = {startLine: change.lineNumber, endLine: change.lineNumber, lineCount: 1};
+        }
+      }
+      spacerBlocks.push(currentBlock);
+      for (let i6 = spacerBlocks.length - 1; i6 >= 0; i6--) {
+        const block = spacerBlocks[i6];
+        let targetElement = null;
+        let targetLineNum;
+        if (this.diffInfo.role === "left") {
+          const additionsBeforeThis = rightAdditions.filter((a5) => a5.lineNumber < block.startLine).length;
+          targetLineNum = block.startLine - additionsBeforeThis;
+        } else {
+          const deletionsBeforeThis = leftDeletions.filter((d5) => d5.lineNumber < block.startLine && !excludedLeftLines.has(d5.lineNumber)).length;
+          const additionsBeforeThis = rightAdditions.filter((a5) => a5.lineNumber < block.startLine).length;
+          targetLineNum = block.startLine - deletionsBeforeThis + additionsBeforeThis;
+        }
+        targetElement = lineToDom.get(targetLineNum) || null;
+        if (!targetElement) {
+          for (let offset = 1; offset <= 5; offset++) {
+            targetElement = lineToDom.get(targetLineNum - offset);
+            if (targetElement) {
+              break;
+            }
+          }
+          if (!targetElement) {
+            for (let offset = 1; offset <= 5; offset++) {
+              targetElement = lineToDom.get(targetLineNum + offset);
+              if (targetElement) {
+                break;
+              }
+            }
+          }
+        }
+        if (!targetElement) {
+          console.warn(`\u26A0\uFE0F DIFF VISUALIZER: Could not find target element for block starting at line ${block.startLine}, skipping spacer`);
+          continue;
+        }
+        let parentElement = targetElement.parentElement;
+        let insertionParent = null;
+        while (parentElement) {
+          if (parentElement === contentElement) {
+            insertionParent = contentElement;
+            break;
+          }
+          parentElement = parentElement.parentElement;
+        }
+        if (!insertionParent) {
+          console.warn(`\u26A0\uFE0F DIFF VISUALIZER: Target element is not a child of content element, skipping spacer for block at line ${block.startLine}`);
+          continue;
+        }
+        const singleLineHeight = this.estimateLineHeight(targetElement);
+        const totalHeight = singleLineHeight * block.lineCount;
+        const spacer = document.createElement("div");
+        spacer.className = "diff-spacer-block";
+        spacer.setAttribute("data-line-start", block.startLine.toString());
+        spacer.setAttribute("data-line-end", block.endLine.toString());
+        spacer.style.cssText = `
+        height: ${totalHeight}px;
+        min-height: ${totalHeight}px;
+        background: repeating-linear-gradient(
+          45deg,
+          var(--vscode-diffEditor-removedTextBackground, rgba(255, 0, 0, 0.05)),
+          var(--vscode-diffEditor-removedTextBackground, rgba(255, 0, 0, 0.05)) 10px,
+          transparent 10px,
+          transparent 20px
+        );
+        border-left: 3px dashed var(--vscode-gitDecoration-deletedResourceForeground, #c74e39);
+        margin: 0;
+        margin-bottom: 16px;
+        padding: 0;
+        padding-bottom: 4px;
+        position: relative;
+        display: block;
+        box-sizing: border-box;
+        opacity: 0.6;
+      `;
+        spacer.innerHTML = `<span style="
+        position: absolute;
+        left: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--vscode-descriptionForeground);
+        font-size: 11px;
+        opacity: 0.7;
+        user-select: none;
+        font-style: italic;
+      ">\u22EF ${block.lineCount} line${block.lineCount > 1 ? "s" : ""} not in this file</span>`;
+        try {
+          if (this.diffInfo.role === "left") {
+            if (targetElement.nextSibling) {
+              targetElement.parentElement.insertBefore(spacer, targetElement.nextSibling);
+            } else {
+              targetElement.parentElement.appendChild(spacer);
+            }
+          } else {
+            targetElement.parentElement.insertBefore(spacer, targetElement);
+          }
+        } catch (error2) {
+          console.error(`\u274C DIFF VISUALIZER: Failed to insert spacer for block ${block.startLine}-${block.endLine}:`, error2);
+        }
+      }
+    }
+    estimateLineHeight(element) {
+      const computedStyle = window.getComputedStyle(element);
+      const lineHeightStr = computedStyle.lineHeight;
+      if (lineHeightStr === "normal" || lineHeightStr === "") {
+        const fontSize = parseFloat(computedStyle.fontSize);
+        if (!isNaN(fontSize)) {
+          return Math.ceil(fontSize * 1.2);
+        }
+      } else {
+        const lineHeight = parseFloat(lineHeightStr);
+        if (!isNaN(lineHeight)) {
+          return Math.ceil(lineHeight);
+        }
+      }
+      const elementHeight = element.offsetHeight;
+      if (elementHeight > 40) {
+        const fontSize = parseFloat(computedStyle.fontSize);
+        if (!isNaN(fontSize)) {
+          return Math.ceil(fontSize * 1.2);
+        }
+        return 24;
+      }
+      return elementHeight || 24;
+    }
+    handleScroll(element) {
+      if (this.isScrolling) {
+        return;
+      }
+      const scrollHeight = element.scrollHeight;
+      const clientHeight = element.clientHeight;
+      const scrollTop = element.scrollTop;
+      const scrollableHeight = scrollHeight - clientHeight;
+      const scrollPercentage = scrollableHeight > 0 ? scrollTop / scrollableHeight : 0;
+      if (isNaN(scrollPercentage)) {
+        console.warn("\u26A0\uFE0F DIFF VISUALIZER: Invalid scroll percentage (NaN), skipping");
+        return;
+      }
+      const vscode2 = window.vscode;
+      if (vscode2) {
+        vscode2.postMessage({
+          command: "diff-scroll-sync",
+          scrollPercentage,
+          role: this.diffInfo?.role
+        });
+      } else {
+        console.warn("\u26A0\uFE0F DIFF VISUALIZER: vscode object not available!");
+      }
+    }
+    applyScrollFromOther(scrollPercentage) {
+      if (!this.scrollSyncEnabled) {
+        return;
+      }
+      const scrollableElement = document.querySelector(".vditor-ir pre.vditor-reset") || document.querySelector(".vditor-wysiwyg pre.vditor-reset") || document.querySelector(".vditor-sv pre.vditor-reset") || document.querySelector("pre.vditor-reset") || document.documentElement;
+      if (!scrollableElement) {
+        console.warn("\u26A0\uFE0F DIFF VISUALIZER: No element found to apply scroll");
+        return;
+      }
+      const element = scrollableElement;
+      this.isScrolling = true;
+      const scrollableHeight = element.scrollHeight - element.clientHeight;
+      if (scrollableHeight <= 0) {
+        console.warn("\u26A0\uFE0F DIFF VISUALIZER: Element is not scrollable!", {
+          scrollHeight: element.scrollHeight,
+          clientHeight: element.clientHeight,
+          element: element.tagName + "." + element.className
+        });
+        this.isScrolling = false;
+        return;
+      }
+      const targetScrollTop = scrollPercentage * scrollableHeight;
+      element.scrollTop = targetScrollTop;
+      if (this.scrollTimeout) {
+        clearTimeout(this.scrollTimeout);
+      }
+      this.scrollTimeout = window.setTimeout(() => {
+        this.isScrolling = false;
+      }, 100);
+    }
+    toggleScrollSync() {
+      this.scrollSyncEnabled = !this.scrollSyncEnabled;
+    }
+    inDiffView() {
+      return this.isInDiffView;
+    }
+    getDiffInfo() {
+      return this.diffInfo;
+    }
+  };
+  var diffVisualizer = new DiffVisualizer();
 
   // src/cursor-manager.ts
   var CursorManager = class {
@@ -43831,17 +44338,12 @@ console.log('Hello, World!');
     }
     initializeCursorTracking() {
       this.setupSelectionMonitoring();
-      this.setupMutationObserver();
       this.setupInputHandling();
       this.logCursor("\u{1F3AF} CursorManager initialized but most features DISABLED to prevent cursor jumping");
       this.logCursor("\u{1F3AF} Only manual space/enter handling and paste handling remain active");
     }
     setupSelectionMonitoring() {
       this.logCursor("\u26A0\uFE0F Selection change monitoring DISABLED - was causing excessive cursor tracking");
-      return;
-    }
-    setupMutationObserver() {
-      this.logCursor("\u26A0\uFE0F MutationObserver DISABLED - was causing cursor jumping during typing");
       return;
     }
     setupInputHandling() {
@@ -45070,11 +45572,539 @@ console.log('Hello, World!');
     }
   };
 
+  // src/wiki-link-autocomplete.ts
+  function vscodeLog(message) {
+    vscode.postMessage({command: "log", message});
+  }
+  var WikiLinkAutocomplete = class {
+    constructor() {
+      this.workspaceFiles = [];
+      this.lastScan = 0;
+      this.SCAN_INTERVAL = 6e4;
+      this.currentDocumentPath = "";
+      this.relatedFiles = new Set();
+    }
+    getHintConfig() {
+      return {
+        key: "[[",
+        hint: (value) => {
+          vscodeLog(`[WikiLinkAutocomplete] \u{1F50D} Hint triggered for: "${value}"`);
+          return this.getWikiLinkSuggestions(value);
+        }
+      };
+    }
+    async initialize(documentPath, vditor2) {
+      console.log("[WikiLinkAutocomplete] Initializing with document path:", documentPath);
+      this.currentDocumentPath = documentPath;
+      await this.refreshWorkspaceFiles();
+      await this.refreshRelatedFiles();
+      console.log("[WikiLinkAutocomplete] Initialization complete. Files:", this.workspaceFiles.length, "Related:", this.relatedFiles.size);
+    }
+    updateDocumentPath(documentPath) {
+      this.currentDocumentPath = documentPath;
+      this.refreshRelatedFiles();
+    }
+    getWikiLinkSuggestions(searchText) {
+      const scored = this.scoreAndRankFiles(searchText.toLowerCase());
+      return scored.slice(0, 20).map((s6) => ({
+        value: s6.value,
+        html: s6.html
+      }));
+    }
+    async refreshWorkspaceFiles() {
+      return new Promise((resolve) => {
+        const requestId = Date.now().toString();
+        const handler = (event) => {
+          const msg = event.data;
+          if (msg.command === "wikilink-workspace-files" && msg.requestId === requestId) {
+            window.removeEventListener("message", handler);
+            this.workspaceFiles = msg.files || [];
+            this.lastScan = Date.now();
+            resolve();
+          }
+        };
+        window.addEventListener("message", handler);
+        window.vscode.postMessage({
+          command: "requestWorkspaceFiles",
+          requestId
+        });
+        setTimeout(() => {
+          window.removeEventListener("message", handler);
+          resolve();
+        }, 5e3);
+      });
+    }
+    async refreshRelatedFiles() {
+      return new Promise((resolve) => {
+        const requestId = Date.now().toString();
+        const handler = (event) => {
+          const msg = event.data;
+          if (msg.command === "wikilink-related-files" && msg.requestId === requestId) {
+            window.removeEventListener("message", handler);
+            this.relatedFiles = new Set(msg.files || []);
+            resolve();
+          }
+        };
+        window.addEventListener("message", handler);
+        window.vscode.postMessage({
+          command: "requestRelatedFiles",
+          requestId,
+          documentPath: this.currentDocumentPath
+        });
+        setTimeout(() => {
+          window.removeEventListener("message", handler);
+          resolve();
+        }, 5e3);
+      });
+    }
+    async ensureWorkspaceFilesCached() {
+      const now = Date.now();
+      if (now - this.lastScan < this.SCAN_INTERVAL && this.workspaceFiles.length > 0) {
+        return;
+      }
+      await this.refreshWorkspaceFiles();
+    }
+    scoreAndRankFiles(searchText) {
+      const scored = [];
+      for (const file2 of this.workspaceFiles) {
+        if (file2.path === this.currentDocumentPath) {
+          continue;
+        }
+        const fileName = file2.name.toLowerCase();
+        let score = 0;
+        if (searchText) {
+          if (fileName === searchText) {
+            score += 40;
+          } else if (fileName.startsWith(searchText)) {
+            score += 30;
+          } else if (fileName.includes(searchText)) {
+            score += 20;
+          } else {
+            score += this.fuzzyMatchScore(searchText, fileName) * 10;
+          }
+        } else {
+          score += 10;
+        }
+        const proximity = this.calculateProximity(this.currentDocumentPath, file2.path);
+        score += proximity * 30;
+        if (this.relatedFiles.has(file2.path)) {
+          score += 20;
+        }
+        const recency = this.calculateRecency(file2.mtime);
+        score += recency * 10;
+        const suggestion = {
+          value: `[[${file2.relativePath}]]`,
+          html: this.createSuggestionHTML(file2, score),
+          score,
+          filePath: file2.path
+        };
+        scored.push(suggestion);
+      }
+      scored.sort((a5, b4) => b4.score - a5.score);
+      return scored;
+    }
+    createSuggestionHTML(file2, score) {
+      const scorePercent = Math.min(100, Math.round(score));
+      const scoreColor = scorePercent > 70 ? "#4caf50" : scorePercent > 40 ? "#ff9800" : "#9e9e9e";
+      return `
+      <div style="display: flex; align-items: center; gap: 8px; padding: 4px 0;">
+        <span style="flex: 1; font-weight: 500;">${this.escapeHtml(file2.name)}</span>
+        <span style="font-size: 0.85em; color: var(--vscode-descriptionForeground); opacity: 0.7;">
+          ${this.escapeHtml(file2.relativePath)}
+        </span>
+        <span style="
+          font-size: 0.75em; 
+          color: ${scoreColor}; 
+          padding: 2px 6px; 
+          border-radius: 3px; 
+          background: var(--vscode-badge-background);
+        ">
+          ${scorePercent}%
+        </span>
+      </div>
+    `;
+    }
+    fuzzyMatchScore(search, target) {
+      if (!search)
+        return 0;
+      let score = 0;
+      let searchIndex = 0;
+      for (let i6 = 0; i6 < target.length && searchIndex < search.length; i6++) {
+        if (target[i6] === search[searchIndex]) {
+          score += 1;
+          searchIndex++;
+        }
+      }
+      return searchIndex === search.length ? score / search.length : 0;
+    }
+    calculateProximity(file1, file2) {
+      const dir1 = this.getDirectory(file1);
+      const dir2 = this.getDirectory(file2);
+      if (dir1 === dir2) {
+        return 1;
+      }
+      const parts1 = dir1.split(/[/\\]/);
+      const parts2 = dir2.split(/[/\\]/);
+      let commonDepth = 0;
+      for (let i6 = 0; i6 < Math.min(parts1.length, parts2.length); i6++) {
+        if (parts1[i6] === parts2[i6]) {
+          commonDepth++;
+        } else {
+          break;
+        }
+      }
+      const maxDepth = Math.max(parts1.length, parts2.length);
+      return maxDepth > 0 ? commonDepth / maxDepth : 0;
+    }
+    calculateRecency(mtime) {
+      const now = Date.now();
+      const age = now - mtime;
+      const hourMs = 36e5;
+      const dayMs = 864e5;
+      const weekMs = 6048e5;
+      if (age < hourMs)
+        return 1;
+      if (age < dayMs)
+        return 0.5 + 0.5 * (1 - age / dayMs);
+      if (age < weekMs)
+        return 0.2 + 0.3 * (1 - age / weekMs);
+      return 0.1;
+    }
+    getDirectory(filePath) {
+      const lastSlash = Math.max(filePath.lastIndexOf("/"), filePath.lastIndexOf("\\"));
+      return lastSlash >= 0 ? filePath.substring(0, lastSlash) : "";
+    }
+    escapeHtml(text) {
+      const div = document.createElement("div");
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    invalidateCache() {
+      this.lastScan = 0;
+    }
+  };
+
+  // src/wiki-link-handler.ts
+  function vscodeLog2(message) {
+    vscode.postMessage({command: "log", message});
+  }
+  var WikiLinkHandler = class {
+    constructor(vditor2) {
+      this.currentDocumentPath = "";
+      this.isSetup = false;
+      this.editorElement = null;
+      this.WIKI_LINK_REGEX = /\[\[([^\]]+)\]\]/g;
+      this.ALIAS_SPLIT = "|";
+      this.HEADING_SPLIT = "#";
+      this.processingTimeout = null;
+      this.DEBOUNCE_MS = 300;
+      this.vditor = vditor2;
+    }
+    initialize(documentPath) {
+      this.currentDocumentPath = documentPath;
+      vscodeLog2(`[WikiLinkHandler] \u{1F4CE} Initialized for: ${documentPath}`);
+      const editorElement = this.vditor.vditor?.ir?.element || this.vditor.vditor?.wysiwyg?.element;
+      if (editorElement) {
+        this.editorElement = editorElement;
+        this.attachEventListeners(editorElement);
+        this.isSetup = true;
+        vscodeLog2("[WikiLinkHandler] \u2705 Event listeners attached immediately");
+        this.processWikiLinksInEditor();
+      } else {
+        vscodeLog2("[WikiLinkHandler] \u23F3 Waiting for first input event...");
+      }
+      vscodeLog2("[WikiLinkHandler] \u{1F517} Initialized wiki-link handler");
+    }
+    handleInputForProcessing() {
+      vscodeLog2("[WikiLinkHandler] \u{1F4E5} handleInputForProcessing called from main.ts");
+      if (!this.isSetup && this.editorElement) {
+        vscodeLog2("[WikiLinkHandler] \u{1F527} Attaching event listeners...");
+        this.attachEventListeners(this.editorElement);
+        this.isSetup = true;
+        vscodeLog2("[WikiLinkHandler] \u2705 Event listeners attached via input callback");
+      }
+      vscodeLog2("[WikiLinkHandler] \u{1F50D} Starting wiki-link processing (called from debounced main.ts input)");
+      this.processWikiLinksInEditor();
+    }
+    updateDocumentPath(documentPath) {
+      this.currentDocumentPath = documentPath;
+    }
+    attachEventListeners(editorElement) {
+      editorElement.addEventListener("input", this.handleEditorInput.bind(this));
+    }
+    parseWikiLink(linkText) {
+      const content = linkText.replace(/^\[\[|\]\]$/g, "");
+      if (content.startsWith(this.HEADING_SPLIT)) {
+        return {
+          full: linkText,
+          heading: content.substring(1),
+          isSameFile: true
+        };
+      }
+      const [pathPart, alias] = content.split(this.ALIAS_SPLIT).map((s6) => s6.trim());
+      const [filename, heading] = pathPart.split(this.HEADING_SPLIT).map((s6) => s6.trim());
+      return {
+        full: linkText,
+        filename: filename || void 0,
+        heading: heading || void 0,
+        alias: alias || void 0,
+        isSameFile: false
+      };
+    }
+    wikiLinkToMarkdown(wikiLink) {
+      const parsed = this.parseWikiLink(wikiLink);
+      if (parsed.isSameFile && parsed.heading) {
+        const displayText2 = parsed.alias || parsed.heading;
+        return `[${displayText2}](#${this.headingToAnchor(parsed.heading)})`;
+      }
+      let url2 = "";
+      if (parsed.filename) {
+        url2 = this.resolveRelativePath(parsed.filename);
+        if (parsed.heading) {
+          url2 += `#${this.headingToAnchor(parsed.heading)}`;
+        }
+      }
+      const displayText = parsed.alias || parsed.filename || parsed.heading || "link";
+      return `[${displayText}](${url2})`;
+    }
+    headingToAnchor(heading) {
+      return heading.toLowerCase().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+    }
+    resolveRelativePath(filename) {
+      if (filename.includes("/") || filename.includes("\\")) {
+        return filename;
+      }
+      this.requestPathResolution(filename);
+      return `./${filename.endsWith(".md") ? filename : filename + ".md"}`;
+    }
+    requestPathResolution(filename) {
+      vscode.postMessage({
+        command: "resolveWikiLink",
+        filename,
+        currentDocument: this.currentDocumentPath
+      });
+    }
+    handleEditorInput(event) {
+      if (this.processingTimeout) {
+        clearTimeout(this.processingTimeout);
+        vscodeLog2("[WikiLinkHandler] \u{1F504} Cancelled pending wiki-link processing (new editor event)");
+      }
+      vscodeLog2("[WikiLinkHandler] \u2328\uFE0F Editor event, scheduling wiki-link processing in 300ms...");
+      this.processingTimeout = setTimeout(() => {
+        this.processingTimeout = null;
+        this.processWikiLinksInEditor();
+      }, this.DEBOUNCE_MS);
+    }
+    processWikiLinksInEditor() {
+      const editorElement = this.vditor.vditor?.ir?.element || this.vditor.vditor?.wysiwyg?.element;
+      if (!editorElement) {
+        vscodeLog2("[WikiLinkHandler] \u26A0\uFE0F No editor element in processWikiLinksInEditor");
+        return;
+      }
+      vscodeLog2("[WikiLinkHandler] \u{1F50D} Processing wiki-links in editor...");
+      const walker = document.createTreeWalker(editorElement, NodeFilter.SHOW_TEXT, null);
+      const wikiLinkNodes = [];
+      let node;
+      let textNodeCount = 0;
+      while (node = walker.nextNode()) {
+        textNodeCount++;
+        const text = node.textContent || "";
+        const matches = Array.from(text.matchAll(this.WIKI_LINK_REGEX));
+        if (matches.length > 0) {
+          vscodeLog2(`[WikiLinkHandler] \u{1F4DD} Found ${matches.length} wiki-link(s) in text node: "${text}"`);
+          wikiLinkNodes.push({node, matches});
+        }
+      }
+      vscodeLog2(`[WikiLinkHandler] \u{1F4CA} Scanned ${textNodeCount} text nodes, found ${wikiLinkNodes.length} with wiki-links`);
+      wikiLinkNodes.forEach(({node: node2, matches}) => {
+        this.enhanceWikiLinkNode(node2, matches);
+      });
+      if (wikiLinkNodes.length > 0) {
+        vscodeLog2("[WikiLinkHandler] \u2705 Enhanced all wiki-links");
+      }
+    }
+    enhanceWikiLinkNode(textNode, matches) {
+      const parent = textNode.parentElement;
+      if (!parent)
+        return;
+      const fragment = document.createDocumentFragment();
+      let lastIndex = 0;
+      const text = textNode.textContent || "";
+      matches.forEach((match2) => {
+        const wikiLink = match2[0];
+        const matchIndex = match2.index || 0;
+        if (matchIndex > lastIndex) {
+          fragment.appendChild(document.createTextNode(text.substring(lastIndex, matchIndex)));
+        }
+        const irNode = this.createVditorIRWikiLink(wikiLink);
+        fragment.appendChild(irNode);
+        lastIndex = matchIndex + wikiLink.length;
+      });
+      if (lastIndex < text.length) {
+        fragment.appendChild(document.createTextNode(text.substring(lastIndex)));
+      }
+      parent.replaceChild(fragment, textNode);
+    }
+    createVditorIRWikiLink(wikiLink) {
+      const parsed = this.parseWikiLink(wikiLink);
+      const displayText = parsed.alias || parsed.filename || parsed.heading || "link";
+      const linkContent = wikiLink.slice(2, -2);
+      const container = document.createElement("span");
+      container.className = "vditor-ir__node";
+      container.setAttribute("data-type", "wiki-link");
+      container.dataset.wikiLink = wikiLink;
+      container.dataset.filename = parsed.filename || "";
+      container.dataset.heading = parsed.heading || "";
+      container.dataset.alias = parsed.alias || "";
+      const openMarker = document.createElement("span");
+      openMarker.className = "vditor-ir__marker vditor-ir__marker--pre";
+      openMarker.textContent = "[[";
+      const preview = document.createElement("span");
+      preview.className = "vditor-ir__preview";
+      preview.contentEditable = "true";
+      preview.textContent = displayText;
+      preview.setAttribute("role", "link");
+      preview.setAttribute("tabindex", "0");
+      preview.dataset.linkContent = linkContent;
+      preview.addEventListener("click", (e7) => {
+        e7.preventDefault();
+        e7.stopPropagation();
+        this.navigateToWikiLink(wikiLink);
+      });
+      preview.addEventListener("keydown", (e7) => {
+        if (e7.key === "Enter" || e7.key === " ") {
+          e7.preventDefault();
+          e7.stopPropagation();
+          this.navigateToWikiLink(wikiLink);
+        }
+      });
+      preview.addEventListener("input", () => {
+        const newContent = preview.textContent || "";
+        const newWikiLink = `[[${newContent}]]`;
+        container.dataset.wikiLink = newWikiLink;
+        const parsed2 = this.parseWikiLink(newWikiLink);
+        container.dataset.filename = parsed2.filename || "";
+        container.dataset.heading = parsed2.heading || "";
+        container.dataset.alias = parsed2.alias || "";
+        const newDisplayText = parsed2.alias || parsed2.filename || parsed2.heading || "link";
+        preview.dataset.linkContent = newContent;
+        preview.setAttribute("data-display-text", newDisplayText);
+      });
+      const closeMarker = document.createElement("span");
+      closeMarker.className = "vditor-ir__marker vditor-ir__marker--post";
+      closeMarker.textContent = "]]";
+      container.appendChild(openMarker);
+      container.appendChild(preview);
+      container.appendChild(closeMarker);
+      return container;
+    }
+    navigateToWikiLink(wikiLink) {
+      const parsed = this.parseWikiLink(wikiLink);
+      vscodeLog2(`[WikiLinkHandler] \u{1F517} Navigating to: ${JSON.stringify(parsed)}`);
+      if (parsed.isSameFile && parsed.heading) {
+        this.scrollToHeading(parsed.heading);
+        return;
+      }
+      vscode.postMessage({
+        command: "navigateToWikiLink",
+        filename: parsed.filename,
+        heading: parsed.heading,
+        currentDocument: this.currentDocumentPath
+      });
+    }
+    scrollToHeading(heading) {
+      const anchor = this.headingToAnchor(heading);
+      const editorElement = this.vditor.ir?.element || this.vditor.wysiwyg?.element;
+      if (editorElement) {
+        const headingElement = editorElement.querySelector(`h1, h2, h3, h4, h5, h6`);
+        const headings = Array.from(editorElement.querySelectorAll("h1, h2, h3, h4, h5, h6"));
+        const targetHeading = headings.find((h5) => {
+          const headingText = h5.textContent || "";
+          return this.headingToAnchor(headingText) === anchor;
+        });
+        if (targetHeading) {
+          targetHeading.scrollIntoView({behavior: "smooth", block: "start"});
+          vscodeLog2(`[WikiLinkHandler] \u2705 Scrolled to heading: ${heading}`);
+        } else {
+          vscodeLog2(`[WikiLinkHandler] \u26A0\uFE0F Heading not found: ${heading}`);
+        }
+      }
+    }
+    convertAllWikiLinksToMarkdown() {
+      const content = this.vditor.getValue();
+      return content.replace(this.WIKI_LINK_REGEX, (match2) => {
+        return this.wikiLinkToMarkdown(match2);
+      });
+    }
+    getAllWikiLinks() {
+      const content = this.vditor.getValue();
+      const matches = Array.from(content.matchAll(this.WIKI_LINK_REGEX));
+      return matches.map((match2) => this.parseWikiLink(match2[0]));
+    }
+    updateLinksForRenamedFile(oldPath, newPath) {
+      const content = this.vditor.getValue();
+      const oldFilename = this.getFilenameFromPath(oldPath);
+      const newFilename = this.getFilenameFromPath(newPath);
+      const updatedContent = content.replace(this.WIKI_LINK_REGEX, (match2) => {
+        const parsed = this.parseWikiLink(match2);
+        if (parsed.filename === oldFilename) {
+          let newLink = `[[${newFilename}`;
+          if (parsed.heading)
+            newLink += `#${parsed.heading}`;
+          if (parsed.alias)
+            newLink += `|${parsed.alias}`;
+          newLink += "]]";
+          return newLink;
+        }
+        return match2;
+      });
+      if (updatedContent !== content) {
+        this.vditor.setValue(updatedContent);
+        vscodeLog2(`[WikiLinkHandler] \u{1F504} Updated links for renamed file: ${oldFilename} \u2192 ${newFilename}`);
+      }
+    }
+    getFilenameFromPath(path) {
+      const parts = path.split(/[/\\]/);
+      const filename = parts[parts.length - 1];
+      return filename.replace(/\.md$/i, "");
+    }
+    destroy() {
+      clearTimeout(this._inputTimeout);
+      vscodeLog2("[WikiLinkHandler] \u{1F5D1}\uFE0F Destroyed");
+    }
+  };
+
   // src/main.ts
   var diagnosticVisualizer = null;
   var vscodeIntegrator = null;
   var cursorManager = null;
   var findReplaceManager = null;
+  var wikiLinkAutocomplete = null;
+  var wikiLinkHandler = null;
+  function processAfterRender() {
+    console.log("[Main.ts] \u{1F504} processAfterRender called");
+    if (wikiLinkHandler) {
+      console.log("[Main.ts] \u{1F517} Re-processing wiki-links after render");
+      wikiLinkHandler.processWikiLinksInEditor();
+    }
+    if (diagnosticVisualizer) {
+      console.log("[Main.ts] \u{1FA7A} Re-applying diagnostics after render");
+      diagnosticVisualizer.addSimpleDiagnostics();
+    }
+    if (diffVisualizer && diffVisualizer.inDiffView()) {
+      console.log("[Main.ts] \u{1F504} Re-applying diff visualizations after render");
+      setTimeout(() => {
+        const diffInfo = diffVisualizer.getDiffInfo();
+        if (diffInfo) {
+          window.postMessage({
+            type: "diff-view-detected",
+            diffInfo
+          }, "*");
+        }
+      }, 100);
+    }
+  }
+  diffVisualizer.initialize();
   window.__vditorHandledContextMenu = false;
   var __lastContextMenuBuild = 0;
   var __lastMousePos = {x: 200, y: 200};
@@ -45142,7 +46172,16 @@ console.log('Hello, World!');
     const selection = getSelectionInfo();
     const diagAvailable = event ? hasDiagnosticAtEventTarget(event.target) : false;
     const items = [];
-    items.push({label: "Cut", click: () => performClipboardAction("cut"), disabled: !selection.hasSelection}, {label: "Copy", click: () => performClipboardAction("copy"), disabled: !selection.hasSelection}, {label: "Paste", click: () => performClipboardAction("paste")}, {label: "Select All", click: () => document.execCommand("selectAll")});
+    items.push({label: "Cut", click: () => performClipboardAction("cut"), disabled: !selection.hasSelection}, {label: "Copy", click: () => performClipboardAction("copy"), disabled: !selection.hasSelection}, {label: "Paste", click: () => performClipboardAction("paste")}, {label: "Select All", click: () => {
+      const sel = window.getSelection();
+      const editor = document.querySelector(".vditor-ir .vditor-reset") || document.querySelector(".vditor-wysiwyg .vditor-reset") || document.querySelector(".vditor-sv .vditor-reset");
+      if (sel && editor) {
+        const range = document.createRange();
+        range.selectNodeContents(editor);
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+    }});
     items.push({separator: true});
     items.push({label: "Quick Fix...", click: () => vscode.postMessage({command: "triggerQuickFix"}), disabled: !diagAvailable}, {label: "Format Document", click: () => vscode.postMessage({command: "formatDocument"})}, {label: "Format Selection", click: () => vscode.postMessage({command: "formatSelection"}), disabled: !selection.hasSelection}, {label: "Show Problems", click: () => vscode.postMessage({command: "showProblems"})});
     items.push({separator: true});
@@ -45286,80 +46325,74 @@ console.log('Hello, World!');
       p3.addEventListener("mouseleave", scheduleClose);
     });
   }
+  var isProgrammaticPaste = false;
+  window.isProgrammaticPaste = false;
   async function performClipboardAction(kind) {
     try {
       if (kind === "paste") {
-        if (window.vditor && typeof window.vditor.insertValue === "function") {
-          if (navigator.clipboard && navigator.clipboard.readText) {
-            const text = await navigator.clipboard.readText();
-            if (text) {
-              window.vditor.insertValue(text);
-              return;
-            }
-          }
-        }
+        vscodeLog3(`[paste-debug] \u{1F535} performClipboardAction('paste') called`);
+        vscodeLog3(`[paste-debug] \u{1F535} Call stack: ${new Error().stack?.split("\n").slice(1, 5).join(" | ")}`);
+        vscodeLog3(`[paste-debug] \u{1F535} Current isProgrammaticPaste flag: ${isProgrammaticPaste}`);
+        isProgrammaticPaste = true;
+        window.isProgrammaticPaste = true;
+        vscodeLog3(`[paste-debug] \u{1F535} Set isProgrammaticPaste flag to TRUE`);
         try {
-          const success2 = document.execCommand("paste");
-          if (success2) {
-            return;
+          if (navigator.clipboard && navigator.clipboard.readText) {
+            vscodeLog3(`[paste-debug] \u{1F535} Clipboard API available, reading text...`);
+            const text = await navigator.clipboard.readText();
+            vscodeLog3(`[paste-debug] \u{1F535} Read ${text?.length || 0} chars from clipboard: "${text?.substring(0, 50)}..."`);
+            if (text && window.vditor && typeof window.vditor.insertValue === "function") {
+              vscodeLog3(`[paste-debug] \u{1F535} Calling vditor.insertValue() with ${text.length} chars`);
+              window.vditor.insertValue(text);
+              vscodeLog3(`[paste-debug] \u2705 Paste successful via Clipboard API (${text.length} chars)`);
+              return;
+            } else {
+              vscodeLog3(`[paste-debug] \u26A0\uFE0F Conditions not met: text=${!!text}, vditor=${!!window.vditor}, insertValue=${typeof window.vditor?.insertValue}`);
+            }
+          } else {
+            vscodeLog3(`[paste-debug] \u26A0\uFE0F Clipboard API not available`);
           }
-        } catch (err) {
+          vscodeLog3(`[paste-debug] \u{1F535} Falling back to extension clipboard read request`);
+          vscode.postMessage({command: "clipboardReadRequest"});
+        } finally {
+          vscodeLog3(`[paste-debug] \u{1F535} Setting timeout to reset isProgrammaticPaste flag in 100ms`);
+          setTimeout(() => {
+            isProgrammaticPaste = false;
+            window.isProgrammaticPaste = false;
+            vscodeLog3(`[paste-debug] \u{1F535} Reset isProgrammaticPaste flag to FALSE`);
+          }, 100);
         }
-        vscode.postMessage({command: "clipboardReadRequest"});
-      } else {
+      } else if (kind === "copy" || kind === "cut") {
         const {text, range} = getRobustSelectionSnapshot();
         const sel = window.getSelection();
-        if (text && navigator.clipboard?.writeText) {
+        if (!text) {
+          vscodeLog3(`\u26A0\uFE0F No text selected for ${kind}`);
+          return;
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
           try {
             await navigator.clipboard.writeText(text);
-            if (kind === "cut" && (range || sel && sel.rangeCount > 0)) {
-              const activeRange = range || sel.getRangeAt(0);
-              try {
-                if (!document.execCommand("insertText", false, "")) {
-                  activeRange.deleteContents();
-                }
-              } catch (errDel) {
+            vscodeLog3(`\u2705 ${kind} successful via Clipboard API (${text.length} chars)`);
+            if (kind === "cut") {
+              const activeRange = range || (sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null);
+              if (activeRange) {
                 try {
                   activeRange.deleteContents();
-                } catch (errDel2) {
-                  vscodeLog(`Cut delete fallback failed: ${errDel2}`);
+                  window.vditor?.vditor?.ir?.element?.dispatchEvent(new InputEvent("input", {bubbles: true}));
+                } catch (errDel) {
+                  vscodeLog3(`\u274C Cut delete failed: ${errDel}`);
                 }
               }
-              window.vditor?.vditor?.ir?.element?.dispatchEvent(new InputEvent("input", {bubbles: true}));
             }
             return;
           } catch (err) {
-            vscodeLog(`Clipboard writeText failed, falling back to execCommand: ${err}`);
+            vscodeLog3(`\u274C Clipboard API ${kind} failed: ${err}`);
           }
-        }
-        const execOk = document.execCommand(kind);
-        if (execOk) {
-          if (kind === "copy" && navigator.clipboard?.readText && text) {
-            try {
-              const probe = await navigator.clipboard.readText();
-              if (!probe || probe !== text) {
-                await navigator.clipboard.writeText(text);
-              }
-            } catch {
-            }
-          }
-          if (kind === "cut" && (range || sel && sel.rangeCount > 0)) {
-            const activeRange = range || sel.getRangeAt(0);
-            if (!document.execCommand("insertText", false, "")) {
-              try {
-                activeRange.deleteContents();
-              } catch (errDel3) {
-                vscodeLog(`ExecCommand cut fallback failed: ${errDel3}`);
-              }
-            }
-            window.vditor?.vditor?.ir?.element?.dispatchEvent(new InputEvent("input", {bubbles: true}));
-          }
-          return;
         }
         vscode.postMessage({command: "clipboardWriteRequest", kind, text});
       }
     } catch (err) {
-      vscodeLog(`Clipboard action ${kind} failed: ${err}`);
+      vscodeLog3(`\u274C Clipboard action ${kind} failed: ${err}`);
       if (kind === "paste") {
         vscode.postMessage({command: "clipboardReadRequest"});
       } else {
@@ -45458,7 +46491,7 @@ console.log('Hello, World!');
         try {
           attachMenuKeyboardNavigation(root);
         } catch (err) {
-          vscodeLog(`Keyboard nav attach (mouse) failed: ${err}`);
+          vscodeLog3(`Keyboard nav attach (mouse) failed: ${err}`);
         }
       }
     }
@@ -45486,7 +46519,7 @@ console.log('Hello, World!');
           try {
             attachMenuKeyboardNavigation(root);
           } catch (err) {
-            vscodeLog(`Keyboard nav attach (keyboard) failed: ${err}`);
+            vscodeLog3(`Keyboard nav attach (keyboard) failed: ${err}`);
           }
         }
       }
@@ -45494,7 +46527,7 @@ console.log('Hello, World!');
       e7.stopPropagation();
     }
   });
-  function vscodeLog(message) {
+  function vscodeLog3(message) {
     vscode.postMessage({
       command: "log",
       message
@@ -45515,20 +46548,39 @@ console.log('Hello, World!');
       });
       predictionary.useDictionaries([dictionaryKey]);
     } catch (error2) {
-      vscodeLog(`Predictionary initialization failed: ${error2}`);
+      vscodeLog3(`Predictionary initialization failed: ${error2}`);
       predictionary = null;
     }
     let inputTimer;
+    if (!wikiLinkAutocomplete) {
+      wikiLinkAutocomplete = new WikiLinkAutocomplete();
+      vscodeLog3("[WikiLinkAutocomplete] \u{1F4E6} Created new WikiLinkAutocomplete instance");
+    }
+    const hintExtensions = [];
+    if (predictionary) {
+      hintExtensions.push({
+        key: "{{",
+        hint: (word) => {
+          return predictionary.predict(word || "a", {maxPredictions: 5}).map((w3) => ({html: w3, value: w3}));
+        }
+      });
+      vscodeLog3("[Predictionary] \u2705 Added predictionary hints to Vditor configuration");
+    }
+    if (wikiLinkAutocomplete) {
+      const wikiHintConfig = wikiLinkAutocomplete.getHintConfig();
+      if (wikiHintConfig) {
+        hintExtensions.push(wikiHintConfig);
+        vscodeLog3("[WikiLinkAutocomplete] \u2705 Added wiki-link hints to Vditor configuration");
+      } else {
+        vscodeLog3("[WikiLinkAutocomplete] \u274C getHintConfig() returned null or undefined");
+      }
+    } else {
+      vscodeLog3("[WikiLinkAutocomplete] \u274C wikiLinkAutocomplete is null");
+    }
+    vscodeLog3(`[Hints] Total hint extensions configured: ${hintExtensions.length}`);
     let defaultOptions2 = {
       hint: {
-        extend: predictionary ? [
-          {
-            key: "{{",
-            hint: (word) => {
-              return predictionary.predict(word || "a", {maxPredictions: 5}).map((w3) => ({html: w3, value: w3}));
-            }
-          }
-        ] : []
+        extend: hintExtensions
       }
     };
     if (msg.theme === "dark") {
@@ -45636,9 +46688,6 @@ console.log('Hello, World!');
       },
       outline: {
         enable: false
-      },
-      hint: {
-        parse: false
       }
     });
     if (window.vditor) {
@@ -45664,14 +46713,23 @@ console.log('Hello, World!');
       contextmenu: (event) => {
         event.preventDefault();
         event.stopPropagation();
-        vscodeLog(`\u{1F3AF} MAIN.TS: \u2705 VDITOR CONTEXTMENU CALLBACK TRIGGERED! Prevented default browser menu.`);
+        vscodeLog3(`\u{1F3AF} MAIN.TS: \u2705 VDITOR CONTEXTMENU CALLBACK TRIGGERED! Prevented default browser menu.`);
         if (!vscodeIntegrator) {
           return [
-            {label: "Cut", click: () => document.execCommand("cut")},
-            {label: "Copy", click: () => document.execCommand("copy")},
-            {label: "Paste", click: () => document.execCommand("paste")},
+            {label: "Cut", click: () => performClipboardAction("cut")},
+            {label: "Copy", click: () => performClipboardAction("copy")},
+            {label: "Paste", click: () => performClipboardAction("paste")},
             {separator: true},
-            {label: "Select All", click: () => document.execCommand("selectAll")},
+            {label: "Select All", click: () => {
+              const sel = window.getSelection();
+              const editor = document.querySelector(".vditor-ir .vditor-reset") || document.querySelector(".vditor-wysiwyg .vditor-reset") || document.querySelector(".vditor-sv .vditor-reset");
+              if (sel && editor) {
+                const range = document.createRange();
+                range.selectNodeContents(editor);
+                sel.removeAllRanges();
+                sel.addRange(range);
+              }
+            }},
             {separator: true},
             {label: "Format Document", click: () => vscode.postMessage({command: "formatDocument"})},
             {label: "Show Problems", click: () => vscode.postMessage({command: "showProblems"})},
@@ -45715,18 +46773,19 @@ console.log('Hello, World!');
             return menuItems;
           } else {
             return [
-              {label: "Cut", click: () => {
-                document.execCommand("cut");
-              }},
-              {label: "Copy", click: () => {
-                document.execCommand("copy");
-              }},
-              {label: "Paste", click: () => {
-                document.execCommand("paste");
-              }},
+              {label: "Cut", click: () => performClipboardAction("cut")},
+              {label: "Copy", click: () => performClipboardAction("copy")},
+              {label: "Paste", click: () => performClipboardAction("paste")},
               {separator: true},
               {label: "Select All", click: () => {
-                document.execCommand("selectAll");
+                const sel = window.getSelection();
+                const editor = document.querySelector(".vditor-ir .vditor-reset") || document.querySelector(".vditor-wysiwyg .vditor-reset") || document.querySelector(".vditor-sv .vditor-reset");
+                if (sel && editor) {
+                  const range = document.createRange();
+                  range.selectNodeContents(editor);
+                  sel.removeAllRanges();
+                  sel.addRange(range);
+                }
               }},
               {separator: true},
               {label: "Format Document", click: () => {
@@ -45745,23 +46804,30 @@ console.log('Hello, World!');
           ];
         }
       },
-      hint: {
-        parse: false,
-        delay: 0
-      },
       link: {
         isValidDomain: () => false
       },
       ...defaultOptions2,
       after() {
         fixDarkTheme();
+        if (wikiLinkAutocomplete && window.vditor) {
+          const documentPath = msg.documentPath || "untitled";
+          wikiLinkAutocomplete.initialize(documentPath, window.vditor);
+        }
+        if (window.vditor) {
+          wikiLinkHandler = new WikiLinkHandler(window.vditor);
+          const documentPath = msg.documentPath || "untitled";
+          wikiLinkHandler.initialize(documentPath);
+          vscodeLog3("[WikiLinkHandler] \u{1F517} Initialized wiki-link handler");
+        }
+        processAfterRender();
         document.addEventListener("contextmenu", (e7) => {
           const isEditorEvent = e7.target && (e7.target.closest(".vditor-ir") || e7.target.closest(".vditor-wysiwyg") || e7.target.closest(".vditor-sv"));
           if (isEditorEvent && window.vditor && window.vditor.options?.contextmenu) {
             try {
               const result = window.vditor.options.contextmenu(e7);
             } catch (error2) {
-              vscodeLog(`Error in Vditor contextmenu callback: ${error2}`);
+              vscodeLog3(`Error in Vditor contextmenu callback: ${error2}`);
             }
           }
         }, false);
@@ -45932,7 +46998,7 @@ console.log('Hello, World!');
           diagnosticVisualizer = new DiagnosticVisualizer(window.vditor);
           window.__lastDiagnosticUpdate = Date.now();
         } catch (error2) {
-          vscodeLog(`Failed to initialize DiagnosticVisualizer: ${error2}`);
+          vscodeLog3(`Failed to initialize DiagnosticVisualizer: ${error2}`);
         }
         try {
           vscodeIntegrator = new VSCodeWebviewIntegrator(window.vditor);
@@ -45950,7 +47016,7 @@ console.log('Hello, World!');
             return [];
           };
         } catch (error2) {
-          vscodeLog(`Failed to initialize VSCodeWebviewIntegrator: ${error2}`);
+          vscodeLog3(`Failed to initialize VSCodeWebviewIntegrator: ${error2}`);
         }
         try {
           cursorManager = new CursorManager(window.vditor);
@@ -45958,14 +47024,14 @@ console.log('Hello, World!');
             vscodeIntegrator.setCursorManager(cursorManager);
           }
         } catch (error2) {
-          vscodeLog(`Failed to initialize CursorManager: ${error2}`);
+          vscodeLog3(`Failed to initialize CursorManager: ${error2}`);
         }
         try {
           findReplaceManager = new FindReplaceManager(window.vditor);
           findReplaceManager.initialize();
           window.findReplaceManager = findReplaceManager;
         } catch (error2) {
-          vscodeLog(`FindReplaceManager initialization error: ${error2}`);
+          vscodeLog3(`FindReplaceManager initialization error: ${error2}`);
         }
         setTimeout(() => {
           if (diagnosticVisualizer) {
@@ -46027,7 +47093,7 @@ console.log('Hello, World!');
           }
           setTimeout(() => {
             const content = vditor.getValue();
-            vscodeLog(`\u{1F50D} CURSOR DEBUG - Sending edit message to VS Code (content length: ${content.length})`);
+            vscodeLog3(`\u{1F50D} CURSOR DEBUG - Sending edit message to VS Code (content length: ${content.length})`);
             vscode.postMessage({command: "edit", content});
           }, 10);
           const now = Date.now();
@@ -46035,13 +47101,33 @@ console.log('Hello, World!');
           if (timeSinceLastDiagnosticUpdate > 5e3) {
             setTimeout(() => {
               if (diagnosticVisualizer) {
-                vscodeLog(`\u{1F50D} INPUT CALLBACK: Updating simple diagnostics (${timeSinceLastDiagnosticUpdate}ms since last update)`);
+                vscodeLog3(`\u{1F50D} INPUT CALLBACK: Updating simple diagnostics (${timeSinceLastDiagnosticUpdate}ms since last update)`);
                 diagnosticVisualizer.addSimpleDiagnostics();
                 window.__lastDiagnosticUpdate = Date.now();
               }
             }, 1e3);
           } else {
-            vscodeLog(`\u{1F50D} INPUT CALLBACK: Skipping diagnostic update (only ${timeSinceLastDiagnosticUpdate}ms since last update)`);
+            vscodeLog3(`\u{1F50D} INPUT CALLBACK: Skipping diagnostic update (only ${timeSinceLastDiagnosticUpdate}ms since last update)`);
+          }
+          vscodeLog3("[Main.ts] \u{1F4CD} Input callback - checking wiki-link handler status");
+          if (wikiLinkHandler && !wikiLinkHandler.isSetup) {
+            const vdt = window.vditor;
+            const editorElement = vdt.vditor?.ir?.element || vdt.vditor?.wysiwyg?.element;
+            if (editorElement) {
+              vscodeLog3("[Main.ts] \u2705 Setting up wiki-link handler on first input");
+              wikiLinkHandler.isSetup = true;
+              wikiLinkHandler.editorElement = editorElement;
+            } else {
+              vscodeLog3("[Main.ts] \u26A0\uFE0F No editor element available for wiki-link setup");
+            }
+          }
+          if (wikiLinkHandler && wikiLinkHandler.isSetup) {
+            vscodeLog3("[Main.ts] \u{1F504} Calling handleInputForProcessing");
+            wikiLinkHandler.handleInputForProcessing?.();
+          } else if (wikiLinkHandler) {
+            vscodeLog3("[Main.ts] \u23ED\uFE0F Skipping wiki-link processing - handler not set up yet");
+          } else {
+            vscodeLog3("[Main.ts] \u26A0\uFE0F No wiki-link handler instance");
           }
         }, 200);
       },
@@ -46074,7 +47160,7 @@ console.log('Hello, World!');
       case "update": {
         if (msg.documentFilename) {
           window.currentDocumentFilename = msg.documentFilename;
-          vscodeLog(`Stored document filename: ${msg.documentFilename}`);
+          vscodeLog3(`Stored document filename: ${msg.documentFilename}`);
         }
         if (msg.type === "init") {
           if (msg.options && msg.options.useVscodeThemeColor) {
@@ -46085,17 +47171,18 @@ console.log('Hello, World!');
           try {
             initVditor(msg);
           } catch (error2) {
-            vscodeLog(`Error initializing Vditor: ${error2}`);
+            vscodeLog3(`Error initializing Vditor: ${error2}`);
             initVditor({content: msg.content});
             saveVditorOptions();
           }
-          vscodeLog("initVditor");
+          vscodeLog3("initVditor");
         } else {
           vditor.setValue(msg.content);
-          vscodeLog("setValue");
+          vscodeLog3("setValue");
           if (diagnosticVisualizer) {
             diagnosticVisualizer.handleExternalChange();
           }
+          processAfterRender();
         }
         break;
       }
@@ -46129,7 +47216,7 @@ console.log('Hello, World!');
         break;
       }
       case "diagnostics": {
-        vscodeLog("Main.ts: Received diagnostics message from VS Code extension: " + JSON.stringify({
+        vscodeLog3("Main.ts: Received diagnostics message from VS Code extension: " + JSON.stringify({
           diagnosticCount: msg.diagnostics?.length || 0,
           documentLines: msg.documentLines || 0,
           documentTextLength: msg.documentText?.length || 0
@@ -46140,7 +47227,7 @@ console.log('Hello, World!');
         }
         if (msg.diagnostics) {
           msg.diagnostics.forEach((diag, index2) => {
-            vscodeLog(`Main.ts: Diagnostic ${index2}: ` + JSON.stringify({
+            vscodeLog3(`Main.ts: Diagnostic ${index2}: ` + JSON.stringify({
               message: diag.message,
               source: diag.source,
               severity: diag.severity,
@@ -46155,19 +47242,19 @@ console.log('Hello, World!');
             documentLines: msg.documentLines
           });
         } else {
-          vscodeLog("DiagnosticVisualizer not initialized when diagnostics received");
+          vscodeLog3("DiagnosticVisualizer not initialized when diagnostics received");
         }
         break;
       }
       case "contextMenuActions": {
-        vscodeLog(`Main.ts: Received context menu actions: ${JSON.stringify(msg.actions?.length || 0)} actions`);
+        vscodeLog3(`Main.ts: Received context menu actions: ${JSON.stringify(msg.actions?.length || 0)} actions`);
         if (vscodeIntegrator) {
           vscodeIntegrator.handleContextMenuActions(msg.actions || []);
         }
         break;
       }
       case "insertLink": {
-        vscodeLog(`Main.ts: Insert Link command received`);
+        vscodeLog3(`Main.ts: Insert Link command received`);
         if (window.vditor) {
           const linkText = "[Link Text](https://example.com)";
           window.vditor.insertValue(linkText);
@@ -46175,7 +47262,7 @@ console.log('Hello, World!');
         break;
       }
       case "insertImage": {
-        vscodeLog(`Main.ts: Insert Image command received`);
+        vscodeLog3(`Main.ts: Insert Image command received`);
         if (window.vditor) {
           const imageText = "![Alt Text](image.png)";
           window.vditor.insertValue(imageText);
@@ -46183,25 +47270,25 @@ console.log('Hello, World!');
         break;
       }
       case "showFind": {
-        vscodeLog(`Show Find command received`);
+        vscodeLog3(`Show Find command received`);
         if (findReplaceManager) {
           findReplaceManager.showFind();
         } else {
-          vscodeLog("FindReplaceManager not initialized");
+          vscodeLog3("FindReplaceManager not initialized");
         }
         break;
       }
       case "showFindReplace": {
-        vscodeLog(`Show Find and Replace command received`);
+        vscodeLog3(`Show Find and Replace command received`);
         if (findReplaceManager) {
           findReplaceManager.showFindReplace();
         } else {
-          vscodeLog("FindReplaceManager not initialized");
+          vscodeLog3("FindReplaceManager not initialized");
         }
         break;
       }
       case "insertTable": {
-        vscodeLog(`Main.ts: Insert Table command received`);
+        vscodeLog3(`Main.ts: Insert Table command received`);
         if (window.vditor) {
           const tableText = `
 | Header 1 | Header 2 | Header 3 |
@@ -46214,7 +47301,7 @@ console.log('Hello, World!');
         break;
       }
       case "insertKanbanBoard": {
-        vscodeLog(`Main.ts: Insert Kanban Board command received`);
+        vscodeLog3(`Main.ts: Insert Kanban Board command received`);
         if (window.vditor) {
           vscode.postMessage({
             command: "requestInsertRenderer",
@@ -46224,7 +47311,7 @@ console.log('Hello, World!');
         break;
       }
       case "insertInteractiveTable": {
-        vscodeLog(`Main.ts: Insert Interactive Table command received`);
+        vscodeLog3(`Main.ts: Insert Interactive Table command received`);
         if (window.vditor) {
           vscode.postMessage({
             command: "requestInsertRenderer",
@@ -46234,7 +47321,7 @@ console.log('Hello, World!');
         break;
       }
       case "insertPlayground": {
-        vscodeLog(`Main.ts: Insert Playground command received`);
+        vscodeLog3(`Main.ts: Insert Playground command received`);
         if (window.vditor) {
           const playgroundText = `
 \`\`\`playground
@@ -46246,15 +47333,15 @@ console.log('Hello, World!');
         break;
       }
       case "insertRendererCodeBlock": {
-        vscodeLog(`Main.ts: Insert renderer code block received for ${msg.rendererType}`);
+        vscodeLog3(`Main.ts: Insert renderer code block received for ${msg.rendererType}`);
         if (window.vditor && msg.codeBlock) {
           window.vditor.insertValue(msg.codeBlock);
-          vscodeLog(`\u2705 Inserted code block for ${msg.rendererType}`);
+          vscodeLog3(`\u2705 Inserted code block for ${msg.rendererType}`);
         }
         break;
       }
       case "renderer-update-code-block": {
-        vscodeLog(`Main.ts: Updating code block for ${msg.rendererId} with boardId ${msg.boardId}`);
+        vscodeLog3(`Main.ts: Updating code block for ${msg.rendererId} with boardId ${msg.boardId}`);
         const language = msg.rendererId === "kanban-board" ? "kanban-board" : "table";
         const codeBlocks = Array.from(document.querySelectorAll(`code.language-${language}`));
         for (const codeBlock of codeBlocks) {
@@ -46274,13 +47361,13 @@ console.log('Hello, World!');
               newContent = newContent.replace(/<!--\s*(?:board|table):\s*[^>]+-->/, correctComment);
             }
             codeBlock.textContent = newContent;
-            vscodeLog(`\u2705 Updated code block for ${msg.rendererId} \u2192 ${msg.filename}`);
+            vscodeLog3(`\u2705 Updated code block for ${msg.rendererId} \u2192 ${msg.filename}`);
             if (window.vditor) {
               const fullContent = window.vditor.getValue();
-              vscodeLog(`\u{1F4DD} Syncing code block update to VS Code...`);
+              vscodeLog3(`\u{1F4DD} Syncing code block update to VS Code...`);
               vscode.postMessage({command: "edit", content: fullContent});
               setTimeout(() => {
-                vscodeLog(`\u{1F504} Forcing Vditor re-render after code block update...`);
+                vscodeLog3(`\u{1F504} Forcing Vditor re-render after code block update...`);
                 window.vditor.setValue(fullContent);
               }, 100);
             }

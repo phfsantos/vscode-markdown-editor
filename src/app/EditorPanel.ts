@@ -16,11 +16,22 @@ export class EditorPanel {
    * Track the currently editors. Allow many editors to exist at a time.
    */
   public static editors: EditorPanel[] | undefined;
+  
+  /**
+   * Event emitter for active document changes in custom editor
+   */
+  private static _onDidChangeActiveDocument = new vscode.EventEmitter<vscode.TextDocument | undefined>();
+  public static readonly onDidChangeActiveDocument = EditorPanel._onDidChangeActiveDocument.event;
+  
   public static readonly viewType = "markdown-editor";
   private _disposables: vscode.Disposable[] = [];
   private _isEdit = false;
   private _lastCursorPosition: { line: number; character: number; timestamp: number } | null = null;
   private _lastWebviewEdit = 0;
+  private _diffCheckTimeout: NodeJS.Timeout | undefined;
+  private _diffApplied = false; // Track if diff has been applied to THIS webview instance
+  private _lastDiffCheckVisible = false; // Track last visibility state for diff checking
+  private readonly _instanceId: string; // Unique identifier for debugging webview instances
 
   /**
    * Create a new panel.
@@ -128,6 +139,10 @@ export class EditorPanel {
     public _uri = _document.uri, // 从资源管理器打开，只有 uri 没有 _document
     public _isEditor: boolean = false // Mark if this is a markdown editor panel
   ) {
+    // Generate unique instance ID for debugging
+    this._instanceId = `${NodePath.basename(this._fsPath)}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    console.log(`🆔 DIFF-DEBUG: Created EditorPanel instance: ${this._instanceId}`);
+    
     let textEditTimer: NodeJS.Timeout | void;
 
     // Set the webview's initial html content
@@ -145,6 +160,49 @@ export class EditorPanel {
     // Listen for when the panel is disposed
     // This happens when the user closes the panel or when the panel is closed programmatically
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+    
+    // Listen for panel view state changes (when panel becomes active/inactive)
+    this._panel.onDidChangeViewState(
+      e => {
+        console.log(`[${this._instanceId}] 👁️  View state changed:`, {
+          active: e.webviewPanel.active,
+          visible: e.webviewPanel.visible,
+          diffApplied: this._diffApplied,
+          lastCheckVisible: this._lastDiffCheckVisible
+        });
+        
+        if (e.webviewPanel.active) {
+          // Fire event when this custom editor becomes active
+          console.log(`[${this._instanceId}] Panel is now ACTIVE, firing document change event`);
+          EditorPanel._onDidChangeActiveDocument.fire(this._document);
+          
+          // CRITICAL: When panel becomes active, ALWAYS re-check diff context
+          // This handles switching from individual tab → diff tab
+          console.log(`[${this._instanceId}] 🔍 DIFF-DEBUG: Panel became active, re-checking diff context...`);
+          this._lastDiffCheckVisible = false; // Reset to allow re-check
+          this._checkDiffViewContext();
+          this._lastDiffCheckVisible = true;
+        } else if (e.webviewPanel.visible && !this._lastDiffCheckVisible) {
+          // Panel visible but not active - only check if we haven't already
+          console.log(`[${this._instanceId}] 🔍 DIFF-DEBUG: Panel visible (not active), checking diff context...`);
+          this._checkDiffViewContext();
+          this._lastDiffCheckVisible = true;
+        } else if (!e.webviewPanel.visible) {
+          // Panel no longer visible - reset BOTH flags so we check again when it becomes visible
+          console.log(`[${this._instanceId}] Panel became INVISIBLE, resetting diff state`);
+          this._lastDiffCheckVisible = false;
+          this._diffApplied = false; // CRITICAL: Reset so diff can be re-evaluated when visible again
+        }
+      },
+      null,
+      this._disposables
+    );
+    
+    // Fire initial event if this panel is currently active
+    if (this._panel.active) {
+      console.log('[Sidebar-Debug] EditorPanel created and is active, firing initial document change event');
+      EditorPanel._onDidChangeActiveDocument.fire(this._document);
+    }
     
     // close EditorPanel when vsc editor is close
     vscode.workspace.onDidCloseTextDocument((e) => {
@@ -252,6 +310,7 @@ export class EditorPanel {
           case "ready":
             this._update({
               type: "init",
+              documentPath: this._uri?.fsPath || 'untitled',
               options: {
                 useVscodeThemeColor: this._config.get<boolean>(
                   "useVscodeThemeColor"
@@ -512,6 +571,26 @@ export class EditorPanel {
             await this.handleInsertRenderer(message);
             break;
           }
+          case "requestWorkspaceFiles": {
+            // Handle wiki-link autocomplete workspace files request
+            await this.handleRequestWorkspaceFiles(message);
+            break;
+          }
+          case "requestRelatedFiles": {
+            // Handle wiki-link autocomplete related files request
+            await this.handleRequestRelatedFiles(message);
+            break;
+          }
+          case "resolveWikiLink": {
+            // Handle wiki-link path resolution request
+            await this.handleResolveWikiLink(message);
+            break;
+          }
+          case "navigateToWikiLink": {
+            // Handle wiki-link navigation request
+            await this.handleNavigateToWikiLink(message);
+            break;
+          }
         }
       },
       null,
@@ -532,6 +611,14 @@ export class EditorPanel {
   }
 
   public dispose() {
+    console.log('[Sidebar-Debug] EditorPanel being disposed');
+    
+    // Clear any pending diff check timeouts to prevent "Webview is disposed" errors
+    if (this._diffCheckTimeout) {
+      clearTimeout(this._diffCheckTimeout);
+      this._diffCheckTimeout = undefined;
+    }
+    
     if (!this._isEditor) {
       EditorPanel.currentPanel = undefined;
     }
@@ -543,6 +630,9 @@ export class EditorPanel {
         (editor) => this._uri?.path !==  editor._uri?.path
       );
     }
+
+    // Fire event that active document is now undefined
+    EditorPanel._onDidChangeActiveDocument.fire(undefined);
 
     // Clean up our resources
     this._panel.dispose();
@@ -569,59 +659,85 @@ export class EditorPanel {
 
   /**
    * Check if this editor is part of a diff view and send diff information to webview
+   * OPTIMIZED: With supportsMultipleEditorsPerDocument=true, each tab gets its own webview instance
+   * We only need to check ONCE per instance when it becomes visible
    */
   private async _checkDiffViewContext(): Promise<void> {
+    const fileName = NodePath.basename(this._fsPath);
+    console.log(`[${this._instanceId}] 🔍 DIFF-DEBUG: _checkDiffViewContext() for "${fileName}"`);
+    console.log(`[${this._instanceId}]   State: diffApplied=${this._diffApplied}, visible=${this._panel.visible}, active=${this._panel.active}`);
+    
     const diffSupport = (global as any).markdownDiffViewSupport;
     if (!diffSupport) {
-
+      console.log(`[${this._instanceId}]   ❌ No diffSupport available`);
       return;
     }
 
-    // Give VS Code time to set up the layout and run detection
-    // Try multiple times with increasing delays
-    const checkDiff = async (attempt: number = 1): Promise<void> => {
+    // OPTIMIZATION: If diff already applied to THIS webview instance, don't re-apply
+    if (this._diffApplied && this._panel.visible) {
+      console.log(`[${this._instanceId}]   ⏭️  Diff already applied to this instance AND panel still visible, skipping`);
+      return;
+    }
 
-      const diffInfo = diffSupport.getDiffInfo(this._uri);
+    // Check ONCE - with separate instances per tab, we don't need retries
+    // The detection is debounced at source and has file caching
+    console.log(`[${this._instanceId}]   Checking diff context for "${fileName}"`);
+
+    const diffInfo = diffSupport.getDiffInfo(this._uri);
+    console.log(`[${this._instanceId}]   getDiffInfo result:`, diffInfo ? 'YES' : 'NO');
+    
+    // CRITICAL: Also check if this editor is currently in an active diff tab
+    // This prevents individual file tabs from showing diff visualization
+    const isInActiveDiffTab = diffSupport.isInActiveDiffView(this._uri);
+    console.log(`[${this._instanceId}]   isInActiveDiffTab result:`, isInActiveDiffTab);
+    
+    if (diffInfo && isInActiveDiffTab) {
+      console.log(`[${this._instanceId}]   ✅ BOTH conditions met! Sending diff to webview for "${fileName}"`);
+
+      // Calculate diff
+      const leftUri = diffInfo.role === 'left' ? diffInfo.thisUri : diffInfo.otherUri;
+      const rightUri = diffInfo.role === 'left' ? diffInfo.otherUri : diffInfo.thisUri;
       
-      if (diffInfo) {
+      const diffResult = await diffSupport.calculateDiff(leftUri, rightUri);
+      console.log(`[${this._instanceId}]   Diff calculated: ${diffResult.changes.length} changes`);
+      
+      // Send ALL changes to webview - it needs both sides for spacer blocks
+      // The webview will filter what to highlight vs what to add spacers for
+      const allChanges = diffResult.changes;
+      
+      // Also send the full document text so the webview can build proper line mapping
+      const thisDoc = await vscode.workspace.openTextDocument(diffInfo.thisUri);
+      const documentText = thisDoc.getText();
+      
+      console.log(`[${this._instanceId}]   Sending diff-view-detected to webview for "${fileName}"`);
+      
+      // Send diff information to webview with ALL changes
+      this._panel.webview.postMessage({
+        type: 'diff-view-detected',
+        diffInfo: {
+          role: diffInfo.role,
+          otherUri: diffInfo.otherUri.toString(),
+          changes: allChanges, // Send all changes, not filtered
+          stats: diffResult.stats,
+          documentText: documentText // Send full text for accurate line mapping
+        }
+      });
 
-        // Calculate diff
-        const leftUri = diffInfo.role === 'left' ? diffInfo.thisUri : diffInfo.otherUri;
-        const rightUri = diffInfo.role === 'left' ? diffInfo.otherUri : diffInfo.thisUri;
-        
-        const diffResult = await diffSupport.calculateDiff(leftUri, rightUri);
-        
-        // Send ALL changes to webview - it needs both sides for spacer blocks
-        // The webview will filter what to highlight vs what to add spacers for
-        const allChanges = diffResult.changes;
-        
-        // Also send the full document text so the webview can build proper line mapping
-        const thisDoc = await vscode.workspace.openTextDocument(diffInfo.thisUri);
-        const documentText = thisDoc.getText();
-        
-        
-        // Send diff information to webview with ALL changes
+      // Mark as applied to THIS instance - won't re-apply on subsequent visibility changes
+      this._diffApplied = true;
+      console.log(`[${this._instanceId}]   ✅ Diff applied and marked for "${fileName}"`);
+
+    } else {
+      console.log(`[${this._instanceId}]   ℹ️  Not in active diff view, no visualization for "${fileName}"`);
+      // If we're NOT in a diff view but diff was previously applied, we need to clear it
+      if (this._diffApplied) {
+        console.log(`[${this._instanceId}]   🧹 Diff was applied but no longer in diff view, sending clear message`);
         this._panel.webview.postMessage({
-          type: 'diff-view-detected',
-          diffInfo: {
-            role: diffInfo.role,
-            otherUri: diffInfo.otherUri.toString(),
-            changes: allChanges, // Send all changes, not filtered
-            stats: diffResult.stats,
-            documentText: documentText // Send full text for accurate line mapping
-          }
+          type: 'diff-view-cleared'
         });
-
-      } else if (attempt < 3) {
-        // Try again after a longer delay
-        setTimeout(() => checkDiff(attempt + 1), 1000);
-      } else {
-
+        this._diffApplied = false;
       }
-    };
-
-    // Start checking with initial delay
-    setTimeout(() => checkDiff(1), 500);
+    }
   }
 
   private _updateEditTitle() {
@@ -643,6 +759,7 @@ export class EditorPanel {
       type?: "init" | "update";
       options?: any;
       theme?: "dark" | "light";
+      documentPath?: string;
     } = { options: void 0 }
   ) {
     const md = this._document
@@ -654,11 +771,15 @@ export class EditorPanel {
       ? NodePath.basename(this._document.fileName, NodePath.extname(this._document.fileName))
       : NodePath.basename(this._fsPath, NodePath.extname(this._fsPath));
     
+    // Get the full document path for wiki-link autocomplete
+    const documentPath = this._uri?.fsPath || 'untitled';
+    
     // const dir = NodePath.dirname(this._document.fileName)
     this._panel.webview.postMessage({
       command: "update",
       content: md,
       documentFilename: documentFilename, // Add document filename for renderer system
+      documentPath: documentPath, // Add document path for wiki-link autocomplete
       ...props,
     });
   }
@@ -2103,6 +2224,80 @@ export class EditorPanel {
   }
 
   /**
+   * Handle wiki-link workspace files request
+   * Returns all markdown files in the workspace for autocomplete
+   */
+  private async handleRequestWorkspaceFiles(message: any): Promise<void> {
+    try {
+      // Find all markdown files in workspace
+      const files = await vscode.workspace.findFiles(
+        '**/*.{md,markdown}',
+        '**/node_modules/**'
+      );
+
+      // Convert to file info format
+      const fileInfos = await Promise.all(
+        files.map(async (file) => {
+          const stat = await vscode.workspace.fs.stat(file);
+          const relativePath = vscode.workspace.asRelativePath(file);
+          const name = NodePath.basename(file.fsPath, NodePath.extname(file.fsPath));
+
+          return {
+            name,
+            path: file.fsPath,
+            relativePath,
+            mtime: stat.mtime,
+          };
+        })
+      );
+
+      // Send response back to webview
+      this._panel.webview.postMessage({
+        command: 'wikilink-workspace-files',
+        requestId: message.requestId,
+        files: fileInfos,
+      });
+    } catch (error) {
+      console.error('Failed to get workspace files:', error);
+      this._panel.webview.postMessage({
+        command: 'wikilink-workspace-files',
+        requestId: message.requestId,
+        files: [],
+      });
+    }
+  }
+
+  /**
+   * Handle wiki-link related files request
+   * Returns files related to the current document
+   */
+  private async handleRequestRelatedFiles(message: any): Promise<void> {
+    try {
+      const documentPath = message.documentPath;
+      const documentUri = vscode.Uri.file(documentPath);
+
+      // Use RelationshipAnalyzer to get related files
+      const RelationshipAnalyzer = (await import('../services/RelationshipAnalyzer')).RelationshipAnalyzer;
+      const analyzer = RelationshipAnalyzer.getInstance();
+      const relatedFiles = await analyzer.getRelatedFiles(documentUri);
+
+      // Send response back to webview
+      this._panel.webview.postMessage({
+        command: 'wikilink-related-files',
+        requestId: message.requestId,
+        files: relatedFiles.map(f => f.path),
+      });
+    } catch (error) {
+      console.error('Failed to get related files:', error);
+      this._panel.webview.postMessage({
+        command: 'wikilink-related-files',
+        requestId: message.requestId,
+        files: [],
+      });
+    }
+  }
+
+  /**
    * Validate that data structure matches the expected format for a renderer
    */
   private _validateRendererData(rendererId: string, data: any): boolean {
@@ -2215,5 +2410,63 @@ export class EditorPanel {
 				${JsFiles.map((f) => `<script src="${f}"></script>`).join("\n")}
 			</body>
 			</html>`;
+  }
+
+  /**
+   * Handle wiki-link path resolution request from webview
+   */
+  private async handleResolveWikiLink(message: any): Promise<void> {
+    const { filename, currentDocument, requestId } = message;
+    
+    try {
+      const LinkResolver = (await import('../services/LinkResolver')).LinkResolver;
+      const resolver = LinkResolver.getInstance();
+      
+      const currentUri = this._uri;
+      if (!currentUri) {
+        return;
+      }
+
+      const resolvedUri = await resolver.resolveWikiLink(filename, currentUri);
+      
+      if (resolvedUri) {
+        const relativePath = resolver.getRelativePath(currentUri, resolvedUri);
+        
+        // Send resolved path back to webview
+        this._panel?.webview.postMessage({
+          command: 'wikilink-resolved',
+          requestId,
+          filename,
+          resolvedPath: relativePath,
+          fullPath: resolvedUri.fsPath
+        });
+      }
+    } catch (error) {
+      console.error('[EditorPanel] Error resolving wiki-link:', error);
+    }
+  }
+
+  /**
+   * Handle wiki-link navigation request from webview
+   */
+  private async handleNavigateToWikiLink(message: any): Promise<void> {
+    const { filename, heading, currentDocument } = message;
+    
+    try {
+      const LinkResolver = (await import('../services/LinkResolver')).LinkResolver;
+      const resolver = LinkResolver.getInstance();
+      
+      const currentUri = this._uri;
+      if (!currentUri) {
+        return;
+      }
+
+      await resolver.navigateToWikiLink(filename, heading, currentUri);
+      
+      debug(`[EditorPanel] Navigated to wiki-link: ${filename || 'current'}${heading ? '#' + heading : ''}`);
+    } catch (error) {
+      console.error('[EditorPanel] Error navigating to wiki-link:', error);
+      vscode.window.showErrorMessage(`Failed to navigate to wiki-link: ${error}`);
+    }
   }
 }
