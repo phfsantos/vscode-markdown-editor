@@ -37,6 +37,8 @@ class SidebarApp {
         ${this.renderHeader()}
         ${this.renderDefaultEditorCheck()}
         ${this.renderTemplates()}
+        ${this.renderTags()}
+        ${this.renderEmbeds()}
         ${this.renderOutgoingLinks()}
         ${this.renderBacklinks()}
         ${this.renderRelatedFiles()}
@@ -44,6 +46,51 @@ class SidebarApp {
       </div>
     `;
         this.attachEventListeners();
+    }
+
+    renderTags() {
+        const tags = (this.data?.tags) || [];
+        const globalTags = (this.data?.globalTags) || [];
+        const localList = tags.map(t => `<span class="tag">#${this.escapeHtml(t)}</span>`).join(' ');
+        const globalList = globalTags.map(g => `<div class="global-tag" data-tag="${this.escapeHtml(g.tag)}">#${this.escapeHtml(g.tag)} <span class="count">(${g.count})</span></div>`).join('');
+        return `
+      <div class="section">
+        <div class="section-header">
+          <span class="codicon codicon-tag"></span>
+          <h4>Tags</h4>
+        </div>
+        <div class="tags-local">${localList || '<em>No tags in this file</em>'}</div>
+        <div class="tags-global">${globalList || '<em>No tags in workspace</em>'}</div>
+      </div>
+    `;
+    }
+
+    renderEmbeds() {
+        const embeds = (this.data?.embeds) || [];
+        if (!embeds || embeds.length === 0)
+            return '';
+        const list = embeds.map(e => `
+      <div class="embed-item">
+        <span class="codicon codicon-file-media"></span>
+        <div class="embed-info">
+          <div class="embed-filename">${this.escapeHtml(e.filename)}</div>
+          <div class="embed-path">${this.escapeHtml(e.resolved || 'Not found')}</div>
+        </div>
+        <div class="embed-actions">
+          <button class="embed-preview-btn" data-path="${this.escapeHtml(e.resolved || '')}" data-raw="${this.escapeHtml(e.raw)}">Preview</button>
+        </div>
+      </div>
+    `).join('');
+        return `
+      <div class="section">
+        <div class="section-header">
+          <span class="codicon codicon-file-media"></span>
+          <h4>Embeds</h4>
+          <span class="count">${embeds.length}</span>
+        </div>
+        <div class="embeds-list">${list}</div>
+      </div>
+    `;
     }
     renderNoDocument() {
         return `
@@ -255,6 +302,23 @@ class SidebarApp {
                 this.vscode.postMessage({ command: 'openGraphView' });
             });
         }
+    // Embed preview buttons
+    document.querySelectorAll('.embed-preview-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const el = e.currentTarget;
+        const path = el.dataset.path || '';
+        const raw = el.dataset.raw || '';
+        this.vscode.postMessage({ command: 'openEmbed', path, raw });
+      });
+    });
+
+    // Global tag clicks (filter by tag)
+    document.querySelectorAll('.global-tag').forEach(el => {
+      el.addEventListener('click', (e) => {
+        const tag = e.currentTarget.dataset.tag;
+        this.vscode.postMessage({ command: 'filterByTag', tag });
+      });
+    });
         // Set default editor button
         const defaultBtn = document.querySelector('[data-action="setDefault"]');
         if (defaultBtn) {

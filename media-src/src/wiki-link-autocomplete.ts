@@ -37,16 +37,28 @@ export class WikiLinkAutocomplete {
   private relatedFiles: Set<string> = new Set();
 
   /**
-   * Get Vditor hint configuration for wiki-links
+   * Get Vditor hint configurations for wiki-links and embeds
+   * Returns array with two configs: one for [[ and one for ![[
    */
-  getHintConfig(): any {
-    return {
-      key: '[[',
-      hint: (value: string) => {
-        vscodeLog(`[WikiLinkAutocomplete] 🔍 Hint triggered for: "${value}"`);
-        return this.getWikiLinkSuggestions(value);
+  getHintConfigs(): any[] {
+    return [
+      // Wiki-link trigger: [[
+      {
+        key: '[[',
+        hint: (value: string) => {
+          vscodeLog(`[WikiLinkAutocomplete] � Wiki-link hint triggered for: "${value}"`);
+          return this.getWikiLinkSuggestions(value, false);
+        },
       },
-    };
+      // Embed trigger: ![ (autocomplete will add the missing [)
+      {
+        key: '![',
+        hint: (value: string) => {
+          vscodeLog(`[WikiLinkAutocomplete] 📎 Embed hint triggered for: "${value}"`);
+          return this.getWikiLinkSuggestions(value, true);
+        },
+      },
+    ];
   }
 
   /**
@@ -72,10 +84,10 @@ export class WikiLinkAutocomplete {
   /**
    * Get wiki-link suggestions for the search text
    */
-  private getWikiLinkSuggestions(searchText: string): Array<{ value: string; html: string }> {
+  private getWikiLinkSuggestions(searchText: string, isEmbed: boolean = false): Array<{ value: string; html: string }> {
     const scored = this.scoreAndRankFiles(searchText.toLowerCase());
     return scored.slice(0, 20).map(s => ({
-      value: s.value,
+      value: isEmbed ? s.value.replace('[[', '![[') : s.value,  // Add missing [ and ! prefix for embeds
       html: s.html
     }));
   }

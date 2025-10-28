@@ -710,8 +710,8 @@ img.vscode-diagnostic-info {
   content: '💡';
   display: var(--lightbulb-display, none);
   position: absolute;
-  top: -2px;
-  right: -20px;
+  top: 0;
+  right: -18px;
   background: transparent;
   padding: 2px;
   font-size: 12px;
@@ -732,6 +732,33 @@ img.vscode-diagnostic-info {
   --lightbulb-display: inline-block;
 }
 
+/* Embed preview icon - shows on hover over embed elements */
+.vditor-ir__preview[data-has-embed-preview="true"]::after {
+  content: '👁️';
+  display: var(--embed-preview-display, none);
+  position: absolute;
+  top: 50%;
+  right: 2px;
+  transform: translateY(-50%);
+  background: transparent;
+  padding: 2px;
+  font-size: 14px;
+  line-height: 1;
+  z-index: 1000;
+  pointer-events: auto;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.vditor-ir__preview[data-has-embed-preview="true"]:hover::after {
+  display: inline-block !important;
+}
+
+.vditor-ir__preview[data-has-embed-preview="true"]:hover {
+  --embed-preview-display: inline-block;
+}
+
 /* ============================================
    Wiki-Link IR Rendering Styles
    ============================================ */
@@ -742,33 +769,219 @@ img.vscode-diagnostic-info {
   position: relative;
 }
 
-/* Hide markers by default (preview mode) */
-.vditor-ir__node[data-type="wiki-link"] > .vditor-ir__marker {
-  display: none;
-}
-
-/* Wiki-link markers: hide by default */
-.vditor-ir__node[data-type="wiki-link"] > .vditor-ir__marker {
+/* Hide markers by default (preview mode) for both wiki-links and embeds */
+.vditor-ir__node[data-type="wiki-link"] > .vditor-ir__marker,
+.vditor-ir__node[data-type="embed-link"] > .vditor-ir__marker {
   display: none;
 }
 
 /* Show markers when expanding (vditor-ir__node--expand class) */
-.vditor-ir__node[data-type="wiki-link"].vditor-ir__node--expand > .vditor-ir__marker {
+.vditor-ir__node[data-type="wiki-link"].vditor-ir__node--expand > .vditor-ir__marker,
+.vditor-ir__node[data-type="embed-link"].vditor-ir__node--expand > .vditor-ir__marker {
   display: inline;
   color: var(--vscode-editorBracketMatch-border, #888);
   user-select: none;
 }
 
-/* Wiki-link preview: show display text by default with link styling */
-.vditor-ir__node[data-type="wiki-link"] > .vditor-ir__preview {
+/* Ephemeral eye icon for embed previews - appears on hover, NOT saved to document */
+.vditor-ir__preview[data-has-embed-preview="true"] {
+  position: relative;
+  cursor: pointer;
+  --embed-eye-display: none;
+}
+
+.vditor-ir__preview[data-has-embed-preview="true"]:hover {
+  --embed-eye-display: inline;
+}
+
+.vditor-ir__preview[data-has-embed-preview="true"]::after {
+  content: '👁️';
+  display: var(--embed-eye-display);
+  position: absolute;
+  right: -24px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* Embed preview overlay styling */
+#vscode-embed-preview-overlay {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 20000;
+  max-width: 40vw;
+  max-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--vscode-editorWidget-background, rgba(37, 37, 38, 0.95));
+  border: 1px solid var(--vscode-editorWidget-border, #454545);
+  border-radius: 6px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  color: var(--vscode-editorWidget-foreground, #cccccc);
+  font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-size: 13px;
+}
+
+/* Header with icon buttons */
+#vscode-embed-preview-overlay .embed-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--vscode-editorWidget-border, #454545);
+  flex-shrink: 0;
+}
+
+#vscode-embed-preview-overlay .embed-title {
+  flex: 1;
+  font-weight: 600;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0;
+}
+
+#vscode-embed-preview-overlay .embed-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+/* Icon buttons at top - match sidebar styling */
+#vscode-embed-preview-overlay .icon-btn {
+  background: none;
+  border: none;
+  color: var(--vscode-foreground);
+  cursor: pointer;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+  transition: opacity 0.2s, background-color 0.2s;
+  border-radius: 3px;
+  position: relative;
+  font-size: 16px;
+  width: 28px;
+  height: 28px;
+}
+
+#vscode-embed-preview-overlay .icon-btn:hover {
+  opacity: 1;
+  background-color: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
+}
+
+/* Tooltip for icon buttons */
+#vscode-embed-preview-overlay .icon-btn::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: -28px;
+  right: 0;
+  background: var(--vscode-editorHoverWidget-background, #252526);
+  color: var(--vscode-editorHoverWidget-foreground, #cccccc);
+  border: 1px solid var(--vscode-editorHoverWidget-border, #454545);
+  padding: 4px 8px;
+  border-radius: 3px;
+  font-size: 11px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+  z-index: 1;
+}
+
+#vscode-embed-preview-overlay .icon-btn:hover::after {
+  opacity: 1;
+}
+
+/* Scrollable content area */
+#vscode-embed-preview-overlay .embed-content {
+  overflow: auto;
+  padding: 12px;
+  flex: 1;
+  min-height: 0;
+}
+
+#vscode-embed-preview-overlay pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: var(--vscode-textCodeBlock-background, rgba(0, 0, 0, 0.2));
+  padding: 8px;
+  border-radius: 4px;
+  margin: 8px 0;
+  font-family: var(--vscode-editor-font-family, 'Courier New', monospace);
+  font-size: 12px;
+}
+
+#vscode-embed-preview-overlay img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  margin: 8px 0;
+}
+
+#vscode-embed-preview-overlay a {
+  color: var(--vscode-textLink-foreground, #4080d0);
+  text-decoration: none;
+}
+
+#vscode-embed-preview-overlay a:hover {
+  text-decoration: underline;
+}
+
+/* Quick fix button styling for other contexts */
+.vscode-quickfix-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 14px;
+  background-color: var(--vscode-button-background, #0e639c);
+  color: var(--vscode-button-foreground, #ffffff);
+  border: 1px solid var(--vscode-button-border, transparent);
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-weight: 400;
+  transition: background-color 0.15s ease;
+  text-decoration: none;
+  outline: none;
+  line-height: 1.4;
+}
+
+.vscode-quickfix-button:hover {
+  background-color: var(--vscode-button-hoverBackground, #1177bb);
+}
+
+.vscode-quickfix-button:active {
+  background-color: var(--vscode-button-hoverBackground, #1177bb);
+  opacity: 0.9;
+}
+
+.vscode-quickfix-button:focus {
+  outline: 1px solid var(--vscode-focusBorder, #007fd4);
+  outline-offset: 2px;
+}
+
+/* Wiki-link and embed-link preview: show display text by default with link styling */
+.vditor-ir__node[data-type="wiki-link"] > .vditor-ir__preview,
+.vditor-ir__node[data-type="wiki-link"] .vditor-ir__preview,
+.vditor-ir__node[data-type="embed-link"] > .vditor-ir__preview,
+.vditor-ir__node[data-type="embed-link"] .vditor-ir__preview {
   display: inline;
   color: var(--vscode-textLink-foreground, #4080d0);
   cursor: pointer;
   text-decoration: underline;
   transition: color 0.2s ease;
 }
-
-.vditor-ir__node[data-type="wiki-link"] > .vditor-ir__preview:hover {
+.vditor-ir__node[data-type="wiki-link"] > .vditor-ir__preview:hover,
+.vditor-ir__node[data-type="wiki-link"] .vditor-ir__preview:hover,
+.vditor-ir__node[data-type="embed-link"] > .vditor-ir__preview:hover,
+.vditor-ir__node[data-type="embed-link"] .vditor-ir__preview:hover {
   color: var(--vscode-textLink-activeForeground, #6ca8ff);
 }
 

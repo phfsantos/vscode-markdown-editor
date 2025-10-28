@@ -44,11 +44,11 @@ class SidebarApp {
   private vscode: VSCode;
   private data: DocumentData | null = null;
   private graphView: GraphView;
-  private graphCollapsed: boolean = false;
   private graphDepth: number = 1;
   private graphMaxNodes: number = 15;
   private graphLoading: boolean = false;
   private graphDirectLinksOnly: boolean = false;
+  private collapsedSections: Set<string> = new Set();
 
   constructor() {
     this.vscode = acquireVsCodeApi();
@@ -56,10 +56,10 @@ class SidebarApp {
     
     // Restore state
     const state = this.vscode.getState() || {};
-    this.graphCollapsed = state.graphCollapsed || false;
     this.graphDepth = state.graphDepth || 1;
     this.graphMaxNodes = state.graphMaxNodes || 15;
     this.graphDirectLinksOnly = state.graphDirectLinksOnly || false;
+    this.collapsedSections = new Set(state.collapsedSections || []);
     
     this.init();
   }
@@ -104,6 +104,8 @@ class SidebarApp {
         ${this.renderHeader()}
         ${this.renderDefaultEditorCheck()}
         ${this.renderTemplates()}
+        ${this.renderTags()}
+        ${this.renderEmbeds()}
         ${this.renderOutgoingLinks()}
         ${this.renderBacklinks()}
         ${this.renderRelatedFiles()}
@@ -168,13 +170,17 @@ class SidebarApp {
   }
 
   private renderTemplates(): string {
+    const isCollapsed = this.collapsedSections.has('templates');
+    const chevron = isCollapsed ? 'codicon-chevron-right' : 'codicon-chevron-down';
+    
     return `
-      <div class="section">
-        <div class="section-header">
+      <div class="section ${isCollapsed ? 'collapsed' : ''}" data-section="templates">
+        <div class="section-header" data-section-toggle="templates">
+          <span class="codicon ${chevron} chevron"></span>
           <span class="codicon codicon-file-add"></span>
           <h4>Quick Notes</h4>
         </div>
-        <div class="templates">
+        <div class="section-content templates">
           <button class="template-btn" data-template="daily">
             <span class="codicon codicon-calendar"></span>
             Daily Note
@@ -196,18 +202,79 @@ class SidebarApp {
     `;
   }
 
+  private renderTags(): string {
+  const tags: string[] = (this.data as any)?.tags || [];
+  const globalTags: any[] = (this.data as any)?.globalTags || [];
+
+    const localList = tags.map(t => `<span class="tag">#${this.escapeHtml(t)}</span>`).join(' ');
+    const globalList = globalTags.map((g: any) => `<div class="global-tag" data-tag="${this.escapeHtml(g.tag)}">#${this.escapeHtml(g.tag)} <span class="count">(${g.count})</span></div>`).join('');
+
+    const isCollapsed = this.collapsedSections.has('tags');
+    const chevron = isCollapsed ? 'codicon-chevron-right' : 'codicon-chevron-down';
+    
+    return `
+      <div class="section ${isCollapsed ? 'collapsed' : ''}" data-section="tags">
+        <div class="section-header" data-section-toggle="tags">
+          <span class="codicon ${chevron} chevron"></span>
+          <span class="codicon codicon-tag"></span>
+          <h4>Tags</h4>
+        </div>
+        <div class="section-content">
+          <div class="tags-local">${localList || '<em>No tags in this file</em>'}</div>
+          <div class="tags-global">${globalList || '<em>No tags in workspace</em>'}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  private renderEmbeds(): string {
+    const embeds = (this.data as any)?.embeds || [];
+    if (!embeds || embeds.length === 0) return '';
+
+    const list = embeds.map((e: any) => `
+      <div class="embed-item">
+        <span class="codicon codicon-file-media"></span>
+        <div class="embed-info">
+          <div class="embed-filename">${this.escapeHtml(e.filename)}</div>
+          <div class="embed-path">${this.escapeHtml(e.resolved || 'Not found')}</div>
+        </div>
+        <div class="embed-actions">
+          <button class="embed-preview-btn" data-path="${this.escapeHtml(e.resolved || '')}" data-raw="${this.escapeHtml(e.raw)}">Preview</button>
+        </div>
+      </div>
+    `).join('');
+
+    const isCollapsed = this.collapsedSections.has('embeds');
+    const chevron = isCollapsed ? 'codicon-chevron-right' : 'codicon-chevron-down';
+    
+    return `
+      <div class="section ${isCollapsed ? 'collapsed' : ''}" data-section="embeds">
+        <div class="section-header" data-section-toggle="embeds">
+          <span class="codicon ${chevron} chevron"></span>
+          <span class="codicon codicon-file-media"></span>
+          <h4>Embeds</h4>
+          <span class="count">${embeds.length}</span>
+        </div>
+        <div class="section-content embeds-list">${list}</div>
+      </div>
+    `;
+  }
+
   private renderOutgoingLinks(): string {
     const links = this.data?.outgoingLinks || [];
+    const isCollapsed = this.collapsedSections.has('outgoing-links');
+    const chevron = isCollapsed ? 'codicon-chevron-right' : 'codicon-chevron-down';
     
     if (links.length === 0) {
       return `
-        <div class="section">
-          <div class="section-header">
+        <div class="section ${isCollapsed ? 'collapsed' : ''}" data-section="outgoing-links">
+          <div class="section-header" data-section-toggle="outgoing-links">
+            <span class="codicon ${chevron} chevron"></span>
             <span class="codicon codicon-link-external"></span>
             <h4>Outgoing Links</h4>
             <span class="count">0</span>
           </div>
-          <div class="empty">No outgoing links</div>
+          <div class="section-content empty">No outgoing links</div>
         </div>
       `;
     }
@@ -224,13 +291,14 @@ class SidebarApp {
     `).join('');
 
     return `
-      <div class="section">
-        <div class="section-header">
+      <div class="section ${isCollapsed ? 'collapsed' : ''}" data-section="outgoing-links">
+        <div class="section-header" data-section-toggle="outgoing-links">
+          <span class="codicon ${chevron} chevron"></span>
           <span class="codicon codicon-link-external"></span>
           <h4>Outgoing Links</h4>
           <span class="count">${links.length}</span>
         </div>
-        <div class="links-list">
+        <div class="section-content links-list">
           ${linksList}
         </div>
       </div>
@@ -239,16 +307,19 @@ class SidebarApp {
 
   private renderBacklinks(): string {
     const backlinks = this.data?.backlinks || [];
+    const isCollapsed = this.collapsedSections.has('backlinks');
+    const chevron = isCollapsed ? 'codicon-chevron-right' : 'codicon-chevron-down';
     
     if (backlinks.length === 0) {
       return `
-        <div class="section">
-          <div class="section-header">
+        <div class="section ${isCollapsed ? 'collapsed' : ''}" data-section="backlinks">
+          <div class="section-header" data-section-toggle="backlinks">
+            <span class="codicon ${chevron} chevron"></span>
             <span class="codicon codicon-references"></span>
             <h4>Backlinks</h4>
             <span class="count">0</span>
           </div>
-          <div class="empty">No backlinks found</div>
+          <div class="section-content empty">No backlinks found</div>
         </div>
       `;
     }
@@ -264,13 +335,14 @@ class SidebarApp {
     `).join('');
 
     return `
-      <div class="section">
-        <div class="section-header">
+      <div class="section ${isCollapsed ? 'collapsed' : ''}" data-section="backlinks">
+        <div class="section-header" data-section-toggle="backlinks">
+          <span class="codicon ${chevron} chevron"></span>
           <span class="codicon codicon-references"></span>
           <h4>Backlinks</h4>
           <span class="count">${backlinks.length}</span>
         </div>
-        <div class="files-list">
+        <div class="section-content files-list">
           ${backlinksList}
         </div>
       </div>
@@ -283,6 +355,9 @@ class SidebarApp {
     if (related.length === 0) {
       return '';
     }
+    
+    const isCollapsed = this.collapsedSections.has('related-files');
+    const chevron = isCollapsed ? 'codicon-chevron-right' : 'codicon-chevron-down';
 
     const relatedList = related.map(file => `
       <div class="file-item" data-action="openFile" data-path="${file.path}">
@@ -295,13 +370,14 @@ class SidebarApp {
     `).join('');
 
     return `
-      <div class="section">
-        <div class="section-header">
+      <div class="section ${isCollapsed ? 'collapsed' : ''}" data-section="related-files">
+        <div class="section-header" data-section-toggle="related-files">
+          <span class="codicon ${chevron} chevron"></span>
           <span class="codicon codicon-file-symlink-directory"></span>
           <h4>Related Files</h4>
           <span class="count">${related.length}</span>
         </div>
-        <div class="files-list">
+        <div class="section-content files-list">
           ${relatedList}
         </div>
       </div>
@@ -310,16 +386,21 @@ class SidebarApp {
 
   private renderGraphView(): string {
     const graphData = this.data?.graphData;
+    const isCollapsed = this.collapsedSections.has('graph');
+    const chevron = isCollapsed ? 'codicon-chevron-right' : 'codicon-chevron-down';
     
     // Show loading state
     if (this.graphLoading) {
       return `
-        <div class="section">
-          <div class="section-header">
+        <div class="section ${isCollapsed ? 'collapsed' : ''}" data-section="graph">
+          <div class="section-header" data-section-toggle="graph">
+            <span class="codicon ${chevron} chevron"></span>
             <span class="codicon codicon-graph"></span>
             <h4>Link Graph</h4>
           </div>
-          ${this.graphView.renderLoading()}
+          <div class="section-content">
+            ${this.graphView.renderLoading()}
+          </div>
         </div>
       `;
     }
@@ -327,28 +408,31 @@ class SidebarApp {
     // Show empty state
     if (!graphData || (graphData.nodes.length === 0 && graphData.edges.length === 0)) {
       return `
-        <div class="section">
-          <div class="section-header">
+        <div class="section ${isCollapsed ? 'collapsed' : ''}" data-section="graph">
+          <div class="section-header" data-section-toggle="graph">
+            <span class="codicon ${chevron} chevron"></span>
             <span class="codicon codicon-graph"></span>
             <h4>Link Graph</h4>
           </div>
-          ${this.graphView.renderEmpty()}
+          <div class="section-content">
+            ${this.graphView.renderEmpty()}
+          </div>
         </div>
       `;
     }
 
     const graphContent = this.graphView.render(graphData);
-    const collapseIcon = this.graphCollapsed ? 'codicon-chevron-right' : 'codicon-chevron-down';
+    const collapseIcon = chevron;
     
     return `
-      <div class="section">
-        <div class="section-header" data-action="toggleGraph" style="cursor: pointer;">
+      <div class="section ${isCollapsed ? 'collapsed' : ''}" data-section="graph">
+        <div class="section-header" data-section-toggle="graph">
+          <span class="codicon ${collapseIcon} chevron"></span>
           <span class="codicon codicon-graph"></span>
           <h4>Link Graph</h4>
           <span class="count">${graphData.nodes.length}</span>
-          <span class="codicon ${collapseIcon}" style="margin-left: auto;"></span>
         </div>
-        <div class="graph-container" id="graph-container" style="display: ${this.graphCollapsed ? 'none' : 'block'};">
+        <div class="section-content graph-container" id="graph-container">
           <div class="graph-filters">
             <div class="filter-group filter-group-checkbox">
               <label>
@@ -440,6 +524,27 @@ class SidebarApp {
       });
     }
 
+    // Embed preview buttons
+    document.querySelectorAll('.embed-preview-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const el = e.currentTarget as HTMLElement;
+        const path = el.dataset.path || '';
+        const raw = el.dataset.raw || '';
+        console.log('[Sidebar Webview] Embed preview clicked:', path, raw);
+        this.vscode.postMessage({ command: 'openEmbed', path, raw });
+      });
+    });
+
+    // Global tag clicks (filter by tag)
+    document.querySelectorAll('.global-tag').forEach(el => {
+      el.addEventListener('click', (e) => {
+        const tag = (e.currentTarget as HTMLElement).dataset.tag;
+        console.log('[Sidebar Webview] Global tag clicked:', tag);
+        // Request extension to focus/tag-filter (future)
+        this.vscode.postMessage({ command: 'filterByTag', tag });
+      });
+    });
+
     // Set default editor button
     const defaultBtn = document.querySelector('[data-action="setDefault"]');
     if (defaultBtn) {
@@ -471,21 +576,35 @@ class SidebarApp {
         this.vscode.postMessage({ command: 'refresh' });
       });
     }
+    
+    // Section toggle handlers
+    document.querySelectorAll('[data-section-toggle]').forEach(header => {
+      header.addEventListener('click', (e) => {
+        const sectionId = (e.currentTarget as HTMLElement).dataset.sectionToggle;
+        if (sectionId) {
+          this.toggleSection(sectionId);
+        }
+      });
+    });
+  }
+  
+  private toggleSection(sectionId: string): void {
+    if (this.collapsedSections.has(sectionId)) {
+      this.collapsedSections.delete(sectionId);
+    } else {
+      this.collapsedSections.add(sectionId);
+    }
+    
+    // Save state
+    const state = this.vscode.getState() || {};
+    state.collapsedSections = Array.from(this.collapsedSections);
+    this.vscode.setState(state);
+    
+    // Re-render
+    this.render();
   }
 
   private attachGraphEvents(): void {
-    // Toggle graph collapse
-    const graphHeader = document.querySelector('[data-action="toggleGraph"]');
-    if (graphHeader) {
-      graphHeader.addEventListener('click', () => {
-        this.graphCollapsed = !this.graphCollapsed;
-        const state = this.vscode.getState() || {};
-        state.graphCollapsed = this.graphCollapsed;
-        this.vscode.setState(state);
-        this.render();
-      });
-    }
-
     // Direct links only toggle
     const directLinksCheckbox = document.querySelector('[data-action="toggleDirectLinks"]') as HTMLInputElement;
     if (directLinksCheckbox) {

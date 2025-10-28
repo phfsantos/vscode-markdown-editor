@@ -29,8 +29,8 @@ export class WikiLinkHandler {
   public isSetup: boolean = false;
   public editorElement: HTMLElement | null = null;
   
-  // Wiki-link patterns
-  private readonly WIKI_LINK_REGEX = /\[\[([^\]]+)\]\]/g;
+  // Wiki-link patterns - captures optional ! for embeds
+  private readonly WIKI_LINK_REGEX = /!?\[\[([^\]]+)\]\]/g;
   private readonly ALIAS_SPLIT = '|';
   private readonly HEADING_SPLIT = '#';
   
@@ -39,7 +39,7 @@ export class WikiLinkHandler {
   private readonly DEBOUNCE_MS = 300;
 
   constructor(vditor: any) {
-    this.vditor = vditor;
+    this.vditor = vditor?.vditor || {};
   }
 
   /**
@@ -50,7 +50,7 @@ export class WikiLinkHandler {
     vscodeLog(`[WikiLinkHandler] 📎 Initialized for: ${documentPath}`);
     
     // Try immediate setup
-    const editorElement = (this.vditor as any).vditor?.ir?.element || (this.vditor as any).vditor?.wysiwyg?.element;
+    const editorElement = this.vditor?.ir?.element || this.vditor?.wysiwyg?.element;
     if (editorElement) {
       this.editorElement = editorElement;
       this.attachEventListeners(editorElement);
@@ -229,7 +229,7 @@ export class WikiLinkHandler {
    * Public so it can be called from main.ts after render/setValue
    */
   public processWikiLinksInEditor(): void {
-    const editorElement = (this.vditor as any).vditor?.ir?.element || (this.vditor as any).vditor?.wysiwyg?.element;
+    const editorElement = this.vditor?.ir?.element || this.vditor?.wysiwyg?.element;
     if (!editorElement) {
       vscodeLog('[WikiLinkHandler] ⚠️ No editor element in processWikiLinksInEditor');
       return;
@@ -295,7 +295,7 @@ export class WikiLinkHandler {
         );
       }
 
-      // Create Vditor IR structure for wiki-link
+      // Create Vditor IR structure for wiki-link or embed
       const irNode = this.createVditorIRWikiLink(wikiLink);
       fragment.appendChild(irNode);
 
@@ -311,94 +311,121 @@ export class WikiLinkHandler {
     parent.replaceChild(fragment, textNode);
   }
 
-  /**
-   * Create Vditor IR structure for wiki-link
-   * Structure: <span class="vditor-ir__node" data-type="wiki-link">
-   *              <span class="vditor-ir__marker">[[</span>
-   *              <span contenteditable="true">link-content</span>
-   *              <span class="vditor-ir__preview">display text</span>
-   *              <span class="vditor-ir__marker">]]</span>
-   *            </span>
-   * 
-   * Vditor handles edit mode via vditor-ir__node--expand class automatically
-   * CSS shows/hides markers based on this class
-   */
   private createVditorIRWikiLink(wikiLink: string): HTMLElement {
-    const parsed = this.parseWikiLink(wikiLink);
-    
-    // Determine display text (alias or filename or heading)
+    const isEmbed = wikiLink.startsWith('![[') && wikiLink.endsWith(']]');
+    const parsed = this.parseWikiLink(wikiLink.replace(/^!/, ''));
     const displayText = parsed.alias || parsed.filename || parsed.heading || 'link';
-    
-    // Get the content inside [[ ]] for editing
-    const linkContent = wikiLink.slice(2, -2); // Remove [[ and ]]
+    const linkContent = wikiLink.slice(isEmbed ? 3 : 2, -2); // Remove [[ or ![[ and ]]
 
     // Container node
     const container = document.createElement('span');
     container.className = 'vditor-ir__node';
-    container.setAttribute('data-type', 'wiki-link');
+    container.setAttribute('data-type', isEmbed ? 'embed-link' : 'wiki-link');
     container.dataset.wikiLink = wikiLink;
     container.dataset.filename = parsed.filename || '';
     container.dataset.heading = parsed.heading || '';
     container.dataset.alias = parsed.alias || '';
 
-    // Opening marker [[ (hidden by CSS until vditor-ir__node--expand)
+    // Opening marker [[ or ![[
     const openMarker = document.createElement('span');
     openMarker.className = 'vditor-ir__marker vditor-ir__marker--pre';
-    openMarker.textContent = '[[';
-    
-    // Combined preview/edit element - shows display text by default, editable content when expanded
+    openMarker.textContent = isEmbed ? '![[' : '[[';
+
+    // Preview/edit element
     const preview = document.createElement('span');
-    preview.className = 'vditor-ir__preview';
+    preview.className = isEmbed ? 'vditor-ir__preview embed-preview' : 'vditor-ir__preview';
     preview.contentEditable = 'true';
     preview.textContent = displayText;
-    preview.setAttribute('role', 'link'); // For accessibility
-    preview.setAttribute('tabindex', '0'); // Make it focusable
-    preview.dataset.linkContent = linkContent; // Store raw content for editing
-    
-    // Add click handler for navigation
-    preview.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      this.navigateToWikiLink(wikiLink);
-    });
-    
-    // Add keyboard handler for accessibility
-    preview.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
+    //preview.dataset.linkContent = linkContent;
+
+    if (isEmbed) {
+      // Embed preview: set data attribute for CSS eye icon, add click handler for preview
+      preview.setAttribute('data-has-embed-preview', 'true');
+      preview.setAttribute('tabindex', '0');
+      
+      // Click to open embed preview
+      preview.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const payload = {
+          command: 'requestEmbed',
+          filename: parsed.filename || '',
+          currentDocument: this.currentDocumentPath || ''
+        };
+        if ((window as any).vscode && (window as any).vscode.postMessage) {
+          (window as any).vscode.postMessage(payload);
+        } else if ((window as any).acquireVsCodeApi) {
+          (window as any).acquireVsCodeApi().postMessage(payload);
+        } else {
+          window.postMessage(payload, '*');
+        }
+      });
+      
+      // Enter key handler for accessibility
+      preview.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          e.stopPropagation();
+          const payload = {
+            command: 'requestEmbed',
+            filename: parsed.filename || '',
+            currentDocument: this.currentDocumentPath || ''
+          };
+          if ((window as any).vscode && (window as any).vscode.postMessage) {
+            (window as any).vscode.postMessage(payload);
+          } else if ((window as any).acquireVsCodeApi) {
+            (window as any).acquireVsCodeApi().postMessage(payload);
+          } else {
+            window.postMessage(payload, '*');
+          }
+        }
+      });
+    } else {
+      // Regular wiki-link: default navigation and styling
+      //preview.setAttribute('role', 'link');
+      preview.setAttribute('tabindex', '0');
+      preview.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
         this.navigateToWikiLink(wikiLink);
-      }
-    });
-    
+      });
+      preview.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          e.stopPropagation();
+          this.navigateToWikiLink(wikiLink);
+        }
+      });
+    }
+
     // Listen for content changes when editing to update metadata
     preview.addEventListener('input', () => {
       const newContent = preview.textContent || '';
-      const newWikiLink = `[[${newContent}]]`;
+      const newWikiLink = isEmbed ? `![[${newContent}]]` : `[[${newContent}]]`;
       container.dataset.wikiLink = newWikiLink;
-      
-      // Parse and update metadata
-      const parsed = this.parseWikiLink(newWikiLink);
+      const parsed = this.parseWikiLink(newWikiLink.replace(/^!/, ''));
       container.dataset.filename = parsed.filename || '';
       container.dataset.heading = parsed.heading || '';
       container.dataset.alias = parsed.alias || '';
-      
-      // Update display text when returning to preview mode
       const newDisplayText = parsed.alias || parsed.filename || parsed.heading || 'link';
       preview.dataset.linkContent = newContent;
       preview.setAttribute('data-display-text', newDisplayText);
     });
-    
+
     // Closing marker ]] (hidden by CSS until vditor-ir__node--expand)
     const closeMarker = document.createElement('span');
     closeMarker.className = 'vditor-ir__marker vditor-ir__marker--post';
     closeMarker.textContent = ']]';
 
-    // Assemble IR structure - Vditor will handle expand/collapse
+    // Assemble IR structure
     container.appendChild(openMarker);
-    container.appendChild(preview);
+    const previewRow = document.createElement('span');
+    previewRow.style.display = 'inline-flex';
+    previewRow.style.alignItems = 'center';
+    previewRow.style.gap = '6px';
+    previewRow.appendChild(preview);
+    container.appendChild(previewRow);
     container.appendChild(closeMarker);
-
     return container;
   }
 
@@ -416,9 +443,9 @@ export class WikiLinkHandler {
       return;
     }
 
-    // Request navigation from extension host
+    // Request navigation from extension host using 'openFile' command to use custom MD editor
     vscode.postMessage({
-      command: 'navigateToWikiLink',
+      command: 'openFile',  // Changed from 'navigateToWikiLink' to use custom editor
       filename: parsed.filename,
       heading: parsed.heading,
       currentDocument: this.currentDocumentPath
@@ -430,14 +457,9 @@ export class WikiLinkHandler {
    */
   private scrollToHeading(heading: string): void {
     const anchor = this.headingToAnchor(heading);
-    const editorElement = this.vditor.ir?.element || this.vditor.wysiwyg?.element;
+    const editorElement = this.vditor?.ir?.element || this.vditor?.wysiwyg?.element;
     
     if (editorElement) {
-      // Find heading element
-      const headingElement = editorElement.querySelector(
-        `h1, h2, h3, h4, h5, h6`
-      ) as HTMLElement | null;
-
       // Find matching heading by text content
       const headings = Array.from(editorElement.querySelectorAll('h1, h2, h3, h4, h5, h6'));
       const targetHeading = headings.find(h => {
@@ -458,7 +480,7 @@ export class WikiLinkHandler {
    * Convert all wiki-links in document to markdown links
    */
   public convertAllWikiLinksToMarkdown(): string {
-    const content = this.vditor.getValue();
+    const content = this.vditor?.getValue() || '';
     
     return content.replace(this.WIKI_LINK_REGEX, (match: string) => {
       return this.wikiLinkToMarkdown(match);
@@ -469,7 +491,7 @@ export class WikiLinkHandler {
    * Get all wiki-links in current document
    */
   public getAllWikiLinks(): WikiLink[] {
-    const content = this.vditor.getValue();
+    const content = this.vditor?.getValue() || '';
     const matches = Array.from(content.matchAll(this.WIKI_LINK_REGEX));
     
     return matches.map(match => this.parseWikiLink(match[0]));
@@ -479,7 +501,7 @@ export class WikiLinkHandler {
    * Update wiki-links when file is renamed
    */
   public updateLinksForRenamedFile(oldPath: string, newPath: string): void {
-    const content = this.vditor.getValue();
+    const content = this.vditor?.getValue() || '';
     const oldFilename = this.getFilenameFromPath(oldPath);
     const newFilename = this.getFilenameFromPath(newPath);
 
@@ -503,7 +525,7 @@ export class WikiLinkHandler {
     );
 
     if (updatedContent !== content) {
-      this.vditor.setValue(updatedContent);
+      this.vditor?.setValue(updatedContent);
       vscodeLog(`[WikiLinkHandler] 🔄 Updated links for renamed file: ${oldFilename} → ${newFilename}`);
     }
   }

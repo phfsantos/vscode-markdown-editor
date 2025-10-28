@@ -91,6 +91,16 @@
         "command": "markdown-editor.openGraphView",
         "title": "Open Link Graph View",
         "category": "markdown-editor"
+      },
+      {
+        "command": "markdown-editor.quickOpenNote",
+        "title": "Quick Open Note (Fuzzy)",
+        "category": "markdown-editor"
+      },
+      {
+        "command": "markdown-editor.openDailyNote",
+        "title": "Open Daily Note",
+        "category": "markdown-editor"
       }
     ],
     "customEditors": [
@@ -169,6 +179,31 @@
           ],
           "default": "auto",
           "description": "Performance optimization level"
+        },
+        "markdown-editor.dailyNotesFolder": {
+          "type": "string",
+          "default": "daily",
+          "description": "Folder where daily notes are created (relative to workspace root)"
+        },
+        "markdown-editor.previewEmbedSizeLimit": {
+          "type": "number",
+          "default": 5242880,
+          "description": "Maximum size in bytes for generic embeds to be embedded inline (default 5 MB)"
+        },
+        "markdown-editor.previewEmbedImageLimit": {
+          "type": "number",
+          "default": 8388608,
+          "description": "Maximum size in bytes for image embeds to be embedded inline (default 8 MB)"
+        },
+        "markdown-editor.previewEmbedTextLimit": {
+          "type": "number",
+          "default": 204800,
+          "description": "Maximum size in bytes for text embeds to be embedded inline (default 200 KB)"
+        },
+        "markdown-editor.enableTagSupport": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable parsing and display of #tags in the sidebar"
         }
       }
     },
@@ -186,7 +221,8 @@
     "watch": "yarn foy watch",
     "start": "yarn foy watch",
     "pub": "yarn foy build && npm version patch && git push origin master --tags && vsce package && vsce publish",
-    "test": "echo 0"
+    "test": "echo 0",
+    "test:unit": "node ./test/run-all.js"
   },
   "devDependencies": {
     "@types/node": "^12.12.0",
@@ -194,5 +230,9 @@
     "foy": "^0.2.5",
     "ts-node": "^9.1.1",
     "typescript": "^4.2.2"
+  },
+  "dependencies": {
+    "@vscode/codicons": "^0.0.41",
+    "mime-types": "^2.1.35"
   }
 }

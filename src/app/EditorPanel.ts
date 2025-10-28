@@ -118,6 +118,80 @@ export class EditorPanel {
   }
 
   /**
+   * Handle a request from the webview to preview an embed originating from a wiki-link
+   * The webview sends { command: 'requestEmbed', filename, currentDocument }
+   */
+  private async handleRequestEmbed(message: any): Promise<void> {
+    const { filename, currentDocument } = message;
+    if (!filename) return;
+
+    try {
+      // Resolve the filename to an absolute path using LinkResolver
+      const LinkResolver = (await import('../services/LinkResolver')).LinkResolver;
+      const resolver = LinkResolver.getInstance();
+      const currentUri = this._uri;
+      if (!currentUri) return;
+
+      const target = await resolver.resolveWikiLink(filename, currentUri);
+      if (target) {
+        // Read the file and prepare embed data
+        const fileUri = vscode.Uri.file(target.fsPath);
+        const fileName = NodePath.basename(target.fsPath);
+        const ext = NodePath.extname(target.fsPath).toLowerCase();
+        
+        // Determine mime type
+        const mimeTypes: { [key: string]: string } = {
+          '.png': 'image/png',
+          '.jpg': 'image/jpeg',
+          '.jpeg': 'image/jpeg',
+          '.gif': 'image/gif',
+          '.svg': 'image/svg+xml',
+          '.md': 'text/markdown',
+          '.txt': 'text/plain',
+          '.json': 'application/json'
+        };
+        const mimeType = mimeTypes[ext] || 'application/octet-stream';
+        
+        let embedData: any = {
+          fileName: fileName,
+          path: target.fsPath,
+          mimeType: mimeType
+        };
+        
+        try {
+          const fileContent = await vscode.workspace.fs.readFile(fileUri);
+          const fileSizeKB = fileContent.byteLength / 1024;
+          
+          // For small text files, include the text content
+          if (mimeType.startsWith('text/') && fileSizeKB < 500) {
+            embedData.text = Buffer.from(fileContent).toString('utf-8');
+          }
+          // For images, include data URL if not too large
+          else if (mimeType.startsWith('image/') && fileSizeKB < 1000) {
+            const base64 = Buffer.from(fileContent).toString('base64');
+            embedData.dataUrl = `data:${mimeType};base64,${base64}`;
+          }
+          // For larger files, just provide path and note
+          else {
+            embedData.note = `File is ${fileSizeKB.toFixed(1)}KB - use Open button to view`;
+          }
+        } catch (readError) {
+          console.error('[EditorPanel] Error reading embed file:', readError);
+          embedData.note = 'Could not read file content';
+        }
+        
+        // Send embed preview to webview
+        this._panel.webview.postMessage({
+          command: 'openEmbedPreview',
+          embed: embedData
+        });
+      }
+    } catch (err) {
+      console.error('[EditorPanel] handleRequestEmbed error', err);
+    }
+  }
+
+  /**
    * Get this file path
    */
   private get _fsPath() {
@@ -370,6 +444,15 @@ export class EditorPanel {
             this._updateEditTitle();
             break;
           }
+          case 'requestEmbed': {
+            // User clicked preview button in webview - resolve the filename to a full path and open embed
+            try {
+              await this.handleRequestEmbed(message);
+            } catch (err) {
+              console.error('[EditorPanel] requestEmbed failed', err);
+            }
+            break;
+          }
           case "upload": {
             const imageSaveFolder = (
               this._config.get<string>("imageSaveFolder") || "assets"
@@ -591,6 +674,11 @@ export class EditorPanel {
             await this.handleNavigateToWikiLink(message);
             break;
           }
+          case "openFile": {
+            // Handle file open request from webview (wiki-links, embeds, etc.)
+            await this.handleOpenFile(message);
+            break;
+          }
         }
       },
       null,
@@ -607,6 +695,19 @@ export class EditorPanel {
         type: 'diff-scroll-sync',
         scrollPercentage: scrollPercentage
       });
+    }
+  }
+
+  /**
+   * Navigate to a heading in the document
+   */
+  public navigateToHeading(heading: string): void {
+    if (this._panel && this._panel.webview) {
+      this._panel.webview.postMessage({
+        command: 'navigateToHeading',
+        heading: heading
+      });
+      console.log(`[EditorPanel] Sent navigateToHeading message for: ${heading}`);
     }
   }
 
@@ -2366,50 +2467,184 @@ export class EditorPanel {
       ) + "/";
     const toMediaPath = (f: string) => `media/dist/${f}`;
     const JsFiles = ["main.js"].map(toMediaPath).map(toUri);
-    const CssFiles = ["main.css"].map(toMediaPath).map(toUri);
+    const CssFiles = ["main.css", "vscode-integration.css"].map(toMediaPath).map(toUri);
+    
+    // Add codicon CSS from sidebar-dist (same as sidebar)
+    const codiconsUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this._extensionUri, 'sidebar-dist', 'codicon.css')
+    );
 
     return `<!DOCTYPE html>
-			<html lang="en" style="height: 100vh; width: 100vw; margin: 0; padding: 0; overflow: hidden;">
-			<head>
-				<meta charset="UTF-8">
-				<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-				<base href="${baseHref}" />
-				${CssFiles.map((f) => `<link href="${f}" rel="stylesheet">`).join("\n")}
-				<title>markdown editor</title>
-				<style>
-					/* Inline critical styles for immediate effect */
-					html, body {
-						height: 100vh !important;
-						width: 100vw !important;
-						margin: 0 !important;
-						padding: 0 !important;
-						overflow: hidden !important;
-						position: fixed !important;
-						top: 0 !important;
-						left: 0 !important;
-						right: 0 !important;
-						bottom: 0 !important;
-					}
-					#app {
-						height: 100vh !important;
-						width: 100vw !important;
-						margin: 0 !important;
-						padding: 0 !important;
-						overflow: hidden !important;
-						position: absolute !important;
-						top: 0 !important;
-						left: 0 !important;
-						right: 0 !important;
-						bottom: 0 !important;
-					}
-					${this._config.get<string>('customCss') || ''}
-				</style>
-			</head>
-			<body style="height: 100vh; width: 100vw; margin: 0; padding: 0; overflow: hidden; position: fixed; top: 0; left: 0; right: 0; bottom: 0;">
-				<div id="app" style="height: 100vh; width: 100vw; margin: 0; padding: 0; overflow: hidden; position: absolute; top: 0; left: 0; right: 0; bottom: 0;"></div>
-				${JsFiles.map((f) => `<script src="${f}"></script>`).join("\n")}
-			</body>
-			</html>`;
+            <html lang="en" style="height: 100vh; width: 100vw; margin: 0; padding: 0; overflow: hidden;">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+                <base href="${baseHref}" />
+                <link href="${codiconsUri}" rel="stylesheet">
+                ${CssFiles.map((f) => `<link href="${f}" rel="stylesheet">`).join("\n")}
+                <title>markdown editor</title>
+                <style>
+                    /* Inline critical styles for immediate effect */
+                    html, body {
+                        height: 100vh !important;
+                        width: 100vw !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        overflow: hidden !important;
+                        position: fixed !important;
+                        top: 0 !important;
+                        left: 0 !important;
+                        right: 0 !important;
+                        bottom: 0 !important;
+                    }
+                    #app {
+                        height: 100vh !important;
+                        width: 100vw !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        overflow: hidden !important;
+                        position: absolute !important;
+                        top: 0 !important;
+                        left: 0 !important;
+                        right: 0 !important;
+                        bottom: 0 !important;
+                    }
+                    ${this._config.get<string>('customCss') || ''}
+                </style>
+            </head>
+            <body style="height: 100vh; width: 100vw; margin: 0; padding: 0; overflow: hidden; position: fixed; top: 0; left: 0; right: 0; bottom: 0;">
+                <div id="app" style="height: 100vh; width: 100vw; margin: 0; padding: 0; overflow: hidden; position: absolute; top: 0; left: 0; right: 0; bottom: 0;"></div>
+                ${JsFiles.map((f) => `<script src="${f}"></script>`).join("\n")}
+
+                <!-- Inline handler for openEmbedPreview so overlay works without rebuilding the bundle -->
+                <script>
+                (function(){
+                  window.addEventListener('message', function(e){
+                    var msg = e.data || {};
+                    if (msg.command !== 'openEmbedPreview') return;
+                    try {
+                      var embed = msg.embed || {};
+                      var overlay = document.getElementById('vscode-embed-preview-overlay');
+                      if (!overlay) {
+                        overlay = document.createElement('div');
+                        overlay.id = 'vscode-embed-preview-overlay';
+                        overlay.style.position = 'fixed';
+                        overlay.style.right = '20px';
+                        overlay.style.bottom = '20px';
+                        overlay.style.zIndex = '20000';
+                        overlay.style.maxWidth = '40vw';
+                        overlay.style.maxHeight = '60vh';
+                        overlay.style.overflow = 'auto';
+                        overlay.style.background = 'rgba(0,0,0,0.85)';
+                        overlay.style.border = '1px solid #333';
+                        overlay.style.borderRadius = '6px';
+                        overlay.style.padding = '8px';
+                        overlay.style.boxShadow = '0 8px 32px rgba(0,0,0,0.6)';
+                        overlay.style.color = '#ddd';
+                        document.body.appendChild(overlay);
+                      }
+                      overlay.innerHTML = '';
+                      var hdr = document.createElement('div');
+                      hdr.style.display = 'flex';
+                      hdr.style.justifyContent = 'space-between';
+                      hdr.style.alignItems = 'center';
+                      hdr.style.marginBottom = '6px';
+                      var title = document.createElement('div');
+                      title.textContent = embed.fileName || (embed.path ? embed.path.split('/').slice(-1)[0] : 'Embed');
+                      title.style.fontWeight = '600';
+                      var closeBtn = document.createElement('button');
+                      closeBtn.textContent = 'Close';
+                      closeBtn.className = 'vscode-quickfix-button';
+                      closeBtn.addEventListener('click', function(){ overlay && overlay.remove(); });
+                      hdr.appendChild(title);
+                      hdr.appendChild(closeBtn);
+                      overlay.appendChild(hdr);
+
+                      if (embed.dataUrl && (embed.mimeType || '').startsWith('image/')) {
+                        var img = document.createElement('img');
+                        img.src = embed.dataUrl;
+                        img.style.maxWidth = '100%';
+                        img.style.height = 'auto';
+                        overlay.appendChild(img);
+                      } else if (embed.text) {
+                        var pre = document.createElement('pre');
+                        pre.style.whiteSpace = 'pre-wrap';
+                        pre.style.wordBreak = 'break-word';
+                        pre.textContent = embed.text.substring(0, 20000);
+                        overlay.appendChild(pre);
+                      } else if (embed.dataUrl) {
+                        var link = document.createElement('a');
+                        link.href = embed.dataUrl;
+                        link.textContent = embed.fileName || 'Download';
+                        link.target = '_blank';
+                        overlay.appendChild(link);
+                      } else if (embed.path) {
+                        var info = document.createElement('div');
+                        info.textContent = 'Path: ' + embed.path;
+                        overlay.appendChild(info);
+                      } else {
+                        var info2 = document.createElement('div');
+                        info2.textContent = 'No preview available for this embed';
+                        overlay.appendChild(info2);
+                      }
+                      // If we have an inline dataUrl, add a Download link
+                      if (embed.dataUrl) {
+                        var dlRow2 = document.createElement('div');
+                        dlRow2.style.display = 'flex';
+                        dlRow2.style.justifyContent = 'flex-end';
+                        dlRow2.style.marginTop = '8px';
+                        var dlLink2 = document.createElement('a');
+                        dlLink2.href = embed.dataUrl;
+                        dlLink2.textContent = 'Download';
+                        dlLink2.target = '_blank';
+                        dlLink2.className = 'vscode-quickfix-button';
+                        dlLink2.style.marginRight = '8px';
+                        dlRow2.appendChild(dlLink2);
+                        overlay.appendChild(dlRow2);
+                      }
+                      // If the extension chose not to embed the file (too large), show the note and Open button
+                      if (embed.note) {
+                        var note = document.createElement('div');
+                        note.style.marginTop = '8px';
+                        note.style.fontSize = '12px';
+                        note.style.opacity = '0.9';
+                        note.textContent = embed.note;
+                        overlay.appendChild(note);
+                      }
+
+                      if (embed.path) {
+                        var openRow = document.createElement('div');
+                        openRow.style.display = 'flex';
+                        openRow.style.justifyContent = 'flex-end';
+                        openRow.style.marginTop = '8px';
+                        var openBtn = document.createElement('button');
+                        openBtn.textContent = 'Open';
+                        openBtn.className = 'vscode-quickfix-button';
+                        openBtn.addEventListener('click', function(){
+                          try {
+                            // Use acquireVsCodeApi if available, else fallback to vscode global
+                            var api = (window as any).acquireVsCodeApi ? (window as any).acquireVsCodeApi() : (window as any).vscode;
+                            if (api && api.postMessage) {
+                              api.postMessage({ command: 'openFile', path: embed.path });
+                            } else if (window && window.postMessage) {
+                              // last resort
+                              window.postMessage({ command: 'openFile', path: embed.path }, '*');
+                            }
+                          } catch (err) {
+                            console.error('Open button failed', err);
+                          }
+                        });
+                        openRow.appendChild(openBtn);
+                        overlay.appendChild(openRow);
+                      }
+                    } catch (err) {
+                      console.error('openEmbedPreview overlay failed', err);
+                    }
+                  });
+                })();
+                </script>
+            </body>
+            </html>`;
   }
 
   /**
@@ -2467,6 +2702,47 @@ export class EditorPanel {
     } catch (error) {
       console.error('[EditorPanel] Error navigating to wiki-link:', error);
       vscode.window.showErrorMessage(`Failed to navigate to wiki-link: ${error}`);
+    }
+  }
+
+  /**
+   * Handle file open request from webview (wiki-links, embeds, sidebar)
+   */
+  private async handleOpenFile(message: any): Promise<void> {
+    const { filename, heading, filePath, path } = message;
+    
+    try {
+      // If we have a direct file path (from sidebar or embed modal), use it
+      if (filePath || path) {
+        const uri = vscode.Uri.file(filePath || path);
+        const ext = NodePath.extname(uri.fsPath).toLowerCase();
+        
+        // For markdown files, use our custom editor
+        if (ext === '.md') {
+          await EditorPanel.createOrShow(this._context, uri);
+        } else {
+          // For other files, use default editor
+          await vscode.commands.executeCommand('vscode.open', uri);
+        }
+        return;
+      }
+      
+      // Otherwise, resolve wiki-link filename
+      if (filename) {
+        const LinkResolver = (await import('../services/LinkResolver')).LinkResolver;
+        const resolver = LinkResolver.getInstance();
+        
+        const currentUri = this._uri;
+        if (!currentUri) {
+          return;
+        }
+
+        await resolver.navigateToWikiLink(filename, heading, currentUri);
+        debug(`[EditorPanel] Opened file via wiki-link: ${filename}${heading ? '#' + heading : ''}`);
+      }
+    } catch (error) {
+      console.error('[EditorPanel] Error opening file:', error);
+      vscode.window.showErrorMessage(`Failed to open file: ${error}`);
     }
   }
 }

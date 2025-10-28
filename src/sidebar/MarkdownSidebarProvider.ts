@@ -6,7 +6,49 @@ import {
   TemplateManager, 
   DefaultEditorChecker 
 } from '../services';
+import { TagManager } from '../services/TagManager';
 import { EditorPanel } from '../app/EditorPanel';
+
+function getMimeForExt(ext: string): string {
+  if (!ext) return '';
+  // Try runtime mime-types if available
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const mime = require('mime-types');
+    if (mime && typeof mime.lookup === 'function') {
+      return mime.lookup(ext) || '';
+    }
+  } catch (e) {
+    // ignore
+  }
+
+  // Fallback minimal map
+  const map: Record<string, string> = {
+    png: 'image/png',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    gif: 'image/gif',
+    svg: 'image/svg+xml',
+    webp: 'image/webp',
+    bmp: 'image/bmp',
+    md: 'text/markdown',
+    markdown: 'text/markdown',
+    txt: 'text/plain',
+    csv: 'text/csv',
+    json: 'application/json',
+    yaml: 'text/yaml',
+    yml: 'text/yaml',
+    html: 'text/html',
+    htm: 'text/html',
+    mp3: 'audio/mpeg',
+    wav: 'audio/wav',
+    mp4: 'video/mp4',
+    webm: 'video/webm',
+    pdf: 'application/pdf',
+    zip: 'application/zip'
+  };
+  return map[ext] || '';
+}
 
 /**
  * Provides the Obsidian-style sidebar webview for markdown tools
@@ -20,6 +62,7 @@ export class MarkdownSidebarProvider implements vscode.WebviewViewProvider {
   private graphGenerator: LinkGraphGenerator;
   private templateManager: TemplateManager;
   private defaultEditorChecker: DefaultEditorChecker;
+  private tagManager: TagManager;
 
   constructor(
     private readonly _extensionUri: vscode.Uri,
@@ -30,6 +73,7 @@ export class MarkdownSidebarProvider implements vscode.WebviewViewProvider {
     this.graphGenerator = LinkGraphGenerator.getInstance();
     this.templateManager = TemplateManager.getInstance();
     this.defaultEditorChecker = DefaultEditorChecker.getInstance();
+  this.tagManager = TagManager.getInstance();
 
     // Load user templates
     this.templateManager.loadUserTemplates();
@@ -121,6 +165,82 @@ export class MarkdownSidebarProvider implements vscode.WebviewViewProvider {
   }
 
   /**
+   * Open embed preview inline in the active editor's webview (vditor)
+   */
+  private async _openEmbedInEditor(resolvedPath: string | undefined, raw: string | undefined): Promise<void> {
+    if (!this._activeDocument) {
+      vscode.window.showInformationMessage('No active markdown document to preview embed in');
+      return;
+    }
+
+    try {
+      // Ensure the editor panel for the active document exists
+      const editor = await EditorPanel.createOrShow(this._context, this._activeDocument.uri);
+
+      if (editor && editor['_panel'] && editor['_panel'].webview) {
+        // If we have a resolved path, try to read the file and attach inline data so the webview can render it
+        let payload: any = { path: resolvedPath, raw };
+        if (resolvedPath) {
+          try {
+            const uri = vscode.Uri.file(resolvedPath);
+            const stat = await vscode.workspace.fs.stat(uri);
+            payload.fileName = uri.path.split('/').slice(-1)[0];
+            payload.size = stat.size;
+
+            // Configurable size limits (bytes)
+            const config = vscode.workspace.getConfiguration('markdown-editor');
+            const defaultLimit = config.get<number>('previewEmbedSizeLimit', 5 * 1024 * 1024); // fallback 5 MB
+            const imageLimit = config.get<number>('previewEmbedImageLimit', 8 * 1024 * 1024); // 8 MB default for images
+            const textLimit = config.get<number>('previewEmbedTextLimit', 200 * 1024); // 200 KB default for text
+
+            const ext = payload.fileName.split('.').pop()?.toLowerCase() || '';
+            const mime = getMimeForExt(ext) || (ext ? `application/octet-stream` : '');
+            payload.mimeType = mime;
+
+            // Per-type decision for embedding
+            const isImage = mime.startsWith('image/');
+            const isText = mime.startsWith('text/') || mime === 'application/json' || mime === 'text/markdown';
+
+            const effectiveLimit = isImage ? imageLimit : isText ? textLimit : defaultLimit;
+
+            if (payload.size > effectiveLimit) {
+              payload.note = `File too large to embed inline (${Math.round(payload.size / 1024)} KB).`;
+            } else {
+              const bytes = await vscode.workspace.fs.readFile(uri);
+              if (isImage) {
+                const base64 = Buffer.from(bytes).toString('base64');
+                payload.dataUrl = `data:${mime};base64,${base64}`;
+              } else if (isText) {
+                payload.text = Buffer.from(bytes).toString('utf8');
+              } else {
+                const base64 = Buffer.from(bytes).toString('base64');
+                payload.dataUrl = `data:${mime || 'application/octet-stream'};base64,${base64}`;
+              }
+            }
+          } catch (err) {
+            console.error('[Sidebar-Debug] Failed to read embed file:', err);
+          }
+        }
+
+        editor['_panel'].webview.postMessage({
+          command: 'openEmbedPreview',
+          embed: payload
+        });
+      } else {
+        // Fallback: open the file normally (if resolvedPath is a file)
+        if (resolvedPath) {
+          await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(resolvedPath));
+        }
+      }
+    } catch (error) {
+      console.error('[Sidebar-Debug] Failed to open embed in editor:', error);
+      if (resolvedPath) {
+        await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(resolvedPath));
+      }
+    }
+  }
+
+  /**
    * Called when the view is resolved and becomes visible
    */
   public resolveWebviewView(
@@ -156,6 +276,59 @@ export class MarkdownSidebarProvider implements vscode.WebviewViewProvider {
           break;
         case 'openGraphView':
           await this._openGraphView();
+          break;
+        case 'openEmbed':
+          await this._openEmbedInEditor(message.path, message.raw);
+          break;
+        case 'buildEmbedForPreview':
+          // The editor requested we build an embed payload for a given fullPath and send it back to the editor webview
+          try {
+            const fullPath = message.fullPath;
+            // Build payload same as _openEmbedInEditor but send to the EditorPanel webview
+            const editorPanel = await EditorPanel.createOrShow(this._context, this._activeDocument?.uri!);
+            let payload: any = { path: fullPath };
+            if (fullPath) {
+              try {
+                const uri = vscode.Uri.file(fullPath);
+                const stat = await vscode.workspace.fs.stat(uri);
+                payload.fileName = uri.path.split('/').slice(-1)[0];
+                payload.size = stat.size;
+                const ext = payload.fileName.split('.').pop()?.toLowerCase() || '';
+                const mime = getMimeForExt(ext) || (ext ? `application/octet-stream` : '');
+                payload.mimeType = mime;
+                const config = vscode.workspace.getConfiguration('markdown-editor');
+                const defaultLimit = config.get<number>('previewEmbedSizeLimit', 5 * 1024 * 1024);
+                const imageLimit = config.get<number>('previewEmbedImageLimit', 8 * 1024 * 1024);
+                const textLimit = config.get<number>('previewEmbedTextLimit', 200 * 1024);
+                const isImage = mime.startsWith('image/');
+                const isText = mime.startsWith('text/') || mime === 'application/json' || mime === 'text/markdown';
+                const effectiveLimit = isImage ? imageLimit : isText ? textLimit : defaultLimit;
+                if (payload.size > effectiveLimit) {
+                  payload.note = `File too large to embed inline (${Math.round(payload.size / 1024)} KB).`;
+                } else {
+                  const bytes = await vscode.workspace.fs.readFile(uri);
+                  if (isImage) {
+                    const base64 = Buffer.from(bytes).toString('base64');
+                    payload.dataUrl = `data:${mime};base64,${base64}`;
+                  } else if (isText) {
+                    payload.text = Buffer.from(bytes).toString('utf8');
+                  } else {
+                    const base64 = Buffer.from(bytes).toString('base64');
+                    payload.dataUrl = `data:${mime || 'application/octet-stream'};base64,${base64}`;
+                  }
+                }
+              } catch (err) {
+                console.error('[Sidebar-Debug] Failed to build embed payload:', err);
+              }
+            }
+
+            // Send directly to the EditorPanel webview (it will display via openEmbedPreview handler)
+            if (editorPanel && editorPanel['_panel'] && editorPanel['_panel'].webview) {
+              editorPanel['_panel'].webview.postMessage({ command: 'openEmbedPreview', embed: payload });
+            }
+          } catch (err) {
+            console.error('[Sidebar-Debug] buildEmbedForPreview failed', err);
+          }
           break;
         case 'refreshGraph':
           await this._updateView(message.depth, message.maxNodes);
@@ -227,6 +400,21 @@ export class MarkdownSidebarProvider implements vscode.WebviewViewProvider {
     try {
       // Generate simplified graph data for webview
       const graphData = await this.graphGenerator.generateSimplifiedGraph(fileUri, depth, maxNodes);
+      // Extract tags and embeds from current document
+      const tags = this.extractTags(this._activeDocument.getText());
+      let embeds = await this.extractEmbeds(this._activeDocument.getText());
+
+      // Sanitize embed object fields in case editor DOM injected stray HTML into the raw values
+      embeds = embeds.map((e: any) => {
+        const clean = (s: string) => (s || '').toString().replace(/<[^>]+>/g, '').trim();
+        return {
+          raw: clean(e.raw),
+          filename: clean(e.filename),
+          resolved: clean(e.resolved),
+        };
+      });
+
+      const globalTags = await this.tagManager.getAllTags();
 
       return {
         hasActiveDocument: true,
@@ -238,6 +426,10 @@ export class MarkdownSidebarProvider implements vscode.WebviewViewProvider {
         outgoingLinks: await this.relationshipAnalyzer.getOutgoingLinks(fileUri),
         backlinks: await this.relationshipAnalyzer.getBacklinks(fileUri),
         relatedFiles: await this.relationshipAnalyzer.getRelatedFiles(fileUri, 5),
+  tags,
+  tagCloud: this.buildTagCloud(tags),
+  globalTags,
+        embeds,
         graphData: graphData,
         isDefaultEditor: this.defaultEditorChecker.isDefaultEditor()
       };
@@ -258,6 +450,52 @@ export class MarkdownSidebarProvider implements vscode.WebviewViewProvider {
         isDefaultEditor: this.defaultEditorChecker.isDefaultEditor()
       };
     }
+  }
+
+  /**
+   * Extract tags (e.g. #tag) from content
+   */
+  private extractTags(content: string): string[] {
+    const tagRegex = /(^|\s)#([a-zA-Z0-9_\-\/]+)\b/gm;
+    const tags: string[] = [];
+    let m;
+    while ((m = tagRegex.exec(content)) !== null) {
+      tags.push(m[2]);
+    }
+    return Array.from(new Set(tags));
+  }
+
+  /**
+   * Build a simple tag cloud as an array of {tag, count}
+   */
+  private buildTagCloud(tags: string[]): { tag: string; count: number }[] {
+    const counts: Record<string, number> = {};
+    tags.forEach(t => counts[t] = (counts[t] || 0) + 1);
+    return Object.keys(counts).map(tag => ({ tag, count: counts[tag] }));
+  }
+
+  /**
+   * Extract embed references like ![[filename]] and resolve to file paths when possible
+   */
+  private async extractEmbeds(content: string): Promise<any[]> {
+    const embedRegex = /!\[\[([^\]]+)\]\]/g;
+    const embeds: any[] = [];
+    let m;
+    while ((m = embedRegex.exec(content)) !== null) {
+      // Raw content inside ![[...]] may have been polluted by previous webview DOM serialization
+      // (for example stray <button> HTML). Strip any HTML tags to avoid showing markup in the sidebar.
+      const raw = (m[1] || '').replace(/<[^>]+>/g, '').trim();
+      // strip heading/alias
+      const pipeIndex = raw.indexOf('|');
+      let filename = pipeIndex === -1 ? raw : raw.substring(0, pipeIndex);
+      const hashIndex = filename.indexOf('#');
+      if (hashIndex !== -1) filename = filename.substring(0, hashIndex);
+      filename = filename.replace(/\.md$/, '').trim();
+
+      const resolved = await this.relationshipAnalyzer.findFileByName(filename);
+      embeds.push({ raw: m[1], filename, resolved });
+    }
+    return embeds;
   }
 
   /**
@@ -386,11 +624,16 @@ export class MarkdownSidebarProvider implements vscode.WebviewViewProvider {
     const styleUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this._extensionUri, 'sidebar-dist', 'sidebar.css')
     );
+    const codiconsUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this._extensionUri, 'sidebar-dist', 'codicon.css')
+    );
 
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="${codiconsUri}" rel="stylesheet">
   <link href="${styleUri}" rel="stylesheet">
 </head>
 <body>

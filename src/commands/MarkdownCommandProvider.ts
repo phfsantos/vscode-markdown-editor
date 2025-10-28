@@ -52,6 +52,18 @@ export class MarkdownCommandProvider {
             vscode.commands.registerCommand('markdown-editor.exportDocument',
                 this.exportDocument, this)
         );
+
+        // Quick open note (fuzzy search across markdown files)
+        this.disposables.push(
+            vscode.commands.registerCommand('markdown-editor.quickOpenNote',
+                this.quickOpenNote, this)
+        );
+
+        // Open daily note (create from daily template in configured folder)
+        this.disposables.push(
+            vscode.commands.registerCommand('markdown-editor.openDailyNote',
+                this.openDailyNote, this)
+        );
     }
 
     private async showHeadingStats(uri: vscode.Uri, lineIndex: number, title: string): Promise<void> {
@@ -308,6 +320,53 @@ export class MarkdownCommandProvider {
                 `Export to ${format} functionality would be implemented here`
             );
         }
+    }
+
+    private async quickOpenNote(): Promise<void> {
+        // Find markdown files and show fuzzy quick pick
+        const files = await vscode.workspace.findFiles('**/*.{md,markdown}', '**/node_modules/**');
+        const picks = files.map(f => ({ label: vscode.workspace.asRelativePath(f), uri: f }));
+
+        const choice = await vscode.window.showQuickPick(picks, { placeHolder: 'Quick open note' });
+        if (choice && choice.uri) {
+            const doc = await vscode.workspace.openTextDocument(choice.uri);
+            await vscode.window.showTextDocument(doc);
+        }
+    }
+
+    private async openDailyNote(): Promise<void> {
+        const { TemplateManager } = await import('../services/TemplateManager');
+        const templateManager = TemplateManager.getInstance();
+
+        const config = vscode.workspace.getConfiguration('markdown-editor');
+        const folder = config.get<string>('dailyNotesFolder', 'daily');
+
+        // Create note content from 'daily' template
+        const doc = await templateManager.createNoteFromTemplate('daily');
+
+        // Prompt to save in workspace folder under configured daily folder
+        const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+        if (!workspaceFolder) {
+            vscode.window.showErrorMessage('Open a workspace folder to create daily notes');
+            return;
+        }
+
+        const fileName = `daily-${new Date().toISOString().split('T')[0]}.md`;
+        const uri = vscode.Uri.joinPath(workspaceFolder.uri, folder, fileName);
+
+        // Ensure folder exists via workspace.fs
+        try {
+            await vscode.workspace.fs.createDirectory(vscode.Uri.joinPath(workspaceFolder.uri, folder));
+        } catch {
+            // ignore
+        }
+
+    const content = doc.getText();
+    const bytes = Buffer.from(content, 'utf8');
+    await vscode.workspace.fs.writeFile(uri, bytes);
+
+        const savedDoc = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(savedDoc);
     }
 
     dispose(): void {

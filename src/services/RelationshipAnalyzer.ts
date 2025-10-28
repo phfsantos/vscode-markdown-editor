@@ -371,8 +371,9 @@ export class RelationshipAnalyzer {
 
   /**
    * Find a file by name (for wiki-links)
+   * Made public so other services (e.g. sidebar/embed handling) can reuse it
    */
-  private async findFileByName(filename: string): Promise<string | null> {
+  public async findFileByName(filename: string): Promise<string | null> {
     const searchName = filename.endsWith('.md') ? filename : `${filename}.md`;
     const files = await vscode.workspace.findFiles(`**/${searchName}`);
     return files.length > 0 ? files[0].fsPath : null;

@@ -18,7 +18,7 @@ body {
 }
 
 .sidebar-container {
-  padding: 8px;
+  padding: 8px 0px;
 }
 
 /* Header */
@@ -236,22 +236,51 @@ body {
 
 /* Sections */
 .section {
-  margin-bottom: 16px;
+  margin-bottom: 0;
+  border-bottom: 1px solid var(--vscode-sideBar-border);
+  padding-bottom: 8px;
+}
+
+.section:last-child {
+  border-bottom: none;
 }
 
 .section-header {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
+  gap: 4px;
+  padding: 8px 8px 8px 4px;
   font-weight: 600;
-  font-size: 12px;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--vscode-sideBarSectionHeader-foreground);
-  background-color: var(--vscode-sideBarSectionHeader-background);
-  border-radius: 3px;
-  margin-bottom: 8px;
+  background-color: transparent;
+  border-radius: 0;
+  margin-bottom: 4px;
+  margin-top: 8px;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.1s ease;
+}
+
+.section-header:hover {
+  background-color: var(--vscode-list-hoverBackground);
+}
+
+.section-header .chevron {
+  transition: transform 0.1s ease;
+  flex-shrink: 0;
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.section.collapsed .section-header .chevron {
+  transform: rotate(-90deg);
 }
 
 .section-header h4 {
@@ -268,6 +297,15 @@ body {
   color: var(--vscode-badge-foreground);
   border-radius: 10px;
   font-weight: 600;
+}
+
+.section-content {
+  transition: max-height 0.2s ease, opacity 0.2s ease;
+  overflow: hidden;
+}
+
+.section.collapsed .section-content {
+  display: none;
 }
 
 .empty {
@@ -394,6 +432,100 @@ body {
 
 .graph-btn:hover {
   background-color: var(--vscode-button-hoverBackground);
+}
+
+/* Embeds list styling - align with Templates and Buttons */
+.embeds-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 4px;
+}
+
+.embed-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 4px;
+  background: transparent;
+  transition: background-color 0.15s;
+}
+
+.embed-item:hover {
+  background-color: var(--vscode-list-hoverBackground);
+}
+
+.embed-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.embed-filename {
+  font-size: 12px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.embed-path {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.embed-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Preview button uses same base styling as template buttons but smaller */
+.embed-preview-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background-color: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+  border: 1px solid var(--vscode-button-border);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.embed-preview-btn:hover {
+  background-color: var(--vscode-button-secondaryHoverBackground);
+}
+
+/* Tags local list spacing */
+.tags-local {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 8px;
+  margin-bottom: 8px;
+}
+
+.tags-global {
+  padding: 0 8px 8px 8px;
+}
+
+.tag {
+  padding: 4px 8px;
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+  border-radius: 999px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.tag:hover {
+  background: var(--vscode-button-secondaryHoverBackground);
 }
 
 /* Graph View */

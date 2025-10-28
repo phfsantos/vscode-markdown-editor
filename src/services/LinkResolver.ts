@@ -166,13 +166,36 @@ export class LinkResolver {
       const targetUri = await this.resolveWikiLink(filename, currentDocumentUri);
       
       if (targetUri) {
-        // Open the document
-        const document = await vscode.workspace.openTextDocument(targetUri);
-        const editor = await vscode.window.showTextDocument(document);
-
-        // Navigate to heading if specified
-        if (heading) {
-          await this.navigateToHeading(heading, editor);
+        // For markdown files, open with custom editor
+        if (targetUri.fsPath.toLowerCase().endsWith('.md')) {
+          // Import EditorPanel dynamically to avoid circular dependencies
+          const { EditorPanel } = await import('../app/EditorPanel');
+          const context = (global as any).extensionContext;
+          
+          if (context) {
+            const panel = await EditorPanel.createOrShow(context, targetUri);
+            
+            // Navigate to heading if specified
+            if (heading && panel) {
+              // Wait a bit for the editor to fully initialize before scrolling
+              setTimeout(() => {
+                panel.navigateToHeading(heading);
+              }, 2000);
+            }
+          } else {
+            console.error('[LinkResolver] Extension context not available');
+            // Fallback to default editor
+            const document = await vscode.workspace.openTextDocument(targetUri);
+            const editor = await vscode.window.showTextDocument(document);
+            
+            if (heading) {
+              await this.navigateToHeading(heading, editor);
+            }
+          }
+        } else {
+          // For non-markdown files, use default editor
+          const document = await vscode.workspace.openTextDocument(targetUri);
+          await vscode.window.showTextDocument(document);
         }
       } else {
         vscode.window.showWarningMessage(`Wiki-link target not found: ${filename}`);

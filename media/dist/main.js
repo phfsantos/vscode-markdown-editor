@@ -45584,14 +45584,23 @@ console.log('Hello, World!');
       this.currentDocumentPath = "";
       this.relatedFiles = new Set();
     }
-    getHintConfig() {
-      return {
-        key: "[[",
-        hint: (value) => {
-          vscodeLog(`[WikiLinkAutocomplete] \u{1F50D} Hint triggered for: "${value}"`);
-          return this.getWikiLinkSuggestions(value);
+    getHintConfigs() {
+      return [
+        {
+          key: "[[",
+          hint: (value) => {
+            vscodeLog(`[WikiLinkAutocomplete] \uFFFD Wiki-link hint triggered for: "${value}"`);
+            return this.getWikiLinkSuggestions(value, false);
+          }
+        },
+        {
+          key: "![",
+          hint: (value) => {
+            vscodeLog(`[WikiLinkAutocomplete] \u{1F4CE} Embed hint triggered for: "${value}"`);
+            return this.getWikiLinkSuggestions(value, true);
+          }
         }
-      };
+      ];
     }
     async initialize(documentPath, vditor2) {
       console.log("[WikiLinkAutocomplete] Initializing with document path:", documentPath);
@@ -45604,10 +45613,10 @@ console.log('Hello, World!');
       this.currentDocumentPath = documentPath;
       this.refreshRelatedFiles();
     }
-    getWikiLinkSuggestions(searchText) {
+    getWikiLinkSuggestions(searchText, isEmbed = false) {
       const scored = this.scoreAndRankFiles(searchText.toLowerCase());
       return scored.slice(0, 20).map((s6) => ({
-        value: s6.value,
+        value: isEmbed ? s6.value.replace("[[", "![[") : s6.value,
         html: s6.html
       }));
     }
@@ -45793,17 +45802,17 @@ console.log('Hello, World!');
       this.currentDocumentPath = "";
       this.isSetup = false;
       this.editorElement = null;
-      this.WIKI_LINK_REGEX = /\[\[([^\]]+)\]\]/g;
+      this.WIKI_LINK_REGEX = /!?\[\[([^\]]+)\]\]/g;
       this.ALIAS_SPLIT = "|";
       this.HEADING_SPLIT = "#";
       this.processingTimeout = null;
       this.DEBOUNCE_MS = 300;
-      this.vditor = vditor2;
+      this.vditor = vditor2?.vditor || {};
     }
     initialize(documentPath) {
       this.currentDocumentPath = documentPath;
       vscodeLog2(`[WikiLinkHandler] \u{1F4CE} Initialized for: ${documentPath}`);
-      const editorElement = this.vditor.vditor?.ir?.element || this.vditor.vditor?.wysiwyg?.element;
+      const editorElement = this.vditor?.ir?.element || this.vditor?.wysiwyg?.element;
       if (editorElement) {
         this.editorElement = editorElement;
         this.attachEventListeners(editorElement);
@@ -45896,7 +45905,7 @@ console.log('Hello, World!');
       }, this.DEBOUNCE_MS);
     }
     processWikiLinksInEditor() {
-      const editorElement = this.vditor.vditor?.ir?.element || this.vditor.vditor?.wysiwyg?.element;
+      const editorElement = this.vditor?.ir?.element || this.vditor?.wysiwyg?.element;
       if (!editorElement) {
         vscodeLog2("[WikiLinkHandler] \u26A0\uFE0F No editor element in processWikiLinksInEditor");
         return;
@@ -45946,43 +45955,81 @@ console.log('Hello, World!');
       parent.replaceChild(fragment, textNode);
     }
     createVditorIRWikiLink(wikiLink) {
-      const parsed = this.parseWikiLink(wikiLink);
+      const isEmbed = wikiLink.startsWith("![[") && wikiLink.endsWith("]]");
+      const parsed = this.parseWikiLink(wikiLink.replace(/^!/, ""));
       const displayText = parsed.alias || parsed.filename || parsed.heading || "link";
-      const linkContent = wikiLink.slice(2, -2);
+      const linkContent = wikiLink.slice(isEmbed ? 3 : 2, -2);
       const container = document.createElement("span");
       container.className = "vditor-ir__node";
-      container.setAttribute("data-type", "wiki-link");
+      container.setAttribute("data-type", isEmbed ? "embed-link" : "wiki-link");
       container.dataset.wikiLink = wikiLink;
       container.dataset.filename = parsed.filename || "";
       container.dataset.heading = parsed.heading || "";
       container.dataset.alias = parsed.alias || "";
       const openMarker = document.createElement("span");
       openMarker.className = "vditor-ir__marker vditor-ir__marker--pre";
-      openMarker.textContent = "[[";
+      openMarker.textContent = isEmbed ? "![[" : "[[";
       const preview = document.createElement("span");
-      preview.className = "vditor-ir__preview";
+      preview.className = isEmbed ? "vditor-ir__preview embed-preview" : "vditor-ir__preview";
       preview.contentEditable = "true";
       preview.textContent = displayText;
-      preview.setAttribute("role", "link");
-      preview.setAttribute("tabindex", "0");
-      preview.dataset.linkContent = linkContent;
-      preview.addEventListener("click", (e7) => {
-        e7.preventDefault();
-        e7.stopPropagation();
-        this.navigateToWikiLink(wikiLink);
-      });
-      preview.addEventListener("keydown", (e7) => {
-        if (e7.key === "Enter" || e7.key === " ") {
+      if (isEmbed) {
+        preview.setAttribute("data-has-embed-preview", "true");
+        preview.setAttribute("tabindex", "0");
+        preview.addEventListener("click", (e7) => {
+          e7.preventDefault();
+          e7.stopPropagation();
+          const payload = {
+            command: "requestEmbed",
+            filename: parsed.filename || "",
+            currentDocument: this.currentDocumentPath || ""
+          };
+          if (window.vscode && window.vscode.postMessage) {
+            window.vscode.postMessage(payload);
+          } else if (window.acquireVsCodeApi) {
+            window.acquireVsCodeApi().postMessage(payload);
+          } else {
+            window.postMessage(payload, "*");
+          }
+        });
+        preview.addEventListener("keydown", (e7) => {
+          if (e7.key === "Enter") {
+            e7.preventDefault();
+            e7.stopPropagation();
+            const payload = {
+              command: "requestEmbed",
+              filename: parsed.filename || "",
+              currentDocument: this.currentDocumentPath || ""
+            };
+            if (window.vscode && window.vscode.postMessage) {
+              window.vscode.postMessage(payload);
+            } else if (window.acquireVsCodeApi) {
+              window.acquireVsCodeApi().postMessage(payload);
+            } else {
+              window.postMessage(payload, "*");
+            }
+          }
+        });
+      } else {
+        preview.setAttribute("tabindex", "0");
+        preview.addEventListener("click", (e7) => {
           e7.preventDefault();
           e7.stopPropagation();
           this.navigateToWikiLink(wikiLink);
-        }
-      });
+        });
+        preview.addEventListener("keydown", (e7) => {
+          if (e7.key === "Enter") {
+            e7.preventDefault();
+            e7.stopPropagation();
+            this.navigateToWikiLink(wikiLink);
+          }
+        });
+      }
       preview.addEventListener("input", () => {
         const newContent = preview.textContent || "";
-        const newWikiLink = `[[${newContent}]]`;
+        const newWikiLink = isEmbed ? `![[${newContent}]]` : `[[${newContent}]]`;
         container.dataset.wikiLink = newWikiLink;
-        const parsed2 = this.parseWikiLink(newWikiLink);
+        const parsed2 = this.parseWikiLink(newWikiLink.replace(/^!/, ""));
         container.dataset.filename = parsed2.filename || "";
         container.dataset.heading = parsed2.heading || "";
         container.dataset.alias = parsed2.alias || "";
@@ -45994,7 +46041,12 @@ console.log('Hello, World!');
       closeMarker.className = "vditor-ir__marker vditor-ir__marker--post";
       closeMarker.textContent = "]]";
       container.appendChild(openMarker);
-      container.appendChild(preview);
+      const previewRow = document.createElement("span");
+      previewRow.style.display = "inline-flex";
+      previewRow.style.alignItems = "center";
+      previewRow.style.gap = "6px";
+      previewRow.appendChild(preview);
+      container.appendChild(previewRow);
       container.appendChild(closeMarker);
       return container;
     }
@@ -46006,7 +46058,7 @@ console.log('Hello, World!');
         return;
       }
       vscode.postMessage({
-        command: "navigateToWikiLink",
+        command: "openFile",
         filename: parsed.filename,
         heading: parsed.heading,
         currentDocument: this.currentDocumentPath
@@ -46014,9 +46066,8 @@ console.log('Hello, World!');
     }
     scrollToHeading(heading) {
       const anchor = this.headingToAnchor(heading);
-      const editorElement = this.vditor.ir?.element || this.vditor.wysiwyg?.element;
+      const editorElement = this.vditor?.ir?.element || this.vditor?.wysiwyg?.element;
       if (editorElement) {
-        const headingElement = editorElement.querySelector(`h1, h2, h3, h4, h5, h6`);
         const headings = Array.from(editorElement.querySelectorAll("h1, h2, h3, h4, h5, h6"));
         const targetHeading = headings.find((h5) => {
           const headingText = h5.textContent || "";
@@ -46031,18 +46082,18 @@ console.log('Hello, World!');
       }
     }
     convertAllWikiLinksToMarkdown() {
-      const content = this.vditor.getValue();
+      const content = this.vditor?.getValue() || "";
       return content.replace(this.WIKI_LINK_REGEX, (match2) => {
         return this.wikiLinkToMarkdown(match2);
       });
     }
     getAllWikiLinks() {
-      const content = this.vditor.getValue();
+      const content = this.vditor?.getValue() || "";
       const matches = Array.from(content.matchAll(this.WIKI_LINK_REGEX));
       return matches.map((match2) => this.parseWikiLink(match2[0]));
     }
     updateLinksForRenamedFile(oldPath, newPath) {
-      const content = this.vditor.getValue();
+      const content = this.vditor?.getValue() || "";
       const oldFilename = this.getFilenameFromPath(oldPath);
       const newFilename = this.getFilenameFromPath(newPath);
       const updatedContent = content.replace(this.WIKI_LINK_REGEX, (match2) => {
@@ -46059,7 +46110,7 @@ console.log('Hello, World!');
         return match2;
       });
       if (updatedContent !== content) {
-        this.vditor.setValue(updatedContent);
+        this.vditor?.setValue(updatedContent);
         vscodeLog2(`[WikiLinkHandler] \u{1F504} Updated links for renamed file: ${oldFilename} \u2192 ${newFilename}`);
       }
     }
@@ -46567,12 +46618,12 @@ console.log('Hello, World!');
       vscodeLog3("[Predictionary] \u2705 Added predictionary hints to Vditor configuration");
     }
     if (wikiLinkAutocomplete) {
-      const wikiHintConfig = wikiLinkAutocomplete.getHintConfig();
-      if (wikiHintConfig) {
-        hintExtensions.push(wikiHintConfig);
-        vscodeLog3("[WikiLinkAutocomplete] \u2705 Added wiki-link hints to Vditor configuration");
+      const wikiHintConfigs = wikiLinkAutocomplete.getHintConfigs();
+      if (wikiHintConfigs && wikiHintConfigs.length > 0) {
+        hintExtensions.push(...wikiHintConfigs);
+        vscodeLog3(`[WikiLinkAutocomplete] \u2705 Added ${wikiHintConfigs.length} wiki-link hint configs to Vditor`);
       } else {
-        vscodeLog3("[WikiLinkAutocomplete] \u274C getHintConfig() returned null or undefined");
+        vscodeLog3("[WikiLinkAutocomplete] \u274C getHintConfigs() returned empty or null");
       }
     } else {
       vscodeLog3("[WikiLinkAutocomplete] \u274C wikiLinkAutocomplete is null");
@@ -47332,11 +47383,114 @@ console.log('Hello, World!');
         }
         break;
       }
+      case "navigateToHeading": {
+        vscodeLog3(`Main.ts: Navigate to heading: ${msg.heading}`);
+        if (wikiLinkHandler && msg.heading) {
+          wikiLinkHandler.scrollToHeading(msg.heading);
+        } else if (!wikiLinkHandler) {
+          vscodeLog3("Main.ts: WikiLinkHandler not initialized for heading navigation");
+        }
+        break;
+      }
       case "insertRendererCodeBlock": {
         vscodeLog3(`Main.ts: Insert renderer code block received for ${msg.rendererType}`);
         if (window.vditor && msg.codeBlock) {
           window.vditor.insertValue(msg.codeBlock);
           vscodeLog3(`\u2705 Inserted code block for ${msg.rendererType}`);
+        }
+        break;
+      }
+      case "openEmbedPreview": {
+        try {
+          const embed = msg.embed || {};
+          let overlay = document.getElementById("vscode-embed-preview-overlay");
+          if (!overlay) {
+            overlay = document.createElement("div");
+            overlay.id = "vscode-embed-preview-overlay";
+            document.body.appendChild(overlay);
+          }
+          overlay.innerHTML = "";
+          const header = document.createElement("div");
+          header.className = "embed-header";
+          const title = document.createElement("div");
+          title.className = "embed-title";
+          title.textContent = embed.fileName || (embed.path ? embed.path.split("/").slice(-1)[0] : "Embed Preview");
+          const actions = document.createElement("div");
+          actions.className = "embed-actions";
+          if (embed.path) {
+            const openBtn = document.createElement("button");
+            openBtn.className = "icon-btn codicon codicon-link-external";
+            openBtn.setAttribute("data-tooltip", "Open File");
+            openBtn.setAttribute("aria-label", "Open File");
+            openBtn.addEventListener("click", () => {
+              try {
+                vscode.postMessage({command: "openFile", path: embed.path});
+              } catch (err) {
+                vscodeLog3("open button postMessage failed: " + err);
+              }
+            });
+            actions.appendChild(openBtn);
+          }
+          if (embed.dataUrl) {
+            const downloadBtn = document.createElement("a");
+            downloadBtn.className = "icon-btn";
+            downloadBtn.setAttribute("data-tooltip", "Download");
+            downloadBtn.setAttribute("aria-label", "Download");
+            downloadBtn.textContent = "\u2B07";
+            downloadBtn.href = embed.dataUrl;
+            downloadBtn.download = embed.fileName || "download";
+            downloadBtn.style.textDecoration = "none";
+            actions.appendChild(downloadBtn);
+          }
+          const closeBtn = document.createElement("button");
+          closeBtn.className = "icon-btn codicon codicon-close";
+          closeBtn.setAttribute("data-tooltip", "Close");
+          closeBtn.setAttribute("aria-label", "Close");
+          closeBtn.addEventListener("click", () => {
+            overlay && overlay.remove();
+          });
+          actions.appendChild(closeBtn);
+          header.appendChild(title);
+          header.appendChild(actions);
+          overlay.appendChild(header);
+          const content = document.createElement("div");
+          content.className = "embed-content";
+          if (embed.dataUrl && (embed.mimeType || "").startsWith("image/")) {
+            const img = document.createElement("img");
+            img.src = embed.dataUrl;
+            img.style.maxWidth = "100%";
+            img.style.height = "auto";
+            content.appendChild(img);
+          } else if (embed.text) {
+            const pre = document.createElement("pre");
+            pre.textContent = embed.text.substring(0, 2e4);
+            content.appendChild(pre);
+          } else if (embed.dataUrl) {
+            const link = document.createElement("a");
+            link.href = embed.dataUrl;
+            link.textContent = embed.fileName || "Download";
+            link.target = "_blank";
+            content.appendChild(link);
+          } else if (embed.path) {
+            const info = document.createElement("div");
+            info.textContent = `Path: ${embed.path}`;
+            content.appendChild(info);
+          } else {
+            const info = document.createElement("div");
+            info.textContent = "No preview available for this embed";
+            content.appendChild(info);
+          }
+          if (embed.note) {
+            const note = document.createElement("div");
+            note.style.marginTop = "8px";
+            note.style.fontSize = "12px";
+            note.style.opacity = "0.9";
+            note.textContent = embed.note;
+            content.appendChild(note);
+          }
+          overlay.appendChild(content);
+        } catch (err) {
+          vscodeLog3(`openEmbedPreview handler failed: ${err}`);
         }
         break;
       }

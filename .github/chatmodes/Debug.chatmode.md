@@ -1,6 +1,6 @@
 ---
 description: Debug & Root Cause Analysis Chat Mode for GitHub Copilot
-tools: ['codebase','search','usages','problems','changes','runCommands','runTasks','findTestFiles','openSimpleBrowser','memory','sequentialthinking','markitdown']
+tools: ['runCommands', 'runTasks', 'memory/*', 'sequentialthinking/*', 'search', 'Azure MCP/search', 'usages', 'problems', 'changes', 'openSimpleBrowser']
 ---
 # Debug & Root Cause Analysis Chat Mode
 

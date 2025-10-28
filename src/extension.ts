@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 const KeyVditorOptions = 'vditor.options';
 import { PreviewCustomEditorProvider } from './app/PreviewCustomEditorProvider';
 import { EditorPanel } from './app/EditorPanel';
@@ -21,6 +22,9 @@ export function activate(context: vscode.ExtensionContext) {
   // Create output channel for diagnostic logs
   outputChannel = vscode.window.createOutputChannel('Markdown Editor Diagnostics');
   context.subscriptions.push(outputChannel);
+  
+  // Make extension context globally available for services like LinkResolver
+  (global as any).extensionContext = context;
   
   // Make output channel globally available
   (global as any).markdownEditorLog = (message: string) => {
@@ -207,4 +211,44 @@ export function activate(context: vscode.ExtensionContext) {
       performanceOptimizer.cleanup();
     }
   });
+
+  // Command: Filter notes by tag (Quick pick tags -> files)
+  context.subscriptions.push(
+    vscode.commands.registerCommand('markdown-editor.filterByTag', async () => {
+      try {
+        const { TagManager } = await import('./services/TagManager');
+        const tagManager = TagManager.getInstance();
+        const tagObjs = await tagManager.getAllTags();
+        if (!tagObjs || tagObjs.length === 0) {
+          vscode.window.showInformationMessage('No tags found in workspace');
+          return;
+        }
+
+        const tagList = tagObjs.map(t => t.tag);
+        const tagPick = await vscode.window.showQuickPick(tagList, {
+          placeHolder: 'Select a tag to filter by'
+        });
+        if (!tagPick) return;
+
+        const files = await tagManager.getFilesForTag(tagPick);
+        if (!files || files.length === 0) {
+          vscode.window.showInformationMessage(`No files found for tag ${tagPick}`);
+          return;
+        }
+
+        const filePick = await vscode.window.showQuickPick(files.map(f => ({ label: path.basename(f), description: f } as vscode.QuickPickItem)), {
+          placeHolder: `Files tagged ${tagPick}`
+        });
+        if (!filePick) return;
+
+        const target = filePick.description || filePick.label;
+        if (target) {
+          await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(target));
+        }
+      } catch (err) {
+        console.error('filterByTag command failed', err);
+        vscode.window.showErrorMessage('Failed to filter by tag: ' + String(err));
+      }
+    })
+  );
 }
