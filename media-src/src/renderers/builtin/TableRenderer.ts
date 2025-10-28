@@ -1,5 +1,6 @@
 import { BaseRenderer } from '../BaseRenderer';
 import { IRenderer, IRenderContext, IRendererCapabilities } from '../types';
+import { vscodeLogError } from '../../webview-logger';
 
 /**
  * TableRenderer - Interactive spreadsheet-like table editing with JSON persistence
@@ -93,7 +94,7 @@ export class TableRenderer extends BaseRenderer implements IRenderer {
 
       return this.renderWithData(element, tableId, tableData, context);
     } catch (error) {
-      console.error('❌ TABLE RENDERER: Render failed', error);
+      vscodeLogError('❌ TABLE RENDERER: Render failed', error);
       this.showError(element, `Failed to render table: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
@@ -599,7 +600,7 @@ export class TableRenderer extends BaseRenderer implements IRenderer {
       });
       
     } catch (error) {
-      console.error('❌ TABLE RENDERER: Save failed', error);
+      vscodeLogError('❌ TABLE RENDERER: Save failed', error);
       this.showToast(container, `❌ Save failed: ${error instanceof Error ? error.message : String(error)}`, 'error');
     }
   }

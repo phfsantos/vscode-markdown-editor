@@ -5,6 +5,7 @@
 
 import * as vscode from 'vscode';
 import * as path from 'path';
+import { logger } from '../utils/Logger';
 
 export class LinkResolver {
   private static instance: LinkResolver;
@@ -183,7 +184,7 @@ export class LinkResolver {
               }, 2000);
             }
           } else {
-            console.error('[LinkResolver] Extension context not available');
+            logger.error('[LinkResolver] Extension context not available');
             // Fallback to default editor
             const document = await vscode.workspace.openTextDocument(targetUri);
             const editor = await vscode.window.showTextDocument(document);
@@ -334,7 +335,7 @@ export class LinkResolver {
         edit.replace(fileUri, fullRange, updatedText);
         await vscode.workspace.applyEdit(edit);
         
-        console.log(`[LinkResolver] Updated wiki-links in: ${fileUri.fsPath}`);
+        logger.debug(`[LinkResolver] Updated wiki-links in: ${fileUri.fsPath}`);
       }
     }
   }
@@ -365,7 +366,7 @@ export class LinkResolver {
     }
 
     this.lastCacheScan = now;
-    console.log(`[LinkResolver] Cached ${this.fileCache.size} markdown files`);
+    logger.debug(`[LinkResolver] Cached ${this.fileCache.size} markdown files`);
   }
 
   /**

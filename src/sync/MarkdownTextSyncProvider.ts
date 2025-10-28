@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { logger } from '../utils/Logger';
 
 export class MarkdownTextSyncProvider {
     private readonly disposables: vscode.Disposable[] = [];
@@ -44,7 +45,7 @@ export class MarkdownTextSyncProvider {
                 await vscode.workspace.applyEdit(edit);
             }
         } catch (error) {
-            console.error('Failed to sync text document:', error);
+            logger.error('Failed to sync text document:', error);
         }
     }
 

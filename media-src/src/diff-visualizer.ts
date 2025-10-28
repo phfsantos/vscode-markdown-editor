@@ -1,3 +1,5 @@
+import { vscodeLogWarn, vscodeLogError } from './webview-logger';
+
 /**
  * Handles diff visualization in the markdown editor webview
  */
@@ -44,21 +46,11 @@ export class DiffVisualizer {
   }
 
   private setupMessageListener(): void {
-    console.log('🔍 DIFF-DEBUG: Setting up diff visualizer message listener');
     
     window.addEventListener('message', (event) => {
       const message = event.data;
-      console.log('🔍 DIFF-DEBUG: Received message:', message.type);
       
       if (message.type === 'diff-view-detected') {
-        console.log('🔍 DIFF-DEBUG: Diff view DETECTED!', {
-          role: message.diffInfo.role,
-          otherUri: message.diffInfo.otherUri,
-          changesCount: message.diffInfo.changes.length,
-          stats: message.diffInfo.stats,
-          clearExistingSpacers: message.diffInfo.clearExistingSpacers,
-          reapplyDiagnostics: message.diffInfo.reapplyDiagnostics
-        });
         this.diffInfo = message.diffInfo;
         this.isInDiffView = true;
         
@@ -71,7 +63,6 @@ export class DiffVisualizer {
         
         // Re-apply diagnostics if requested
         if (message.diffInfo.reapplyDiagnostics && (window as any).diagnosticVisualizer) {
-          console.log('🔍 DIFF-DEBUG: Re-applying diagnostics after diff update');
           // Use setTimeout to ensure diff visualizations are applied first
           // Force re-application to bypass smart checks since DOM may have been modified
           setTimeout(() => {
@@ -79,7 +70,6 @@ export class DiffVisualizer {
           }, 50);
         }
       } else if (message.type === 'diff-view-cleared') {
-        console.log('🔍 DIFF-DEBUG: Diff view CLEARED');
         // Clear diff visualization
         this.clearDiffVisualizations();
       } else if (message.type === 'diff-scroll-sync') {
@@ -93,18 +83,10 @@ export class DiffVisualizer {
   /**
    * Apply diff visualizations to the editor
    */
-  private applyDiffVisualizations(): void {
-    console.log('🔍 DIFF-DEBUG: applyDiffVisualizations() called');
-    
+  private applyDiffVisualizations(): void {    
     if (!this.diffInfo) {
-      console.log('🔍 DIFF-DEBUG: ❌ No diffInfo, aborting');
       return;
     }
-
-    console.log('🔍 DIFF-DEBUG: Applying diff visualizations...', {
-      role: this.diffInfo.role,
-      changesCount: this.diffInfo.changes.length
-    });
 
     // Add a header showing diff stats
     this.addDiffHeader();
@@ -121,9 +103,7 @@ export class DiffVisualizer {
   /**
    * Clear all diff visualizations from the editor
    */
-  private clearDiffVisualizations(): void {
-    console.log('🔍 DIFF-DEBUG: clearDiffVisualizations() called');
-    
+  private clearDiffVisualizations(): void {    
     // Reset state
     this.diffInfo = null;
     this.isInDiffView = false;
@@ -131,13 +111,11 @@ export class DiffVisualizer {
     // Remove diff header
     const existingHeader = document.querySelector('.diff-view-header');
     if (existingHeader) {
-      console.log('🔍 DIFF-DEBUG: Removing diff header');
       existingHeader.remove();
     }
     
     // Remove all spacer blocks
     const spacers = document.querySelectorAll('.diff-spacer-block');
-    console.log(`🔍 DIFF-DEBUG: Removing ${spacers.length} spacer blocks`);
     spacers.forEach(spacer => spacer.remove());
     
     // Remove all diff decorations (background colors, borders)
@@ -159,10 +137,7 @@ export class DiffVisualizer {
           clearedCount++;
         }
       });
-      console.log(`🔍 DIFF-DEBUG: Cleared ${clearedCount} diff decorations`);
     }
-    
-    console.log('🔍 DIFF-DEBUG: ✅ Diff visualizations cleared');
   }
 
   /**
@@ -170,7 +145,6 @@ export class DiffVisualizer {
    */
   private clearSpacerBlocks(): void {
     const spacers = document.querySelectorAll('.diff-spacer-block');
-    console.log(`🔍 DIFF-DEBUG: Clearing ${spacers.length} existing spacer blocks`);
     spacers.forEach(spacer => spacer.remove());
   }
 
@@ -261,7 +235,7 @@ export class DiffVisualizer {
                           document.querySelector('.vditor-sv');
     
     if (!contentElement) {
-      console.warn('⚠️ DIFF VISUALIZER: Could not find Vditor content element');
+      vscodeLogWarn('⚠️ DIFF VISUALIZER: Could not find Vditor content element');
       return;
     }
     
@@ -482,12 +456,9 @@ export class DiffVisualizer {
     }
     
     if (!scrollableElement) {
-      console.error('❌ DIFF VISUALIZER: Could not find pre.vditor-reset element, defaulting to document.documentElement');
+      vscodeLogError('❌ DIFF VISUALIZER: Could not find pre.vditor-reset element, defaulting to document.documentElement');
       scrollableElement = document.documentElement;
     }
-    
-    const elementName = scrollableElement.tagName || scrollableElement.className || 'unknown';
-    console.log(`📜 DIFF VISUALIZER: Setting up scroll sync on: ${elementName}.${scrollableElement.className}`);
     
     // Add scroll event listener with capture to catch it early
     const scrollHandler = (e: Event) => {
@@ -534,28 +505,15 @@ export class DiffVisualizer {
                           document.querySelector('pre.vditor-reset');
     
     if (!contentElement) {
-      console.warn('⚠️ DIFF VISUALIZER: Could not find pre.vditor-reset element for spacers');
+      vscodeLogWarn('⚠️ DIFF VISUALIZER: Could not find pre.vditor-reset element for spacers');
       return;
     }
-    
-    console.log(`📦 DIFF VISUALIZER: Adding spacer blocks to: ${contentElement.tagName}.${contentElement.className}`);
     
     // CRITICAL: Check if spacers already exist - if so, skip adding new ones
     const existingSpacers = document.querySelectorAll('.diff-spacer-block');
     if (existingSpacers.length > 0) {
-      console.log(`🔍 DIFF-DEBUG: ⏭️  Spacers already exist (${existingSpacers.length}), skipping re-addition`);
       return;
     }
-    
-    
-    // Get ALL changes from BOTH sides
-    // Now we receive all changes and can filter appropriately for spacers and highlights
-    
-    
-    // Separate changes by side
-    const leftSideChanges = this.diffInfo.changes.filter(c => c.side === 'left');
-    const rightSideChanges = this.diffInfo.changes.filter(c => c.side === 'right');
-    
     
     // For spacers, we need OPPOSITE side changes:
     // - Left editor (original) needs spacers for what was ADDED on right (where lines don't exist in left)
@@ -613,7 +571,6 @@ export class DiffVisualizer {
         if (similarity > 0.3 || positionDiff <= 1) {
           excludedRightLines.add(bestMatch.lineNumber);  // Don't add spacer on left for this right addition
           excludedLeftLines.add(deletion.lineNumber);    // Don't add spacer on right for this left deletion
-          console.log(`🔍 DIFF-DEBUG: Excluding replacement pair: L${deletion.lineNumber} ↔ R${bestMatch.lineNumber} (similarity: ${similarity.toFixed(2)})`);
         }
       }
     }
@@ -718,7 +675,7 @@ export class DiffVisualizer {
       }
       
       if (!targetElement) {
-        console.warn(`⚠️ DIFF VISUALIZER: Could not find target element for block starting at line ${block.startLine}, skipping spacer`);
+        vscodeLogWarn(`⚠️ DIFF VISUALIZER: Could not find target element for block starting at line ${block.startLine}, skipping spacer`);
         continue;
       }
       
@@ -737,7 +694,7 @@ export class DiffVisualizer {
       }
       
       if (!insertionParent) {
-        console.warn(`⚠️ DIFF VISUALIZER: Target element is not a child of content element, skipping spacer for block at line ${block.startLine}`);
+        vscodeLogWarn(`⚠️ DIFF VISUALIZER: Target element is not a child of content element, skipping spacer for block at line ${block.startLine}`);
         continue;
       }
       
@@ -799,7 +756,7 @@ export class DiffVisualizer {
           targetElement.parentElement!.insertBefore(spacer, targetElement);
         }
       } catch (error) {
-        console.error(`❌ DIFF VISUALIZER: Failed to insert spacer for block ${block.startLine}-${block.endLine}:`, error);
+        vscodeLogError(`❌ DIFF VISUALIZER: Failed to insert spacer for block ${block.startLine}-${block.endLine}:`, error);
       }
     }
     
@@ -869,7 +826,7 @@ export class DiffVisualizer {
     
     // Only send if we have a valid percentage
     if (isNaN(scrollPercentage)) {
-      console.warn('⚠️ DIFF VISUALIZER: Invalid scroll percentage (NaN), skipping');
+      vscodeLogWarn('⚠️ DIFF VISUALIZER: Invalid scroll percentage (NaN), skipping');
       return;
     }
     
@@ -882,7 +839,7 @@ export class DiffVisualizer {
         role: this.diffInfo?.role
       });
     } else {
-      console.warn('⚠️ DIFF VISUALIZER: vscode object not available!');
+      vscodeLogWarn('⚠️ DIFF VISUALIZER: vscode object not available!');
     }
   }
 
@@ -903,7 +860,7 @@ export class DiffVisualizer {
                              document.documentElement;
     
     if (!scrollableElement) {
-      console.warn('⚠️ DIFF VISUALIZER: No element found to apply scroll');
+      vscodeLogWarn('⚠️ DIFF VISUALIZER: No element found to apply scroll');
       return;
     }
     
@@ -916,7 +873,7 @@ export class DiffVisualizer {
     const scrollableHeight = element.scrollHeight - element.clientHeight;
     
     if (scrollableHeight <= 0) {
-      console.warn('⚠️ DIFF VISUALIZER: Element is not scrollable!', {
+      vscodeLogWarn('⚠️ DIFF VISUALIZER: Element is not scrollable!', {
         scrollHeight: element.scrollHeight,
         clientHeight: element.clientHeight,
         element: element.tagName + '.' + element.className

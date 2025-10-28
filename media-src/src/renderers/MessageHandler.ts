@@ -3,6 +3,7 @@
  */
 
 import type { IMessageHandler, IRendererMessage } from './types';
+import { vscodeLogError } from '../webview-logger';
 
 export class MessageHandler implements IMessageHandler {
   private listeners: Map<string, Set<(payload: any) => void>> = new Map();
@@ -24,7 +25,7 @@ export class MessageHandler implements IMessageHandler {
     if ((window as any).vscode) {
       (window as any).vscode.postMessage(message);
     } else {
-      console.error('❌ MESSAGE: VS Code API not available');
+      vscodeLogError('❌ MESSAGE: VS Code API not available');
     }
   }
   
@@ -67,7 +68,7 @@ export class MessageHandler implements IMessageHandler {
         try {
           handler(message);
         } catch (error) {
-          console.error(`❌ MESSAGE: Error in handler for '${message.command}'`, error);
+          vscodeLogError(`❌ MESSAGE: Error in handler for '${message.command}'`, error);
         }
       });
     }

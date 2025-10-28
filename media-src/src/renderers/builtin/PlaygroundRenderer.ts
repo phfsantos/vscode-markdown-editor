@@ -1,5 +1,6 @@
 import { BaseRenderer } from '../BaseRenderer';
 import { IRenderer, IRenderContext, IRendererCapabilities } from '../types';
+import { vscodeLogError } from '../../webview-logger';
 
 /**
  * PlaygroundRenderer - Live JavaScript/TypeScript code execution
@@ -79,7 +80,7 @@ export class PlaygroundRenderer extends BaseRenderer implements IRenderer {
       this.setupPlaygroundEventListeners(container, playgroundId, code, context);
 
     } catch (error) {
-      console.error('❌ PLAYGROUND RENDERER: Render failed', error);
+      vscodeLogError('❌ PLAYGROUND RENDERER: Render failed', error);
       this.showError(element, `Failed to render playground: ${error instanceof Error ? error.message : String(error)}`);
     }
   }

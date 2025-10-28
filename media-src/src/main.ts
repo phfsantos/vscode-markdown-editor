@@ -46,23 +46,19 @@ let wikiLinkHandler: WikiLinkHandler | null = null;
  * Called after: initial load, setValue (undo/redo), and any content refresh
  */
 function processAfterRender() {
-  console.log('[Main.ts] 🔄 processAfterRender called');
   
   // Re-process wiki-links to restore IR structure
   if (wikiLinkHandler) {
-    console.log('[Main.ts] 🔗 Re-processing wiki-links after render');
     wikiLinkHandler.processWikiLinksInEditor();
   }
   
   // Re-apply diagnostics
   if (diagnosticVisualizer) {
-    console.log('[Main.ts] 🩺 Re-applying diagnostics after render');
     diagnosticVisualizer.addSimpleDiagnostics();
   }
   
   // Re-apply diff visualizations if we're in diff view
   if (diffVisualizer && diffVisualizer.inDiffView()) {
-    console.log('[Main.ts] 🔄 Re-applying diff visualizations after render');
     // Give Vditor a moment to finish rendering before applying diff
     setTimeout(() => {
       const diffInfo = diffVisualizer.getDiffInfo();

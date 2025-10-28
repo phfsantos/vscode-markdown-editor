@@ -3,6 +3,7 @@
  */
 
 import { GraphView, GraphData } from './components/graph-view.js';
+import { vscodeLogError, vscodeLogWarn } from './webview-logger.js';
 
 interface VSCode {
   postMessage(message: any): void;
@@ -65,12 +66,10 @@ class SidebarApp {
   }
 
   private init(): void {
-    console.log('[Sidebar Webview] Initializing...');
     
     // Listen for messages from the extension
     window.addEventListener('message', event => {
       const message = event.data;
-      console.log('[Sidebar Webview] Received message:', message.type, message.data);
       
       switch (message.type) {
         case 'update':
@@ -82,11 +81,9 @@ class SidebarApp {
     });
 
     // Initial render
-    console.log('[Sidebar Webview] Initial render');
     this.render();
 
     // Request initial data
-    console.log('[Sidebar Webview] Requesting initial data');
     this.vscode.postMessage({ command: 'refresh' });
   }
 
@@ -486,14 +483,11 @@ class SidebarApp {
     `;
   }
 
-  private attachEventListeners(): void {
-    console.log('[Sidebar Webview] Attaching event listeners');
-    
+  private attachEventListeners(): void {    
     // Template buttons
     document.querySelectorAll('[data-template]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const template = (e.currentTarget as HTMLElement).dataset.template;
-        console.log('[Sidebar Webview] Template clicked:', template);
         this.vscode.postMessage({
           command: 'createNote',
           template
@@ -506,7 +500,6 @@ class SidebarApp {
       const path = (item as HTMLElement).dataset.path;
       if (path) {
         item.addEventListener('click', () => {
-          console.log('[Sidebar Webview] Opening file:', path);
           this.vscode.postMessage({
             command: 'openFile',
             filePath: path
@@ -519,7 +512,6 @@ class SidebarApp {
     const graphBtn = document.querySelector('[data-action="openGraph"]');
     if (graphBtn) {
       graphBtn.addEventListener('click', () => {
-        console.log('[Sidebar Webview] Opening graph');
         this.vscode.postMessage({ command: 'openGraphView' });
       });
     }
@@ -530,7 +522,6 @@ class SidebarApp {
         const el = e.currentTarget as HTMLElement;
         const path = el.dataset.path || '';
         const raw = el.dataset.raw || '';
-        console.log('[Sidebar Webview] Embed preview clicked:', path, raw);
         this.vscode.postMessage({ command: 'openEmbed', path, raw });
       });
     });
@@ -539,7 +530,6 @@ class SidebarApp {
     document.querySelectorAll('.global-tag').forEach(el => {
       el.addEventListener('click', (e) => {
         const tag = (e.currentTarget as HTMLElement).dataset.tag;
-        console.log('[Sidebar Webview] Global tag clicked:', tag);
         // Request extension to focus/tag-filter (future)
         this.vscode.postMessage({ command: 'filterByTag', tag });
       });
@@ -549,7 +539,6 @@ class SidebarApp {
     const defaultBtn = document.querySelector('[data-action="setDefault"]');
     if (defaultBtn) {
       defaultBtn.addEventListener('click', () => {
-        console.log('[Sidebar Webview] Setting default editor');
         this.vscode.postMessage({ command: 'setDefaultEditor' });
       });
     }
@@ -558,7 +547,6 @@ class SidebarApp {
     const dismissBtn = document.querySelector('[data-action="dismissWarning"]');
     if (dismissBtn) {
       dismissBtn.addEventListener('click', () => {
-        console.log('[Sidebar Webview] Dismissing editor warning');
         // Store dismissal state
         const state = this.vscode.getState() || {};
         state.dismissedEditorWarning = true;
@@ -572,7 +560,6 @@ class SidebarApp {
     const refreshBtn = document.querySelector('[data-action="refresh"]');
     if (refreshBtn) {
       refreshBtn.addEventListener('click', () => {
-        console.log('[Sidebar Webview] Refreshing');
         this.vscode.postMessage({ command: 'refresh' });
       });
     }
@@ -669,7 +656,6 @@ class SidebarApp {
     const expandBtn = document.querySelector('[data-action="openFullGraph"]');
     if (expandBtn) {
       expandBtn.addEventListener('click', () => {
-        console.log('[Sidebar Webview] Opening full graph');
         this.vscode.postMessage({ command: 'openGraphView' });
       });
     }
@@ -678,7 +664,6 @@ class SidebarApp {
     const graphContainer = document.getElementById('graph-container');
     if (graphContainer) {
       this.graphView.attachEvents(graphContainer, (nodeId: string, label: string) => {
-        console.log('[Sidebar Webview] Graph node clicked:', label);
         this.vscode.postMessage({
           command: 'openFile',
           filePath: nodeId
@@ -690,22 +675,17 @@ class SidebarApp {
   private requestGraphRefresh(): void {
     // Validate parameters
     if (this.graphDepth < 1 || this.graphDepth > 3) {
-      console.error('[Sidebar Webview] Invalid depth:', this.graphDepth);
+      vscodeLogError('[Sidebar Webview] Invalid depth:', this.graphDepth);
       return;
     }
     if (this.graphMaxNodes < 5 || this.graphMaxNodes > 50) {
-      console.error('[Sidebar Webview] Invalid maxNodes:', this.graphMaxNodes);
+      vscodeLogError('[Sidebar Webview] Invalid maxNodes:', this.graphMaxNodes);
       return;
     }
 
     // Use depth=1 if direct links only is checked
     const effectiveDepth = this.graphDirectLinksOnly ? 1 : this.graphDepth;
 
-    console.log('[Sidebar Webview] Requesting graph refresh', { 
-      depth: effectiveDepth, 
-      maxNodes: this.graphMaxNodes,
-      directLinksOnly: this.graphDirectLinksOnly 
-    });
     this.graphLoading = true;
     this.render();
     
@@ -718,7 +698,7 @@ class SidebarApp {
     // Safety timeout: reset loading state after 5 seconds if no response
     setTimeout(() => {
       if (this.graphLoading) {
-        console.warn('[Sidebar Webview] Graph refresh timeout, resetting loading state');
+        vscodeLogWarn('[Sidebar Webview] Graph refresh timeout, resetting loading state');
         this.graphLoading = false;
         this.render();
       }

@@ -8,6 +8,7 @@ import {
 } from '../services';
 import { TagManager } from '../services/TagManager';
 import { EditorPanel } from '../app/EditorPanel';
+import { logger } from '../utils/Logger';
 
 function getMimeForExt(ext: string): string {
   if (!ext) return '';
@@ -80,7 +81,7 @@ export class MarkdownSidebarProvider implements vscode.WebviewViewProvider {
     
     // Track active editor changes
     vscode.window.onDidChangeActiveTextEditor(editor => {
-      console.log('[Sidebar-Debug] Active editor changed:', {
+      logger.debug('[Sidebar-Debug] Active editor changed:', {
         hasEditor: !!editor,
         languageId: editor?.document.languageId,
         fileName: editor?.document.fileName
@@ -88,28 +89,28 @@ export class MarkdownSidebarProvider implements vscode.WebviewViewProvider {
       
       if (editor?.document.languageId === 'markdown') {
         this._activeDocument = editor.document;
-        console.log('[Sidebar-Debug] Set active document:', this._activeDocument.fileName);
+        logger.debug('[Sidebar-Debug] Set active document:', this._activeDocument.fileName);
         this._updateView();
       } else {
         // Editor closed or non-markdown file, clear active document
         this._activeDocument = undefined;
-        console.log('[Sidebar-Debug] Cleared active document (non-markdown or no editor)');
+        logger.debug('[Sidebar-Debug] Cleared active document (non-markdown or no editor)');
         this._updateView();
       }
     });
 
     // Track visible text editors changes (for when switching between already-open tabs)
     vscode.window.onDidChangeVisibleTextEditors(editors => {
-      console.log('[Sidebar-Debug] Visible editors changed:', editors.length);
+      logger.debug('[Sidebar-Debug] Visible editors changed:', editors.length);
       const markdownEditor = editors.find(e => e.document.languageId === 'markdown');
       if (markdownEditor) {
         this._activeDocument = markdownEditor.document;
-        console.log('[Sidebar-Debug] Set active document from visible editors:', this._activeDocument.fileName);
+        logger.debug('[Sidebar-Debug] Set active document from visible editors:', this._activeDocument.fileName);
         this._updateView();
       } else {
         // No markdown editors visible, clear active document
         this._activeDocument = undefined;
-        console.log('[Sidebar-Debug] Cleared active document (no markdown editors visible)');
+        logger.debug('[Sidebar-Debug] Cleared active document (no markdown editors visible)');
         this._updateView();
       }
     });
@@ -117,7 +118,7 @@ export class MarkdownSidebarProvider implements vscode.WebviewViewProvider {
     // Track document changes
     vscode.workspace.onDidChangeTextDocument(e => {
       if (e.document === this._activeDocument) {
-        console.log('[Sidebar-Debug] Active document content changed');
+        logger.debug('[Sidebar-Debug] Active document content changed');
         this._updateView();
       }
     });
@@ -125,19 +126,19 @@ export class MarkdownSidebarProvider implements vscode.WebviewViewProvider {
     // Listen to custom editor panel changes
     this._disposables.push(
       EditorPanel.onDidChangeActiveDocument((doc: vscode.TextDocument | undefined) => {
-        console.log('[Sidebar-Debug] Custom editor changed, document:', doc ? {
+        logger.debug('[Sidebar-Debug] Custom editor changed, document:', doc ? {
           fileName: doc.fileName,
           languageId: doc.languageId
         } : 'none');
         
         if (doc?.languageId === 'markdown') {
           this._activeDocument = doc;
-          console.log('[Sidebar-Debug] Set active document from custom editor:', this._activeDocument?.fileName);
+          logger.debug('[Sidebar-Debug] Set active document from custom editor:', this._activeDocument?.fileName);
           this._updateView();
         } else {
           // No document or non-markdown document
           this._activeDocument = undefined;
-          console.log('[Sidebar-Debug] Cleared active document from custom editor');
+          logger.debug('[Sidebar-Debug] Cleared active document from custom editor');
           this._updateView();
         }
       })
@@ -145,7 +146,7 @@ export class MarkdownSidebarProvider implements vscode.WebviewViewProvider {
 
     // Initialize with current active editor if it's markdown
     const activeEditor = vscode.window.activeTextEditor;
-    console.log('[Sidebar-Debug] Initial active editor:', {
+    logger.debug('[Sidebar-Debug] Initial active editor:', {
       hasEditor: !!activeEditor,
       languageId: activeEditor?.document.languageId,
       fileName: activeEditor?.document.fileName
@@ -153,13 +154,13 @@ export class MarkdownSidebarProvider implements vscode.WebviewViewProvider {
     
     if (activeEditor?.document.languageId === 'markdown') {
       this._activeDocument = activeEditor.document;
-      console.log('[Sidebar-Debug] Initial active document set:', this._activeDocument.fileName);
+      logger.debug('[Sidebar-Debug] Initial active document set:', this._activeDocument.fileName);
     } else {
       // No markdown editor active, check visible editors
       const markdownEditor = vscode.window.visibleTextEditors.find(e => e.document.languageId === 'markdown');
       if (markdownEditor) {
         this._activeDocument = markdownEditor.document;
-        console.log('[Sidebar-Debug] Initial active document set from visible editors:', this._activeDocument.fileName);
+        logger.debug('[Sidebar-Debug] Initial active document set from visible editors:', this._activeDocument.fileName);
       }
     }
   }
@@ -218,7 +219,7 @@ export class MarkdownSidebarProvider implements vscode.WebviewViewProvider {
               }
             }
           } catch (err) {
-            console.error('[Sidebar-Debug] Failed to read embed file:', err);
+            logger.error('[Sidebar-Debug] Failed to read embed file:', err);
           }
         }
 
@@ -233,7 +234,7 @@ export class MarkdownSidebarProvider implements vscode.WebviewViewProvider {
         }
       }
     } catch (error) {
-      console.error('[Sidebar-Debug] Failed to open embed in editor:', error);
+      logger.error('[Sidebar-Debug] Failed to open embed in editor:', error);
       if (resolvedPath) {
         await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(resolvedPath));
       }
@@ -248,7 +249,7 @@ export class MarkdownSidebarProvider implements vscode.WebviewViewProvider {
     context: vscode.WebviewViewResolveContext,
     _token: vscode.CancellationToken
   ): void | Thenable<void> {
-    console.log('[Sidebar-Debug] Resolving webview view');
+    logger.debug('[Sidebar-Debug] Resolving webview view');
     this._view = webviewView;
 
     webviewView.webview.options = {
@@ -259,11 +260,11 @@ export class MarkdownSidebarProvider implements vscode.WebviewViewProvider {
     };
 
     webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
-    console.log('[Sidebar-Debug] HTML set, setting up message handler');
+    logger.debug('[Sidebar-Debug] HTML set, setting up message handler');
 
     // Handle messages from the webview
     webviewView.webview.onDidReceiveMessage(async (message) => {
-      console.log('[Sidebar-Debug] Received message from webview:', message.command);
+      logger.debug('[Sidebar-Debug] Received message from webview:', message.command);
       switch (message.command) {
         case 'openFile':
           await this._openFile(message.filePath);
@@ -318,7 +319,7 @@ export class MarkdownSidebarProvider implements vscode.WebviewViewProvider {
                   }
                 }
               } catch (err) {
-                console.error('[Sidebar-Debug] Failed to build embed payload:', err);
+                logger.error('[Sidebar-Debug] Failed to build embed payload:', err);
               }
             }
 
@@ -327,7 +328,7 @@ export class MarkdownSidebarProvider implements vscode.WebviewViewProvider {
               editorPanel['_panel'].webview.postMessage({ command: 'openEmbedPreview', embed: payload });
             }
           } catch (err) {
-            console.error('[Sidebar-Debug] buildEmbedForPreview failed', err);
+            logger.error('[Sidebar-Debug] buildEmbedForPreview failed', err);
           }
           break;
         case 'refreshGraph':
@@ -340,7 +341,7 @@ export class MarkdownSidebarProvider implements vscode.WebviewViewProvider {
     });
 
     // Initial update
-    console.log('[Sidebar-Debug] Triggering initial update');
+    logger.debug('[Sidebar-Debug] Triggering initial update');
     this._updateView();
   }
 
@@ -349,14 +350,14 @@ export class MarkdownSidebarProvider implements vscode.WebviewViewProvider {
    */
   private async _updateView(depth?: number, maxNodes?: number): Promise<void> {
     if (!this._view) {
-      console.log('[Sidebar-Debug] No view available for update');
+      logger.debug('[Sidebar-Debug] No view available for update');
       return;
     }
 
     try {
-      console.log('[Sidebar-Debug] Updating view...', { depth, maxNodes });
+      logger.debug('[Sidebar-Debug] Updating view...', { depth, maxNodes });
       const data = await this._gatherDocumentData(depth, maxNodes);
-      console.log('[Sidebar-Debug] Gathered data:', {
+      logger.debug('[Sidebar-Debug] Gathered data:', {
         hasActiveDocument: data.hasActiveDocument,
         outgoingLinksCount: data.outgoingLinks?.length || 0,
         backlinksCount: data.backlinks?.length || 0,
@@ -368,7 +369,7 @@ export class MarkdownSidebarProvider implements vscode.WebviewViewProvider {
         data
       });
     } catch (error) {
-      console.error('[Sidebar-Debug] Error updating view:', error);
+      logger.error('[Sidebar-Debug] Error updating view:', error);
       // Send update anyway to reset loading state
       this._view.webview.postMessage({
         type: 'update',
@@ -434,7 +435,7 @@ export class MarkdownSidebarProvider implements vscode.WebviewViewProvider {
         isDefaultEditor: this.defaultEditorChecker.isDefaultEditor()
       };
     } catch (error) {
-      console.error('[Sidebar-Debug] Error gathering graph data:', error);
+      logger.error('[Sidebar-Debug] Error gathering graph data:', error);
       // Return data without graph if generation fails
       return {
         hasActiveDocument: true,

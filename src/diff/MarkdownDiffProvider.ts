@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { logger } from '../utils/Logger';
 
 /**
  * Provides markdown file comparison with synchronized scrolling and difference highlights
@@ -345,7 +346,7 @@ export class MarkdownDiffProvider {
         this.scrollSyncMap.clear();
       }
     } catch (error) {
-      console.error(`❌ Comparison failed:`, error);
+      logger.error(`❌ Comparison failed:`, error);
       vscode.window.showErrorMessage(`Comparison failed: ${error}`);
     }
   }

@@ -21,11 +21,11 @@ function testExtractTags() {
   console.log('TagManager.extractTagsFromText() passed');
 }
 
+// Export test function for test runner
 try {
   testExtractTags();
   console.log('All tests passed');
-  process.exit(0);
 } catch (e) {
   console.error('Tests failed', e);
-  process.exit(1);
+  throw e;
 }

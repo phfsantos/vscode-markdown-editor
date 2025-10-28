@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { logger } from '../utils/Logger';
 
 /**
  * Editor association information
@@ -203,7 +204,7 @@ export class DefaultEditorChecker {
     const status = this.getStatusSummary();
     
     if (!status.isDefault && status.otherEditors.length > 0) {
-      console.log(`Markdown files are associated with: ${status.otherEditors.join(', ')}`);
+      logger.debug(`Markdown files are associated with: ${status.otherEditors.join(', ')}`);
     }
   }
 

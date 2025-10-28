@@ -7,6 +7,7 @@
 
 import type { IFileSystemHelper } from './types';
 import { getMessageHandler } from './MessageHandler';
+import { vscodeLogError } from '../webview-logger';
 
 export class FileSystemHelper implements IFileSystemHelper {
   private messageHandler = getMessageHandler();
@@ -24,7 +25,7 @@ export class FileSystemHelper implements IFileSystemHelper {
       
       return response.data;
     } catch (error) {
-      console.error(`❌ FILE SYSTEM: Failed to load data for ${rendererId}/${boardId}`, error);
+      vscodeLogError(`❌ FILE SYSTEM: Failed to load data for ${rendererId}/${boardId}`, error);
       throw error;
     }
   }
@@ -40,7 +41,7 @@ export class FileSystemHelper implements IFileSystemHelper {
         'renderer-data-saved'
       );
     } catch (error) {
-      console.error(`❌ FILE SYSTEM: Failed to save data for ${rendererId}/${boardId}`, error);
+      vscodeLogError(`❌ FILE SYSTEM: Failed to save data for ${rendererId}/${boardId}`, error);
       throw error;
     }
   }
@@ -58,7 +59,7 @@ export class FileSystemHelper implements IFileSystemHelper {
       
       return response.exists;
     } catch (error) {
-      console.error(`❌ FILE SYSTEM: Failed to check data for ${rendererId}/${boardId}`, error);
+      vscodeLogError(`❌ FILE SYSTEM: Failed to check data for ${rendererId}/${boardId}`, error);
       return false;
     }
   }

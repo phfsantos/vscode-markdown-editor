@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { logger } from '../utils/Logger';
 
 export interface PerformanceMetrics {
     webviewRenderTime: number;
@@ -41,7 +42,7 @@ export class PerformanceOptimizer {
                 this.metrics.syncLatency = Date.now() - startTime;
                 this.lastSyncTime = Date.now();
             } catch (error) {
-                console.error('Sync failed:', error);
+                logger.error('Sync failed:', error);
             } finally {
                 this.pendingSync = null;
             }

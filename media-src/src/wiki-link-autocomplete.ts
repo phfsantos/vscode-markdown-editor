@@ -65,12 +65,10 @@ export class WikiLinkAutocomplete {
    * Initialize the autocomplete system
    */
   public async initialize(documentPath: string, vditor: any): Promise<void> {
-    console.log('[WikiLinkAutocomplete] Initializing with document path:', documentPath);
     this.currentDocumentPath = documentPath;
     
     await this.refreshWorkspaceFiles();
     await this.refreshRelatedFiles();
-    console.log('[WikiLinkAutocomplete] Initialization complete. Files:', this.workspaceFiles.length, 'Related:', this.relatedFiles.size);
   }
 
   /**

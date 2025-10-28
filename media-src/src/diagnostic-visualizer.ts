@@ -1,3 +1,5 @@
+import { vscodeLogWarn, vscodeLogError } from './webview-logger';
+
 /**
  * Handles VS Code diagnostic visualization in Vditor editor
  */
@@ -305,7 +307,7 @@ export class DiagnosticVisualizer {
             editor = document.querySelector('.vditor-sv .vditor-reset'); // Source mode
         }
         if (!editor) {
-            console.warn('DiagnosticVisualizer: Could not find Vditor editor element for cleanup');
+            vscodeLogWarn('DiagnosticVisualizer: Could not find Vditor editor element for cleanup');
             return;
         }
 
@@ -460,7 +462,7 @@ export class DiagnosticVisualizer {
             editor = document.querySelector('.vditor-sv .vditor-reset'); // Source mode
         }
         if (!editor) {
-            console.warn('DiagnosticVisualizer: Could not find Vditor editor element');
+            vscodeLogWarn('DiagnosticVisualizer: Could not find Vditor editor element');
             return;
         }
 
@@ -1144,7 +1146,7 @@ export class DiagnosticVisualizer {
                     source: diagnostic.source,
                     line: diagnostic.range?.start?.line
                 });
-                console.error(`❌ Diagnostic ${index + 1} failed to apply`);
+                vscodeLogError(`❌ Diagnostic ${index + 1} failed to apply`);
             }
         });
 
@@ -1935,7 +1937,7 @@ export class DiagnosticVisualizer {
         }
         
         if (!found) {
-            console.warn(`Text "${searchText}" not found in DOM`);
+            vscodeLogWarn(`Text "${searchText}" not found in DOM`);
         }
         
         return found;

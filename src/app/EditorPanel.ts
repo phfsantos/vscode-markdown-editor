@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import * as NodePath from "path";
 const KeyVditorOptions = "vditor.options";
 import { showError, getWebviewOptions, debug } from "./_utils";
+import { logger } from "../utils/Logger";
 
 /**
  * Manages cat coding webview panels
@@ -176,7 +177,7 @@ export class EditorPanel {
             embedData.note = `File is ${fileSizeKB.toFixed(1)}KB - use Open button to view`;
           }
         } catch (readError) {
-          console.error('[EditorPanel] Error reading embed file:', readError);
+          logger.error('EditorPanel: Error reading embed file:', readError);
           embedData.note = 'Could not read file content';
         }
         
@@ -187,7 +188,7 @@ export class EditorPanel {
         });
       }
     } catch (err) {
-      console.error('[EditorPanel] handleRequestEmbed error', err);
+      logger.error('EditorPanel: handleRequestEmbed error', err);
     }
   }
 
@@ -215,7 +216,7 @@ export class EditorPanel {
   ) {
     // Generate unique instance ID for debugging
     this._instanceId = `${NodePath.basename(this._fsPath)}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    console.log(`🆔 DIFF-DEBUG: Created EditorPanel instance: ${this._instanceId}`);
+    logger.debug(`🆔 DIFF-DEBUG: Created EditorPanel instance: ${this._instanceId}`);
     
     let textEditTimer: NodeJS.Timeout | void;
 
@@ -238,7 +239,7 @@ export class EditorPanel {
     // Listen for panel view state changes (when panel becomes active/inactive)
     this._panel.onDidChangeViewState(
       e => {
-        console.log(`[${this._instanceId}] 👁️  View state changed:`, {
+        logger.debug(`[${this._instanceId}] 👁️  View state changed:`, {
           active: e.webviewPanel.active,
           visible: e.webviewPanel.visible,
           diffApplied: this._diffApplied,
@@ -247,23 +248,23 @@ export class EditorPanel {
         
         if (e.webviewPanel.active) {
           // Fire event when this custom editor becomes active
-          console.log(`[${this._instanceId}] Panel is now ACTIVE, firing document change event`);
+          logger.debug(`[${this._instanceId}] Panel is now ACTIVE, firing document change event`);
           EditorPanel._onDidChangeActiveDocument.fire(this._document);
           
           // CRITICAL: When panel becomes active, ALWAYS re-check diff context
           // This handles switching from individual tab → diff tab
-          console.log(`[${this._instanceId}] 🔍 DIFF-DEBUG: Panel became active, re-checking diff context...`);
+          logger.debug(`[${this._instanceId}] 🔍 DIFF-DEBUG: Panel became active, re-checking diff context...`);
           this._lastDiffCheckVisible = false; // Reset to allow re-check
           this._checkDiffViewContext();
           this._lastDiffCheckVisible = true;
         } else if (e.webviewPanel.visible && !this._lastDiffCheckVisible) {
           // Panel visible but not active - only check if we haven't already
-          console.log(`[${this._instanceId}] 🔍 DIFF-DEBUG: Panel visible (not active), checking diff context...`);
+          logger.debug(`[${this._instanceId}] 🔍 DIFF-DEBUG: Panel visible (not active), checking diff context...`);
           this._checkDiffViewContext();
           this._lastDiffCheckVisible = true;
         } else if (!e.webviewPanel.visible) {
           // Panel no longer visible - reset BOTH flags so we check again when it becomes visible
-          console.log(`[${this._instanceId}] Panel became INVISIBLE, resetting diff state`);
+          logger.debug(`[${this._instanceId}] Panel became INVISIBLE, resetting diff state`);
           this._lastDiffCheckVisible = false;
           this._diffApplied = false; // CRITICAL: Reset so diff can be re-evaluated when visible again
         }
@@ -274,7 +275,7 @@ export class EditorPanel {
     
     // Fire initial event if this panel is currently active
     if (this._panel.active) {
-      console.log('[Sidebar-Debug] EditorPanel created and is active, firing initial document change event');
+      logger.debug('Sidebar: EditorPanel created and is active, firing initial document change event');
       EditorPanel._onDidChangeActiveDocument.fire(this._document);
     }
     
@@ -427,10 +428,10 @@ export class EditorPanel {
               if (diffSupport) {
                 diffSupport.handleScrollSync(this._uri, message.scrollPercentage);
               } else {
-                console.warn('⚠️ EDITOR PANEL: markdownDiffViewSupport not found on global');
+                logger.warn('⚠️ EDITOR PANEL: markdownDiffViewSupport not found on global');
               }
             } else {
-              console.warn('⚠️ EDITOR PANEL: No _uri for scroll sync');
+              logger.warn('⚠️ EDITOR PANEL: No _uri for scroll sync');
             }
             break;
           }
@@ -449,7 +450,7 @@ export class EditorPanel {
             try {
               await this.handleRequestEmbed(message);
             } catch (err) {
-              console.error('[EditorPanel] requestEmbed failed', err);
+              logger.error('EditorPanel: requestEmbed failed', err);
             }
             break;
           }
@@ -476,7 +477,7 @@ export class EditorPanel {
                 vscode.Uri.file(assetsFolder)
               );
             } catch (error) {
-              console.error(error);
+              logger.error('Failed to create image folder:', error);
               showError(`Invalid image folder: ${assetsFolder}`);
             }
             await Promise.all(
@@ -707,12 +708,12 @@ export class EditorPanel {
         command: 'navigateToHeading',
         heading: heading
       });
-      console.log(`[EditorPanel] Sent navigateToHeading message for: ${heading}`);
+      logger.debug(`EditorPanel: Sent navigateToHeading message for: ${heading}`);
     }
   }
 
   public dispose() {
-    console.log('[Sidebar-Debug] EditorPanel being disposed');
+    logger.debug('Sidebar: EditorPanel being disposed');
     
     // Clear any pending diff check timeouts to prevent "Webview is disposed" errors
     if (this._diffCheckTimeout) {
@@ -765,42 +766,42 @@ export class EditorPanel {
    */
   private async _checkDiffViewContext(): Promise<void> {
     const fileName = NodePath.basename(this._fsPath);
-    console.log(`[${this._instanceId}] 🔍 DIFF-DEBUG: _checkDiffViewContext() for "${fileName}"`);
-    console.log(`[${this._instanceId}]   State: diffApplied=${this._diffApplied}, visible=${this._panel.visible}, active=${this._panel.active}`);
+    logger.debug(`[${this._instanceId}] 🔍 DIFF-DEBUG: _checkDiffViewContext() for "${fileName}"`);
+    logger.debug(`[${this._instanceId}]   State: diffApplied=${this._diffApplied}, visible=${this._panel.visible}, active=${this._panel.active}`);
     
     const diffSupport = (global as any).markdownDiffViewSupport;
     if (!diffSupport) {
-      console.log(`[${this._instanceId}]   ❌ No diffSupport available`);
+      logger.debug(`[${this._instanceId}]   ❌ No diffSupport available`);
       return;
     }
 
     // OPTIMIZATION: If diff already applied to THIS webview instance, don't re-apply
     if (this._diffApplied && this._panel.visible) {
-      console.log(`[${this._instanceId}]   ⏭️  Diff already applied to this instance AND panel still visible, skipping`);
+      logger.debug(`[${this._instanceId}]   ⏭️  Diff already applied to this instance AND panel still visible, skipping`);
       return;
     }
 
     // Check ONCE - with separate instances per tab, we don't need retries
     // The detection is debounced at source and has file caching
-    console.log(`[${this._instanceId}]   Checking diff context for "${fileName}"`);
+    logger.debug(`[${this._instanceId}]   Checking diff context for "${fileName}"`);
 
     const diffInfo = diffSupport.getDiffInfo(this._uri);
-    console.log(`[${this._instanceId}]   getDiffInfo result:`, diffInfo ? 'YES' : 'NO');
+    logger.debug(`[${this._instanceId}]   getDiffInfo result:`, diffInfo ? 'YES' : 'NO');
     
     // CRITICAL: Also check if this editor is currently in an active diff tab
     // This prevents individual file tabs from showing diff visualization
     const isInActiveDiffTab = diffSupport.isInActiveDiffView(this._uri);
-    console.log(`[${this._instanceId}]   isInActiveDiffTab result:`, isInActiveDiffTab);
+    logger.debug(`[${this._instanceId}]   isInActiveDiffTab result:`, isInActiveDiffTab);
     
     if (diffInfo && isInActiveDiffTab) {
-      console.log(`[${this._instanceId}]   ✅ BOTH conditions met! Sending diff to webview for "${fileName}"`);
+      logger.debug(`[${this._instanceId}]   ✅ BOTH conditions met! Sending diff to webview for "${fileName}"`);
 
       // Calculate diff
       const leftUri = diffInfo.role === 'left' ? diffInfo.thisUri : diffInfo.otherUri;
       const rightUri = diffInfo.role === 'left' ? diffInfo.otherUri : diffInfo.thisUri;
       
       const diffResult = await diffSupport.calculateDiff(leftUri, rightUri);
-      console.log(`[${this._instanceId}]   Diff calculated: ${diffResult.changes.length} changes`);
+      logger.debug(`[${this._instanceId}]   Diff calculated: ${diffResult.changes.length} changes`);
       
       // Send ALL changes to webview - it needs both sides for spacer blocks
       // The webview will filter what to highlight vs what to add spacers for
@@ -810,7 +811,7 @@ export class EditorPanel {
       const thisDoc = await vscode.workspace.openTextDocument(diffInfo.thisUri);
       const documentText = thisDoc.getText();
       
-      console.log(`[${this._instanceId}]   Sending diff-view-detected to webview for "${fileName}"`);
+      logger.debug(`[${this._instanceId}]   Sending diff-view-detected to webview for "${fileName}"`);
       
       // Send diff information to webview with ALL changes
       this._panel.webview.postMessage({
@@ -826,13 +827,13 @@ export class EditorPanel {
 
       // Mark as applied to THIS instance - won't re-apply on subsequent visibility changes
       this._diffApplied = true;
-      console.log(`[${this._instanceId}]   ✅ Diff applied and marked for "${fileName}"`);
+      logger.debug(`[${this._instanceId}]   ✅ Diff applied and marked for "${fileName}"`);
 
     } else {
-      console.log(`[${this._instanceId}]   ℹ️  Not in active diff view, no visualization for "${fileName}"`);
+      logger.debug(`[${this._instanceId}]   ℹ️  Not in active diff view, no visualization for "${fileName}"`);
       // If we're NOT in a diff view but diff was previously applied, we need to clear it
       if (this._diffApplied) {
-        console.log(`[${this._instanceId}]   🧹 Diff was applied but no longer in diff view, sending clear message`);
+        logger.debug(`[${this._instanceId}]   🧹 Diff was applied but no longer in diff view, sending clear message`);
         this._panel.webview.postMessage({
           type: 'diff-view-cleared'
         });
@@ -2359,7 +2360,7 @@ export class EditorPanel {
         files: fileInfos,
       });
     } catch (error) {
-      console.error('Failed to get workspace files:', error);
+      logger.error('Failed to get workspace files:', error);
       this._panel.webview.postMessage({
         command: 'wikilink-workspace-files',
         requestId: message.requestId,
@@ -2389,7 +2390,7 @@ export class EditorPanel {
         files: relatedFiles.map(f => f.path),
       });
     } catch (error) {
-      console.error('Failed to get related files:', error);
+      logger.error('Failed to get related files:', error);
       this._panel.webview.postMessage({
         command: 'wikilink-related-files',
         requestId: message.requestId,
@@ -2631,14 +2632,16 @@ export class EditorPanel {
                               window.postMessage({ command: 'openFile', path: embed.path }, '*');
                             }
                           } catch (err) {
-                            console.error('Open button failed', err);
+                            // Note: This is in HTML template, errors logged in browser console
+                            if (window.console) window.console.error('Open button failed', err);
                           }
                         });
                         openRow.appendChild(openBtn);
                         overlay.appendChild(openRow);
                       }
                     } catch (err) {
-                      console.error('openEmbedPreview overlay failed', err);
+                      // Note: This is in HTML template, errors logged in browser console
+                      if (window.console) window.console.error('openEmbedPreview overlay failed', err);
                     }
                   });
                 })();
@@ -2677,7 +2680,7 @@ export class EditorPanel {
         });
       }
     } catch (error) {
-      console.error('[EditorPanel] Error resolving wiki-link:', error);
+      logger.error('[EditorPanel] Error resolving wiki-link:', error);
     }
   }
 
@@ -2700,7 +2703,7 @@ export class EditorPanel {
       
       debug(`[EditorPanel] Navigated to wiki-link: ${filename || 'current'}${heading ? '#' + heading : ''}`);
     } catch (error) {
-      console.error('[EditorPanel] Error navigating to wiki-link:', error);
+      logger.error('[EditorPanel] Error navigating to wiki-link:', error);
       vscode.window.showErrorMessage(`Failed to navigate to wiki-link: ${error}`);
     }
   }
@@ -2741,7 +2744,7 @@ export class EditorPanel {
         debug(`[EditorPanel] Opened file via wiki-link: ${filename}${heading ? '#' + heading : ''}`);
       }
     } catch (error) {
-      console.error('[EditorPanel] Error opening file:', error);
+      logger.error('[EditorPanel] Error opening file:', error);
       vscode.window.showErrorMessage(`Failed to open file: ${error}`);
     }
   }

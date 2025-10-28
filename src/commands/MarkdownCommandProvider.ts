@@ -289,11 +289,11 @@ export class MarkdownCommandProvider {
             );
 
             if (choice === 'Show Details') {
-                const outputChannel = vscode.window.createOutputChannel('Markdown Validation');
-                outputChannel.show();
-                outputChannel.appendLine('Markdown Document Validation Results:');
-                outputChannel.appendLine('='.repeat(40));
-                issues.forEach(issue => outputChannel.appendLine(issue));
+                const { logger } = await import('../utils/Logger');
+                logger.show();
+                logger.info('Markdown Document Validation Results:');
+                logger.info('='.repeat(40));
+                issues.forEach(issue => logger.info(issue));
             }
         }
     }

@@ -10,6 +10,16 @@ task('watch', async (ctx) => {
 })
 
 task('build', async (ctx) => {
+  // Check for TypeScript errors in our source code (skip node_modules)
+  try {
+    await ctx.exec('tsc --noEmit -p ./ --skipLibCheck')
+    await spawn('yarn', ['tsc', '--noEmit', '--skipLibCheck'], { cwd: './sidebar-src', stdio: 'inherit' })
+  } catch (error) {
+    console.error('TypeScript errors found. Fix them before building.')
+    throw error
+  }
+  
+  // Build if no errors in our code
   await ctx.exec('tsc -p ./')
   await ctx.cd('./media-src').exec('yarn build')
   await spawn('yarn', ['build'], { cwd: './sidebar-src', stdio: 'inherit' })

@@ -3,6 +3,7 @@
 src/
 media-src/
 sidebar-src/
+test/
 node_modules
 tsconfig.json
 webpack.config.js
@@ -10,5 +11,13 @@ webpack.config.js
 *.log
 *.map
 *.vsix
+*.test.js
 demo.gif
 .gitignore
+PRODUCTION*.md
+TODO*.md
+OBSIDIAN_SIDEBAR_PLAN.md
+EMBED_PREVIEW_FIX.md
+VDITOR_API_.md
+.markdownlintrc.json
+Foyfile.ts

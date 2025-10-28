@@ -1,3 +1,5 @@
+import { vscodeLogWarn, vscodeLogError } from './webview-logger';
+
 /**
  * Find and Replace functionality for Vditor editor
  * Provides VS Code-like find and replace experience with native Vditor integration
@@ -107,7 +109,7 @@ export class FindReplaceManager {
   private createWidget(): void {
     const vditorElement = document.querySelector('.vditor');
     if (!vditorElement) {
-      console.error('❌ FindReplaceManager: Could not find .vditor element');
+      vscodeLogError('❌ FindReplaceManager: Could not find .vditor element');
       return;
     }
 
@@ -556,7 +558,7 @@ export class FindReplaceManager {
       this.lastSearchTerm = this.state.findTerm;
       
     } catch (error) {
-      console.error('❌ FindReplaceManager: Search error:', error);
+      vscodeLogError('❌ FindReplaceManager: Search error:', error);
       
       // Retry on error if we haven't exhausted retries
       if (retryCount < maxRetries) {
@@ -675,7 +677,7 @@ export class FindReplaceManager {
     const editorElement = this.getEditorElement();
     
     if (!editorElement) {
-      console.warn('⚠️ FindReplaceManager: No editor element found');
+      vscodeLogWarn('⚠️ FindReplaceManager: No editor element found');
       return matches;
     }
 
@@ -727,14 +729,14 @@ export class FindReplaceManager {
             break;
           }
         } catch (error) {
-          console.warn(`⚠️ FindReplaceManager: Strategy ${i + 1} failed:`, error);
+          vscodeLogWarn(`⚠️ FindReplaceManager: Strategy ${i + 1} failed:`, error);
           continue;
         }
       }
       
       
     } catch (error) {
-      console.error('❌ FindReplaceManager: Error in findMatchesAsync:', error);
+      vscodeLogError('❌ FindReplaceManager: Error in findMatchesAsync:', error);
     }
 
     return matches;
@@ -782,7 +784,7 @@ export class FindReplaceManager {
           matches.push(range);
           
         } catch (error) {
-          console.warn('⚠️ FindReplaceManager: TreeWalker range creation failed:', error);
+          vscodeLogWarn('⚠️ FindReplaceManager: TreeWalker range creation failed:', error);
         }
         
         if (match[0].length === 0) break;
@@ -831,7 +833,7 @@ export class FindReplaceManager {
             matches.push(range);
             
           } catch (error) {
-            console.warn('⚠️ FindReplaceManager: QuerySelector range creation failed:', error);
+            vscodeLogWarn('⚠️ FindReplaceManager: QuerySelector range creation failed:', error);
           }
           
           index = textLower.indexOf(searchTermLower, index + 1);
@@ -860,7 +862,7 @@ export class FindReplaceManager {
           matches.push(range);
         }
       } catch (error) {
-        console.warn('⚠️ FindReplaceManager: TextContent range creation failed:', error);
+        vscodeLogWarn('⚠️ FindReplaceManager: TextContent range creation failed:', error);
       }
       
       if (match[0].length === 0) break;
@@ -896,7 +898,7 @@ export class FindReplaceManager {
           range.setEnd(textNode, endOffset);
           return range;
         } catch (error) {
-          console.warn('⚠️ FindReplaceManager: Range creation failed for offset:', error);
+          vscodeLogWarn('⚠️ FindReplaceManager: Range creation failed for offset:', error);
           return null;
         }
       }
@@ -929,7 +931,7 @@ export class FindReplaceManager {
       }
     }
     
-    console.warn('⚠️ FindReplaceManager: No editor element found. Available elements:', {
+    vscodeLogWarn('⚠️ FindReplaceManager: No editor element found. Available elements:', {
       vditorIr: !!document.querySelector('.vditor-ir'),
       vditorWysiwyg: !!document.querySelector('.vditor-wysiwyg'),
       vditorSv: !!document.querySelector('.vditor-sv'),
@@ -975,7 +977,7 @@ export class FindReplaceManager {
           });
         }
       } catch (error) {
-        console.warn('⚠️ FindReplaceManager: Failed to extract match data:', error);
+        vscodeLogWarn('⚠️ FindReplaceManager: Failed to extract match data:', error);
       }
     });
 
@@ -1001,11 +1003,11 @@ export class FindReplaceManager {
           try {
             this.highlightSingleMatch(textNode, match.startOffset, match.endOffset, match.text, match.originalIndex);
           } catch (error) {
-            console.warn('⚠️ FindReplaceManager: Failed to highlight single match:', error);
+            vscodeLogWarn('⚠️ FindReplaceManager: Failed to highlight single match:', error);
           }
         });
       } catch (error) {
-        console.warn('⚠️ FindReplaceManager: Failed to process text node matches:', error);
+        vscodeLogWarn('⚠️ FindReplaceManager: Failed to process text node matches:', error);
       }
     });
     
@@ -1018,7 +1020,7 @@ export class FindReplaceManager {
     try {
       const parent = textNode.parentNode;
       if (!parent) {
-        console.warn('⚠️ FindReplaceManager: Text node has no parent');
+        vscodeLogWarn('⚠️ FindReplaceManager: Text node has no parent');
         return;
       }
 
@@ -1026,7 +1028,7 @@ export class FindReplaceManager {
       
       // Validate offsets
       if (startOffset < 0 || endOffset > fullText.length || startOffset >= endOffset) {
-        console.warn('⚠️ FindReplaceManager: Invalid offsets', { startOffset, endOffset, textLength: fullText.length });
+        vscodeLogWarn('⚠️ FindReplaceManager: Invalid offsets', { startOffset, endOffset, textLength: fullText.length });
         return;
       }
 
@@ -1068,7 +1070,7 @@ export class FindReplaceManager {
         
       }
     } catch (error) {
-      console.warn('⚠️ FindReplaceManager: Failed to highlight single match:', error);
+      vscodeLogWarn('⚠️ FindReplaceManager: Failed to highlight single match:', error);
     }
   }
 
@@ -1092,7 +1094,7 @@ export class FindReplaceManager {
           }
         }
       } catch (error) {
-        console.warn('⚠️ FindReplaceManager: Could not clear highlight:', error);
+        vscodeLogWarn('⚠️ FindReplaceManager: Could not clear highlight:', error);
       }
     });
     
@@ -1104,7 +1106,7 @@ export class FindReplaceManager {
       try {
         editorElement.normalize();
       } catch (error) {
-        console.warn('⚠️ FindReplaceManager: Could not normalize editor element:', error);
+        vscodeLogWarn('⚠️ FindReplaceManager: Could not normalize editor element:', error);
       }
     }
   }
@@ -1208,7 +1210,7 @@ export class FindReplaceManager {
         }, 150);
 
       } catch (error) {
-        console.error('❌ FindReplaceManager: Error replacing current match:', error);
+        vscodeLogError('❌ FindReplaceManager: Error replacing current match:', error);
       }
     }
   }
@@ -1250,7 +1252,7 @@ export class FindReplaceManager {
       }, 100);
 
     } catch (error) {
-      console.error('❌ FindReplaceManager: Error in replace all operation:', error);
+      vscodeLogError('❌ FindReplaceManager: Error in replace all operation:', error);
     }
   }
 
@@ -1280,7 +1282,7 @@ export class FindReplaceManager {
           }
         }
       } catch (error) {
-        console.error('❌ FindReplaceManager: Error updating Vditor content:', error);
+        vscodeLogError('❌ FindReplaceManager: Error updating Vditor content:', error);
       }
     }
   }
@@ -1346,7 +1348,7 @@ export class FindReplaceManager {
         }
       });
     } else {
-      console.warn('🧪 No editor element found for testing');
+      vscodeLogWarn('🧪 No editor element found for testing');
     }
   }
 

@@ -1,7 +1,8 @@
 import * as vscode from "vscode";
+import { logger } from "../utils/Logger";
 
 export function debug(...args: any[]) {
-  console.log(...args)
+  logger.debug(...args);
 }
 
 export function showError(msg: string) {

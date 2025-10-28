@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { logger } from '../utils/Logger';
 
 /**
  * Detects and provides diff information when markdown editors are opened in VS Code's diff view
@@ -114,14 +115,14 @@ export class MarkdownDiffViewSupport {
     }
     
     this.documentChangeDebounceTimer = setTimeout(async () => {
-      console.log('🔄 DIFF-UPDATE: Document changed, recalculating diff for:', document.uri.path);
+      logger.debug('🔄 DIFF-UPDATE: Document changed, recalculating diff for:', document.uri.path);
       
       // Get both diff infos to determine their roles
       const thisInfo = this.diffViewEditors.get(diffInfo.thisUri.toString());
       const otherInfo = this.diffViewEditors.get(diffInfo.otherUri.toString());
       
       if (!thisInfo || !otherInfo) {
-        console.warn('🔄 DIFF-UPDATE: Could not find diff info for both editors');
+        logger.warn('🔄 DIFF-UPDATE: Could not find diff info for both editors');
         return;
       }
       
@@ -134,7 +135,7 @@ export class MarkdownDiffViewSupport {
       
       // IMPORTANT: Update BOTH files in the diff view, not just the one that changed
       // This ensures both sides stay synchronized and spacer blocks are correct
-      console.log('🔄 DIFF-UPDATE: Updating both diff editors');
+      logger.debug('🔄 DIFF-UPDATE: Updating both diff editors');
       await this.updateDiffVisualization(thisInfo.thisUri, diffResult, true);
       await this.updateDiffVisualization(otherInfo.thisUri, diffResult, true);
     }, 800); // 800ms debounce - good balance between responsiveness and performance
@@ -179,7 +180,7 @@ export class MarkdownDiffViewSupport {
           }
         });
         
-        console.log(`🔄 DIFF-UPDATE: Sent updated diff to ${diffInfo.role} editor:`, uri.path);
+        logger.debug(`🔄 DIFF-UPDATE: Sent updated diff to ${diffInfo.role} editor:`, uri.path);
       }
     }
   }
@@ -190,42 +191,42 @@ export class MarkdownDiffViewSupport {
   private async detectDiffViews(): Promise<void> {
     // Prevent overlapping detection runs
     if (this.isDetecting) {
-      console.log('🔍 DIFF-DEBUG: ⏭️ Detection already in progress, skipping');
+      logger.debug('🔍 DIFF-DEBUG: ⏭️ Detection already in progress, skipping');
       return;
     }
     
     this.isDetecting = true;
-    console.log('🔍 DIFF-DEBUG: ====== detectDiffViews() START ======');
+    logger.debug('🔍 DIFF-DEBUG: ====== detectDiffViews() START ======');
     
     // Clear existing diff registrations first
     // This ensures that when tabs are rearranged or editors are no longer in diff mode,
     // the diff visualization is removed
     const previousSize = this.diffViewEditors.size;
     this.diffViewEditors.clear();
-    console.log(`🔍 DIFF-DEBUG: Cleared ${previousSize} previous diff registrations`);
+    logger.debug(`🔍 DIFF-DEBUG: Cleared ${previousSize} previous diff registrations`);
 
     const allEditors: { uri: vscode.Uri; tabGroup: vscode.TabGroup; tab: vscode.Tab; groupIndex: number }[] = [];
     
     // First, collect all markdown editors with their group info
     const groups = vscode.window.tabGroups.all;
-    console.log(`🔍 DIFF-DEBUG: Scanning ${groups.length} tab groups`);
+    logger.debug(`🔍 DIFF-DEBUG: Scanning ${groups.length} tab groups`);
     
     for (let groupIndex = 0; groupIndex < groups.length; groupIndex++) {
       const tabGroup = groups[groupIndex];
-      console.log(`🔍 DIFF-DEBUG: Group ${groupIndex}: ${tabGroup.tabs.length} tabs`);
+      logger.debug(`🔍 DIFF-DEBUG: Group ${groupIndex}: ${tabGroup.tabs.length} tabs`);
 
       for (const tab of tabGroup.tabs) {
         // Log ALL tab types to see what we're dealing with
         const inputType = (tab.input as any)?.constructor?.name || 'unknown';
         const hasArrow = tab.label.includes('↔');
-        console.log(`🔍 DIFF-DEBUG:   Tab: "${tab.label}" | Type: ${inputType} | HasArrow: ${hasArrow} | Active: ${tab.isActive}`);
+        logger.debug(`🔍 DIFF-DEBUG:   Tab: "${tab.label}" | Type: ${inputType} | HasArrow: ${hasArrow} | Active: ${tab.isActive}`);
 
         // Check for diff tabs by label pattern (test3.md ↔ test3 copy.md)
         if (hasArrow && tab.label.includes('.md')) {
-          console.log('🔍 DIFF-DEBUG:   ✓ Found diff tab with ↔ arrow!');
+          logger.debug('🔍 DIFF-DEBUG:   ✓ Found diff tab with ↔ arrow!');
 
           // Log the actual tab.input properties to see what we're dealing with
-          console.log('🔍 DIFF-DEBUG:   Tab input details:', {
+          logger.debug('🔍 DIFF-DEBUG:   Tab input details:', {
             isTextDiff: tab.input instanceof vscode.TabInputTextDiff,
             hasOriginal: !!(tab.input as any)?.original,
             hasModified: !!(tab.input as any)?.modified,
@@ -237,25 +238,25 @@ export class MarkdownDiffViewSupport {
           const possibleDiffInput = tab.input as any;
           if (tab.input instanceof vscode.TabInputTextDiff || 
               (possibleDiffInput?.original && possibleDiffInput?.modified)) {
-            console.log('🔍 DIFF-DEBUG:   ✓ Tab is native TextDiff - extracting URIs directly');
+            logger.debug('🔍 DIFF-DEBUG:   ✓ Tab is native TextDiff - extracting URIs directly');
             const original = possibleDiffInput.original;
             const modified = possibleDiffInput.modified;
-            console.log(`🔍 DIFF-DEBUG:     Original: ${original?.toString?.()}`);
-            console.log(`🔍 DIFF-DEBUG:     Modified: ${modified?.toString?.()}`);
+            logger.debug(`🔍 DIFF-DEBUG:     Original: ${original?.toString?.()}`);
+            logger.debug(`🔍 DIFF-DEBUG:     Modified: ${modified?.toString?.()}`);
 
             // Check if both URIs exist and are markdown files
             if (original && modified && 
                 original.path?.endsWith('.md') && modified.path?.endsWith('.md')) {
-              console.log('🔍 DIFF-DEBUG:   ✅ Both are markdown files! Registering diff pair...');
+              logger.debug('🔍 DIFF-DEBUG:   ✅ Both are markdown files! Registering diff pair...');
               
               this.registerDiffPair(original, modified);
               
               // Notify all editor panels to recheck their diff state
               this.notifyEditorPanelsToRecheckDiff();
-              console.log('🔍 DIFF-DEBUG: ====== detectDiffViews() END (Found TextDiff) ======');
+              logger.debug('🔍 DIFF-DEBUG: ====== detectDiffViews() END (Found TextDiff) ======');
               return;
             } else {
-              console.log('🔍 DIFF-DEBUG:   ⚠️ Diff input found but not both markdown files, skipping');
+              logger.debug('🔍 DIFF-DEBUG:   ⚠️ Diff input found but not both markdown files, skipping');
             }
           }
 
@@ -263,7 +264,7 @@ export class MarkdownDiffViewSupport {
           // Parse the file names from the label
           const parts = tab.label.split('↔').map(s => s.trim());
           if (parts.length === 2) {
-            console.log(`🔍 DIFF-DEBUG:   Parsing: "${parts[0]}" vs "${parts[1]}"`);
+            logger.debug(`🔍 DIFF-DEBUG:   Parsing: "${parts[0]}" vs "${parts[1]}"`);
 
             // Try to find these files in our markdown editors
             const file1Name = parts[0];
@@ -273,22 +274,22 @@ export class MarkdownDiffViewSupport {
             let uri1: vscode.Uri | undefined;
             let uri2: vscode.Uri | undefined;
             
-            console.log(`🔍 DIFF-DEBUG:   Searching for URIs in ${tabGroup.tabs.length} tabs...`);
+            logger.debug(`🔍 DIFF-DEBUG:   Searching for URIs in ${tabGroup.tabs.length} tabs...`);
             for (const otherTab of tabGroup.tabs) {
               if (otherTab.input instanceof vscode.TabInputCustom) {
                 const customInput = otherTab.input as vscode.TabInputCustom;
                 const tabInputType = customInput.viewType;
                 const tabFileName = customInput.uri.path.split('/').pop();
-                console.log(`🔍 DIFF-DEBUG:     Checking tab: "${otherTab.label}" | ViewType: ${tabInputType} | FileName: ${tabFileName}`);
+                logger.debug(`🔍 DIFF-DEBUG:     Checking tab: "${otherTab.label}" | ViewType: ${tabInputType} | FileName: ${tabFileName}`);
                 
                 if (customInput.viewType === 'markdown-editor') {
                   const fileName = customInput.uri.path.split('/').pop();
                   if (fileName === file1Name) {
                     uri1 = customInput.uri;
-                    console.log(`🔍 DIFF-DEBUG:     ✓ Found URI1: ${uri1.toString()}`);
+                    logger.debug(`🔍 DIFF-DEBUG:     ✓ Found URI1: ${uri1.toString()}`);
                   } else if (fileName === file2Name) {
                     uri2 = customInput.uri;
-                    console.log(`🔍 DIFF-DEBUG:     ✓ Found URI2: ${uri2.toString()}`);
+                    logger.debug(`🔍 DIFF-DEBUG:     ✓ Found URI2: ${uri2.toString()}`);
                   }
                 }
               }
@@ -296,7 +297,7 @@ export class MarkdownDiffViewSupport {
             
             // If URIs not found in tabs, search workspace files using cache
             if (!uri1 || !uri2) {
-              console.log(`🔍 DIFF-DEBUG:   URIs not in tabs, searching workspace files...`);
+              logger.debug(`🔍 DIFF-DEBUG:   URIs not in tabs, searching workspace files...`);
               
               // Build cache on first use
               if (!this.cacheBuilt) {
@@ -306,28 +307,28 @@ export class MarkdownDiffViewSupport {
               // Use cache for fast lookup
               if (!uri1) {
                 uri1 = this.fileCache.get(file1Name);
-                if (uri1) console.log(`🔍 DIFF-DEBUG:     ✓ Found URI1 in cache: ${uri1.toString()}`);
+                if (uri1) logger.debug(`🔍 DIFF-DEBUG:     ✓ Found URI1 in cache: ${uri1.toString()}`);
               }
               if (!uri2) {
                 uri2 = this.fileCache.get(file2Name);
-                if (uri2) console.log(`🔍 DIFF-DEBUG:     ✓ Found URI2 in cache: ${uri2.toString()}`);
+                if (uri2) logger.debug(`🔍 DIFF-DEBUG:     ✓ Found URI2 in cache: ${uri2.toString()}`);
               }
             }
             
             if (uri1 && uri2) {
-              console.log('🔍 DIFF-DEBUG:   ✅ Both URIs found! Registering diff pair...');
-              console.log(`🔍 DIFF-DEBUG:     Left (${file1Name}):  ${uri1.toString()}`);
-              console.log(`🔍 DIFF-DEBUG:     Right (${file2Name}): ${uri2.toString()}`);
+              logger.debug('🔍 DIFF-DEBUG:   ✅ Both URIs found! Registering diff pair...');
+              logger.debug(`🔍 DIFF-DEBUG:     Left (${file1Name}):  ${uri1.toString()}`);
+              logger.debug(`🔍 DIFF-DEBUG:     Right (${file2Name}): ${uri2.toString()}`);
 
               this.registerDiffPair(uri1, uri2);
               
               // Notify all editor panels to recheck their diff state
               this.notifyEditorPanelsToRecheckDiff();
               this.isDetecting = false; // Release lock
-              console.log('🔍 DIFF-DEBUG: ====== detectDiffViews() END (Found diff) ======');
+              logger.debug('🔍 DIFF-DEBUG: ====== detectDiffViews() END (Found diff) ======');
               return;
             } else {
-              console.log(`🔍 DIFF-DEBUG:   ❌ Could not find both URIs: uri1=${!!uri1}, uri2=${!!uri2}`);
+              logger.debug(`🔍 DIFF-DEBUG:   ❌ Could not find both URIs: uri1=${!!uri1}, uri2=${!!uri2}`);
             }
           }
         }
@@ -353,8 +354,8 @@ export class MarkdownDiffViewSupport {
 
     // If we reach here, no explicit diff view was found
     // The diffViewEditors map remains empty (was cleared at the start)
-    console.log('🔍 DIFF-DEBUG: ❌ No diff views detected');
-    console.log('🔍 DIFF-DEBUG: ====== detectDiffViews() END (No diff) ======');
+    logger.debug('🔍 DIFF-DEBUG: ❌ No diff views detected');
+    logger.debug('🔍 DIFF-DEBUG: ====== detectDiffViews() END (No diff) ======');
     
     // Notify all editor panels to recheck (they will clear diff if not in active diff tab)
     this.notifyEditorPanelsToRecheckDiff();
@@ -367,7 +368,7 @@ export class MarkdownDiffViewSupport {
    * This prevents expensive workspace searches on every detection
    */
   private async buildFileCache(): Promise<void> {
-    console.log('🔍 DIFF-DEBUG: 📦 Building file cache...');
+    logger.debug('🔍 DIFF-DEBUG: 📦 Building file cache...');
     const startTime = Date.now();
     
     try {
@@ -385,9 +386,9 @@ export class MarkdownDiffViewSupport {
       
       this.cacheBuilt = true;
       const duration = Date.now() - startTime;
-      console.log(`🔍 DIFF-DEBUG: ✅ Cache built: ${this.fileCache.size} files in ${duration}ms`);
+      logger.debug(`🔍 DIFF-DEBUG: ✅ Cache built: ${this.fileCache.size} files in ${duration}ms`);
     } catch (error) {
-      console.error('🔍 DIFF-DEBUG: ❌ Failed to build cache:', error);
+      logger.error('🔍 DIFF-DEBUG: ❌ Failed to build cache:', error);
       this.cacheBuilt = false; // Allow retry
     }
   }
@@ -399,7 +400,7 @@ export class MarkdownDiffViewSupport {
   private notifyEditorPanelsToRecheckDiff(): void {
     const EditorPanel = require('../app/EditorPanel').EditorPanel;
     if (EditorPanel.editors && EditorPanel.editors.length > 0) {
-      console.log(`🔍 DIFF-DEBUG: notifyEditorPanelsToRecheckDiff() - ${EditorPanel.editors.length} total editors`);
+      logger.debug(`🔍 DIFF-DEBUG: notifyEditorPanelsToRecheckDiff() - ${EditorPanel.editors.length} total editors`);
       
       for (const editor of EditorPanel.editors) {
         // CRITICAL: Only notify VISIBLE panels
@@ -408,14 +409,14 @@ export class MarkdownDiffViewSupport {
         const isVisible = editor._panel?.visible || false;
         const fileName = editor._uri?.path?.split('/').pop() || 'unknown';
         
-        console.log(`🔍 DIFF-DEBUG:   Editor "${fileName}": visible=${isVisible}`);
+        logger.debug(`🔍 DIFF-DEBUG:   Editor "${fileName}": visible=${isVisible}`);
         
         if (isVisible && editor._checkDiffViewContext) {
-          console.log(`🔍 DIFF-DEBUG:     ✅ Triggering diff check for visible editor "${fileName}"`);
+          logger.debug(`🔍 DIFF-DEBUG:     ✅ Triggering diff check for visible editor "${fileName}"`);
           // Trigger diff check for each visible panel
           setTimeout(() => editor._checkDiffViewContext(), 50);
         } else if (!isVisible) {
-          console.log(`🔍 DIFF-DEBUG:     ⏭️  Skipping invisible editor "${fileName}"`);
+          logger.debug(`🔍 DIFF-DEBUG:     ⏭️  Skipping invisible editor "${fileName}"`);
         }
       }
     }
@@ -485,14 +486,14 @@ export class MarkdownDiffViewSupport {
    */
   public isInActiveDiffView(uri: vscode.Uri): boolean {
     const fileName = uri.path.split('/').pop();
-    console.log(`🔍 DIFF-DEBUG: isInActiveDiffView("${fileName}")`);
+    logger.debug(`🔍 DIFF-DEBUG: isInActiveDiffView("${fileName}")`);
     
     // First check if this URI is registered as part of a diff pair
     if (!this.diffViewEditors.has(uri.toString())) {
-      console.log(`🔍 DIFF-DEBUG:   ❌ URI not registered in diffViewEditors`);
+      logger.debug(`🔍 DIFF-DEBUG:   ❌ URI not registered in diffViewEditors`);
       return false;
     }
-    console.log(`🔍 DIFF-DEBUG:   ✓ URI is registered in diffViewEditors`);
+    logger.debug(`🔍 DIFF-DEBUG:   ✓ URI is registered in diffViewEditors`);
 
     // CRITICAL: Check if the ACTIVE editor panel is showing this URI in a diff context
     // We need to verify that:
@@ -501,45 +502,45 @@ export class MarkdownDiffViewSupport {
     
     // Find all webview panels currently visible
     const groups = vscode.window.tabGroups.all;
-    console.log(`🔍 DIFF-DEBUG:   Checking ${groups.length} groups for active diff tab...`);
+    logger.debug(`🔍 DIFF-DEBUG:   Checking ${groups.length} groups for active diff tab...`);
     
     // Look for the active tab in each group
     for (const tabGroup of groups) {
       const activeTab = tabGroup.activeTab;
       if (!activeTab) {
-        console.log(`🔍 DIFF-DEBUG:     Group has no active tab, skipping`);
+        logger.debug(`🔍 DIFF-DEBUG:     Group has no active tab, skipping`);
         continue;
       }
       
-      console.log(`🔍 DIFF-DEBUG:     Active tab: "${activeTab.label}" | Active: ${activeTab.isActive}`);
+      logger.debug(`🔍 DIFF-DEBUG:     Active tab: "${activeTab.label}" | Active: ${activeTab.isActive}`);
       
       // Check if the ACTIVE tab is a diff tab containing this file
       const hasArrow = activeTab.label.includes('↔');
       if (hasArrow && activeTab.label.includes('.md')) {
-        console.log(`🔍 DIFF-DEBUG:     Active tab IS diff tab: "${activeTab.label}"`);
+        logger.debug(`🔍 DIFF-DEBUG:     Active tab IS diff tab: "${activeTab.label}"`);
         const parts = activeTab.label.split('↔').map(s => s.trim());
         if (parts.length === 2 && parts.includes(fileName || '')) {
-          console.log(`🔍 DIFF-DEBUG:       ✅ File "${fileName}" IS in ACTIVE diff tab!`);
+          logger.debug(`🔍 DIFF-DEBUG:       ✅ File "${fileName}" IS in ACTIVE diff tab!`);
           return true;
         } else {
-          console.log(`🔍 DIFF-DEBUG:       ❌ File "${fileName}" NOT in this diff tab (has: ${parts.join(', ')})`);
+          logger.debug(`🔍 DIFF-DEBUG:       ❌ File "${fileName}" NOT in this diff tab (has: ${parts.join(', ')})`);
         }
       }
       
       // Check if active tab is a TextDiff tab containing this URI
       if (activeTab.input instanceof vscode.TabInputTextDiff) {
         const diffInput = activeTab.input as vscode.TabInputTextDiff;
-        console.log(`🔍 DIFF-DEBUG:     Active tab IS TextDiff tab`);
+        logger.debug(`🔍 DIFF-DEBUG:     Active tab IS TextDiff tab`);
         if (diffInput.original.toString() === uri.toString() || 
             diffInput.modified.toString() === uri.toString()) {
-          console.log(`🔍 DIFF-DEBUG:       ✅ URI IS in ACTIVE TextDiff tab!`);
+          logger.debug(`🔍 DIFF-DEBUG:       ✅ URI IS in ACTIVE TextDiff tab!`);
           return true;
         }
       }
     }
 
     // URI is registered for diff but not currently in an ACTIVE diff tab
-    console.log(`🔍 DIFF-DEBUG:   ❌ File "${fileName}" is registered but NOT in ACTIVE diff tab`);
+    logger.debug(`🔍 DIFF-DEBUG:   ❌ File "${fileName}" is registered but NOT in ACTIVE diff tab`);
     return false;
   }
 

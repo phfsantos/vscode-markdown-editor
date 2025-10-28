@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import { logger } from './utils/Logger';
 const KeyVditorOptions = 'vditor.options';
 import { PreviewCustomEditorProvider } from './app/PreviewCustomEditorProvider';
 import { EditorPanel } from './app/EditorPanel';
@@ -15,31 +16,23 @@ import { MarkdownDiffViewSupport } from './diff/MarkdownDiffViewSupport';
 import { MarkdownSidebarProvider } from './sidebar/MarkdownSidebarProvider';
 import { WikiLinkCompletionProvider } from './providers/WikiLinkCompletionProvider';
 
-// Create a global output channel for logging
-let outputChannel: vscode.OutputChannel;
-
 export function activate(context: vscode.ExtensionContext) {
-  // Create output channel for diagnostic logs
-  outputChannel = vscode.window.createOutputChannel('Markdown Editor Diagnostics');
-  context.subscriptions.push(outputChannel);
-  
   // Make extension context globally available for services like LinkResolver
   (global as any).extensionContext = context;
   
-  // Make output channel globally available
+  // Make logger globally available for webview and other components
   (global as any).markdownEditorLog = (message: string) => {
-    const timestamp = new Date().toISOString();
-    const logMessage = `[${timestamp}] ${message}`;
-    outputChannel.appendLine(logMessage);
+    logger.debug(message);
   };
   
-  // Test logging immediately
-  (global as any).markdownEditorLog('🚀 Markdown Editor extension activated successfully');
-  (global as any).markdownEditorLog('✅ Global logging function is now available');
-  (global as any).markdownEditorLog('📊 Output channel ready for diagnostic logs');
-  (global as any).markdownEditorLog('🔧 Enhanced external change detection enabled');
+  // Log activation
+  logger.info('🚀 Markdown Editor extension activated successfully');
+  logger.debug('✅ Global logging function is now available');
+  logger.debug('📊 Logger ready for diagnostic logs');
+  logger.debug('🔧 Enhanced external change detection enabled');
   
-  outputChannel.appendLine('Output channel created and ready');
+  // Ensure logger is disposed when extension deactivates
+  context.subscriptions.push({ dispose: () => logger.dispose() });
   
   // Initialize performance optimizer
   const performanceOptimizer = new PerformanceOptimizer();
@@ -90,13 +83,13 @@ export function activate(context: vscode.ExtensionContext) {
       '[', '[' // Trigger characters - fires on second [
     )
   );
-  (global as any).markdownEditorLog('✅ Wiki-Link Completion Provider registered for [[filename]] autocomplete');
+  logger.debug('✅ Wiki-Link Completion Provider registered for [[filename]] autocomplete');
 
   // Initialize markdown diff view support (detects when editors are in diff view)
-  (global as any).markdownEditorLog('🔍 DIFF: Initializing Markdown Diff View Support...');
+  logger.debug('🔍 DIFF: Initializing Markdown Diff View Support...');
   const diffViewSupport = new MarkdownDiffViewSupport(context);
   context.subscriptions.push(diffViewSupport);
-  (global as any).markdownEditorLog('✅ DIFF: Markdown Diff View Support registered successfully');
+  logger.debug('✅ DIFF: Markdown Diff View Support registered successfully');
 
   // Make diff support globally available
   (global as any).markdownDiffViewSupport = diffViewSupport;
@@ -136,13 +129,13 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(
       'markdown-editor.openGraphView',
       async (docUri?: string) => {
-        console.log('[Extension] markdown-editor.openGraphView command called', docUri);
+        logger.debug('[Extension] markdown-editor.openGraphView command called', docUri);
         try {
           const { GraphViewPanel } = await import('./app/GraphViewPanel');
-          console.log('[Extension] GraphViewPanel imported, calling createOrShow');
-          GraphViewPanel.createOrShow(context, docUri);
+          logger.debug('[Extension] GraphViewPanel imported, calling createOrShow');
+          await GraphViewPanel.createOrShow(context, docUri);
         } catch (error) {
-          console.error('[Extension] Error creating GraphViewPanel:', error);
+          logger.error('Extension: Error creating GraphViewPanel:', error);
           vscode.window.showErrorMessage(`Failed to open graph view: ${error}`);
         }
       }
@@ -195,7 +188,7 @@ export function activate(context: vscode.ExtensionContext) {
         // Update wiki-links in all files that reference the renamed file
         await resolver.updateLinksForRenamedFile(file.oldUri, file.newUri);
         
-        (global as any).markdownEditorLog(
+        logger.debug(
           `📝 Updated wiki-links for renamed file: ${file.oldUri.fsPath} → ${file.newUri.fsPath}`
         );
       }
@@ -246,7 +239,7 @@ export function activate(context: vscode.ExtensionContext) {
           await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(target));
         }
       } catch (err) {
-        console.error('filterByTag command failed', err);
+        logger.error('Extension: filterByTag command failed', err);
         vscode.window.showErrorMessage('Failed to filter by tag: ' + String(err));
       }
     })

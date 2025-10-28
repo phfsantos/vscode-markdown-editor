@@ -1,14 +1,14 @@
 import * as vscode from 'vscode';
+import { logger } from '../utils/Logger';
 
 /**
  * Enhanced VS Code integration utilities for better native feature support
  */
 export class VSCodeIntegrator {
   private static instance: VSCodeIntegrator;
-  private outputChannel: vscode.OutputChannel;
 
   private constructor() {
-    this.outputChannel = vscode.window.createOutputChannel('Markdown Editor Integration');
+    // Use centralized logger
   }
 
   public static getInstance(): VSCodeIntegrator {
@@ -58,7 +58,7 @@ export class VSCodeIntegrator {
       // Removed debug log - clipboard write successful
       return true;
     } catch (error) {
-      this.log(`❌ Clipboard write failed: ${error}`);
+      logger.error('❌ Clipboard write failed:', error);
       return false;
     }
   }
@@ -69,7 +69,7 @@ export class VSCodeIntegrator {
       // Removed debug log - clipboard read successful
       return text;
     } catch (error) {
-      this.log(`❌ Clipboard read failed: ${error}`);
+      logger.error('❌ Clipboard read failed:', error);
       return '';
     }
   }
@@ -91,7 +91,7 @@ export class VSCodeIntegrator {
       // Removed debug log - code actions retrieved successfully
       return actions;
     } catch (error) {
-      this.log(`❌ Failed to get code actions: ${error}`);
+      logger.error('❌ Failed to get code actions:', error);
       return [];
     }
   }
@@ -114,19 +114,9 @@ export class VSCodeIntegrator {
       // Removed debug log - code action executed successfully
       return true;
     } catch (error) {
-      this.log(`❌ Code action failed: ${error}`);
+      logger.error('❌ Code action failed:', error);
       return false;
     }
-  }
-
-  /**
-   * Enhanced logging with VS Code output channel
-   */
-  public log(message: string): void {
-    const timestamp = new Date().toISOString();
-    const formattedMessage = `[${timestamp}] ${message}`;
-    this.outputChannel.appendLine(formattedMessage);
-    // Removed console.log - use VS Code Output Channel instead
   }
 
   /**
@@ -137,7 +127,7 @@ export class VSCodeIntegrator {
       await vscode.commands.executeCommand('editor.action.showContextMenu');
       // Removed debug log - context menu shown successfully
     } catch (error) {
-      this.log(`❌ Failed to show context menu: ${error}`);
+      logger.error('❌ Failed to show context menu:', error);
     }
   }
 
@@ -145,7 +135,7 @@ export class VSCodeIntegrator {
    * Dispose resources
    */
   public dispose(): void {
-    this.outputChannel.dispose();
+    // No resources to dispose - using centralized logger
   }
 }
 

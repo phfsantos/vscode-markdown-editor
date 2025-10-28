@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { LinkGraphGenerator, GraphData } from '../services/LinkGraphGenerator';
 import { getWebviewOptions } from './_utils';
+import { logger } from '../utils/Logger';
 
 /**
  * Full-screen graph view panel for visualizing markdown file relationships
@@ -20,7 +21,7 @@ export class GraphViewPanel {
   private _showDirectLinksOnly: boolean = false;
 
   public static async createOrShow(context: vscode.ExtensionContext, docUri?: string) {
-    console.log('[GraphViewPanel] createOrShow called', docUri);
+    logger.debug('[GraphViewPanel] createOrShow called', docUri);
     let activeMarkdownDoc: vscode.TextDocument | undefined = undefined;
     if (docUri) {
       try {
@@ -30,7 +31,7 @@ export class GraphViewPanel {
           activeMarkdownDoc = doc;
         }
       } catch (err) {
-        console.error('[GraphViewPanel] Failed to open document from URI:', docUri, err);
+        logger.error('[GraphViewPanel] Failed to open document from URI:', docUri, err);
       }
     } else {
       const activeEditor = vscode.window.activeTextEditor;
@@ -38,16 +39,16 @@ export class GraphViewPanel {
         ? activeEditor.document
         : undefined;
     }
-    console.log('[GraphViewPanel] Active markdown document:', activeMarkdownDoc ? activeMarkdownDoc.fileName : 'none');
+    logger.debug('[GraphViewPanel] Active markdown document:', activeMarkdownDoc ? activeMarkdownDoc.fileName : 'none');
     // Always open in a split editor beside the active file
     const column = vscode.ViewColumn.Beside;
-    console.log('[GraphViewPanel] Forcing panel to open in ViewColumn.Beside');
+    logger.debug('[GraphViewPanel] Forcing panel to open in ViewColumn.Beside');
 
-    console.log('[GraphViewPanel] Opening graph panel in column:', column);
+    logger.debug('[GraphViewPanel] Opening graph panel in column:', column);
 
     // If we already have a panel, show it
     if (GraphViewPanel.currentPanel) {
-      console.log('[GraphViewPanel] Reusing existing panel');
+      logger.debug('[GraphViewPanel] Reusing existing panel');
       
       // Update the active document if we have one
       if (activeMarkdownDoc) {
@@ -62,7 +63,7 @@ export class GraphViewPanel {
     }
 
     // Otherwise, create a new panel
-    console.log('[GraphViewPanel] Creating new panel');
+    logger.debug('[GraphViewPanel] Creating new panel');
     const panel = vscode.window.createWebviewPanel(
       GraphViewPanel.viewType,
       'Link Graph',
@@ -73,7 +74,7 @@ export class GraphViewPanel {
       }
     );
 
-    console.log('[GraphViewPanel] Panel created, initializing GraphViewPanel instance');
+    logger.debug('[GraphViewPanel] Panel created, initializing GraphViewPanel instance');
     GraphViewPanel.currentPanel = new GraphViewPanel(
       panel, 
       context.extensionUri,
@@ -86,7 +87,7 @@ export class GraphViewPanel {
     extensionUri: vscode.Uri,
     initialDocument?: vscode.TextDocument
   ) {
-    console.log('[GraphViewPanel] Constructor called');
+    logger.debug('[GraphViewPanel] Constructor called');
     
     this._panel = panel;
     this._extensionUri = extensionUri;
@@ -94,20 +95,20 @@ export class GraphViewPanel {
 
     // Set initial document if provided, otherwise try to get current active editor
     if (initialDocument) {
-      console.log('[GraphViewPanel] Using provided initial document:', initialDocument.fileName);
+      logger.debug('[GraphViewPanel] Using provided initial document:', initialDocument.fileName);
       this._activeDocument = initialDocument;
     } else {
       const activeEditor = vscode.window.activeTextEditor;
       if (activeEditor && activeEditor.document.languageId === 'markdown') {
-        console.log('[GraphViewPanel] Using active editor document:', activeEditor.document.fileName);
+        logger.debug('[GraphViewPanel] Using active editor document:', activeEditor.document.fileName);
         this._activeDocument = activeEditor.document;
       } else {
-        console.log('[GraphViewPanel] No markdown document available');
+        logger.debug('[GraphViewPanel] No markdown document available');
       }
     }
 
     // Set initial HTML
-    console.log('[GraphViewPanel] Calling _update() to set HTML');
+    logger.debug('[GraphViewPanel] Calling _update() to set HTML');
     this._update();
 
     // Listen for when the panel is disposed
@@ -116,30 +117,30 @@ export class GraphViewPanel {
     // Handle messages from the webview
     this._panel.webview.onDidReceiveMessage(
       async (message) => {
-        console.log('[GraphViewPanel] Received message from webview:', message.command, message);
+        logger.debug('[GraphViewPanel] Received message from webview:', message.command, message);
         
         switch (message.command) {
           case 'openFile':
-            console.log('[GraphViewPanel] Opening file:', message.filePath);
+            logger.debug('[GraphViewPanel] Opening file:', message.filePath);
             await this._openFile(message.filePath);
             break;
           case 'updateDepth':
-            console.log('[GraphViewPanel] Updating depth to:', message.depth);
+            logger.debug('[GraphViewPanel] Updating depth to:', message.depth);
             this._currentDepth = message.depth;
             await this._regenerateGraph();
             break;
           case 'updateMaxNodes':
-            console.log('[GraphViewPanel] Updating maxNodes to:', message.maxNodes);
+            logger.debug('[GraphViewPanel] Updating maxNodes to:', message.maxNodes);
             this._currentMaxNodes = message.maxNodes;
             await this._regenerateGraph();
             break;
           case 'toggleDirectLinksOnly':
-            console.log('[GraphViewPanel] Toggling direct links only to:', message.value);
+            logger.debug('[GraphViewPanel] Toggling direct links only to:', message.value);
             this._showDirectLinksOnly = message.value;
             await this._regenerateGraph();
             break;
           case 'ready':
-            console.log('[GraphViewPanel] Webview ready, generating initial graph');
+            logger.debug('[GraphViewPanel] Webview ready, generating initial graph');
             await this._regenerateGraph();
             break;
         }
@@ -152,7 +153,7 @@ export class GraphViewPanel {
     vscode.window.onDidChangeActiveTextEditor(
       async (editor) => {
         if (editor && editor.document.languageId === 'markdown') {
-          console.log('[GraphViewPanel] Active editor changed to:', editor.document.fileName);
+          logger.debug('[GraphViewPanel] Active editor changed to:', editor.document.fileName);
           this._activeDocument = editor.document;
           await this._regenerateGraph();
         }
@@ -171,20 +172,20 @@ export class GraphViewPanel {
         preserveFocus: true
       });
     } catch (error) {
-      console.error('Error opening file:', error);
+      logger.error('Error opening file:', error);
       vscode.window.showErrorMessage(`Could not open file: ${filePath}`);
     }
   }
 
   private async _regenerateGraph(): Promise<void> {
-    console.log('[GraphViewPanel] _regenerateGraph called', {
+    logger.debug('[GraphViewPanel] _regenerateGraph called', {
       hasActiveDoc: !!this._activeDocument,
       depth: this._currentDepth,
       maxNodes: this._currentMaxNodes
     });
 
     if (!this._activeDocument) {
-      console.log('[GraphViewPanel] No active document, sending empty graph');
+      logger.debug('[GraphViewPanel] No active document, sending empty graph');
       this._panel.webview.postMessage({
         type: 'graphData',
         data: { nodes: [], edges: [] }
@@ -197,7 +198,7 @@ export class GraphViewPanel {
       this._panel.webview.postMessage({ type: 'loading', value: true });
 
       const depth = this._showDirectLinksOnly ? 1 : this._currentDepth;
-      console.log('[GraphViewPanel] Generating graph with depth:', depth, 'maxNodes:', this._currentMaxNodes);
+      logger.debug('[GraphViewPanel] Generating graph with depth:', depth, 'maxNodes:', this._currentMaxNodes);
       
       const graphData = await this.graphGenerator.generateGraphForFile(
         this._activeDocument.uri,
@@ -205,7 +206,7 @@ export class GraphViewPanel {
         this._currentMaxNodes
       );
 
-      console.log('[GraphViewPanel] Graph generated:', {
+      logger.debug('[GraphViewPanel] Graph generated:', {
         nodes: graphData.nodes.length,
         edges: graphData.edges.length,
         focusNode: graphData.focusNode
@@ -219,7 +220,7 @@ export class GraphViewPanel {
 
       this._panel.webview.postMessage({ type: 'loading', value: false });
     } catch (error) {
-      console.error('[GraphViewPanel] Error generating graph:', error);
+      logger.error('[GraphViewPanel] Error generating graph:', error);
       this._panel.webview.postMessage({ type: 'loading', value: false });
       this._panel.webview.postMessage({
         type: 'error',
@@ -256,7 +257,7 @@ export class GraphViewPanel {
     );
 
     // Debug: print resource URIs to console and add fallback inline style
-    console.log('[GraphViewPanel] Resource URIs:', {
+    logger.debug('[GraphViewPanel] Resource URIs:', {
       scriptUri: scriptUri.toString(),
       styleUri: styleUri.toString()
     });

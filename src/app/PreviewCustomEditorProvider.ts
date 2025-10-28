@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { EditorPanel } from "./EditorPanel";
 import { getWebviewOptions } from "./_utils";
+import { logger } from "../utils/Logger";
 
 export class PreviewCustomEditorProvider
   implements vscode.CustomTextEditorProvider
@@ -42,12 +43,12 @@ export class PreviewCustomEditorProvider
             newWebviewPanel
           );
         } else {
-          console.error(error);
+          logger.error(error);
           if (error instanceof Error)
             vscode.window.showErrorMessage(error.message);
         }
       } catch (error) {
-        console.error(error);
+        logger.error(error);
         if (error instanceof Error)
           vscode.window.showErrorMessage(error.message);
       }
