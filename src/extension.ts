@@ -4,7 +4,6 @@ import { logger } from './utils/Logger';
 const KeyVditorOptions = 'vditor.options';
 import { PreviewCustomEditorProvider } from './app/PreviewCustomEditorProvider';
 import { EditorPanel } from './app/EditorPanel';
-import { debug } from './app/_utils';
 // Import new providers for enhanced VS Code integration
 import { MarkdownDiagnosticProvider } from './diagnostics/MarkdownDiagnosticProvider';
 import { MarkdownTextSyncProvider } from './sync/MarkdownTextSyncProvider';
@@ -99,7 +98,7 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(
       'markdown-editor.openEditor',
       (uri?: vscode.Uri, ...args) => {
-        debug('command', uri, args)
+        logger.debug('command', uri, args)
         EditorPanel.createOrShow(context, uri)
       }
     )

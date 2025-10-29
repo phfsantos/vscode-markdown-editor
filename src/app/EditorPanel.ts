@@ -33,6 +33,8 @@ export class EditorPanel {
   private _diffApplied = false; // Track if diff has been applied to THIS webview instance
   private _lastDiffCheckVisible = false; // Track last visibility state for diff checking
   private readonly _instanceId: string; // Unique identifier for debugging webview instances
+  private readonly _otherDiffUri: vscode.Uri | undefined; // The other file in the diff pair (if in diff view)
+  private readonly _diffRole: 'left' | 'right' | undefined; // Which side of the diff: left=original, right=modified
 
   /**
    * Create a new panel.
@@ -106,8 +108,13 @@ export class EditorPanel {
       );
     }
 
+    // 🔍 DIFF DETECTION: Check if this editor is being created for a diff view
+    // This happens BEFORE the editor panel is created, allowing us to set the diff flag during construction
+    const diffContext = EditorPanel.isInDiffContext(uri, panel);
+    logger.debug(`🔍 DIFF-DETECT createOrShow: URI ${uri?.toString()} isDiffView=${diffContext.isDiffView} role=${diffContext.role} otherUri=${diffContext.otherUri?.toString()}`);
+
     // Otherwise, create a new panel.
-    const editor = new EditorPanel(context, panel, extensionUri, doc, uri, !!webviewPanel);
+    const editor = new EditorPanel(context, panel, extensionUri, doc, uri, !!webviewPanel, diffContext.isDiffView, diffContext.otherUri, diffContext.role);
     if (!webviewPanel) {
       EditorPanel.currentPanel = editor;
     } else {
@@ -116,6 +123,143 @@ export class EditorPanel {
     }
 
     return editor;
+  }
+
+  /**
+   * Detect if the current editor is being created in a diff view context
+   * Returns diff flag, other URI, and role (left=original, right=modified)
+   * Each editor instance will manage its own diff state
+   */
+  private static isInDiffContext(uri: vscode.Uri | undefined, panel: vscode.WebviewPanel): { isDiffView: boolean, otherUri?: vscode.Uri, role?: 'left' | 'right' } {
+    if (!uri) return { isDiffView: false };
+
+    const fileName = uri.path.split('/').pop();
+    logger.debug(`🔍 DIFF-DETECT isInDiffContext: Checking "${fileName}"`);
+
+    // Check all tab groups for diff tabs
+    const groups = vscode.window.tabGroups.all;
+    logger.debug(`🔍 DIFF-DETECT: Found ${groups.length} tab groups`);
+    
+    for (let i = 0; i < groups.length; i++) {
+      const tabGroup = groups[i];
+      logger.debug(`🔍 DIFF-DETECT: Group ${i}: ${tabGroup.tabs.length} tabs, active=${tabGroup.isActive}`);
+      
+      for (const tab of tabGroup.tabs) {
+        const inputType = (tab.input as any)?.constructor?.name || 'unknown';
+        logger.debug(`🔍 DIFF-DETECT:   Tab: "${tab.label}" | Type: ${inputType} | Active: ${tab.isActive}`);
+        
+        // Check if this is a TextDiff tab
+        if (tab.input instanceof vscode.TabInputTextDiff) {
+          const diffInput = tab.input as vscode.TabInputTextDiff;
+          // Check if either side of the diff matches our URI
+          if (diffInput.original?.toString() === uri.toString()) {
+            logger.debug(`🔍 DIFF-DETECT: Found diff tab for ${uri.toString()} - LEFT side`);
+            return { isDiffView: true, otherUri: diffInput.modified, role: 'left' };
+          }
+          if (diffInput.modified?.toString() === uri.toString()) {
+            logger.debug(`🔍 DIFF-DETECT: Found diff tab for ${uri.toString()} - RIGHT side`);
+            return { isDiffView: true, otherUri: diffInput.original, role: 'right' };
+          }
+        }
+        
+        // Also check for duck-typed diff inputs (fallback)
+        const possibleDiff = tab.input as any;
+        if (possibleDiff?.original && possibleDiff?.modified) {
+          if (possibleDiff.original?.toString() === uri.toString()) {
+            logger.debug(`🔍 DIFF-DETECT: Found duck-typed diff tab for ${uri.toString()} - LEFT side`);
+            return { isDiffView: true, otherUri: possibleDiff.modified, role: 'left' };
+          }
+          if (possibleDiff.modified?.toString() === uri.toString()) {
+            logger.debug(`🔍 DIFF-DETECT: Found duck-typed diff tab for ${uri.toString()} - RIGHT side`);
+            return { isDiffView: true, otherUri: possibleDiff.original, role: 'right' };
+          }
+        }
+        
+        // Also check tab labels for ↔ arrow (grouped diff tabs)
+        if (tab.label.includes('↔') && tab.label.includes('.md')) {
+          const fileName = uri.path.split('/').pop();
+          if (fileName && tab.label.includes(fileName)) {
+            // Extract both filenames from the label (e.g., "test3.md ↔ test3 copy.md")
+            const parts = tab.label.split('↔').map(s => s.trim());
+            if (parts.length === 2) {
+              const file1Name = parts[0];
+              const file2Name = parts[1];
+              
+              // CRITICAL: Only proceed if this is the ACTIVE grouped tab
+              // Individual tabs will have labels like "test3.md" (no arrow), so they won't be active for this check
+              const currentFileName = uri.path.split('/').pop();
+              
+              // Verify this tab is actually active (the grouped diff tab being created)
+              // Individual tabs exist separately and shouldn't trigger diff mode
+              if (!tab.isActive) {
+                logger.debug(`🔍 DIFF-DETECT: Found grouped diff tab with ↔ but tab is not active (probably individual tab), skipping`);
+                continue;
+              }
+              
+              logger.debug(`🔍 DIFF-DETECT: Found ACTIVE grouped diff tab with ↔ for ${fileName}`);
+              logger.debug(`🔍 DIFF-DETECT: Extracted filenames: "${file1Name}" and "${file2Name}"`);
+              
+              // Determine which side we're creating
+              const otherFileName = currentFileName === file1Name ? file2Name : file1Name;
+              logger.debug(`🔍 DIFF-DETECT: Current file: "${currentFileName}", Other file: "${otherFileName}"`);
+              
+              // Construct the other URI from the same directory
+              const directory = uri.path.substring(0, uri.path.lastIndexOf('/'));
+              const otherUri = vscode.Uri.file(`${directory}/${otherFileName}`);
+              logger.debug(`🔍 DIFF-DETECT: Current URI: ${uri.toString()}`);
+              logger.debug(`🔍 DIFF-DETECT: Other URI: ${otherUri.toString()}`);
+              
+              // Determine which is left and which is right based on the label order
+              const isLeft = currentFileName === file1Name;
+              logger.debug(`🔍 DIFF-DETECT: This editor is ${isLeft ? 'LEFT' : 'RIGHT'} in diff pair`);
+              return { isDiffView: true, otherUri, role: isLeft ? 'left' : 'right' };
+            }
+            return { isDiffView: true };
+          }
+        }
+      }
+    }
+
+    // STRATEGY 2: Check for side-by-side custom markdown editors
+    // When user opens two markdown files in split view, they appear as separate TabInputCustom editors
+    logger.debug(`🔍 DIFF-DETECT: Checking for side-by-side custom editors...`);
+    
+    if (groups.length >= 2) {
+      // Look for our custom editor in each group
+      const customEditors: { uri: vscode.Uri; group: number; tab: vscode.Tab }[] = [];
+      
+      for (let i = 0; i < groups.length; i++) {
+        for (const tab of groups[i].tabs) {
+          if (tab.input instanceof vscode.TabInputCustom) {
+            const customInput = tab.input as vscode.TabInputCustom;
+            if (customInput.viewType === 'markdown-editor' && customInput.uri.path.endsWith('.md')) {
+              customEditors.push({ uri: customInput.uri, group: i, tab });
+              logger.debug(`🔍 DIFF-DETECT:   Found custom markdown editor: ${customInput.uri.path} in group ${i}`);
+            }
+          }
+        }
+      }
+      
+      // If we have exactly 2 markdown editors in different groups, treat as diff view
+      if (customEditors.length === 2 && customEditors[0].group !== customEditors[1].group) {
+        const [editor1, editor2] = customEditors;
+        
+        // Check if THIS uri is one of them
+        if (editor1.uri.toString() === uri.toString() || editor2.uri.toString() === uri.toString()) {
+          logger.debug(`🔍 DIFF-DETECT: ✅ Found side-by-side custom editors!`);
+          logger.debug(`🔍 DIFF-DETECT:   Left: ${editor1.uri.path}`);
+          logger.debug(`🔍 DIFF-DETECT:   Right: ${editor2.uri.path}`);
+          
+          // Determine which is the other URI and role
+          const otherUri = editor1.uri.toString() === uri.toString() ? editor2.uri : editor1.uri;
+          const role = editor1.uri.toString() === uri.toString() ? 'left' : 'right';
+          return { isDiffView: true, otherUri, role };
+        }
+      }
+    }
+
+    logger.debug(`🔍 DIFF-DETECT: ❌ No diff context found for "${fileName}"`);
+    return { isDiffView: false };
   }
 
   /**
@@ -212,22 +356,22 @@ export class EditorPanel {
     private readonly _extensionUri: vscode.Uri,
     public _document: vscode.TextDocument, // 当前有 markdown 编辑器
     public _uri = _document.uri, // 从资源管理器打开，只有 uri 没有 _document
-    public _isEditor: boolean = false // Mark if this is a markdown editor panel
+    public _isEditor: boolean = false, // Mark if this is a markdown editor panel
+    private readonly _isDiffView: boolean = false, // Detected at creation time if this editor is in a diff view
+    otherDiffUri?: vscode.Uri, // The other file in the diff pair (if in diff view)
+    diffRole?: 'left' | 'right' // Which side: left=original, right=modified
   ) {
+    // Store the other diff URI and role for this instance
+    this._otherDiffUri = otherDiffUri;
+    this._diffRole = diffRole;
     // Generate unique instance ID for debugging
     this._instanceId = `${NodePath.basename(this._fsPath)}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    logger.debug(`🆔 DIFF-DEBUG: Created EditorPanel instance: ${this._instanceId}`);
+    logger.debug(`🆔 DIFF-DEBUG: Created EditorPanel instance: ${this._instanceId}, isDiffView=${_isDiffView}`);
     
     let textEditTimer: NodeJS.Timeout | void;
 
     // Set the webview's initial html content
     this._init();
-
-    // Trigger diff detection when this editor is created
-    const diffSupport = (global as any).markdownDiffViewSupport;
-    if (diffSupport && diffSupport.triggerDetection) {
-      diffSupport.triggerDetection();
-    }
 
     // Check if this editor is part of a diff view
     this._checkDiffViewContext();
@@ -335,6 +479,11 @@ export class EditorPanel {
         // Force update the webview immediately for external changes
         this._update({ type: "update" });
         this._updateDiagnostics();
+        
+        // If this is a diff view instance, also recalculate diff
+        if (this._isDiffView && this._otherDiffUri) {
+          this._updateDiffVisualization();
+        }
         return;
       }
       
@@ -347,6 +496,11 @@ export class EditorPanel {
       textEditTimer = setTimeout(() => {
         this._update();
         this._updateEditTitle();
+        
+        // If this is a diff view instance, also recalculate diff
+        if (this._isDiffView && this._otherDiffUri) {
+          this._updateDiffVisualization();
+        }
       }, 300);
     }, this._disposables);
 
@@ -422,16 +576,16 @@ export class EditorPanel {
           case "diff-scroll-sync": {
             // Handle scroll synchronization in diff view
             
-            if (this._uri) {
+            if (this._uri && this._otherDiffUri) {
               const diffSupport = (global as any).markdownDiffViewSupport;
 
               if (diffSupport) {
-                diffSupport.handleScrollSync(this._uri, message.scrollPercentage);
+                diffSupport.handleScrollSync(this._uri, this._otherDiffUri, message.scrollPercentage);
               } else {
                 logger.warn('⚠️ EDITOR PANEL: markdownDiffViewSupport not found on global');
               }
             } else {
-              logger.warn('⚠️ EDITOR PANEL: No _uri for scroll sync');
+              logger.warn('⚠️ EDITOR PANEL: No _uri or _otherDiffUri for scroll sync');
             }
             break;
           }
@@ -767,38 +921,32 @@ export class EditorPanel {
   private async _checkDiffViewContext(): Promise<void> {
     const fileName = NodePath.basename(this._fsPath);
     logger.debug(`[${this._instanceId}] 🔍 DIFF-DEBUG: _checkDiffViewContext() for "${fileName}"`);
-    logger.debug(`[${this._instanceId}]   State: diffApplied=${this._diffApplied}, visible=${this._panel.visible}, active=${this._panel.active}`);
+    logger.debug(`[${this._instanceId}]   State: diffApplied=${this._diffApplied}, visible=${this._panel.visible}, active=${this._panel.active}, _isDiffView=${this._isDiffView}, _otherDiffUri=${this._otherDiffUri?.toString()}`);
     
-    const diffSupport = (global as any).markdownDiffViewSupport;
-    if (!diffSupport) {
-      logger.debug(`[${this._instanceId}]   ❌ No diffSupport available`);
-      return;
-    }
-
     // OPTIMIZATION: If diff already applied to THIS webview instance, don't re-apply
     if (this._diffApplied && this._panel.visible) {
       logger.debug(`[${this._instanceId}]   ⏭️  Diff already applied to this instance AND panel still visible, skipping`);
       return;
     }
 
-    // Check ONCE - with separate instances per tab, we don't need retries
-    // The detection is debounced at source and has file caching
-    logger.debug(`[${this._instanceId}]   Checking diff context for "${fileName}"`);
-
-    const diffInfo = diffSupport.getDiffInfo(this._uri);
-    logger.debug(`[${this._instanceId}]   getDiffInfo result:`, diffInfo ? 'YES' : 'NO');
+    // Instance-based approach: Check the _isDiffView flag set at creation time
+    // This is the most reliable method - each editor instance knows its own state
+    const isInDiffContext = this._isDiffView;
+    logger.debug(`[${this._instanceId}]   Instance-based check: _isDiffView=${this._isDiffView}`);
     
-    // CRITICAL: Also check if this editor is currently in an active diff tab
-    // This prevents individual file tabs from showing diff visualization
-    const isInActiveDiffTab = diffSupport.isInActiveDiffView(this._uri);
-    logger.debug(`[${this._instanceId}]   isInActiveDiffTab result:`, isInActiveDiffTab);
-    
-    if (diffInfo && isInActiveDiffTab) {
-      logger.debug(`[${this._instanceId}]   ✅ BOTH conditions met! Sending diff to webview for "${fileName}"`);
+    if (isInDiffContext && this._otherDiffUri) {
+      logger.debug(`[${this._instanceId}]   ✅ This instance is in diff view! otherUri=${this._otherDiffUri.toString()}`);
 
-      // Calculate diff
-      const leftUri = diffInfo.role === 'left' ? diffInfo.thisUri : diffInfo.otherUri;
-      const rightUri = diffInfo.role === 'left' ? diffInfo.otherUri : diffInfo.thisUri;
+      const diffSupport = (global as any).markdownDiffViewSupport;
+      if (!diffSupport) {
+        logger.debug(`[${this._instanceId}]   ❌ No diffSupport available for diff calculation`);
+        return;
+      }
+
+      // Calculate diff using this instance's URIs
+      // We always treat this editor as "left" for consistency
+      const leftUri = this._uri;
+      const rightUri = this._otherDiffUri;
       
       const diffResult = await diffSupport.calculateDiff(leftUri, rightUri);
       logger.debug(`[${this._instanceId}]   Diff calculated: ${diffResult.changes.length} changes`);
@@ -808,7 +956,7 @@ export class EditorPanel {
       const allChanges = diffResult.changes;
       
       // Also send the full document text so the webview can build proper line mapping
-      const thisDoc = await vscode.workspace.openTextDocument(diffInfo.thisUri);
+      const thisDoc = await vscode.workspace.openTextDocument(this._uri);
       const documentText = thisDoc.getText();
       
       logger.debug(`[${this._instanceId}]   Sending diff-view-detected to webview for "${fileName}"`);
@@ -817,8 +965,8 @@ export class EditorPanel {
       this._panel.webview.postMessage({
         type: 'diff-view-detected',
         diffInfo: {
-          role: diffInfo.role,
-          otherUri: diffInfo.otherUri.toString(),
+          role: this._diffRole || 'left', // Use detected role, fallback to left
+          otherUri: this._otherDiffUri.toString(),
           changes: allChanges, // Send all changes, not filtered
           stats: diffResult.stats,
           documentText: documentText // Send full text for accurate line mapping
@@ -830,7 +978,7 @@ export class EditorPanel {
       logger.debug(`[${this._instanceId}]   ✅ Diff applied and marked for "${fileName}"`);
 
     } else {
-      logger.debug(`[${this._instanceId}]   ℹ️  Not in active diff view, no visualization for "${fileName}"`);
+      logger.debug(`[${this._instanceId}]   ℹ️  Not in diff view (_isDiffView=${this._isDiffView}, _otherDiffUri=${this._otherDiffUri?.toString() || 'undefined'})`);
       // If we're NOT in a diff view but diff was previously applied, we need to clear it
       if (this._diffApplied) {
         logger.debug(`[${this._instanceId}]   🧹 Diff was applied but no longer in diff view, sending clear message`);
@@ -840,6 +988,49 @@ export class EditorPanel {
         this._diffApplied = false;
       }
     }
+  }
+
+  /**
+   * Update diff visualization for this instance when document changes
+   * This is called when the document content changes and this editor is in diff view
+   */
+  private async _updateDiffVisualization(): Promise<void> {
+    if (!this._isDiffView || !this._otherDiffUri) {
+      logger.debug(`[${this._instanceId}] ⚠️  _updateDiffVisualization called but not in diff view`);
+      return;
+    }
+
+    const diffSupport = (global as any).markdownDiffViewSupport;
+    if (!diffSupport) {
+      logger.debug(`[${this._instanceId}] ❌ No diffSupport available for diff update`);
+      return;
+    }
+
+    logger.debug(`[${this._instanceId}] 🔄 Updating diff visualization after document change`);
+
+    // Calculate diff using this instance's URIs
+    const leftUri = this._uri;
+    const rightUri = this._otherDiffUri;
+    
+    const diffResult = await diffSupport.calculateDiff(leftUri, rightUri);
+    
+    // Get the updated document text
+    const thisDoc = await vscode.workspace.openTextDocument(this._uri);
+    const documentText = thisDoc.getText();
+    
+    // Send updated diff information to webview
+    this._panel.webview.postMessage({
+      type: 'diff-view-detected',
+      diffInfo: {
+        role: this._diffRole || 'left', // Use detected role, fallback to left
+        otherUri: this._otherDiffUri.toString(),
+        changes: diffResult.changes,
+        stats: diffResult.stats,
+        documentText: documentText
+      }
+    });
+
+    logger.debug(`[${this._instanceId}] ✅ Diff visualization updated with ${diffResult.changes.length} changes`);
   }
 
   private _updateEditTitle() {

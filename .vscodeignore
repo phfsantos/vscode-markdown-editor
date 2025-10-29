@@ -14,6 +14,7 @@ webpack.config.js
 *.test.js
 demo.gif
 .gitignore
+media/index.html
 PRODUCTION*.md
 TODO*.md
 OBSIDIAN_SIDEBAR_PLAN.md

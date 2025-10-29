@@ -30,6 +30,8 @@ export class DiffVisualizer {
   private scrollSyncEnabled = true;
   private isScrolling = false;
   private scrollTimeout: number | null = null;
+  private scrollDebounceTimeout: number | null = null;
+  private lastScrollSyncTime = 0;
   private initialized = false;
 
   /**
@@ -830,7 +832,32 @@ export class DiffVisualizer {
       return;
     }
     
-    // Send scroll sync message to extension
+    // THROTTLING: Send immediate message if enough time has passed (for smooth continuous scrolling)
+    const now = Date.now();
+    const timeSinceLastSync = now - this.lastScrollSyncTime;
+    const THROTTLE_MS = 50; // Max 20 messages per second for smoother continuous scroll
+    
+    if (timeSinceLastSync >= THROTTLE_MS) {
+      this.sendScrollSyncMessage(scrollPercentage);
+      this.lastScrollSyncTime = now;
+    }
+    
+    // DEBOUNCING: Always schedule a final message after scrolling stops (for accurate final position)
+    if (this.scrollDebounceTimeout) {
+      clearTimeout(this.scrollDebounceTimeout);
+    }
+    
+    const DEBOUNCE_MS = 100; // Wait 100ms after scroll stops for final accurate position
+    this.scrollDebounceTimeout = window.setTimeout(() => {
+      this.sendScrollSyncMessage(scrollPercentage);
+      this.lastScrollSyncTime = Date.now();
+    }, DEBOUNCE_MS);
+  }
+  
+  /**
+   * Send scroll sync message to extension
+   */
+  private sendScrollSyncMessage(scrollPercentage: number): void {
     const vscode = (window as any).vscode;
     if (vscode) {
       vscode.postMessage({
