@@ -32,6 +32,12 @@ export interface GraphViewOptions {
   iterations?: number; // Simulation iterations
 }
 
+export interface ZoomState {
+  scale: number;        // Current zoom level (0.1 to 3.0)
+  translateX: number;   // Pan X offset
+  translateY: number;   // Pan Y offset
+}
+
 /**
  * Simple force-directed graph layout calculator
  */
@@ -169,6 +175,13 @@ class ForceLayout {
  */
 export class GraphView {
   private options: GraphViewOptions;
+  private zoomState: ZoomState;
+  private readonly ZOOM_STATE_KEY = 'markdown-editor.graphView.zoomState';
+  private readonly MIN_ZOOM = 0.1;
+  private readonly MAX_ZOOM = 3.0;
+  private readonly ZOOM_STEP = 0.1;
+  private isPanning = false;
+  private panStart = { x: 0, y: 0 };
 
   constructor(options?: Partial<GraphViewOptions>) {
     this.options = {
@@ -182,6 +195,105 @@ export class GraphView {
       iterations: 100,
       ...options
     };
+    
+    // Load persisted zoom state or use defaults
+    this.zoomState = this.loadZoomState();
+  }
+
+  /**
+   * Load zoom state from localStorage
+   */
+  private loadZoomState(): ZoomState {
+    try {
+      const stored = localStorage.getItem(this.ZOOM_STATE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return {
+          scale: Math.max(this.MIN_ZOOM, Math.min(this.MAX_ZOOM, parsed.scale || 1)),
+          translateX: parsed.translateX || 0,
+          translateY: parsed.translateY || 0
+        };
+      }
+    } catch (e) {
+      console.error('Failed to load zoom state:', e);
+    }
+    return { scale: 1, translateX: 0, translateY: 0 };
+  }
+
+  /**
+   * Save zoom state to localStorage
+   */
+  private saveZoomState(): void {
+    try {
+      localStorage.setItem(this.ZOOM_STATE_KEY, JSON.stringify(this.zoomState));
+    } catch (e) {
+      console.error('Failed to save zoom state:', e);
+    }
+  }
+
+  /**
+   * Reset zoom to fit all nodes
+   */
+  resetZoom(): void {
+    this.zoomState = { scale: 1, translateX: 0, translateY: 0 };
+    this.saveZoomState();
+    this.applyZoom();
+  }
+
+  /**
+   * Zoom in centered on viewport
+   */
+  zoomIn(): void {
+    const oldScale = this.zoomState.scale;
+    this.zoomState.scale = Math.min(this.MAX_ZOOM, this.zoomState.scale + this.ZOOM_STEP);
+    this.adjustZoomCenter(oldScale, this.zoomState.scale);
+    this.saveZoomState();
+    this.applyZoom();
+  }
+
+  /**
+   * Zoom out centered on viewport
+   */
+  zoomOut(): void {
+    const oldScale = this.zoomState.scale;
+    this.zoomState.scale = Math.max(this.MIN_ZOOM, this.zoomState.scale - this.ZOOM_STEP);
+    this.adjustZoomCenter(oldScale, this.zoomState.scale);
+    this.saveZoomState();
+    this.applyZoom();
+  }
+
+  /**
+   * Adjust translation to keep zoom centered on viewport
+   */
+  private adjustZoomCenter(oldScale: number, newScale: number): void {
+    const centerX = this.options.width / 2;
+    const centerY = this.options.height / 2;
+    const scaleDiff = newScale - oldScale;
+    
+    // Adjust translation to keep center point stable
+    this.zoomState.translateX -= (centerX * scaleDiff) / newScale;
+    this.zoomState.translateY -= (centerY * scaleDiff) / newScale;
+  }
+
+  /**
+   * Apply zoom transformation to SVG
+   */
+  private applyZoom(): void {
+    const svg = document.querySelector('.graph-svg') as SVGElement;
+    if (svg) {
+      const g = svg.querySelector('g') as SVGGElement;
+      if (g) {
+        g.setAttribute('transform', 
+          `translate(${this.zoomState.translateX}, ${this.zoomState.translateY}) scale(${this.zoomState.scale})`);
+      }
+    }
+  }
+
+  /**
+   * Get current zoom percentage for display
+   */
+  getZoomPercentage(): number {
+    return Math.round(this.zoomState.scale * 100);
   }
 
   /**
@@ -208,19 +320,29 @@ export class GraphView {
     const nodes = this.renderNodes(data.nodes, layout);
 
     return `
-      <svg class="graph-svg" width="${this.options.width}" height="${this.options.height}" viewBox="0 0 ${this.options.width} ${this.options.height}">
-        <defs>
-          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-            <polygon points="0 0, 10 3.5, 0 7" fill="var(--vscode-descriptionForeground)" opacity="0.6" />
-          </marker>
-        </defs>
-        <g class="edges">
-          ${edges}
-        </g>
-        <g class="nodes">
-          ${nodes}
-        </g>
-      </svg>
+      <div class="graph-container">
+        <div class="graph-zoom-controls">
+          <button class="graph-zoom-btn" data-action="zoom-in" title="Zoom In (+)">+</button>
+          <span class="graph-zoom-level">${this.getZoomPercentage()}%</span>
+          <button class="graph-zoom-btn" data-action="zoom-out" title="Zoom Out (-)">−</button>
+          <button class="graph-zoom-btn" data-action="zoom-reset" title="Reset Zoom (0)">⟲</button>
+        </div>
+        <svg class="graph-svg" width="${this.options.width}" height="${this.options.height}" viewBox="0 0 ${this.options.width} ${this.options.height}">
+          <defs>
+            <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+              <polygon points="0 0, 10 3.5, 0 7" fill="var(--vscode-descriptionForeground)" opacity="0.6" />
+            </marker>
+          </defs>
+          <g class="graph-transform" transform="translate(${this.zoomState.translateX}, ${this.zoomState.translateY}) scale(${this.zoomState.scale})">
+            <g class="edges">
+              ${edges}
+            </g>
+            <g class="nodes">
+              ${nodes}
+            </g>
+          </g>
+        </svg>
+      </div>
     `;
   }
 
@@ -351,6 +473,144 @@ export class GraphView {
         </div>
       </div>
     `;
+  }
+
+  /**
+   * Attach zoom control event listeners
+   */
+  attachZoomEvents(container: HTMLElement): void {
+    // Button controls
+    const zoomInBtn = container.querySelector('[data-action="zoom-in"]');
+    const zoomOutBtn = container.querySelector('[data-action="zoom-out"]');
+    const zoomResetBtn = container.querySelector('[data-action="zoom-reset"]');
+    const zoomLevelSpan = container.querySelector('.graph-zoom-level');
+
+    if (zoomInBtn) {
+      zoomInBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.zoomIn();
+        if (zoomLevelSpan) {
+          zoomLevelSpan.textContent = `${this.getZoomPercentage()}%`;
+        }
+      });
+    }
+
+    if (zoomOutBtn) {
+      zoomOutBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.zoomOut();
+        if (zoomLevelSpan) {
+          zoomLevelSpan.textContent = `${this.getZoomPercentage()}%`;
+        }
+      });
+    }
+
+    if (zoomResetBtn) {
+      zoomResetBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.resetZoom();
+        if (zoomLevelSpan) {
+          zoomLevelSpan.textContent = `${this.getZoomPercentage()}%`;
+        }
+      });
+    }
+
+    // Mouse wheel zoom (Ctrl + scroll)
+    const graphContainer = container.querySelector('.graph-container') as HTMLElement;
+    if (graphContainer) {
+      graphContainer.addEventListener('wheel', (e: Event) => {
+        const wheelEvent = e as WheelEvent;
+        if (wheelEvent.ctrlKey || wheelEvent.metaKey) {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          const oldScale = this.zoomState.scale;
+          const delta = wheelEvent.deltaY > 0 ? -0.05 : 0.05;
+          this.zoomState.scale = Math.max(this.MIN_ZOOM, Math.min(this.MAX_ZOOM, this.zoomState.scale + delta));
+          
+          // Zoom centered on mouse position
+          const rect = graphContainer.getBoundingClientRect();
+          const mouseX = wheelEvent.clientX - rect.left;
+          const mouseY = wheelEvent.clientY - rect.top;
+          
+          // Adjust translation to zoom toward mouse position
+          const scaleDiff = this.zoomState.scale - oldScale;
+          this.zoomState.translateX -= (mouseX * scaleDiff) / this.zoomState.scale;
+          this.zoomState.translateY -= (mouseY * scaleDiff) / this.zoomState.scale;
+          
+          this.saveZoomState();
+          this.applyZoom();
+          if (zoomLevelSpan) {
+            zoomLevelSpan.textContent = `${this.getZoomPercentage()}%`;
+          }
+        }
+      }, { passive: false });
+      
+      // Panning with mouse drag
+      graphContainer.addEventListener('mousedown', (e: MouseEvent) => {
+        if (e.button === 0 && !e.ctrlKey && !e.metaKey) { // Left click only, not with ctrl
+          const target = e.target as Element;
+          // Only pan if not clicking on a node
+          if (!target.closest('.graph-node')) {
+            this.isPanning = true;
+            this.panStart = { x: e.clientX, y: e.clientY };
+            graphContainer.style.cursor = 'grabbing';
+            e.preventDefault();
+          }
+        }
+      });
+      
+      graphContainer.addEventListener('mousemove', (e: MouseEvent) => {
+        if (this.isPanning) {
+          const dx = e.clientX - this.panStart.x;
+          const dy = e.clientY - this.panStart.y;
+          
+          this.zoomState.translateX += dx;
+          this.zoomState.translateY += dy;
+          
+          this.panStart = { x: e.clientX, y: e.clientY };
+          this.applyZoom();
+          e.preventDefault();
+        }
+      });
+      
+      const endPanning = () => {
+        if (this.isPanning) {
+          this.isPanning = false;
+          this.saveZoomState();
+          graphContainer.style.cursor = '';
+        }
+      };
+      
+      graphContainer.addEventListener('mouseup', endPanning);
+      graphContainer.addEventListener('mouseleave', endPanning);
+    }
+
+    // Keyboard shortcuts (check if graph container is hovered)
+    document.addEventListener('keydown', (e: KeyboardEvent) => {
+      const graphContainer = container.querySelector('.graph-container');
+      if (graphContainer && graphContainer.matches(':hover')) {
+        if (e.key === '+' || e.key === '=') {
+          e.preventDefault();
+          this.zoomIn();
+          if (zoomLevelSpan) {
+            zoomLevelSpan.textContent = `${this.getZoomPercentage()}%`;
+          }
+        } else if (e.key === '-' || e.key === '_') {
+          e.preventDefault();
+          this.zoomOut();
+          if (zoomLevelSpan) {
+            zoomLevelSpan.textContent = `${this.getZoomPercentage()}%`;
+          }
+        } else if (e.key === '0') {
+          e.preventDefault();
+          this.resetZoom();
+          if (zoomLevelSpan) {
+            zoomLevelSpan.textContent = `${this.getZoomPercentage()}%`;
+          }
+        }
+      }
+    });
   }
 
   /**

@@ -91,29 +91,41 @@ export class MarkdownSidebarProvider implements vscode.WebviewViewProvider {
         this._activeDocument = editor.document;
         logger.debug('[Sidebar-Debug] Set active document:', this._activeDocument.fileName);
         this._updateView();
+      } else if (editor && this._isSystemView(editor.document)) {
+        // System view (output, terminal, etc.) - preserve current markdown document
+        logger.debug('[Sidebar-Debug] System view active, preserving markdown document', editor?.document.languageId);
+        // Don't update view or clear document - keep showing current markdown context
       } else {
-        // Editor closed or non-markdown file, clear active document
+        // Real file with different language or no editor, clear active document
         this._activeDocument = undefined;
-        logger.debug('[Sidebar-Debug] Cleared active document (non-markdown or no editor)');
+        logger.debug('[Sidebar-Debug] Cleared active document (non-markdown file or no editor)', editor?.document.languageId);
         this._updateView();
       }
     });
 
     // Track visible text editors changes (for when switching between already-open tabs)
-    vscode.window.onDidChangeVisibleTextEditors(editors => {
-      logger.debug('[Sidebar-Debug] Visible editors changed:', editors.length);
-      const markdownEditor = editors.find(e => e.document.languageId === 'markdown');
-      if (markdownEditor) {
-        this._activeDocument = markdownEditor.document;
-        logger.debug('[Sidebar-Debug] Set active document from visible editors:', this._activeDocument.fileName);
-        this._updateView();
-      } else {
-        // No markdown editors visible, clear active document
-        this._activeDocument = undefined;
-        logger.debug('[Sidebar-Debug] Cleared active document (no markdown editors visible)');
-        this._updateView();
-      }
-    });
+    // vscode.window.onDidChangeVisibleTextEditors(editors => {
+    //   logger.debug('[Sidebar-Debug] Visible editors changed:', editors.length);
+    //   const markdownEditor = editors.find(e => e.document.languageId === 'markdown');
+    //   if (markdownEditor) {
+    //     this._activeDocument = markdownEditor.document;
+    //     logger.debug('[Sidebar-Debug] Set active document from visible editors:', this._activeDocument.fileName);
+    //     this._updateView();
+    //   } else {
+    //     // Check if only system views are visible - if so, preserve current document
+    //     const hasOnlySystemViews = editors.length > 0 && editors.every(e => this._isSystemView(e.document));
+    //     logger.debug('[Sidebar-Debug] Cleared active document (no markdown editors visible)', {hasOnlySystemViews, l: editors});
+    //     if (hasOnlySystemViews && this._activeDocument) {
+    //       logger.debug('[Sidebar-Debug] Only system views visible, preserving markdown document');
+    //       // Don't clear - keep current document
+    //     } else {
+    //       // No markdown editors visible and not just system views, clear active document
+    //       this._activeDocument = undefined;
+    //       logger.debug('[Sidebar-Debug] Cleared active document (no markdown editors visible)');
+    //       this._updateView();
+    //     }
+    //   }
+    // });
 
     // Track document changes
     vscode.workspace.onDidChangeTextDocument(e => {
@@ -163,6 +175,47 @@ export class MarkdownSidebarProvider implements vscode.WebviewViewProvider {
         logger.debug('[Sidebar-Debug] Initial active document set from visible editors:', this._activeDocument.fileName);
       }
     }
+  }
+
+  /**
+   * Check if the document is a system view (output panel, terminal, etc.)
+   * that should not affect the sidebar state
+   */
+  private _isSystemView(document: vscode.TextDocument): boolean {
+    const uri = document.uri.toString();
+    const fileName = document.fileName;
+    
+    // Check for output panels
+    if (uri.includes('extension-output-') || fileName.includes('extension-output-')) {
+      return true;
+    }
+    
+    // Check for other system views by scheme
+    const scheme = document.uri.scheme;
+    if (['output', 'debug', 'vscode-terminal', 'git', 'extension'].includes(scheme)) {
+      return true;
+    }
+    
+    // Check for specific language IDs used by system views
+    const systemLanguageIds = [
+      'Log',
+      'log',
+      'plaintext', // Often used by output panels
+      'scminput',
+      'search-result',
+      'interactive',
+      'vscode-interactive-input'
+    ];
+    
+    // Check if it's an output panel by language ID pattern
+    if (document.languageId.includes('.output') || 
+        document.languageId.includes('frontmatter.project.output') ||
+        document.languageId === undefined ||
+        systemLanguageIds.includes(document.languageId)) {
+      return true;
+    }
+    
+    return false;
   }
 
   /**

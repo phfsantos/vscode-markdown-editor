@@ -276,21 +276,28 @@ export class GraphViewPanel {
 <body>
   <div id="app">
     <div class="controls">
-      <div class="control-group">
+      <div class="control-group control-group-checkbox">
         <label>
           <input type="checkbox" id="directLinksOnly" />
           Show direct links only
         </label>
       </div>
-      <div class="control-group">
-        <label for="depth">Depth: <span id="depth-value">${this._currentDepth}</span></label>
+      <div class="control-group control-group-slider">
+        <label for="depth">Depth</label>
+        <span class="slider-value" id="depth-value">${this._currentDepth}</span>
         <input type="range" id="depth" min="1" max="5" value="${this._currentDepth}" ${this._showDirectLinksOnly ? 'disabled' : ''} />
       </div>
-      <div class="control-group">
-        <label for="maxNodes">Max Nodes: <span id="max-nodes-value">${this._currentMaxNodes}</span></label>
+      <div class="control-group control-group-slider">
+        <label for="maxNodes">Max Nodes</label>
+        <span class="slider-value" id="max-nodes-value">${this._currentMaxNodes}</span>
         <input type="range" id="maxNodes" min="10" max="500" step="10" value="${this._currentMaxNodes}" />
       </div>
-      <div class="control-group">
+      <div class="control-group control-group-slider">
+        <label for="nodeDistance">Node Distance</label>
+        <span class="slider-value" id="node-distance-value">2000</span>
+        <input type="range" id="nodeDistance" min="1000" max="20000" step="100" value="2000" />
+      </div>
+      <div class="control-group control-group-stats">
         <span id="stats">Nodes: 0 | Links: 0</span>
       </div>
     </div>

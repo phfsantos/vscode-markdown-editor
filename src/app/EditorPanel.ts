@@ -553,6 +553,13 @@ export class EditorPanel {
                   : "light",
             });
             break;
+          case "vditorReady":
+            // Vditor has initialized/reloaded - notify sidebar via document change event
+            if (this._document) {
+              logger.debug('[EditorPanel] Vditor ready - emitting document change for sidebar update');
+              EditorPanel._onDidChangeActiveDocument.fire(this._document);
+            }
+            break;
           case "save-options":
             this._context.globalState.update(KeyVditorOptions, message.options);
             break;
@@ -2659,7 +2666,7 @@ export class EditorPanel {
       ) + "/";
     const toMediaPath = (f: string) => `media/dist/${f}`;
     const JsFiles = ["main.js"].map(toMediaPath).map(toUri);
-    const CssFiles = ["main.css", "vscode-integration.css"].map(toMediaPath).map(toUri);
+    const CssFiles = ["main.css"].map(toMediaPath).map(toUri);
     
     // Add codicon CSS from sidebar-dist (same as sidebar)
     const codiconsUri = webview.asWebviewUri(

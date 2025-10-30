@@ -26427,39 +26427,6 @@ window.addEventListener("message", (e) => {
   require_jquery_confirm_min()(window, import_jquery.default);
   window.vscode = window.acquireVsCodeApi && window.acquireVsCodeApi();
   window.global = window;
-  function confirm2(msg, onOk) {
-    import_jquery.default.confirm({
-      title: "",
-      animation: "top",
-      closeAnimation: "top",
-      animateFromElement: false,
-      boxWidth: "300px",
-      useBootstrap: false,
-      content: msg,
-      buttons: {
-        cancel: {
-          text: "Cancel"
-        },
-        confirm: {
-          text: "Confirm",
-          action: onOk
-        }
-      }
-    });
-  }
-  function fixDarkTheme() {
-    let $ct = document.querySelector('[data-type="content-theme"]');
-    $ct.nextElementSibling.addEventListener("click", (e7) => {
-      if (e7.target.tagName !== "BUTTON")
-        return;
-      let type = e7.target.getAttribute("data-type");
-      if (type === "dark") {
-        vditor.setTheme(type);
-      } else {
-        vditor.setTheme("classic");
-      }
-    });
-  }
   var fileToBase64 = async (file2) => {
     return new Promise((res, rej) => {
       const reader = new FileReader();
@@ -28641,16 +28608,13 @@ window.addEventListener("message", (e) => {
       }
     },
     "|",
-    {name: "edit-mode", tipPosition: "e"},
     {
       name: "more",
       tipPosition: "e",
       toolbar: [
         "both",
         "code-theme",
-        "content-theme",
         "outline",
-        "preview",
         {
           name: "copy-markdown",
           icon: t2("copyMarkdown"),
@@ -28686,35 +28650,7 @@ window.addEventListener("message", (e) => {
               });
             }
           }
-        },
-        {
-          name: "reset-config",
-          icon: t2("resetConfig"),
-          async click() {
-            confirm2(t2("resetConfirm"), async () => {
-              try {
-                await vscode.postMessage({
-                  command: "reset-config"
-                });
-                await vscode.postMessage({
-                  command: "ready"
-                });
-                vscode.postMessage({
-                  command: "info",
-                  content: "Reset config successfully!"
-                });
-              } catch (error2) {
-                vscode.postMessage({
-                  command: "error",
-                  content: "Reset config failed!"
-                });
-              }
-            });
-          }
-        },
-        "devtools",
-        "info",
-        "help"
+        }
       ]
     }
   ].map((it2) => {
@@ -46763,7 +46699,7 @@ console.log('Hello, World!');
       mode: "ir",
       cache: {enable: false},
       toolbar,
-      toolbarConfig: {pin: true},
+      toolbarConfig: {pin: true, hide: false},
       options: {
         fixTermTypo: false,
         tab: "	"
@@ -46869,7 +46805,6 @@ console.log('Hello, World!');
       },
       ...defaultOptions2,
       after() {
-        fixDarkTheme();
         if (wikiLinkAutocomplete && window.vditor) {
           const documentPath = msg.documentPath || "untitled";
           wikiLinkAutocomplete.initialize(documentPath, window.vditor);
@@ -47098,6 +47033,14 @@ console.log('Hello, World!');
             diagnosticVisualizer.addSimpleDiagnostics();
           }
         }, 500);
+        try {
+          vscode.postMessage({
+            command: "vditorReady"
+          });
+          vscodeLog3("[Vditor] Sent vditorReady message to trigger sidebar update");
+        } catch (error2) {
+          vscodeLog3(`Failed to send vditorReady message: ${error2}`);
+        }
       },
       input(value) {
         const timestamp = Date.now();

@@ -16,7 +16,6 @@ export const toolbar = [
       });
     },
   },
-
   "emoji",
   "headings",
   "bold",
@@ -72,16 +71,16 @@ export const toolbar = [
     },
   },
   "|",
-  { name: "edit-mode", tipPosition: "e" },
+  // Removed "edit-mode" button - IR mode is locked for consistent editing experience
   {
     name: "more",
     tipPosition: "e",
     toolbar: [
       "both",
       "code-theme",
-      "content-theme",
+      // Removed "content-theme" button - content should use VS Code theme colors
       "outline",
-      "preview",
+      // Removed "preview" button - use VS Code's native markdown preview instead
       {
         name: "copy-markdown",
         icon: t("copyMarkdown"),
@@ -118,34 +117,10 @@ export const toolbar = [
           }
         },
       },
-      {
-        name: "reset-config",
-        icon: t("resetConfig"),
-        async click() {
-          confirm(t("resetConfirm"), async () => {
-            try {
-              await vscode.postMessage({
-                command: "reset-config",
-              });
-              await vscode.postMessage({
-                command: "ready",
-              });
-              vscode.postMessage({
-                command: "info",
-                content: "Reset config successfully!",
-              });
-            } catch (error) {
-              vscode.postMessage({
-                command: "error",
-                content: "Reset config failed!",
-              });
-            }
-          });
-        },
-      },
-      "devtools",
-      "info",
-      "help",
+      // Removed "reset-config" button - config should be managed through VS Code settings
+      // Removed "devtools" button - unnecessary for production use
+      // Removed "info" button - redundant with VS Code's help system
+      // Removed "help" button - use VS Code's built-in help instead
     ],
   },
 ].map((it: any) => {

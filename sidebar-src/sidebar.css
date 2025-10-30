@@ -8,17 +8,32 @@
   padding: 0;
 }
 
+html {
+  height: 100%;
+}
+
 body {
   font-family: var(--vscode-font-family);
   font-size: var(--vscode-font-size);
   color: var(--vscode-foreground);
   background-color: var(--vscode-sideBar-background);
   padding: 0;
-  overflow-x: hidden;
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+#app {
+  height: 100%;
+  overflow: hidden;
 }
 
 .sidebar-container {
   padding: 8px 0px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
 }
 
 /* Header */
@@ -236,13 +251,37 @@ body {
 
 /* Sections */
 .section {
-  margin-bottom: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
   border-bottom: 1px solid var(--vscode-sideBar-border);
-  padding-bottom: 8px;
+  overflow: hidden;
 }
 
+/* last child should not have bottom border and flex to fill remaining space */
 .section:last-child {
   border-bottom: none;
+  flex: 1 1 100% !important;
+}
+
+/* Expanded sections without explicit height - flex to fill space */
+.section:not(.collapsed):not(.has-explicit-height) {
+  flex: 1 1 0;
+  min-height: 100px;
+}
+
+/* Expanded sections with explicit height - use fixed height */
+.section:not(.collapsed).has-explicit-height {
+  flex: 0 0 auto;
+  min-height: 100px;
+}
+
+/* Collapsed sections only show header */
+.section.collapsed {
+  flex: 0 0 auto;
+  min-height: 0;
+  height: auto !important;
 }
 
 .section-header {
@@ -257,11 +296,11 @@ body {
   color: var(--vscode-sideBarSectionHeader-foreground);
   background-color: transparent;
   border-radius: 0;
-  margin-bottom: 4px;
-  margin-top: 8px;
   cursor: pointer;
   user-select: none;
   transition: background-color 0.1s ease;
+  flex-shrink: 0;
+  height: 35px;
 }
 
 .section-header:hover {
@@ -277,10 +316,11 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  transform: rotate(0deg);
 }
 
 .section.collapsed .section-header .chevron {
-  transform: rotate(-90deg);
+  transform: rotate(0deg);
 }
 
 .section-header h4 {
@@ -300,11 +340,47 @@ body {
 }
 
 .section-content {
-  transition: max-height 0.2s ease, opacity 0.2s ease;
-  overflow: hidden;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+  height: 100%;
 }
 
 .section.collapsed .section-content {
+  display: none;
+  height: 0;
+}
+
+/* Sections with explicit height set via JS */
+.section.has-explicit-height {
+  flex: 0 0 auto;
+}
+
+/* Resize handle for resizable sections - only show if there's another section below */
+.section.resizable.has-section-below::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: transparent;
+  cursor: ns-resize;
+  z-index: 10;
+  transition: background-color 0.2s;
+}
+
+.section.resizable.has-section-below:not(.collapsed):hover::after {
+  background: var(--vscode-sideBar-border);
+}
+
+.section.resizable.has-section-below.resizing::after {
+  background: var(--vscode-focusBorder);
+}
+
+/* Don't show resize handle on collapsed sections or last section */
+.section.collapsed::after {
   display: none;
 }
 
@@ -321,12 +397,15 @@ body {
   grid-template-columns: 1fr 1fr;
   gap: 6px;
   padding: 0 4px;
+  max-height: 200px;
+  overflow-y: auto;
 }
 
 .template-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 4px;
   padding: 10px 8px;
   background-color: var(--vscode-button-secondaryBackground);
@@ -530,14 +609,69 @@ body {
 
 /* Graph View */
 .graph-container {
+  position: relative;
   padding: 8px;
   background-color: var(--vscode-editor-background);
   border-radius: 4px;
   margin-bottom: 8px;
+  cursor: grab;
+}
+
+.graph-container:active {
+  cursor: grabbing;
+}
+
+/* Graph Zoom Controls */
+.graph-zoom-controls {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background-color: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-sideBar-border);
+  border-radius: 4px;
+  padding: 4px;
+  z-index: 10;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.graph-zoom-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: none;
+  border: none;
+  color: var(--vscode-foreground);
+  cursor: pointer;
+  border-radius: 3px;
+  transition: background-color 0.15s;
+}
+
+.graph-zoom-btn:hover {
+  background-color: var(--vscode-list-hoverBackground);
+}
+
+.graph-zoom-btn:active {
+  background-color: var(--vscode-list-activeSelectionBackground);
+}
+
+.graph-zoom-level {
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+  font-weight: 600;
+  min-width: 38px;
+  text-align: center;
+  user-select: none;
 }
 
 .graph-svg {
   display: block;
+  width: 100%;
+  height: auto;
   margin: 0 auto;
   background-color: var(--vscode-editor-background);
   border-radius: 4px;

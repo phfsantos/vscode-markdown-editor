@@ -1944,6 +1944,51 @@ body[data-use-vscode-theme-color="1"] .vditor {
 }
 .vditor .vditor-reset {
   font-family: var(--vscode-editor-font-family) !important;
+  color: var(--vscode-editor-foreground) !important;
+  background-color: var(--vscode-editor-background) !important;
+}
+.vditor-ir .vditor-reset,
+.vditor-wysiwyg .vditor-reset,
+.vditor-sv .vditor-reset {
+  color: var(--vscode-editor-foreground) !important;
+  background-color: var(--vscode-editor-background) !important;
+}
+.vditor-reset h1,
+.vditor-reset h2,
+.vditor-reset h3,
+.vditor-reset h4,
+.vditor-reset h5,
+.vditor-reset h6 {
+  color: var(--vscode-editor-foreground) !important;
+}
+.vditor-reset a {
+  color: var(--vscode-textLink-foreground, #3794ff) !important;
+}
+.vditor-reset a:hover {
+  color: var(--vscode-textLink-activeForeground, #4daafc) !important;
+}
+.vditor-reset em,
+.vditor-reset i {
+  color: var(--vscode-editor-foreground) !important;
+}
+.vditor-reset strong,
+.vditor-reset b {
+  color: var(--vscode-editor-foreground) !important;
+}
+.vditor-reset blockquote {
+  color: var(--vscode-editor-foreground) !important;
+  border-left-color: var(--vscode-textBlockQuote-border, #007acc) !important;
+  background-color: var(--vscode-textBlockQuote-background, rgba(127, 127, 127, 0.1)) !important;
+}
+.vditor-reset ul,
+.vditor-reset ol,
+.vditor-reset li {
+  color: var(--vscode-editor-foreground) !important;
+}
+.vditor-reset p,
+.vditor-reset span,
+.vditor-reset div {
+  color: inherit !important;
 }
 .vditor--dark .vditor-reset code:not(.hljs):not(.highlight-chroma) {
   background-color: rgba(66, 133, 244, .1);

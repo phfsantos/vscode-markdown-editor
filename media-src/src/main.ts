@@ -717,10 +717,10 @@ function initVditor(msg) {
     minHeight: "100vh",
     lang,
     value: msg.content,
-    mode: "ir",
+    mode: "ir", // Locked to Instant Rendering mode for consistent experience
     cache: { enable: false },
     toolbar,
-    toolbarConfig: { pin: true },
+    toolbarConfig: { pin: true, hide: false },
     // Disable automatic formatting that causes cursor issues
     options: {
       fixTermTypo: false, // Disable automatic typo fixes that move cursor
@@ -855,7 +855,7 @@ function initVditor(msg) {
     },
     ...defaultOptions,
     after() {
-      fixDarkTheme();
+      // fixDarkTheme(); // Removed - content-theme button no longer exists in toolbar
 
       // Initialize wiki-link autocomplete with vditor instance
       if (wikiLinkAutocomplete && window.vditor) {
@@ -878,19 +878,12 @@ function initVditor(msg) {
 
       
       document.addEventListener('contextmenu', (e) => {
-
-
-
-        
         // Check if this is in the editor area
         const isEditorEvent = e.target && (
           (e.target as Element).closest('.vditor-ir') ||
           (e.target as Element).closest('.vditor-wysiwyg') ||
           (e.target as Element).closest('.vditor-sv')
         );
-        
-
-        
         // DO NOT PREVENT DEFAULT - let Vditor handle it
         
         // If this is an editor event, let's also manually test Vditor's callback
@@ -912,8 +905,6 @@ function initVditor(msg) {
         y: number,
         menuItems: any[]
       ) => {
-
-
         // Remove any existing manual context menu
         const existingMenu = document.getElementById("manual-context-menu");
         if (existingMenu) existingMenu.remove();
@@ -1154,6 +1145,16 @@ function initVditor(msg) {
           diagnosticVisualizer.addSimpleDiagnostics();
         }
       }, 500); // Small delay to ensure editor is fully rendered
+
+      // Notify extension that Vditor has initialized/reloaded so sidebar can update
+      try {
+        vscode.postMessage({
+          command: "vditorReady"
+        });
+        vscodeLog('[Vditor] Sent vditorReady message to trigger sidebar update');
+      } catch (error) {
+        vscodeLog(`Failed to send vditorReady message: ${error}`);
+      }
     },
     input(value: string) {
       const timestamp = Date.now();

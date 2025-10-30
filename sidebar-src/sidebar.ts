@@ -50,10 +50,18 @@ class SidebarApp {
   private graphLoading: boolean = false;
   private graphDirectLinksOnly: boolean = false;
   private collapsedSections: Set<string> = new Set();
+  private sectionHeights: Map<string, number> = new Map();
+  private isResizing: boolean = false;
+  private currentResizeSection: string | null = null;
+  private containerResizeObserver: ResizeObserver | null = null;
+  private lastContainerHeight: number = 0;
+  private readonly HEADER_SIZE = 35; // Must match CSS .section-header height
+  private readonly MIN_SECTION_HEIGHT = 150;
+  private readonly RESIZABLE_SECTIONS = ['templates', 'tags', 'embeds', 'outgoing-links', 'backlinks', 'related-files', 'graph'];
 
   constructor() {
     this.vscode = acquireVsCodeApi();
-    this.graphView = new GraphView({ width: 280, height: 200, nodeRadius: 6, showLabels: true });
+    this.graphView = new GraphView({ width: 280, height: 200, nodeRadius: 6, showLabels: true, repulsionStrength: 2000 });
     
     // Restore state
     const state = this.vscode.getState() || {};
@@ -61,6 +69,11 @@ class SidebarApp {
     this.graphMaxNodes = state.graphMaxNodes || 15;
     this.graphDirectLinksOnly = state.graphDirectLinksOnly || false;
     this.collapsedSections = new Set(state.collapsedSections || []);
+    
+    // Restore section heights
+    if (state.sectionHeights) {
+      this.sectionHeights = new Map(Object.entries(state.sectionHeights).map(([k, v]) => [k, Number(v)]));
+    }
     
     this.init();
   }
@@ -85,8 +98,92 @@ class SidebarApp {
 
     // Request initial data
     this.vscode.postMessage({ command: 'refresh' });
+    
+    // Setup container resize observer for VS Code-like behavior
+    this.setupContainerResizeObserver();
   }
 
+  private setupContainerResizeObserver(): void {
+    // Observe #app for size changes to proportionally adjust sections with explicit heights
+    this.containerResizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const newHeight = entry.contentRect.height;
+        if (this.lastContainerHeight > 0 && newHeight !== this.lastContainerHeight) {
+          this.handleContainerResize(this.lastContainerHeight, newHeight);
+        }
+        this.lastContainerHeight = newHeight;
+      }
+    });
+    
+    // Wait for #app to be rendered
+    const checkApp = setInterval(() => {
+      const app = document.getElementById('app');
+      if (app) {
+        clearInterval(checkApp);
+        this.containerResizeObserver!.observe(app);
+        this.lastContainerHeight = app.clientHeight;
+      }
+    }, 100);
+  }
+  
+  /**
+   * Get the full content height of a section (scrollHeight of section-content)
+   * Similar to VSCode's body size calculation
+   */
+  private getContentHeight(sectionId: string): number {
+    const section = document.querySelector(`.section[data-section="${sectionId}"]`);
+    if (!section) return 0;
+    const content = section.querySelector('.section-content') as HTMLElement;
+    if (!content) return 0;
+    return content.scrollHeight; // Full scrollable content height
+  }
+  
+  /**
+   * Calculate min/max constraints for a section based on content scrollability
+   * VSCode pattern: sections with scrollable content can grow beyond viewport,
+   * sections without scrollable content are limited to their natural size
+   */
+  private getSectionConstraints(sectionId: string): { min: number; max: number } {
+    const section = document.querySelector(`.section[data-section="${sectionId}"]`);
+    if (!section) {
+      return {
+        min: this.HEADER_SIZE + this.MIN_SECTION_HEIGHT,
+        max: Number.POSITIVE_INFINITY
+      };
+    }
+    
+    const content = section.querySelector('.section-content') as HTMLElement;
+    if (!content) {
+      return {
+        min: this.HEADER_SIZE + this.MIN_SECTION_HEIGHT,
+        max: Number.POSITIVE_INFINITY
+      };
+    }
+    
+    const contentHeight = content.scrollHeight;
+    const visibleHeight = content.clientHeight;
+    
+    // If content is scrollable (has more content than visible), allow growth
+    // Otherwise, limit to natural content size
+    const hasScrollableContent = contentHeight > visibleHeight;
+    
+    return {
+      min: this.HEADER_SIZE + this.MIN_SECTION_HEIGHT,
+      max: hasScrollableContent 
+        ? Number.POSITIVE_INFINITY // Can grow indefinitely if content is scrollable
+        : this.HEADER_SIZE + Math.max(this.MIN_SECTION_HEIGHT, contentHeight) // Limited to content size
+    };
+  }
+  
+  private handleContainerResize(oldHeight: number, newHeight: number): void {
+    // VSCode behavior: Let CSS flexbox handle container resizing
+    // Don't manually adjust section heights on container resize
+    // This prevents jumping and maintains natural flex distribution
+    
+    // Simply ignore container resizes - CSS will handle it via flex properties
+    return;
+  }
+  
   private render(): void {
     const app = document.getElementById('app');
     if (!app) return;
@@ -112,6 +209,40 @@ class SidebarApp {
 
     this.attachEventListeners();
     this.attachGraphEvents();
+    
+    // Update resize handles visibility based on section positions
+    this.updateResizeHandles();
+  }
+  
+  /**
+   * Update which sections show resize handles
+   * VSCode behavior: only show resize handle if there's another expanded section below
+   * Last expanded section never has a resize handle
+   */
+  private updateResizeHandles(): void {
+    // Get all expanded sections in order
+    const expandedSections: string[] = [];
+    this.RESIZABLE_SECTIONS.forEach(sectionId => {
+      if (!this.collapsedSections.has(sectionId)) {
+        expandedSections.push(sectionId);
+      }
+    });
+    
+    // Remove has-section-below class from all sections first
+    document.querySelectorAll('.section.resizable').forEach(el => {
+      el.classList.remove('has-section-below');
+    });
+    
+    // Add has-section-below class to sections that have another expanded section below
+    expandedSections.forEach((sectionId, index) => {
+      // Only add class if this is NOT the last expanded section
+      if (index < expandedSections.length - 1) {
+        const section = document.querySelector(`.section[data-section="${sectionId}"]`);
+        if (section) {
+          section.classList.add('has-section-below');
+        }
+      }
+    });
   }
 
   private renderNoDocument(): string {
@@ -169,9 +300,13 @@ class SidebarApp {
   private renderTemplates(): string {
     const isCollapsed = this.collapsedSections.has('templates');
     const chevron = isCollapsed ? 'codicon-chevron-right' : 'codicon-chevron-down';
+    const height = this.sectionHeights.get('templates');
+    // Only apply explicit height if section is expanded
+    const sectionStyle = (!isCollapsed && height) ? `style="height: ${height}px;"` : '';
+    const heightClass = (!isCollapsed && height) ? 'has-explicit-height' : '';
     
     return `
-      <div class="section ${isCollapsed ? 'collapsed' : ''}" data-section="templates">
+      <div class="section resizable ${isCollapsed ? 'collapsed' : ''} ${heightClass}" data-section="templates" ${sectionStyle}>
         <div class="section-header" data-section-toggle="templates">
           <span class="codicon ${chevron} chevron"></span>
           <span class="codicon codicon-file-add"></span>
@@ -208,9 +343,13 @@ class SidebarApp {
 
     const isCollapsed = this.collapsedSections.has('tags');
     const chevron = isCollapsed ? 'codicon-chevron-right' : 'codicon-chevron-down';
+    const height = this.sectionHeights.get('tags');
+    // Only apply explicit height if section is expanded
+    const sectionStyle = (!isCollapsed && height) ? `style="height: ${height}px;"` : '';
+    const heightClass = (!isCollapsed && height) ? 'has-explicit-height' : '';
     
     return `
-      <div class="section ${isCollapsed ? 'collapsed' : ''}" data-section="tags">
+      <div class="section resizable ${isCollapsed ? 'collapsed' : ''} ${heightClass}" data-section="tags" ${sectionStyle}>
         <div class="section-header" data-section-toggle="tags">
           <span class="codicon ${chevron} chevron"></span>
           <span class="codicon codicon-tag"></span>
@@ -243,9 +382,13 @@ class SidebarApp {
 
     const isCollapsed = this.collapsedSections.has('embeds');
     const chevron = isCollapsed ? 'codicon-chevron-right' : 'codicon-chevron-down';
+    const height = this.sectionHeights.get('embeds');
+    // Only apply explicit height if section is expanded
+    const sectionStyle = (!isCollapsed && height) ? `style="height: ${height}px;"` : '';
+    const heightClass = (!isCollapsed && height) ? 'has-explicit-height' : '';
     
     return `
-      <div class="section ${isCollapsed ? 'collapsed' : ''}" data-section="embeds">
+      <div class="section resizable ${isCollapsed ? 'collapsed' : ''} ${heightClass}" data-section="embeds" ${sectionStyle}>
         <div class="section-header" data-section-toggle="embeds">
           <span class="codicon ${chevron} chevron"></span>
           <span class="codicon codicon-file-media"></span>
@@ -261,10 +404,14 @@ class SidebarApp {
     const links = this.data?.outgoingLinks || [];
     const isCollapsed = this.collapsedSections.has('outgoing-links');
     const chevron = isCollapsed ? 'codicon-chevron-right' : 'codicon-chevron-down';
+    const height = this.sectionHeights.get('outgoing-links');
+    // Only apply explicit height if section is expanded
+    const sectionStyle = (!isCollapsed && height) ? `style="height: ${height}px;"` : '';
+    const heightClass = (!isCollapsed && height) ? 'has-explicit-height' : '';
     
     if (links.length === 0) {
       return `
-        <div class="section ${isCollapsed ? 'collapsed' : ''}" data-section="outgoing-links">
+        <div class="section resizable ${isCollapsed ? 'collapsed' : ''} ${heightClass}" data-section="outgoing-links" ${sectionStyle}>
           <div class="section-header" data-section-toggle="outgoing-links">
             <span class="codicon ${chevron} chevron"></span>
             <span class="codicon codicon-link-external"></span>
@@ -288,7 +435,7 @@ class SidebarApp {
     `).join('');
 
     return `
-      <div class="section ${isCollapsed ? 'collapsed' : ''}" data-section="outgoing-links">
+      <div class="section resizable ${isCollapsed ? 'collapsed' : ''} ${heightClass}" data-section="outgoing-links" ${sectionStyle}>
         <div class="section-header" data-section-toggle="outgoing-links">
           <span class="codicon ${chevron} chevron"></span>
           <span class="codicon codicon-link-external"></span>
@@ -306,10 +453,14 @@ class SidebarApp {
     const backlinks = this.data?.backlinks || [];
     const isCollapsed = this.collapsedSections.has('backlinks');
     const chevron = isCollapsed ? 'codicon-chevron-right' : 'codicon-chevron-down';
+    const height = this.sectionHeights.get('backlinks');
+    // Only apply explicit height if section is expanded
+    const sectionStyle = (!isCollapsed && height) ? `style="height: ${height}px;"` : '';
+    const heightClass = (!isCollapsed && height) ? 'has-explicit-height' : '';
     
     if (backlinks.length === 0) {
       return `
-        <div class="section ${isCollapsed ? 'collapsed' : ''}" data-section="backlinks">
+        <div class="section resizable ${isCollapsed ? 'collapsed' : ''} ${heightClass}" data-section="backlinks" ${sectionStyle}>
           <div class="section-header" data-section-toggle="backlinks">
             <span class="codicon ${chevron} chevron"></span>
             <span class="codicon codicon-references"></span>
@@ -332,7 +483,7 @@ class SidebarApp {
     `).join('');
 
     return `
-      <div class="section ${isCollapsed ? 'collapsed' : ''}" data-section="backlinks">
+      <div class="section resizable ${isCollapsed ? 'collapsed' : ''} ${heightClass}" data-section="backlinks" ${sectionStyle}>
         <div class="section-header" data-section-toggle="backlinks">
           <span class="codicon ${chevron} chevron"></span>
           <span class="codicon codicon-references"></span>
@@ -355,6 +506,10 @@ class SidebarApp {
     
     const isCollapsed = this.collapsedSections.has('related-files');
     const chevron = isCollapsed ? 'codicon-chevron-right' : 'codicon-chevron-down';
+    const height = this.sectionHeights.get('related-files');
+    // Only apply explicit height if section is expanded
+    const sectionStyle = (!isCollapsed && height) ? `style="height: ${height}px;"` : '';
+    const heightClass = (!isCollapsed && height) ? 'has-explicit-height' : '';
 
     const relatedList = related.map(file => `
       <div class="file-item" data-action="openFile" data-path="${file.path}">
@@ -367,7 +522,7 @@ class SidebarApp {
     `).join('');
 
     return `
-      <div class="section ${isCollapsed ? 'collapsed' : ''}" data-section="related-files">
+      <div class="section resizable ${isCollapsed ? 'collapsed' : ''} ${heightClass}" data-section="related-files" ${sectionStyle}>
         <div class="section-header" data-section-toggle="related-files">
           <span class="codicon ${chevron} chevron"></span>
           <span class="codicon codicon-file-symlink-directory"></span>
@@ -466,6 +621,19 @@ class SidebarApp {
                 value="${this.graphMaxNodes}" 
                 class="graph-slider"
                 data-action="changeMaxNodes"
+              />
+            </div>
+            <div class="filter-group">
+              <label for="graph-node-distance">Node distance: <span id="node-distance-value">2000</span></label>
+              <input 
+                type="range" 
+                id="graph-node-distance" 
+                min="1000" 
+                max="20000" 
+                step="100"
+                value="2000" 
+                class="graph-slider"
+                data-action="changeNodeDistance"
               />
             </div>
           </div>
@@ -573,11 +741,18 @@ class SidebarApp {
         }
       });
     });
+    
+    // Attach resize handlers to resizable sections
+    this.attachResizeHandlers();
   }
   
   private toggleSection(sectionId: string): void {
-    if (this.collapsedSections.has(sectionId)) {
+    const wasCollapsed = this.collapsedSections.has(sectionId);
+    
+    if (wasCollapsed) {
       this.collapsedSections.delete(sectionId);
+      // When opening a section, let it be naturally sized by flexbox
+      // Don't force an explicit height unless user manually resizes
     } else {
       this.collapsedSections.add(sectionId);
     }
@@ -589,6 +764,115 @@ class SidebarApp {
     
     // Re-render
     this.render();
+    // Note: updateResizeHandles() is called at the end of render()
+  }
+  
+  private attachResizeHandlers(): void {
+    // Attach mousedown handlers to section resize handles
+    document.querySelectorAll('.section.resizable').forEach(section => {
+      const sectionEl = section as HTMLElement;
+      const sectionId = sectionEl.dataset.section;
+      if (!sectionId) return;
+      
+      // Only allow resize on expanded sections
+      if (sectionEl.classList.contains('collapsed')) return;
+      
+      // Create a resize handle area
+      sectionEl.addEventListener('mousedown', (e: MouseEvent) => {
+        // Don't allow resize if section is collapsed
+        if (sectionEl.classList.contains('collapsed')) return;
+        
+        const rect = sectionEl.getBoundingClientRect();
+        const isNearBottom = e.clientY > rect.bottom - 10;
+        
+        if (isNearBottom) {
+          e.preventDefault();
+          this.startResize(sectionId, e.clientY);
+        }
+      });
+    });
+    
+    // Global mousemove and mouseup handlers
+    document.addEventListener('mousemove', (e: MouseEvent) => {
+      if (this.isResizing && this.currentResizeSection) {
+        this.handleResize(e.clientY);
+      }
+    });
+    
+    document.addEventListener('mouseup', () => {
+      if (this.isResizing) {
+        this.endResize();
+      }
+    });
+  }
+  
+  private startResize(sectionId: string, startY: number): void {
+    this.isResizing = true;
+    this.currentResizeSection = sectionId;
+    
+    const section = document.querySelector(`.section[data-section="${sectionId}"]`) as HTMLElement;
+    if (section) {
+      section.classList.add('resizing');
+      // Store current height of entire section
+      const currentHeight = section.offsetHeight;
+      this.sectionHeights.set(sectionId, currentHeight);
+    }
+    
+    document.body.style.cursor = 'ns-resize';
+    document.body.style.userSelect = 'none';
+  }
+  
+  private handleResize(currentY: number): void {
+    if (!this.currentResizeSection) return;
+    
+    const section = document.querySelector(`.section[data-section="${this.currentResizeSection}"]`) as HTMLElement;
+    if (!section || section.classList.contains('collapsed')) return;
+    
+    const rect = section.getBoundingClientRect();
+    const desiredHeight = currentY - rect.top;
+    
+    // Get content-based constraints (VSCode pattern)
+    const constraints = this.getSectionConstraints(this.currentResizeSection);
+    
+    // Clamp between min and max - prevents growing beyond content if not scrollable
+    const newHeight = Math.max(constraints.min, Math.min(constraints.max, desiredHeight));
+    const oldHeight = this.sectionHeights.get(this.currentResizeSection) || section.offsetHeight;
+    
+    // Only apply if there's a significant change
+    if (Math.abs(newHeight - oldHeight) < 5) return;
+    
+    // VSCode behavior: Only set explicit height on the section being resized
+    // Other sections will flex naturally via CSS - don't manually adjust them
+    section.style.height = `${newHeight}px`;
+    section.classList.add('has-explicit-height');
+    this.sectionHeights.set(this.currentResizeSection, newHeight);
+  }
+  
+
+  
+  private endResize(): void {
+    this.isResizing = false;
+    
+    if (this.currentResizeSection) {
+      const section = document.querySelector(`.section[data-section="${this.currentResizeSection}"]`) as HTMLElement;
+      if (section) {
+        section.classList.remove('resizing');
+      }
+      
+      // Save state
+      const state = this.vscode.getState() || {};
+      const heightsObj: Record<string, number> = {};
+      this.sectionHeights.forEach((value, key) => {
+        heightsObj[key] = value;
+      });
+      state.sectionHeights = heightsObj;
+      this.vscode.setState(state);
+      
+      this.currentResizeSection = null;
+    }
+    
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
   }
 
   private attachGraphEvents(): void {
@@ -652,6 +936,46 @@ class SidebarApp {
       });
     }
 
+    // Node distance filter
+    const nodeDistanceSlider = document.querySelector('[data-action="changeNodeDistance"]') as HTMLInputElement;
+    if (nodeDistanceSlider) {
+      nodeDistanceSlider.addEventListener('input', (e) => {
+        const target = e.target as HTMLInputElement;
+        const nodeDistance = parseInt(target.value, 10);
+        const valueDisplay = document.getElementById('node-distance-value');
+        if (valueDisplay) {
+          valueDisplay.textContent = String(nodeDistance);
+        }
+        // Update graph view with new repulsion strength
+        this.graphView = new GraphView({ 
+          width: 280, 
+          height: 200, 
+          nodeRadius: 6, 
+          showLabels: true, 
+          repulsionStrength: nodeDistance
+        });
+        // Re-render immediately for live feedback
+        if (this.data?.graphData) {
+          const graphContainer = document.getElementById('graph-container');
+          if (graphContainer) {
+            const graphContent = this.graphView.render(this.data.graphData);
+            const existingGraph = graphContainer.querySelector('.graph-container');
+            if (existingGraph) {
+              existingGraph.outerHTML = graphContent;
+              // Re-attach events after re-render
+              this.graphView.attachZoomEvents(graphContainer);
+              this.graphView.attachEvents(graphContainer, (nodeId: string, label: string) => {
+                this.vscode.postMessage({
+                  command: 'openFile',
+                  filePath: nodeId
+                });
+              });
+            }
+          }
+        }
+      });
+    }
+
     // Expand full graph
     const expandBtn = document.querySelector('[data-action="openFullGraph"]');
     if (expandBtn) {
@@ -663,6 +987,10 @@ class SidebarApp {
     // Attach click events to graph nodes
     const graphContainer = document.getElementById('graph-container');
     if (graphContainer) {
+      // Attach zoom controls
+      this.graphView.attachZoomEvents(graphContainer);
+      
+      // Attach node click events
       this.graphView.attachEvents(graphContainer, (nodeId: string, label: string) => {
         this.vscode.postMessage({
           command: 'openFile',
