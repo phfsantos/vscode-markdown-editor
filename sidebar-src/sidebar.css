@@ -45,6 +45,12 @@ body {
   margin-bottom: 12px;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 /* Graph filters */
 .graph-filters {
   display: flex;
@@ -164,6 +170,58 @@ body {
 
 .refresh-btn:hover {
   opacity: 1;
+}
+
+/* Cache Status */
+.cache-status {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.cache-status.visible {
+  display: flex;
+}
+
+.cache-rebuild-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+  border: 1px solid var(--vscode-button-border);
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 11px;
+  transition: background-color 0.2s;
+}
+
+.cache-rebuild-btn:hover {
+  background-color: var(--vscode-button-secondaryHoverBackground);
+}
+
+.cache-count {
+  font-weight: 600;
+}
+
+.cache-building {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: var(--vscode-inputValidation-infoBackground);
+  color: var(--vscode-inputValidation-infoForeground);
+  border: 1px solid var(--vscode-inputValidation-infoBorder);
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.codicon-modifier-spin {
+  animation: spin 1s linear infinite;
 }
 
 /* No Document State */
@@ -868,4 +926,37 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--vscode-scrollbarSlider-activeBackground);
+}
+
+/* Loading Skeleton Animation */
+.loading-skeleton {
+  padding: 8px;
+}
+
+.skeleton-line {
+  height: 12px;
+  background: linear-gradient(
+    90deg,
+    var(--vscode-sideBar-border) 0%,
+    var(--vscode-list-hoverBackground) 50%,
+    var(--vscode-sideBar-border) 100%
+  );
+  background-size: 200% 100%;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+}
+
+.skeleton-line:last-child {
+  margin-bottom: 0;
+  width: 70%;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }

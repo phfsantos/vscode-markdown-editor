@@ -15,6 +15,7 @@ interface DiffChange {
 interface DiffInfo {
   role: 'left' | 'right';
   otherUri: string;
+  instanceId?: string; // Unique instance ID for this editor panel
   changes: DiffChange[];
   stats: {
     added: number;
@@ -237,7 +238,7 @@ export class DiffVisualizer {
                           document.querySelector('.vditor-sv');
     
     if (!contentElement) {
-      vscodeLogWarn('⚠️ DIFF VISUALIZER: Could not find Vditor content element');
+      // vscodeLogWarn('⚠️ DIFF VISUALIZER: Could not find Vditor content element');
       return;
     }
     
@@ -458,7 +459,7 @@ export class DiffVisualizer {
     }
     
     if (!scrollableElement) {
-      vscodeLogError('❌ DIFF VISUALIZER: Could not find pre.vditor-reset element, defaulting to document.documentElement');
+      // vscodeLogError('❌ DIFF VISUALIZER: Could not find pre.vditor-reset element, defaulting to document.documentElement');
       scrollableElement = document.documentElement;
     }
     
@@ -507,7 +508,7 @@ export class DiffVisualizer {
                           document.querySelector('pre.vditor-reset');
     
     if (!contentElement) {
-      vscodeLogWarn('⚠️ DIFF VISUALIZER: Could not find pre.vditor-reset element for spacers');
+      // vscodeLogWarn('⚠️ DIFF VISUALIZER: Could not find pre.vditor-reset element for spacers');
       return;
     }
     
@@ -677,7 +678,7 @@ export class DiffVisualizer {
       }
       
       if (!targetElement) {
-        vscodeLogWarn(`⚠️ DIFF VISUALIZER: Could not find target element for block starting at line ${block.startLine}, skipping spacer`);
+        // vscodeLogWarn(`⚠️ DIFF VISUALIZER: Could not find target element for block starting at line ${block.startLine}, skipping spacer`);
         continue;
       }
       
@@ -696,7 +697,7 @@ export class DiffVisualizer {
       }
       
       if (!insertionParent) {
-        vscodeLogWarn(`⚠️ DIFF VISUALIZER: Target element is not a child of content element, skipping spacer for block at line ${block.startLine}`);
+        // vscodeLogWarn(`⚠️ DIFF VISUALIZER: Target element is not a child of content element, skipping spacer for block at line ${block.startLine}`);
         continue;
       }
       
@@ -758,7 +759,7 @@ export class DiffVisualizer {
           targetElement.parentElement!.insertBefore(spacer, targetElement);
         }
       } catch (error) {
-        vscodeLogError(`❌ DIFF VISUALIZER: Failed to insert spacer for block ${block.startLine}-${block.endLine}:`, error);
+        // vscodeLogError(`❌ DIFF VISUALIZER: Failed to insert spacer for block ${block.startLine}-${block.endLine}:`, error);
       }
     }
     
@@ -828,7 +829,7 @@ export class DiffVisualizer {
     
     // Only send if we have a valid percentage
     if (isNaN(scrollPercentage)) {
-      vscodeLogWarn('⚠️ DIFF VISUALIZER: Invalid scroll percentage (NaN), skipping');
+      // vscodeLogWarn('⚠️ DIFF VISUALIZER: Invalid scroll percentage (NaN), skipping');
       return;
     }
     
@@ -866,7 +867,7 @@ export class DiffVisualizer {
         role: this.diffInfo?.role
       });
     } else {
-      vscodeLogWarn('⚠️ DIFF VISUALIZER: vscode object not available!');
+      // vscodeLogWarn('⚠️ DIFF VISUALIZER: vscode object not available!');
     }
   }
 
@@ -887,7 +888,7 @@ export class DiffVisualizer {
                              document.documentElement;
     
     if (!scrollableElement) {
-      vscodeLogWarn('⚠️ DIFF VISUALIZER: No element found to apply scroll');
+      // vscodeLogWarn('⚠️ DIFF VISUALIZER: No element found to apply scroll');
       return;
     }
     
@@ -900,11 +901,11 @@ export class DiffVisualizer {
     const scrollableHeight = element.scrollHeight - element.clientHeight;
     
     if (scrollableHeight <= 0) {
-      vscodeLogWarn('⚠️ DIFF VISUALIZER: Element is not scrollable!', {
-        scrollHeight: element.scrollHeight,
-        clientHeight: element.clientHeight,
-        element: element.tagName + '.' + element.className
-      });
+      // vscodeLogWarn('⚠️ DIFF VISUALIZER: Element is not scrollable!', {
+      //   scrollHeight: element.scrollHeight,
+      //   clientHeight: element.clientHeight,
+      //   element: element.tagName + '.' + element.className
+      // });
       this.isScrolling = false;
       return;
     }

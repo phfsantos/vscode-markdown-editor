@@ -46,13 +46,26 @@ interface CacheEntry<T> {
 }
 
 /**
+ * Cache status information
+ */
+export interface CacheStatus {
+  isBuilding: boolean;
+  cacheSize: number;
+  buildProgress: { current: number; total: number; operation: string } | null;
+  ttl: number;
+}
+
+/**
  * Advanced file relationship analyzer with caching and ranking
  */
 export class RelationshipAnalyzer {
   private static instance: RelationshipAnalyzer;
   private cache: Map<string, CacheEntry<any>> = new Map();
-  private readonly CACHE_TTL = 60000; // 1 minute cache
+  private readonly CACHE_TTL = 600000; // 10 minute cache for better performance
   private fileAccessHistory: Map<string, number> = new Map();
+  private isBuilding: boolean = false;
+  private buildProgress: { current: number; total: number; operation: string } | null = null;
+  private onStatusChange: ((status: CacheStatus) => void) | null = null;
 
   private constructor() {
     // Track file access for recency scoring
@@ -61,6 +74,47 @@ export class RelationshipAnalyzer {
         this.fileAccessHistory.set(doc.uri.fsPath, Date.now());
       }
     });
+    
+    // Invalidate cache for changed files
+    vscode.workspace.onDidChangeTextDocument(e => {
+      if (e.document.languageId === 'markdown') {
+        this.invalidateCacheForFile(e.document.uri.fsPath);
+      }
+    });
+    
+    // Invalidate cache for deleted/renamed files
+    vscode.workspace.onDidDeleteFiles(e => {
+      e.files.forEach(uri => {
+        if (uri.fsPath.endsWith('.md')) {
+          this.invalidateCacheForFile(uri.fsPath);
+        }
+      });
+    });
+    
+    vscode.workspace.onDidRenameFiles(e => {
+      e.files.forEach(file => {
+        if (file.oldUri.fsPath.endsWith('.md') || file.newUri.fsPath.endsWith('.md')) {
+          this.invalidateCacheForFile(file.oldUri.fsPath);
+          this.invalidateCacheForFile(file.newUri.fsPath);
+        }
+      });
+    });
+  }
+  
+  /**
+   * Invalidate cache entries for a specific file
+   */
+  private invalidateCacheForFile(filePath: string): void {
+    const keysToDelete: string[] = [];
+    for (const key of this.cache.keys()) {
+      if (key.includes(filePath)) {
+        keysToDelete.push(key);
+      }
+    }
+    keysToDelete.forEach(key => this.cache.delete(key));
+    if (keysToDelete.length > 0) {
+      this.notifyStatusChange();
+    }
   }
 
   public static getInstance(): RelationshipAnalyzer {
@@ -68,6 +122,91 @@ export class RelationshipAnalyzer {
       RelationshipAnalyzer.instance = new RelationshipAnalyzer();
     }
     return RelationshipAnalyzer.instance;
+  }
+
+  /**
+   * Register callback for cache status changes
+   */
+  public onCacheStatusChange(callback: (status: CacheStatus) => void): void {
+    this.onStatusChange = callback;
+  }
+
+  /**
+   * Get current cache status
+   */
+  public getCacheStatus(): CacheStatus {
+    return {
+      isBuilding: this.isBuilding,
+      cacheSize: this.cache.size,
+      buildProgress: this.buildProgress,
+      ttl: this.CACHE_TTL
+    };
+  }
+
+  /**
+   * Rebuild entire cache for workspace
+   */
+  public async rebuildCache(): Promise<void> {
+    if (this.isBuilding) {
+      vscode.window.showInformationMessage('Cache rebuild already in progress');
+      return;
+    }
+
+    this.isBuilding = true;
+    this.notifyStatusChange();
+
+    try {
+      // Clear existing cache
+      this.cache.clear();
+
+      // Find all markdown files
+      const files = await vscode.workspace.findFiles('**/*.md', '**/node_modules/**');
+      const total = files.length;
+
+      vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title: 'Rebuilding relationship cache',
+        cancellable: false
+      }, async (progress) => {
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          this.buildProgress = {
+            current: i + 1,
+            total,
+            operation: `Processing ${path.basename(file.fsPath)}`
+          };
+          this.notifyStatusChange();
+
+          progress.report({
+            message: `${i + 1}/${total} - ${path.basename(file.fsPath)}`,
+            increment: (100 / total)
+          });
+
+          // Pre-populate cache for each file
+          try {
+            await this.getOutgoingLinks(file);
+            await this.getBacklinks(file);
+          } catch (error) {
+            // Skip files that error
+          }
+        }
+      });
+
+      vscode.window.showInformationMessage(`Cache rebuilt: ${this.cache.size} entries`);
+    } finally {
+      this.isBuilding = false;
+      this.buildProgress = null;
+      this.notifyStatusChange();
+    }
+  }
+
+  /**
+   * Notify status change listeners
+   */
+  private notifyStatusChange(): void {
+    if (this.onStatusChange) {
+      this.onStatusChange(this.getCacheStatus());
+    }
   }
 
   /**

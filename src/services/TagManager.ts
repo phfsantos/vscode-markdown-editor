@@ -8,7 +8,7 @@ export class TagManager {
   private static instance: TagManager;
   private tagMap: Map<string, Set<string>> = new Map(); // tag -> set of file paths
   private lastScan: number = 0;
-  private readonly SCAN_TTL = 60_000; // 60s
+  private readonly SCAN_TTL = 600_000; // 10 minutes for better performance
 
   private constructor() {
     // Invalidate on file changes

@@ -40943,12 +40943,6 @@ ${currentContent}`;
       this.vditor = vditorInstance;
       this.setupFocusAwareness();
     }
-    vscodeLog(message) {
-      window.vscode?.postMessage({
-        command: "log",
-        message
-      });
-    }
     applyDiagnosticsToEditor(diagnostics) {
       const newHash = this.generateDiagnosticsHashForArray(diagnostics);
       const currentHash = this.generateDiagnosticsHash();
@@ -41013,14 +41007,12 @@ ${currentContent}`;
             this.wrappedKeys.add(tokenKey);
             return true;
           } else {
-            this.vscodeLog(`\u274C No parent node found for text node containing: "${diagnosticText}"`);
             return false;
           }
         } else {
           return false;
         }
       } catch (error2) {
-        this.vscodeLog(`\u274C Error styling text with diagnostic: ${error2}`);
         return false;
       }
     }
@@ -41135,7 +41127,6 @@ ${currentContent}`;
         editor = document.querySelector(".vditor-sv .vditor-reset");
       }
       if (!editor) {
-        vscodeLogWarn("DiagnosticVisualizer: Could not find Vditor editor element for cleanup");
         return;
       }
       const beforeContent = editor.textContent?.length || 0;
@@ -41220,7 +41211,6 @@ ${currentContent}`;
         editor = document.querySelector(".vditor-sv .vditor-reset");
       }
       if (!editor) {
-        vscodeLogWarn("DiagnosticVisualizer: Could not find Vditor editor element");
         return;
       }
       const cursorElement = this.getCursorContainerElement();
@@ -41613,7 +41603,6 @@ ${currentContent}`;
             source: diagnostic2.source,
             line: diagnostic2.range?.start?.line
           });
-          vscodeLogError(`\u274C Diagnostic ${index2 + 1} failed to apply`);
         }
       });
       if (failedDiagnostics.length > 0) {
@@ -42112,7 +42101,6 @@ ${currentContent}`;
         }
       }
       if (!found) {
-        vscodeLogWarn(`Text "${searchText}" not found in DOM`);
       }
       return found;
     }
@@ -42506,7 +42494,6 @@ ${currentContent}`;
             matchType = "html2md-line-match";
           }
         } catch (e7) {
-          this.vscodeLog(`\u274C html2md conversion failed: ${e7}`);
         }
       }
       const positionBonus = Math.max(0, 15 * (1 - positionDifference * 2));
@@ -42528,7 +42515,6 @@ ${currentContent}`;
           charRange: {start: startChar, end: endChar}
         };
       } else {
-        this.vscodeLog(`\u274C No match: ${matchType} (confidence: ${confidence.toFixed(1)})`);
         return {matched: false, confidence, matchType};
       }
     }
@@ -42543,14 +42529,12 @@ ${currentContent}`;
       const endChar = range.end?.character || startChar + 1;
       const targetText = matchResult.targetText || lineText.substring(startChar, endChar).trim();
       if (!targetText) {
-        this.vscodeLog(`\u274C Cannot apply diagnostic: no target text identified`);
         return false;
       }
       const applied = this.findAndWrapPreciseTextInElement(element, targetText, diagnostic, startChar, endChar);
       if (applied) {
         this.recordAppliedDiagnostic(element, startChar, endChar, lineNumber, diagnostic);
       } else {
-        this.vscodeLog(`\u274C Failed to apply diagnostic: could not locate target text "${targetText}"`);
       }
       return applied;
     }
@@ -42577,7 +42561,6 @@ ${currentContent}`;
         }
       }
       if (targetIndex === -1) {
-        this.vscodeLog(`\u274C Target text "${targetText}" not found in element text`);
         this.addDiagnosticStylingToElement(element, diagnostic);
         return true;
       }
@@ -43857,7 +43840,6 @@ console.log('Hello, World!');
       }
       const contentElement = document.querySelector(".vditor-ir") || document.querySelector(".vditor-wysiwyg") || document.querySelector(".vditor-sv");
       if (!contentElement) {
-        vscodeLogWarn("\u26A0\uFE0F DIFF VISUALIZER: Could not find Vditor content element");
         return;
       }
       const allTextNodes = [];
@@ -43993,7 +43975,6 @@ console.log('Hello, World!');
         }
       }
       if (!scrollableElement) {
-        vscodeLogError("\u274C DIFF VISUALIZER: Could not find pre.vditor-reset element, defaulting to document.documentElement");
         scrollableElement = document.documentElement;
       }
       const scrollHandler = (e7) => {
@@ -44018,7 +43999,6 @@ console.log('Hello, World!');
       }
       const contentElement = document.querySelector(".vditor-ir pre.vditor-reset") || document.querySelector(".vditor-wysiwyg pre.vditor-reset") || document.querySelector(".vditor-sv pre.vditor-reset") || document.querySelector("pre.vditor-reset");
       if (!contentElement) {
-        vscodeLogWarn("\u26A0\uFE0F DIFF VISUALIZER: Could not find pre.vditor-reset element for spacers");
         return;
       }
       const existingSpacers = document.querySelectorAll(".diff-spacer-block");
@@ -44103,7 +44083,6 @@ console.log('Hello, World!');
           }
         }
         if (!targetElement) {
-          vscodeLogWarn(`\u26A0\uFE0F DIFF VISUALIZER: Could not find target element for block starting at line ${block.startLine}, skipping spacer`);
           continue;
         }
         let parentElement = targetElement.parentElement;
@@ -44116,7 +44095,6 @@ console.log('Hello, World!');
           parentElement = parentElement.parentElement;
         }
         if (!insertionParent) {
-          vscodeLogWarn(`\u26A0\uFE0F DIFF VISUALIZER: Target element is not a child of content element, skipping spacer for block at line ${block.startLine}`);
           continue;
         }
         const singleLineHeight = this.estimateLineHeight(targetElement);
@@ -44167,7 +44145,6 @@ console.log('Hello, World!');
             targetElement.parentElement.insertBefore(spacer, targetElement);
           }
         } catch (error2) {
-          vscodeLogError(`\u274C DIFF VISUALIZER: Failed to insert spacer for block ${block.startLine}-${block.endLine}:`, error2);
         }
       }
     }
@@ -44205,7 +44182,6 @@ console.log('Hello, World!');
       const scrollableHeight = scrollHeight - clientHeight;
       const scrollPercentage = scrollableHeight > 0 ? scrollTop / scrollableHeight : 0;
       if (isNaN(scrollPercentage)) {
-        vscodeLogWarn("\u26A0\uFE0F DIFF VISUALIZER: Invalid scroll percentage (NaN), skipping");
         return;
       }
       const now = Date.now();
@@ -44233,7 +44209,6 @@ console.log('Hello, World!');
           role: this.diffInfo?.role
         });
       } else {
-        vscodeLogWarn("\u26A0\uFE0F DIFF VISUALIZER: vscode object not available!");
       }
     }
     applyScrollFromOther(scrollPercentage) {
@@ -44242,18 +44217,12 @@ console.log('Hello, World!');
       }
       const scrollableElement = document.querySelector(".vditor-ir pre.vditor-reset") || document.querySelector(".vditor-wysiwyg pre.vditor-reset") || document.querySelector(".vditor-sv pre.vditor-reset") || document.querySelector("pre.vditor-reset") || document.documentElement;
       if (!scrollableElement) {
-        vscodeLogWarn("\u26A0\uFE0F DIFF VISUALIZER: No element found to apply scroll");
         return;
       }
       const element = scrollableElement;
       this.isScrolling = true;
       const scrollableHeight = element.scrollHeight - element.clientHeight;
       if (scrollableHeight <= 0) {
-        vscodeLogWarn("\u26A0\uFE0F DIFF VISUALIZER: Element is not scrollable!", {
-          scrollHeight: element.scrollHeight,
-          clientHeight: element.clientHeight,
-          element: element.tagName + "." + element.className
-        });
         this.isScrolling = false;
         return;
       }
@@ -46074,6 +46043,152 @@ console.log('Hello, World!');
     }
   };
 
+  // src/image-uri-converter.ts
+  var ImageURIConverter = class {
+    constructor(vditor2) {
+      this.observer = null;
+      this.conversionCache = new Map();
+      this.vditor = vditor2;
+      this.documentPath = "";
+    }
+    initialize(documentPath) {
+      this.documentPath = documentPath;
+      this.log(`Initialized with document path: ${documentPath}`);
+      this.convertAllImages();
+      this.setupMutationObserver();
+    }
+    convertAllImages() {
+      const editor = this.getEditorElement();
+      if (!editor) {
+        this.log("No editor element found");
+        return;
+      }
+      const images = editor.querySelectorAll("img[src]");
+      this.log(`Found ${images.length} images to convert`);
+      images.forEach((img) => {
+        const originalSrc = img.getAttribute("src");
+        if (originalSrc && this.needsConversion(originalSrc)) {
+          const convertedSrc = this.convertPath(originalSrc);
+          if (convertedSrc !== originalSrc) {
+            img.setAttribute("src", convertedSrc);
+            img.setAttribute("data-original-src", originalSrc);
+            this.log(`Converted image: ${originalSrc} \u2192 ${convertedSrc}`);
+          }
+        }
+      });
+    }
+    needsConversion(src) {
+      if (src.startsWith("vscode-webview-resource:") || src.startsWith("vscode-resource:")) {
+        return false;
+      }
+      if (src.startsWith("data:") || src.startsWith("blob:")) {
+        return false;
+      }
+      if (src.startsWith("http://") || src.startsWith("https://")) {
+        return false;
+      }
+      return true;
+    }
+    convertPath(originalPath) {
+      if (this.conversionCache.has(originalPath)) {
+        return this.conversionCache.get(originalPath);
+      }
+      let convertedPath = originalPath;
+      if (convertedPath.startsWith("file://")) {
+        convertedPath = convertedPath.substring(7);
+      }
+      if (convertedPath.startsWith("/") && this.documentPath) {
+        const documentDir = this.documentPath.substring(0, this.documentPath.lastIndexOf("/"));
+        if (convertedPath.startsWith(documentDir)) {
+          convertedPath = convertedPath.substring(documentDir.length + 1);
+        }
+      }
+      this.conversionCache.set(originalPath, convertedPath);
+      return convertedPath;
+    }
+    setupMutationObserver() {
+      const editor = this.getEditorElement();
+      if (!editor) {
+        this.log("Cannot setup observer: no editor element");
+        return;
+      }
+      this.observer = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+          if (mutation.type === "childList") {
+            mutation.addedNodes.forEach((node) => {
+              if (node instanceof HTMLElement) {
+                if (node.tagName === "IMG") {
+                  const src = node.getAttribute("src");
+                  if (src && this.needsConversion(src)) {
+                    const convertedSrc = this.convertPath(src);
+                    if (convertedSrc !== src) {
+                      node.setAttribute("src", convertedSrc);
+                      node.setAttribute("data-original-src", src);
+                      this.log(`Converted new image: ${src} \u2192 ${convertedSrc}`);
+                    }
+                  }
+                }
+                const images = node.querySelectorAll("img[src]");
+                images.forEach((img) => {
+                  const src = img.getAttribute("src");
+                  if (src && this.needsConversion(src)) {
+                    const convertedSrc = this.convertPath(src);
+                    if (convertedSrc !== src) {
+                      img.setAttribute("src", convertedSrc);
+                      img.setAttribute("data-original-src", src);
+                      this.log(`Converted child image: ${src} \u2192 ${convertedSrc}`);
+                    }
+                  }
+                });
+              }
+            });
+          } else if (mutation.type === "attributes" && mutation.attributeName === "src") {
+            const target = mutation.target;
+            if (target.tagName === "IMG") {
+              const src = target.getAttribute("src");
+              if (src && this.needsConversion(src) && !target.hasAttribute("data-converting")) {
+                target.setAttribute("data-converting", "true");
+                const convertedSrc = this.convertPath(src);
+                if (convertedSrc !== src) {
+                  target.setAttribute("src", convertedSrc);
+                  target.setAttribute("data-original-src", src);
+                  this.log(`Converted modified image: ${src} \u2192 ${convertedSrc}`);
+                }
+                target.removeAttribute("data-converting");
+              }
+            }
+          }
+        }
+      });
+      this.observer.observe(editor, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ["src"]
+      });
+      this.log("MutationObserver setup complete");
+    }
+    getEditorElement() {
+      const vdt = this.vditor.vditor;
+      return vdt?.ir?.element || vdt?.wysiwyg?.element || vdt?.sv?.element || null;
+    }
+    log(message) {
+      if (window.vscode && window.vscode.postMessage) {
+        window.vscode.postMessage({
+          command: "log",
+          message: `[ImageURIConverter] ${message}`
+        });
+      }
+    }
+    dispose() {
+      if (this.observer) {
+        this.observer.disconnect();
+        this.observer = null;
+      }
+      this.conversionCache.clear();
+    }
+  };
+
   // src/main.ts
   var diagnosticVisualizer = null;
   var vscodeIntegrator = null;
@@ -46081,9 +46196,13 @@ console.log('Hello, World!');
   var findReplaceManager = null;
   var wikiLinkAutocomplete = null;
   var wikiLinkHandler = null;
+  var imageURIConverter = null;
   function processAfterRender() {
     if (wikiLinkHandler) {
       wikiLinkHandler.processWikiLinksInEditor();
+    }
+    if (imageURIConverter) {
+      imageURIConverter.convertAllImages();
     }
     if (diagnosticVisualizer) {
       diagnosticVisualizer.addSimpleDiagnostics();
@@ -46326,49 +46445,32 @@ console.log('Hello, World!');
   async function performClipboardAction(kind) {
     try {
       if (kind === "paste") {
-        vscodeLog3(`[paste-debug] \u{1F535} performClipboardAction('paste') called`);
-        vscodeLog3(`[paste-debug] \u{1F535} Call stack: ${new Error().stack?.split("\n").slice(1, 5).join(" | ")}`);
-        vscodeLog3(`[paste-debug] \u{1F535} Current isProgrammaticPaste flag: ${isProgrammaticPaste}`);
         isProgrammaticPaste = true;
         window.isProgrammaticPaste = true;
-        vscodeLog3(`[paste-debug] \u{1F535} Set isProgrammaticPaste flag to TRUE`);
         try {
           if (navigator.clipboard && navigator.clipboard.readText) {
-            vscodeLog3(`[paste-debug] \u{1F535} Clipboard API available, reading text...`);
             const text = await navigator.clipboard.readText();
-            vscodeLog3(`[paste-debug] \u{1F535} Read ${text?.length || 0} chars from clipboard: "${text?.substring(0, 50)}..."`);
             if (text && window.vditor && typeof window.vditor.insertValue === "function") {
-              vscodeLog3(`[paste-debug] \u{1F535} Calling vditor.insertValue() with ${text.length} chars`);
               window.vditor.insertValue(text);
-              vscodeLog3(`[paste-debug] \u2705 Paste successful via Clipboard API (${text.length} chars)`);
               return;
-            } else {
-              vscodeLog3(`[paste-debug] \u26A0\uFE0F Conditions not met: text=${!!text}, vditor=${!!window.vditor}, insertValue=${typeof window.vditor?.insertValue}`);
             }
-          } else {
-            vscodeLog3(`[paste-debug] \u26A0\uFE0F Clipboard API not available`);
           }
-          vscodeLog3(`[paste-debug] \u{1F535} Falling back to extension clipboard read request`);
           vscode.postMessage({command: "clipboardReadRequest"});
         } finally {
-          vscodeLog3(`[paste-debug] \u{1F535} Setting timeout to reset isProgrammaticPaste flag in 100ms`);
           setTimeout(() => {
             isProgrammaticPaste = false;
             window.isProgrammaticPaste = false;
-            vscodeLog3(`[paste-debug] \u{1F535} Reset isProgrammaticPaste flag to FALSE`);
           }, 100);
         }
       } else if (kind === "copy" || kind === "cut") {
         const {text, range} = getRobustSelectionSnapshot();
         const sel = window.getSelection();
         if (!text) {
-          vscodeLog3(`\u26A0\uFE0F No text selected for ${kind}`);
           return;
         }
         if (navigator.clipboard && navigator.clipboard.writeText) {
           try {
             await navigator.clipboard.writeText(text);
-            vscodeLog3(`\u2705 ${kind} successful via Clipboard API (${text.length} chars)`);
             if (kind === "cut") {
               const activeRange = range || (sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null);
               if (activeRange) {
@@ -46487,7 +46589,7 @@ console.log('Hello, World!');
         try {
           attachMenuKeyboardNavigation(root);
         } catch (err) {
-          vscodeLog3(`Keyboard nav attach (mouse) failed: ${err}`);
+          vscodeLog3(`\u274C Keyboard nav attach (mouse) failed: ${err}`);
         }
       }
     }
@@ -46515,7 +46617,7 @@ console.log('Hello, World!');
           try {
             attachMenuKeyboardNavigation(root);
           } catch (err) {
-            vscodeLog3(`Keyboard nav attach (keyboard) failed: ${err}`);
+            vscodeLog3(`\u274C Keyboard nav attach (keyboard) failed: ${err}`);
           }
         }
       }
@@ -46544,13 +46646,11 @@ console.log('Hello, World!');
       });
       predictionary.useDictionaries([dictionaryKey]);
     } catch (error2) {
-      vscodeLog3(`Predictionary initialization failed: ${error2}`);
       predictionary = null;
     }
     let inputTimer;
     if (!wikiLinkAutocomplete) {
       wikiLinkAutocomplete = new WikiLinkAutocomplete();
-      vscodeLog3("[WikiLinkAutocomplete] \u{1F4E6} Created new WikiLinkAutocomplete instance");
     }
     const hintExtensions = [];
     if (predictionary) {
@@ -46560,20 +46660,13 @@ console.log('Hello, World!');
           return predictionary.predict(word || "a", {maxPredictions: 5}).map((w3) => ({html: w3, value: w3}));
         }
       });
-      vscodeLog3("[Predictionary] \u2705 Added predictionary hints to Vditor configuration");
     }
     if (wikiLinkAutocomplete) {
       const wikiHintConfigs = wikiLinkAutocomplete.getHintConfigs();
       if (wikiHintConfigs && wikiHintConfigs.length > 0) {
         hintExtensions.push(...wikiHintConfigs);
-        vscodeLog3(`[WikiLinkAutocomplete] \u2705 Added ${wikiHintConfigs.length} wiki-link hint configs to Vditor`);
-      } else {
-        vscodeLog3("[WikiLinkAutocomplete] \u274C getHintConfigs() returned empty or null");
       }
-    } else {
-      vscodeLog3("[WikiLinkAutocomplete] \u274C wikiLinkAutocomplete is null");
     }
-    vscodeLog3(`[Hints] Total hint extensions configured: ${hintExtensions.length}`);
     let defaultOptions2 = {
       hint: {
         extend: hintExtensions
@@ -46591,6 +46684,7 @@ console.log('Hello, World!');
     }
     defaultOptions2 = (0, import_lodash.merge)(defaultOptions2, msg.options, {
       typewriterMode: false,
+      cdn: msg.cdnBaseUri || "",
       preview: {
         math: {
           inlineDigit: true
@@ -46709,7 +46803,6 @@ console.log('Hello, World!');
       contextmenu: (event) => {
         event.preventDefault();
         event.stopPropagation();
-        vscodeLog3(`\u{1F3AF} MAIN.TS: \u2705 VDITOR CONTEXTMENU CALLBACK TRIGGERED! Prevented default browser menu.`);
         if (!vscodeIntegrator) {
           return [
             {label: "Cut", click: () => performClipboardAction("cut")},
@@ -46813,16 +46906,39 @@ console.log('Hello, World!');
           wikiLinkHandler = new WikiLinkHandler(window.vditor);
           const documentPath = msg.documentPath || "untitled";
           wikiLinkHandler.initialize(documentPath);
-          vscodeLog3("[WikiLinkHandler] \u{1F517} Initialized wiki-link handler");
+        }
+        if (window.vditor) {
+          imageURIConverter = new ImageURIConverter(window.vditor);
+          const documentPath = msg.documentPath || "untitled";
+          imageURIConverter.initialize(documentPath);
         }
         processAfterRender();
+        setTimeout(() => {
+          try {
+            const editorElement = document.querySelector(".vditor-ir .vditor-reset") || document.querySelector(".vditor-wysiwyg .vditor-reset") || document.querySelector(".vditor-sv .vditor-reset");
+            if (editorElement) {
+              editorElement.focus({preventScroll: true});
+              const selection = window.getSelection();
+              if (selection) {
+                const range = document.createRange();
+                const firstNode = editorElement.childNodes[0] || editorElement;
+                range.setStart(firstNode, 0);
+                range.collapse(true);
+                selection.removeAllRanges();
+                selection.addRange(range);
+              }
+            }
+          } catch (error2) {
+            vscodeLog3(`\u274C Failed to focus editor: ${error2}`);
+          }
+        }, 100);
         document.addEventListener("contextmenu", (e7) => {
           const isEditorEvent = e7.target && (e7.target.closest(".vditor-ir") || e7.target.closest(".vditor-wysiwyg") || e7.target.closest(".vditor-sv"));
           if (isEditorEvent && window.vditor && window.vditor.options?.contextmenu) {
             try {
               const result = window.vditor.options.contextmenu(e7);
             } catch (error2) {
-              vscodeLog3(`Error in Vditor contextmenu callback: ${error2}`);
+              vscodeLog3(`\u274C Error in Vditor contextmenu callback: ${error2}`);
             }
           }
         }, false);
@@ -46993,7 +47109,7 @@ console.log('Hello, World!');
           diagnosticVisualizer = new DiagnosticVisualizer(window.vditor);
           window.__lastDiagnosticUpdate = Date.now();
         } catch (error2) {
-          vscodeLog3(`Failed to initialize DiagnosticVisualizer: ${error2}`);
+          vscodeLog3(`\u274C Failed to initialize DiagnosticVisualizer: ${error2}`);
         }
         try {
           vscodeIntegrator = new VSCodeWebviewIntegrator(window.vditor);
@@ -47011,7 +47127,7 @@ console.log('Hello, World!');
             return [];
           };
         } catch (error2) {
-          vscodeLog3(`Failed to initialize VSCodeWebviewIntegrator: ${error2}`);
+          vscodeLog3(`\u274C Failed to initialize VSCodeWebviewIntegrator: ${error2}`);
         }
         try {
           cursorManager = new CursorManager(window.vditor);
@@ -47019,14 +47135,14 @@ console.log('Hello, World!');
             vscodeIntegrator.setCursorManager(cursorManager);
           }
         } catch (error2) {
-          vscodeLog3(`Failed to initialize CursorManager: ${error2}`);
+          vscodeLog3(`\u274C Failed to initialize CursorManager: ${error2}`);
         }
         try {
           findReplaceManager = new FindReplaceManager(window.vditor);
           findReplaceManager.initialize();
           window.findReplaceManager = findReplaceManager;
         } catch (error2) {
-          vscodeLog3(`FindReplaceManager initialization error: ${error2}`);
+          vscodeLog3(`\u274C FindReplaceManager initialization error: ${error2}`);
         }
         setTimeout(() => {
           if (diagnosticVisualizer) {
@@ -47037,9 +47153,8 @@ console.log('Hello, World!');
           vscode.postMessage({
             command: "vditorReady"
           });
-          vscodeLog3("[Vditor] Sent vditorReady message to trigger sidebar update");
         } catch (error2) {
-          vscodeLog3(`Failed to send vditorReady message: ${error2}`);
+          vscodeLog3(`\u274C Failed to send vditorReady message: ${error2}`);
         }
       },
       input(value) {
@@ -47096,7 +47211,6 @@ console.log('Hello, World!');
           }
           setTimeout(() => {
             const content = vditor.getValue();
-            vscodeLog3(`\u{1F50D} CURSOR DEBUG - Sending edit message to VS Code (content length: ${content.length})`);
             vscode.postMessage({command: "edit", content});
           }, 10);
           const now = Date.now();
@@ -47104,33 +47218,21 @@ console.log('Hello, World!');
           if (timeSinceLastDiagnosticUpdate > 5e3) {
             setTimeout(() => {
               if (diagnosticVisualizer) {
-                vscodeLog3(`\u{1F50D} INPUT CALLBACK: Updating simple diagnostics (${timeSinceLastDiagnosticUpdate}ms since last update)`);
                 diagnosticVisualizer.addSimpleDiagnostics();
                 window.__lastDiagnosticUpdate = Date.now();
               }
             }, 1e3);
-          } else {
-            vscodeLog3(`\u{1F50D} INPUT CALLBACK: Skipping diagnostic update (only ${timeSinceLastDiagnosticUpdate}ms since last update)`);
           }
-          vscodeLog3("[Main.ts] \u{1F4CD} Input callback - checking wiki-link handler status");
           if (wikiLinkHandler && !wikiLinkHandler.isSetup) {
             const vdt = window.vditor;
             const editorElement = vdt.vditor?.ir?.element || vdt.vditor?.wysiwyg?.element;
             if (editorElement) {
-              vscodeLog3("[Main.ts] \u2705 Setting up wiki-link handler on first input");
               wikiLinkHandler.isSetup = true;
               wikiLinkHandler.editorElement = editorElement;
-            } else {
-              vscodeLog3("[Main.ts] \u26A0\uFE0F No editor element available for wiki-link setup");
             }
           }
           if (wikiLinkHandler && wikiLinkHandler.isSetup) {
-            vscodeLog3("[Main.ts] \u{1F504} Calling handleInputForProcessing");
             wikiLinkHandler.handleInputForProcessing?.();
-          } else if (wikiLinkHandler) {
-            vscodeLog3("[Main.ts] \u23ED\uFE0F Skipping wiki-link processing - handler not set up yet");
-          } else {
-            vscodeLog3("[Main.ts] \u26A0\uFE0F No wiki-link handler instance");
           }
         }, 200);
       },
@@ -47163,7 +47265,6 @@ console.log('Hello, World!');
       case "update": {
         if (msg.documentFilename) {
           window.currentDocumentFilename = msg.documentFilename;
-          vscodeLog3(`Stored document filename: ${msg.documentFilename}`);
         }
         if (msg.type === "init") {
           if (msg.options && msg.options.useVscodeThemeColor) {
@@ -47174,14 +47275,11 @@ console.log('Hello, World!');
           try {
             initVditor(msg);
           } catch (error2) {
-            vscodeLog3(`Error initializing Vditor: ${error2}`);
             initVditor({content: msg.content});
             saveVditorOptions();
           }
-          vscodeLog3("initVditor");
         } else {
           vditor.setValue(msg.content);
-          vscodeLog3("setValue");
           if (diagnosticVisualizer) {
             diagnosticVisualizer.handleExternalChange();
           }
@@ -47219,45 +47317,25 @@ console.log('Hello, World!');
         break;
       }
       case "diagnostics": {
-        vscodeLog3("Main.ts: Received diagnostics message from VS Code extension: " + JSON.stringify({
-          diagnosticCount: msg.diagnostics?.length || 0,
-          documentLines: msg.documentLines || 0,
-          documentTextLength: msg.documentText?.length || 0
-        }));
         if (Array.isArray(msg.diagnostics)) {
           Array.isArray && (__lastDiagnostics.length = 0);
           msg.diagnostics.forEach((d5) => __lastDiagnostics.push(d5));
-        }
-        if (msg.diagnostics) {
-          msg.diagnostics.forEach((diag, index2) => {
-            vscodeLog3(`Main.ts: Diagnostic ${index2}: ` + JSON.stringify({
-              message: diag.message,
-              source: diag.source,
-              severity: diag.severity,
-              line: diag.range?.start?.line,
-              lineText: diag.lineText
-            }));
-          });
         }
         if (diagnosticVisualizer) {
           diagnosticVisualizer.updateDiagnostics(msg.diagnostics, {
             documentText: msg.documentText,
             documentLines: msg.documentLines
           });
-        } else {
-          vscodeLog3("DiagnosticVisualizer not initialized when diagnostics received");
         }
         break;
       }
       case "contextMenuActions": {
-        vscodeLog3(`Main.ts: Received context menu actions: ${JSON.stringify(msg.actions?.length || 0)} actions`);
         if (vscodeIntegrator) {
           vscodeIntegrator.handleContextMenuActions(msg.actions || []);
         }
         break;
       }
       case "insertLink": {
-        vscodeLog3(`Main.ts: Insert Link command received`);
         if (window.vditor) {
           const linkText = "[Link Text](https://example.com)";
           window.vditor.insertValue(linkText);
@@ -47265,7 +47343,6 @@ console.log('Hello, World!');
         break;
       }
       case "insertImage": {
-        vscodeLog3(`Main.ts: Insert Image command received`);
         if (window.vditor) {
           const imageText = "![Alt Text](image.png)";
           window.vditor.insertValue(imageText);
@@ -47273,25 +47350,18 @@ console.log('Hello, World!');
         break;
       }
       case "showFind": {
-        vscodeLog3(`Show Find command received`);
         if (findReplaceManager) {
           findReplaceManager.showFind();
-        } else {
-          vscodeLog3("FindReplaceManager not initialized");
         }
         break;
       }
       case "showFindReplace": {
-        vscodeLog3(`Show Find and Replace command received`);
         if (findReplaceManager) {
           findReplaceManager.showFindReplace();
-        } else {
-          vscodeLog3("FindReplaceManager not initialized");
         }
         break;
       }
       case "insertTable": {
-        vscodeLog3(`Main.ts: Insert Table command received`);
         if (window.vditor) {
           const tableText = `
 | Header 1 | Header 2 | Header 3 |
@@ -47304,7 +47374,6 @@ console.log('Hello, World!');
         break;
       }
       case "insertKanbanBoard": {
-        vscodeLog3(`Main.ts: Insert Kanban Board command received`);
         if (window.vditor) {
           vscode.postMessage({
             command: "requestInsertRenderer",
@@ -47314,7 +47383,6 @@ console.log('Hello, World!');
         break;
       }
       case "insertInteractiveTable": {
-        vscodeLog3(`Main.ts: Insert Interactive Table command received`);
         if (window.vditor) {
           vscode.postMessage({
             command: "requestInsertRenderer",
@@ -47324,7 +47392,6 @@ console.log('Hello, World!');
         break;
       }
       case "insertPlayground": {
-        vscodeLog3(`Main.ts: Insert Playground command received`);
         if (window.vditor) {
           const playgroundText = `
 \`\`\`playground
@@ -47336,19 +47403,14 @@ console.log('Hello, World!');
         break;
       }
       case "navigateToHeading": {
-        vscodeLog3(`Main.ts: Navigate to heading: ${msg.heading}`);
         if (wikiLinkHandler && msg.heading) {
           wikiLinkHandler.scrollToHeading(msg.heading);
-        } else if (!wikiLinkHandler) {
-          vscodeLog3("Main.ts: WikiLinkHandler not initialized for heading navigation");
         }
         break;
       }
       case "insertRendererCodeBlock": {
-        vscodeLog3(`Main.ts: Insert renderer code block received for ${msg.rendererType}`);
         if (window.vditor && msg.codeBlock) {
           window.vditor.insertValue(msg.codeBlock);
-          vscodeLog3(`\u2705 Inserted code block for ${msg.rendererType}`);
         }
         break;
       }
@@ -47378,7 +47440,7 @@ console.log('Hello, World!');
               try {
                 vscode.postMessage({command: "openFile", path: embed.path});
               } catch (err) {
-                vscodeLog3("open button postMessage failed: " + err);
+                vscodeLog3(`\u274C open button postMessage failed: ${err}`);
               }
             });
             actions.appendChild(openBtn);
@@ -47442,12 +47504,11 @@ console.log('Hello, World!');
           }
           overlay.appendChild(content);
         } catch (err) {
-          vscodeLog3(`openEmbedPreview handler failed: ${err}`);
+          vscodeLog3(`\u274C openEmbedPreview handler failed: ${err}`);
         }
         break;
       }
       case "renderer-update-code-block": {
-        vscodeLog3(`Main.ts: Updating code block for ${msg.rendererId} with boardId ${msg.boardId}`);
         const language = msg.rendererId === "kanban-board" ? "kanban-board" : "table";
         const codeBlocks = Array.from(document.querySelectorAll(`code.language-${language}`));
         for (const codeBlock of codeBlocks) {
@@ -47467,13 +47528,10 @@ console.log('Hello, World!');
               newContent = newContent.replace(/<!--\s*(?:board|table):\s*[^>]+-->/, correctComment);
             }
             codeBlock.textContent = newContent;
-            vscodeLog3(`\u2705 Updated code block for ${msg.rendererId} \u2192 ${msg.filename}`);
             if (window.vditor) {
               const fullContent = window.vditor.getValue();
-              vscodeLog3(`\u{1F4DD} Syncing code block update to VS Code...`);
               vscode.postMessage({command: "edit", content: fullContent});
               setTimeout(() => {
-                vscodeLog3(`\u{1F504} Forcing Vditor re-render after code block update...`);
                 window.vditor.setValue(fullContent);
               }, 100);
             }

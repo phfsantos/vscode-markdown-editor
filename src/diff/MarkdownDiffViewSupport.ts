@@ -36,6 +36,16 @@ export class MarkdownDiffViewSupport {
   }
 
   /**
+   * Calculate diff from content strings (for Compare with Saved where we have saved content vs current content)
+   */
+  public calculateDiffFromContent(originalContent: string, modifiedContent: string): LineChange[] {
+    const originalLines = originalContent.split('\n');
+    const modifiedLines = modifiedContent.split('\n');
+    
+    return this.computeLCSDiff(originalLines, modifiedLines);
+  }
+
+  /**
    * Compute diff using Longest Common Subsequence algorithm
    */
   private computeLCSDiff(leftLines: string[], rightLines: string[]): LineChange[] {
@@ -95,16 +105,20 @@ export class MarkdownDiffViewSupport {
 
   /**
    * Handle scroll sync message from webview
-   * Finds the other editor in the diff pair by matching URIs
+   * Finds the other editor in the diff pair by matching instance ID (primary) or URI (fallback)
    */
-  public handleScrollSync(sourceUri: vscode.Uri, targetUri: vscode.Uri, scrollPercentage: number, retryCount: number = 0): void {
+  public handleScrollSync(sourceInstanceId: string | undefined, sourceUri: vscode.Uri, targetUri: vscode.Uri, scrollPercentage: number, retryCount: number = 0): void {
     const EditorPanel = require('../app/EditorPanel').EditorPanel;
 
     if (EditorPanel.editors && EditorPanel.editors.length > 0) {
       // Find the target editor by matching its URI with the targetUri
-      const targetEditor = EditorPanel.editors.find((editor: any) => 
-        editor._uri && editor._uri.toString() === targetUri.toString()
-      );
+      // When URIs are the same (git self-diff), instance ID would help but we match by URI and exclude source
+      const targetEditor = EditorPanel.editors.find((editor: any) => {
+        const matchesUri = editor._uri && editor._uri.toString() === targetUri.toString();
+        // Exclude the source editor by instance ID if available
+        const isNotSource = !sourceInstanceId || editor._instanceId !== sourceInstanceId;
+        return matchesUri && isNotSource;
+      });
 
       if (targetEditor && targetEditor.sendScrollSync) {
         targetEditor.sendScrollSync(scrollPercentage);
@@ -112,24 +126,24 @@ export class MarkdownDiffViewSupport {
         // Target editor not found - retry up to 3 times with increasing delays
         if (retryCount < 3) {
           const retryDelay = 50 * Math.pow(2, retryCount); // 50ms, 100ms, 200ms
-          console.warn(`[MarkdownDiffViewSupport] Target editor not found, retrying in ${retryDelay}ms (attempt ${retryCount + 1}/3)`);
+          logger.warn(`[MarkdownDiffViewSupport] Target editor not found, retrying in ${retryDelay}ms (attempt ${retryCount + 1}/3)`);
           setTimeout(() => {
-            this.handleScrollSync(sourceUri, targetUri, scrollPercentage, retryCount + 1);
+            this.handleScrollSync(sourceInstanceId, sourceUri, targetUri, scrollPercentage, retryCount + 1);
           }, retryDelay);
         } else {
-          console.warn(`[MarkdownDiffViewSupport] Target editor not found after 3 retries: ${targetUri.toString()}`);
+          logger.warn(`[MarkdownDiffViewSupport] Target editor not found after 3 retries: ${targetUri.toString()}`);
         }
       }
     } else {
       // No editors array - retry if this is an early attempt
       if (retryCount < 3) {
         const retryDelay = 50 * Math.pow(2, retryCount);
-        console.warn(`[MarkdownDiffViewSupport] No editors available, retrying in ${retryDelay}ms (attempt ${retryCount + 1}/3)`);
+        logger.warn(`[MarkdownDiffViewSupport] No editors available, retrying in ${retryDelay}ms (attempt ${retryCount + 1}/3)`);
         setTimeout(() => {
-          this.handleScrollSync(sourceUri, targetUri, scrollPercentage, retryCount + 1);
+          this.handleScrollSync(sourceInstanceId, sourceUri, targetUri, scrollPercentage, retryCount + 1);
         }, retryDelay);
       } else {
-        console.warn('[MarkdownDiffViewSupport] No editors available after 3 retries');
+        logger.warn('[MarkdownDiffViewSupport] No editors available after 3 retries');
       }
     }
   }

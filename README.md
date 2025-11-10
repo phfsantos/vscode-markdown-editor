@@ -1,52 +1,65 @@
-# Markdown Editor — A Full-Featured WYSIWYG Editor for Markdown
+# Markdown Editor — A Full-Featured WYSIWYG Editor for VS Code
 
 [![Version](https://img.shields.io/visual-studio-marketplace/v/phfsantos.markdown-editor)](https://marketplace.visualstudio.com/items?itemName=phfsantos.markdown-editor)
 [![Installs](https://img.shields.io/visual-studio-marketplace/i/phfsantos.markdown-editor)](https://marketplace.visualstudio.com/items?itemName=phfsantos.markdown-editor)
+[![Rating](https://img.shields.io/visual-studio-marketplace/r/phfsantos.markdown-editor)](https://marketplace.visualstudio.com/items?itemName=phfsantos.markdown-editor)
 
-A powerful markdown editor with Obsidian-style features, bringing WYSIWYG editing, wiki-links, graph views, and advanced markdown tooling to VS Code.
+A powerful markdown editor combining **WYSIWYG editing** with **Obsidian-style knowledge management**. Features include wiki-links, interactive graph views, backlinks, tag management, and advanced markdown tooling—all within VS Code.
 
-## Demo
+## 📸 Screenshots
 
-![demo](./demo.gif)
+### Obsidian-Style Knowledge Management
 
-### Obsidian-Style Sidebar & Graph View
+![Markdown Editor with Sidebar and Graph View](./media/screenshot-main.png)
 
-![Sidebar and Graph View](./media/screenshot-sidebar-graph.png)
+*Complete workspace view featuring: WYSIWYG editor (center), dedicated sidebar panel (left) with templates, tags, embeds, outgoing links, backlinks, related files, and interactive graph visualization (right) showing note connections and relationships.*
 
-*Featuring: Interactive graph visualization, wiki-links, tags, backlinks, and file navigation*
+### WYSIWYG Editing Experience
+
+![Demo Animation](./demo.gif)
+
+*Real-time rendering, multiple editing modes, and seamless VS Code integration*
+
+> **Note for Marketplace**: Please save the screenshot from your workspace and place it at `./media/screenshot-main.png` before publishing. The screenshot should show the complete interface with sidebar panel and graph view visible.
 
 ## ✨ Key Features
 
 ### WYSIWYG Editing
+
 - **What You See Is What You Get** — Real-time rendering as you type
 - **Multiple Editing Modes**: Instant Rendering (Recommended) / WYSIWYG / Split Screen
 - **Auto-sync** between VS Code editor and webview
 - **Multi-theme Support** — Adapts to your VS Code theme
 
-### 🔗 Obsidian-Style Features (NEW in 0.4.2)
+### 🔗 Obsidian-Style Knowledge Management
 
-- **Wiki-Link Support**: Use `[[filename]]` syntax with intelligent autocomplete
-- **Sidebar Panel**: Dedicated activity bar with:
-  - 📊 **Link Graph View** — Visual representation of note connections
-  - 🔍 **Quick Note Search** — Fuzzy find any note instantly
-  - 🏷️ **Tag Browser** — Browse and filter by #tags
-  - ↩️ **Backlinks** — See which notes link to the current file
-- **Daily Notes**: Quick command to create/open today's note
-- **Relationship Tracking**: Automatic bidirectional link detection
+- **Wiki-Link Support**: Use `[[filename]]` syntax with intelligent autocomplete and fuzzy matching
+- **Dedicated Sidebar Panel** with real-time updates:
+  - 📊 **Interactive Graph View** — Visualize note connections with adjustable depth and node limits
+  - 🔍 **Quick Note Templates** — Daily notes, meeting notes, quick notes, and task lists
+  - 🏷️ **Tag Management** — Browse workspace tags and filter files by tag
+  - 📎 **Embed Previews** — Inline preview of images and embedded files
+  - ↩️ **Backlinks** — See which notes link to the current file with context
+  - 🔗 **Outgoing Links** — View all links in the current file with resolution status
+  - 🎯 **Related Files** — Smart recommendations based on proximity, backlinks, and content similarity
+- **Daily Notes**: Quick command to create/open today's note with customizable folder
+- **Performance Optimized**: Incremental loading with caching for large workspaces (1000+ files)
 
 ### 🛠️ Advanced Markdown Tools
 
-- **Diagnostics**: Real-time validation and error detection
-- **CodeLens**: Inline stats for headings, images, and tables
-- **Commands**:
+- **Real-time Diagnostics**: Live validation and error detection with inline warnings
+- **CodeLens**: Inline statistics for headings, images, and tables
+- **Powerful Commands**:
   - Show Heading Statistics
   - Add Alt Text to Images
   - Format Tables
   - Insert Table of Contents
   - Validate Document Structure
-  - Open Link Graph View
+  - Open Full-Screen Graph View
   - Quick Open Note (Fuzzy Search)
   - Open Daily Note
+  - Rebuild Relationship Cache
+  - Filter Notes by Tag
 
 ### 📝 Rich Markdown Support
 
@@ -56,11 +69,15 @@ A powerful markdown editor with Obsidian-style features, bringing WYSIWYG editin
 - **Rich Diagrams**: KaTeX, Mermaid, Graphviz, ECharts, abc.js (music notation)
 - **Custom CSS**: Personalize layout and styling
 
-### ⚡ Performance
+### ⚡ Performance & Caching
 
 - **Smart Optimization**: Auto-detects workspace size and optimizes accordingly
+- **Intelligent Caching**: 10-minute cache with automatic invalidation on file changes
+- **Cache Management**: Visual cache status in sidebar with one-click rebuild
+- **Incremental Loading**: Sidebar sections load progressively for instant feedback
 - **Configurable Performance Modes**: Auto / Performance / Compatibility
 - **Large Workspace Support**: Tested with 1000+ markdown files
+- **Parallel Processing**: Backlinks, outgoing links, and related files computed simultaneously
 
 ## Install
 
@@ -100,15 +117,12 @@ Edit your settings.json and add:
 ```json
 {
   "markdown-editor.customCss": "my custom css rules"
-}
 ```
 
 **Example:**
 
 ```json
-{
-  "markdown-editor.customCss": ".vditor-ir pre.vditor-reset {line-height: 32px; padding-right: calc(100% - 800px) !important; margin-left: 100px; font-family: system-ui !important;}"
-}
+span
 ```
 
 ## ⚙️ Configuration
@@ -160,12 +174,15 @@ The extension provides many settings to customize your experience:
 }
 ```
 
-### Obsidian-Style Features
+### Knowledge Management & Performance
 
 ```json
 {
   // Folder for daily notes (relative to workspace root)
   "markdown-editor.dailyNotesFolder": "daily",
+  
+  // Enable #tag support and parsing
+  "markdown-editor.enableTagSupport": true,
   
   // Maximum file sizes for embed previews
   "markdown-editor.previewEmbedSizeLimit": 5242880,      // 5 MB (generic files)
@@ -173,6 +190,21 @@ The extension provides many settings to customize your experience:
   "markdown-editor.previewEmbedTextLimit": 204800        // 200 KB (text files)
 }
 ```
+
+### Commands
+
+Access these commands via Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`):
+
+- `Markdown Editor: Open with markdown editor` - Open file in WYSIWYG editor
+- `Markdown Editor: Set as Default Markdown Editor` - Make this the default for .md files
+- `Markdown Editor: Open Link Graph View` - Open full-screen interactive graph
+- `Markdown Editor: Quick Open Note (Fuzzy)` - Fuzzy search all markdown files
+- `Markdown Editor: Open Daily Note` - Create/open today's daily note
+- `Markdown Editor: Rebuild Relationship Cache` - Manually rebuild link/tag cache
+- `Markdown Editor: Show Heading Statistics` - Analyze document structure
+- `Markdown Editor: Validate Document Structure` - Check for markdown issues
+- `Markdown Editor: Format Table` - Auto-format markdown table
+- `Markdown Editor: Insert Table of Contents` - Generate TOC from headings
 
 ## 🔧 Troubleshooting
 
@@ -202,6 +234,7 @@ For workspaces with many markdown files (500+):
 ### Wiki-Links Not Working
 
 Ensure you're using the correct syntax:
+
 - `[[filename]]` — Links to filename.md
 - `[[folder/filename]]` — Links to file in subfolder
 - File extensions are optional
@@ -210,14 +243,28 @@ Ensure you're using the correct syntax:
 
 For complete markdown syntax guide, see: [demo article](https://ld246.com/guide/markdown)
 
-## � What's New in 0.4.2
+## 🎉 What's New in 0.4.7
 
 See [CHANGELOG.md](./CHANGELOG.md) for detailed release notes.
 
-Highlights:
-- 🆕 Obsidian-style sidebar with graph view
-- 🆕 Wiki-link support with autocomplete
-- 🆕 Daily notes functionality
+### Latest Features
+
+- 🚀 **Performance Overhaul**: Incremental sidebar loading with visual loading states
+- 💾 **Smart Caching**: 10-minute cache with intelligent invalidation and manual rebuild
+- 📊 **Cache Status Display**: Real-time cache monitoring in sidebar header
+- 🎯 **Enhanced Graph View**: Adjustable depth, max nodes, and node distance controls
+- 📎 **Embed Support**: Preview images and files directly in sidebar
+- 🔗 **Related Files**: Smart file recommendations based on multiple factors
+- ⚡ **Instant UI**: Progressive loading ensures responsive experience on large workspaces
+- 🏷️ **Tag Management**: Browse all workspace tags with file counts
+- 🔄 **Real-time Updates**: Sidebar updates automatically on file changes
+- ✨ **Polish**: Improved UI, better error handling, and optimized rendering
+
+### Previous Highlights (0.4.2)
+
+- 🆕 Obsidian-style sidebar with interactive graph view
+- 🆕 Wiki-link support with intelligent autocomplete
+- 🆕 Daily notes functionality with customizable templates
 - 🆕 Enhanced diagnostics and CodeLens
 - ✨ Production-ready logging system
 - 🔒 Security audit clean (0 vulnerabilities)
@@ -231,9 +278,9 @@ Highlights:
 
 ## 📝 Todo
 
-- [ ] Using [Custom Text Editor](https://code.visualstudio.com/api/extension-guides/custom-editors#custom-text-editor) ([demo](https://github.com/gera2ld/markmap-vscode))
-- [ ] Code splitting for main.js bundle size optimization
-- [ ] Multi-root workspace support
+- [ ]  Using [Custom Text Editor](https://code.visualstudio.com/api/extension-guides/custom-editors#custom-text-editor) ([demo](https://github.com/gera2ld/markmap-vscode))
+- [ ]  Code splitting for main.js bundle size optimization
+- [ ]  Multi-root workspace support
 
 ## License
 

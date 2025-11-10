@@ -4,7 +4,7 @@
   "private": "true",
   "scripts": {
     "start": "yarn esbuild ./src/main.ts --bundle --watch --sourcemap --outfile=../media/dist/main.js",
-    "build": "rm -rf ../media/dist; yarn esbuild ./src/main.ts --bundle --minify --sourcemap --outfile=../media/dist/main.js"
+    "build": "rm -rf ../media/dist; yarn esbuild ./src/main.ts --bundle --minify --sourcemap --outfile=../media/dist/main.js && mkdir -p ../media/dist && cp -r ./node_modules/vditor/dist/js ../media/dist/ && cp -r ./node_modules/vditor/dist/css ../media/dist/"
   },
   "browserslist": "> 0%",
   "devDependencies": {

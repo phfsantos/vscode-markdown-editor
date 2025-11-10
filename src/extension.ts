@@ -99,7 +99,16 @@ export function activate(context: vscode.ExtensionContext) {
       'markdown-editor.openEditor',
       (uri?: vscode.Uri, ...args) => {
         logger.debug('command', uri, args)
-        EditorPanel.createOrShow(context, uri)
+        if (uri) {
+          EditorPanel.createOrShow(context, uri)
+        } else {
+          const activeDoc = vscode.window.activeTextEditor?.document;
+          if (activeDoc && activeDoc.languageId === 'markdown') {
+            EditorPanel.createOrShow(context, activeDoc);
+          } else {
+            vscode.window.showErrorMessage('No Markdown file is active.');
+          }
+        }
       }
     )
   )
@@ -240,6 +249,20 @@ export function activate(context: vscode.ExtensionContext) {
       } catch (err) {
         logger.error('Extension: filterByTag command failed', err);
         vscode.window.showErrorMessage('Failed to filter by tag: ' + String(err));
+      }
+    })
+  );
+
+  // Command: Rebuild relationship cache
+  context.subscriptions.push(
+    vscode.commands.registerCommand('markdown-editor.rebuildCache', async () => {
+      try {
+        const { RelationshipAnalyzer } = await import('./services/RelationshipAnalyzer');
+        const analyzer = RelationshipAnalyzer.getInstance();
+        await analyzer.rebuildCache();
+      } catch (err) {
+        logger.error('Extension: rebuildCache command failed', err);
+        vscode.window.showErrorMessage('Failed to rebuild cache: ' + String(err));
       }
     })
   );

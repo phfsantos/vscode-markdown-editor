@@ -79,6 +79,16 @@ export class MarkdownSidebarProvider implements vscode.WebviewViewProvider {
     // Load user templates
     this.templateManager.loadUserTemplates();
     
+    // Listen for cache status changes
+    this.relationshipAnalyzer.onCacheStatusChange((status) => {
+      if (this._view) {
+        this._view.webview.postMessage({
+          type: 'cacheStatus',
+          status
+        });
+      }
+    });
+    
     // Track active editor changes
     vscode.window.onDidChangeActiveTextEditor(editor => {
       logger.debug('[Sidebar-Debug] Active editor changed:', {
@@ -95,37 +105,89 @@ export class MarkdownSidebarProvider implements vscode.WebviewViewProvider {
         // System view (output, terminal, etc.) - preserve current markdown document
         logger.debug('[Sidebar-Debug] System view active, preserving markdown document', editor?.document.languageId);
         // Don't update view or clear document - keep showing current markdown context
+      } else if (!editor) {
+        // No active editor (VS Code lost focus, panel activated, etc.) - preserve current markdown document
+        logger.debug('[Sidebar-Debug] No active editor, preserving markdown document');
+        // Don't clear - keep showing current markdown context
       } else {
-        // Real file with different language or no editor, clear active document
-        this._activeDocument = undefined;
-        logger.debug('[Sidebar-Debug] Cleared active document (non-markdown file or no editor)', editor?.document.languageId);
-        this._updateView();
+        // Real file with different language - only clear if it has a file extension (is a real file)
+        const uri = editor.document.uri;
+        const path = uri.path;
+        const hasFileExtension = path.includes('.') && path.lastIndexOf('.') > path.lastIndexOf('/');
+        
+        if (hasFileExtension) {
+          this._activeDocument = undefined;
+          logger.debug('[Sidebar-Debug] Cleared active document (non-markdown file with extension)', editor?.document.languageId);
+          this._updateView();
+        } else {
+          logger.debug('[Sidebar-Debug] Non-markdown editor without file extension, preserving markdown document', editor?.document.languageId);
+          // Don't clear - keep showing current markdown context
+        }
       }
     });
 
     // Track visible text editors changes (for when switching between already-open tabs)
-    // vscode.window.onDidChangeVisibleTextEditors(editors => {
-    //   logger.debug('[Sidebar-Debug] Visible editors changed:', editors.length);
-    //   const markdownEditor = editors.find(e => e.document.languageId === 'markdown');
-    //   if (markdownEditor) {
-    //     this._activeDocument = markdownEditor.document;
-    //     logger.debug('[Sidebar-Debug] Set active document from visible editors:', this._activeDocument.fileName);
-    //     this._updateView();
-    //   } else {
-    //     // Check if only system views are visible - if so, preserve current document
-    //     const hasOnlySystemViews = editors.length > 0 && editors.every(e => this._isSystemView(e.document));
-    //     logger.debug('[Sidebar-Debug] Cleared active document (no markdown editors visible)', {hasOnlySystemViews, l: editors});
-    //     if (hasOnlySystemViews && this._activeDocument) {
-    //       logger.debug('[Sidebar-Debug] Only system views visible, preserving markdown document');
-    //       // Don't clear - keep current document
-    //     } else {
-    //       // No markdown editors visible and not just system views, clear active document
-    //       this._activeDocument = undefined;
-    //       logger.debug('[Sidebar-Debug] Cleared active document (no markdown editors visible)');
-    //       this._updateView();
-    //     }
-    //   }
-    // });
+    // This is critical for detecting when an editor closes and VS Code switches to another already-open MD file
+    let visibleEditorsDebounceTimer: NodeJS.Timeout | undefined;
+    vscode.window.onDidChangeVisibleTextEditors(editors => {
+      // Debounce to prevent excessive updates during rapid editor switches
+      if (visibleEditorsDebounceTimer) {
+        clearTimeout(visibleEditorsDebounceTimer);
+      }
+      
+      visibleEditorsDebounceTimer = setTimeout(() => {
+        logger.debug('[Sidebar-Debug] Visible editors changed:', editors.length);
+        
+        // Find markdown editors, excluding system views
+        const markdownEditors = editors.filter(e => 
+          e.document.languageId === 'markdown' && !this._isSystemView(e.document)
+        );
+        
+        if (markdownEditors.length > 0) {
+          // Prefer the first markdown editor if we have multiple
+          const newActiveDoc = markdownEditors[0].document;
+          
+          // Only update if it's different from current active document
+          if (!this._activeDocument || this._activeDocument.uri.toString() !== newActiveDoc.uri.toString()) {
+            this._activeDocument = newActiveDoc;
+            logger.debug('[Sidebar-Debug] Set active document from visible editors:', this._activeDocument.fileName);
+            this._updateView();
+          } else {
+            logger.debug('[Sidebar-Debug] Same markdown document already active, skipping update');
+          }
+        } else {
+          // No markdown editors visible
+          // Simplified criteria: if the current active editor is for a file with a file extension, clear; otherwise keep current view
+          const activeEditor = vscode.window.activeTextEditor;
+          if (activeEditor) {
+            const uri = activeEditor.document.uri;
+            const path = uri.path;
+            const hasFileExtension = path.includes('.') && path.lastIndexOf('.') > path.lastIndexOf('/');
+            
+            if (hasFileExtension) {
+              logger.debug('[Sidebar-Debug] Active editor has file extension, clearing sidebar');
+              this._activeDocument = undefined;
+              this._updateView();
+            } else {
+              logger.debug('[Sidebar-Debug] Active editor has no file extension, preserving markdown document');
+              // Don't clear - keep current document
+            }
+          } else if (this._activeDocument) {
+            logger.debug('[Sidebar-Debug] No active editor, preserving markdown document');
+            // Don't clear - keep current document
+          } else {
+            // No markdown editors visible and not just system views, clear active document
+            const hadDocument = !!this._activeDocument;
+            this._activeDocument = undefined;
+            
+            if (hadDocument) {
+              logger.debug('[Sidebar-Debug] Cleared active document (no markdown editors visible)');
+              this._updateView();
+            }
+          }
+        }
+      }, 100); // 100ms debounce to smooth out rapid switches
+    });
 
     // Track document changes
     vscode.workspace.onDidChangeTextDocument(e => {
@@ -390,16 +452,26 @@ export class MarkdownSidebarProvider implements vscode.WebviewViewProvider {
         case 'refresh':
           this._updateView();
           break;
+        case 'rebuildCache':
+          await this.relationshipAnalyzer.rebuildCache();
+          break;
       }
     });
 
     // Initial update
     logger.debug('[Sidebar-Debug] Triggering initial update');
     this._updateView();
+    
+    // Send initial cache status
+    const cacheStatus = this.relationshipAnalyzer.getCacheStatus();
+    webviewView.webview.postMessage({
+      type: 'cacheStatus',
+      status: cacheStatus
+    });
   }
 
   /**
-   * Update the webview with current document data
+   * Update the webview with current document data (incremental loading)
    */
   private async _updateView(depth?: number, maxNodes?: number): Promise<void> {
     if (!this._view) {
@@ -408,19 +480,20 @@ export class MarkdownSidebarProvider implements vscode.WebviewViewProvider {
     }
 
     try {
-      logger.debug('[Sidebar-Debug] Updating view...', { depth, maxNodes });
-      const data = await this._gatherDocumentData(depth, maxNodes);
-      logger.debug('[Sidebar-Debug] Gathered data:', {
-        hasActiveDocument: data.hasActiveDocument,
-        outgoingLinksCount: data.outgoingLinks?.length || 0,
-        backlinksCount: data.backlinks?.length || 0,
-        relatedFilesCount: data.relatedFiles?.length || 0
-      });
+      logger.debug('[Sidebar-Debug] Updating view incrementally...', { depth, maxNodes });
       
-      this._view.webview.postMessage({
-        type: 'update',
-        data
-      });
+      // Stage 1: Send immediate shell with loading states
+      await this._updateViewStage1();
+      
+      // Stage 2: Send fast data (templates, tags, embeds) - no async lookups
+      await this._updateViewStage2();
+      
+      // Stage 3: Send links data (medium cost - file lookups)
+      await this._updateViewStage3();
+      
+      // Stage 4: Send graph data (expensive - defer to end)
+      await this._updateViewStage4(depth, maxNodes);
+      
     } catch (error) {
       logger.error('[Sidebar-Debug] Error updating view:', error);
       // Send update anyway to reset loading state
@@ -429,6 +502,166 @@ export class MarkdownSidebarProvider implements vscode.WebviewViewProvider {
         data: {
           hasActiveDocument: false,
           isDefaultEditor: this.defaultEditorChecker.isDefaultEditor()
+        }
+      });
+    }
+  }
+
+  /**
+   * Stage 1: Send immediate shell with loading indicators
+   */
+  private async _updateViewStage1(): Promise<void> {
+    if (!this._view) return;
+    
+    if (!this._activeDocument) {
+      this._view.webview.postMessage({
+        type: 'update',
+        data: {
+          hasActiveDocument: false,
+          isDefaultEditor: this.defaultEditorChecker.isDefaultEditor()
+        }
+      });
+      return;
+    }
+
+    const fileUri = this._activeDocument.uri;
+    
+    // Send minimal shell immediately
+    this._view.webview.postMessage({
+      type: 'update',
+      data: {
+        hasActiveDocument: true,
+        currentFile: {
+          path: fileUri.fsPath,
+          name: path.basename(fileUri.fsPath),
+          content: this._activeDocument.getText()
+        },
+        isDefaultEditor: this.defaultEditorChecker.isDefaultEditor(),
+        loading: {
+          tags: true,
+          embeds: true,
+          outgoingLinks: true,
+          backlinks: true,
+          relatedFiles: true,
+          graph: true
+        }
+      }
+    });
+  }
+
+  /**
+   * Stage 2: Send fast synchronous data (tags, embeds)
+   */
+  private async _updateViewStage2(): Promise<void> {
+    if (!this._view || !this._activeDocument) return;
+
+    const content = this._activeDocument.getText();
+    const tags = this.extractTags(content);
+    const embeds = await this.extractEmbeds(content);
+    
+    // Get global tags from cache (fast)
+    const globalTags = await this.tagManager.getAllTags();
+
+    this._view.webview.postMessage({
+      type: 'updateSection',
+      section: 'fastData',
+      data: {
+        tags,
+        tagCloud: this.buildTagCloud(tags),
+        globalTags,
+        embeds,
+        loading: {
+          tags: false,
+          embeds: false,
+          outgoingLinks: true,
+          backlinks: true,
+          relatedFiles: true,
+          graph: true
+        }
+      }
+    });
+  }
+
+  /**
+   * Stage 3: Send links data (medium cost)
+   */
+  private async _updateViewStage3(): Promise<void> {
+    if (!this._view || !this._activeDocument) return;
+
+    const fileUri = this._activeDocument.uri;
+    
+    // Run these in parallel since they're independent
+    const [outgoingLinks, backlinks, relatedFiles] = await Promise.all([
+      this.relationshipAnalyzer.getOutgoingLinks(fileUri),
+      this.relationshipAnalyzer.getBacklinks(fileUri),
+      this.relationshipAnalyzer.getRelatedFiles(fileUri, 5)
+    ]);
+
+    this._view.webview.postMessage({
+      type: 'updateSection',
+      section: 'linksData',
+      data: {
+        outgoingLinks,
+        backlinks,
+        relatedFiles,
+        loading: {
+          tags: false,
+          embeds: false,
+          outgoingLinks: false,
+          backlinks: false,
+          relatedFiles: false,
+          graph: true
+        }
+      }
+    });
+  }
+
+  /**
+   * Stage 4: Send graph data (expensive, deferred to end)
+   */
+  private async _updateViewStage4(depth: number = 1, maxNodes: number = 15): Promise<void> {
+    if (!this._view || !this._activeDocument) return;
+
+    const fileUri = this._activeDocument.uri;
+    
+    // Validate and clamp parameters
+    depth = Math.max(1, Math.min(3, depth));
+    maxNodes = Math.max(5, Math.min(50, maxNodes));
+
+    try {
+      const graphData = await this.graphGenerator.generateSimplifiedGraph(fileUri, depth, maxNodes);
+      
+      this._view.webview.postMessage({
+        type: 'updateSection',
+        section: 'graphData',
+        data: {
+          graphData,
+          loading: {
+            tags: false,
+            embeds: false,
+            outgoingLinks: false,
+            backlinks: false,
+            relatedFiles: false,
+            graph: false
+          }
+        }
+      });
+    } catch (error) {
+      logger.error('[Sidebar-Debug] Error generating graph:', error);
+      // Send empty graph on error
+      this._view.webview.postMessage({
+        type: 'updateSection',
+        section: 'graphData',
+        data: {
+          graphData: null,
+          loading: {
+            tags: false,
+            embeds: false,
+            outgoingLinks: false,
+            backlinks: false,
+            relatedFiles: false,
+            graph: false
+          }
         }
       });
     }

@@ -2,8 +2,8 @@
   "name": "markdown-editor",
   "displayName": "Markdown Editor",
   "icon": "media/logo.png",
-  "description": "A full-featured WYSIWYG editor for markdown.",
-  "version": "0.4.6",
+  "description": "Full-featured WYSIWYG markdown editor with Obsidian-style wiki-links, graph view, backlinks, tags, and knowledge management.",
+  "version": "0.4.9",
   "publisher": "phfsantos",
   "private": true,
   "engines": {
@@ -17,9 +17,18 @@
     "markdown",
     "editor",
     "wysiwyg",
+    "obsidian",
+    "wiki-links",
+    "backlinks",
+    "graph-view",
+    "knowledge-management",
+    "note-taking",
+    "zettelkasten",
+    "tags",
+    "daily-notes",
     "typora",
-    "markdown-previewer",
-    "markdown-editor"
+    "markdown-preview",
+    "pkm"
   ],
   "activationEvents": [
     "onWebviewPanel:markdown-editor",
@@ -100,6 +109,11 @@
       {
         "command": "markdown-editor.openDailyNote",
         "title": "Open Daily Note",
+        "category": "markdown-editor"
+      },
+      {
+        "command": "markdown-editor.rebuildCache",
+        "title": "Rebuild Relationship Cache",
         "category": "markdown-editor"
       }
     ],

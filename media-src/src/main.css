@@ -69,7 +69,7 @@ body {
   min-height: 100% !important;
   width: 100% !important;
   margin: 0 !important;
-  padding: 0px 32px 16px 32px !important;
+  padding: 16px 32px 16px 32px !important;
   box-sizing: border-box !important;
 }
 
@@ -141,6 +141,34 @@ body[data-use-vscode-theme-color="1"] .vditor {
   --panel-background-color: var(--vscode-editor-background);
   --toolbar-background-color: var(--vscode-editor-background);
   --textarea-background-color: var(--vscode-editor-background);
+}
+
+/* Make toolbar background slightly darker than editor content */
+.vditor-toolbar {
+  background-color: var(--toolbar-background-color) !important;
+  filter: brightness(0.72) !important;
+  position: relative;
+}
+
+/* Ensure toolbar icons remain visible on hover in both light and dark themes */
+.vditor-toolbar button {
+  position: relative;
+  z-index: 1;
+}
+
+.vditor-toolbar button:hover {
+  background-color: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31)) !important;
+}
+
+.vditor-toolbar button svg,
+.vditor-toolbar button .vditor-icon {
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+
+.vditor-toolbar button:hover svg,
+.vditor-toolbar button:hover .vditor-icon {
+  opacity: 1;
 }
 
 /* Enforce VS Code theme colors for content */

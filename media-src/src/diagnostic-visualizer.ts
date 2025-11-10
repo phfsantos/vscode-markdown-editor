@@ -43,14 +43,6 @@ export class DiagnosticVisualizer {
         this.setupFocusAwareness();
     }
 
-    // VS Code logging function
-    private vscodeLog(message: string): void {
-        (window as any).vscode?.postMessage({
-            command: "log",
-            message: message
-        });
-    }
-
   /**
    * Update diagnostic visualizations in the editor (private implementation)
    * Now includes focus-aware logic to prevent cursor jumping
@@ -144,14 +136,14 @@ export class DiagnosticVisualizer {
           this.wrappedKeys.add(tokenKey);
           return true;
         } else {
-          this.vscodeLog(`❌ No parent node found for text node containing: "${diagnosticText}"`);
+          // vscodeLogError(`❌ No parent node found for text node containing: "${diagnosticText}"`);
           return false;
         }
       } else {
         return false;
       }
     } catch (error) {
-      this.vscodeLog(`❌ Error styling text with diagnostic: ${error}`);
+      // vscodeLogError(`❌ Error styling text with diagnostic: ${error}`);
       return false;
     }
   }
@@ -307,7 +299,7 @@ export class DiagnosticVisualizer {
             editor = document.querySelector('.vditor-sv .vditor-reset'); // Source mode
         }
         if (!editor) {
-            vscodeLogWarn('DiagnosticVisualizer: Could not find Vditor editor element for cleanup');
+            // vscodeLogWarn('DiagnosticVisualizer: Could not find Vditor editor element for cleanup');
             return;
         }
 
@@ -462,7 +454,7 @@ export class DiagnosticVisualizer {
             editor = document.querySelector('.vditor-sv .vditor-reset'); // Source mode
         }
         if (!editor) {
-            vscodeLogWarn('DiagnosticVisualizer: Could not find Vditor editor element');
+            // vscodeLogWarn('DiagnosticVisualizer: Could not find Vditor editor element');
             return;
         }
 
@@ -1146,7 +1138,7 @@ export class DiagnosticVisualizer {
                     source: diagnostic.source,
                     line: diagnostic.range?.start?.line
                 });
-                vscodeLogError(`❌ Diagnostic ${index + 1} failed to apply`);
+                // vscodeLogError(`❌ Diagnostic ${index + 1} failed to apply`);
             }
         });
 
@@ -1937,7 +1929,7 @@ export class DiagnosticVisualizer {
         }
         
         if (!found) {
-            vscodeLogWarn(`Text "${searchText}" not found in DOM`);
+            // vscodeLogWarn(`Text "${searchText}" not found in DOM`);
         }
         
         return found;
@@ -2551,7 +2543,7 @@ export class DiagnosticVisualizer {
                     matchType = 'html2md-line-match';
                 }
             } catch (e) {
-                this.vscodeLog(`❌ html2md conversion failed: ${e}`);
+                // vscodeLogError(`❌ html2md conversion failed: ${e}`);
             }
         }
         
@@ -2579,7 +2571,7 @@ export class DiagnosticVisualizer {
                 charRange: {start: startChar, end: endChar}
             };
         } else {
-            this.vscodeLog(`❌ No match: ${matchType} (confidence: ${confidence.toFixed(1)})`);
+            // vscodeLogError(`❌ No match: ${matchType} (confidence: ${confidence.toFixed(1)})`);
             return {matched: false, confidence, matchType};
         }
     }
@@ -2605,7 +2597,7 @@ export class DiagnosticVisualizer {
         const targetText = matchResult.targetText || lineText.substring(startChar, endChar).trim();
         
         if (!targetText) {
-            this.vscodeLog(`❌ Cannot apply diagnostic: no target text identified`);
+            // vscodeLogError(`❌ Cannot apply diagnostic: no target text identified`);
             return false;
         }
         
@@ -2617,7 +2609,7 @@ export class DiagnosticVisualizer {
             // Record that this diagnostic has been applied to prevent overlaps
             this.recordAppliedDiagnostic(element, startChar, endChar, lineNumber, diagnostic);
         } else {
-            this.vscodeLog(`❌ Failed to apply diagnostic: could not locate target text "${targetText}"`);
+            // vscodeLogError(`❌ Failed to apply diagnostic: could not locate target text "${targetText}"`);
         }
         
         return applied;
@@ -2674,7 +2666,7 @@ export class DiagnosticVisualizer {
         }
         
         if (targetIndex === -1) {
-            this.vscodeLog(`❌ Target text "${targetText}" not found in element text`);
+            // vscodeLogError(`❌ Target text "${targetText}" not found in element text`);
             // Fallback: apply styling to entire element
             this.addDiagnosticStylingToElement(element, diagnostic);
             return true;

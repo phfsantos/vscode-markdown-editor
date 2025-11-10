@@ -25,6 +25,17 @@ interface DocumentData {
   relatedFiles?: FileInfo[];
   graphData?: GraphData;
   isDefaultEditor: boolean;
+  loading?: {
+    tags?: boolean;
+    embeds?: boolean;
+    outgoingLinks?: boolean;
+    backlinks?: boolean;
+    relatedFiles?: boolean;
+    graph?: boolean;
+  };
+  tags?: string[];
+  globalTags?: any[];
+  embeds?: any[];
 }
 
 interface LinkInfo {
@@ -41,9 +52,17 @@ interface FileInfo {
   proximity?: string;
 }
 
+interface CacheStatus {
+  isBuilding: boolean;
+  cacheSize: number;
+  buildProgress: { current: number; total: number; operation: string } | null;
+  ttl: number;
+}
+
 class SidebarApp {
   private vscode: VSCode;
   private data: DocumentData | null = null;
+  private cacheStatus: CacheStatus | null = null;
   private graphView: GraphView;
   private graphDepth: number = 1;
   private graphMaxNodes: number = 15;
@@ -86,9 +105,23 @@ class SidebarApp {
       
       switch (message.type) {
         case 'update':
+          // Full update - replace all data
           this.data = message.data;
-          this.graphLoading = false; // Reset loading state when data arrives
+          this.graphLoading = message.data.loading?.graph || false;
           this.render();
+          break;
+        case 'updateSection':
+          // Incremental update - merge section data
+          if (this.data) {
+            this.data = { ...this.data, ...message.data };
+            this.graphLoading = message.data.loading?.graph || false;
+            this.render();
+          }
+          break;
+        case 'cacheStatus':
+          // Cache status update
+          this.cacheStatus = message.status;
+          this.updateCacheStatusDisplay();
           break;
       }
     });
@@ -260,9 +293,12 @@ class SidebarApp {
     return `
       <div class="header">
         <h3 class="current-file">${this.escapeHtml(fileName)}</h3>
-        <button class="refresh-btn" data-action="refresh" title="Refresh">
-          <span class="codicon codicon-refresh"></span>
-        </button>
+        <div class="header-actions">
+          <div id="cache-status" class="cache-status"></div>
+          <button class="refresh-btn" data-action="refresh" title="Refresh">
+            <span class="codicon codicon-refresh"></span>
+          </button>
+        </div>
       </div>
     `;
   }
@@ -337,16 +373,25 @@ class SidebarApp {
   private renderTags(): string {
   const tags: string[] = (this.data as any)?.tags || [];
   const globalTags: any[] = (this.data as any)?.globalTags || [];
-
-    const localList = tags.map(t => `<span class="tag">#${this.escapeHtml(t)}</span>`).join(' ');
-    const globalList = globalTags.map((g: any) => `<div class="global-tag" data-tag="${this.escapeHtml(g.tag)}">#${this.escapeHtml(g.tag)} <span class="count">(${g.count})</span></div>`).join('');
+  const loading = this.data?.loading?.tags || false;
 
     const isCollapsed = this.collapsedSections.has('tags');
     const chevron = isCollapsed ? 'codicon-chevron-right' : 'codicon-chevron-down';
     const height = this.sectionHeights.get('tags');
-    // Only apply explicit height if section is expanded
     const sectionStyle = (!isCollapsed && height) ? `style="height: ${height}px;"` : '';
     const heightClass = (!isCollapsed && height) ? 'has-explicit-height' : '';
+    
+    let contentHtml = '';
+    if (loading) {
+      contentHtml = '<div class="loading-skeleton"><div class="skeleton-line"></div><div class="skeleton-line"></div></div>';
+    } else {
+      const localList = tags.map(t => `<span class="tag">#${this.escapeHtml(t)}</span>`).join(' ');
+      const globalList = globalTags.map((g: any) => `<div class="global-tag" data-tag="${this.escapeHtml(g.tag)}">#${this.escapeHtml(g.tag)} <span class="count">(${g.count})</span></div>`).join('');
+      contentHtml = `
+        <div class="tags-local">${localList || '<em>No tags in this file</em>'}</div>
+        <div class="tags-global">${globalList || '<em>No tags in workspace</em>'}</div>
+      `;
+    }
     
     return `
       <div class="section resizable ${isCollapsed ? 'collapsed' : ''} ${heightClass}" data-section="tags" ${sectionStyle}>
@@ -356,8 +401,7 @@ class SidebarApp {
           <h4>Tags</h4>
         </div>
         <div class="section-content">
-          <div class="tags-local">${localList || '<em>No tags in this file</em>'}</div>
-          <div class="tags-global">${globalList || '<em>No tags in workspace</em>'}</div>
+          ${contentHtml}
         </div>
       </div>
     `;
@@ -365,27 +409,34 @@ class SidebarApp {
 
   private renderEmbeds(): string {
     const embeds = (this.data as any)?.embeds || [];
-    if (!embeds || embeds.length === 0) return '';
-
-    const list = embeds.map((e: any) => `
-      <div class="embed-item">
-        <span class="codicon codicon-file-media"></span>
-        <div class="embed-info">
-          <div class="embed-filename">${this.escapeHtml(e.filename)}</div>
-          <div class="embed-path">${this.escapeHtml(e.resolved || 'Not found')}</div>
-        </div>
-        <div class="embed-actions">
-          <button class="embed-preview-btn" data-path="${this.escapeHtml(e.resolved || '')}" data-raw="${this.escapeHtml(e.raw)}">Preview</button>
-        </div>
-      </div>
-    `).join('');
+    const loading = this.data?.loading?.embeds || false;
+    
+    if (!loading && (!embeds || embeds.length === 0)) return '';
 
     const isCollapsed = this.collapsedSections.has('embeds');
     const chevron = isCollapsed ? 'codicon-chevron-right' : 'codicon-chevron-down';
     const height = this.sectionHeights.get('embeds');
-    // Only apply explicit height if section is expanded
     const sectionStyle = (!isCollapsed && height) ? `style="height: ${height}px;"` : '';
     const heightClass = (!isCollapsed && height) ? 'has-explicit-height' : '';
+    
+    let contentHtml = '';
+    if (loading) {
+      contentHtml = '<div class="loading-skeleton"><div class="skeleton-line"></div><div class="skeleton-line"></div></div>';
+    } else {
+      const list = embeds.map((e: any) => `
+        <div class="embed-item">
+          <span class="codicon codicon-file-media"></span>
+          <div class="embed-info">
+            <div class="embed-filename">${this.escapeHtml(e.filename)}</div>
+            <div class="embed-path">${this.escapeHtml(e.resolved || 'Not found')}</div>
+          </div>
+          <div class="embed-actions">
+            <button class="embed-preview-btn" data-path="${this.escapeHtml(e.resolved || '')}" data-raw="${this.escapeHtml(e.raw)}">Preview</button>
+          </div>
+        </div>
+      `).join('');
+      contentHtml = list;
+    }
     
     return `
       <div class="section resizable ${isCollapsed ? 'collapsed' : ''} ${heightClass}" data-section="embeds" ${sectionStyle}>
@@ -393,21 +444,35 @@ class SidebarApp {
           <span class="codicon ${chevron} chevron"></span>
           <span class="codicon codicon-file-media"></span>
           <h4>Embeds</h4>
-          <span class="count">${embeds.length}</span>
+          <span class="count">${loading ? '...' : embeds.length}</span>
         </div>
-        <div class="section-content embeds-list">${list}</div>
+        <div class="section-content embeds-list">${contentHtml}</div>
       </div>
     `;
   }
 
   private renderOutgoingLinks(): string {
     const links = this.data?.outgoingLinks || [];
+    const loading = this.data?.loading?.outgoingLinks || false;
     const isCollapsed = this.collapsedSections.has('outgoing-links');
     const chevron = isCollapsed ? 'codicon-chevron-right' : 'codicon-chevron-down';
     const height = this.sectionHeights.get('outgoing-links');
-    // Only apply explicit height if section is expanded
     const sectionStyle = (!isCollapsed && height) ? `style="height: ${height}px;"` : '';
     const heightClass = (!isCollapsed && height) ? 'has-explicit-height' : '';
+    
+    if (loading) {
+      return `
+        <div class="section resizable ${isCollapsed ? 'collapsed' : ''} ${heightClass}" data-section="outgoing-links" ${sectionStyle}>
+          <div class="section-header" data-section-toggle="outgoing-links">
+            <span class="codicon ${chevron} chevron"></span>
+            <span class="codicon codicon-link-external"></span>
+            <h4>Outgoing Links</h4>
+            <span class="count">...</span>
+          </div>
+          <div class="section-content"><div class="loading-skeleton"><div class="skeleton-line"></div><div class="skeleton-line"></div><div class="skeleton-line"></div></div></div>
+        </div>
+      `;
+    }
     
     if (links.length === 0) {
       return `
@@ -451,12 +516,26 @@ class SidebarApp {
 
   private renderBacklinks(): string {
     const backlinks = this.data?.backlinks || [];
+    const loading = this.data?.loading?.backlinks || false;
     const isCollapsed = this.collapsedSections.has('backlinks');
     const chevron = isCollapsed ? 'codicon-chevron-right' : 'codicon-chevron-down';
     const height = this.sectionHeights.get('backlinks');
-    // Only apply explicit height if section is expanded
     const sectionStyle = (!isCollapsed && height) ? `style="height: ${height}px;"` : '';
     const heightClass = (!isCollapsed && height) ? 'has-explicit-height' : '';
+    
+    if (loading) {
+      return `
+        <div class="section resizable ${isCollapsed ? 'collapsed' : ''} ${heightClass}" data-section="backlinks" ${sectionStyle}>
+          <div class="section-header" data-section-toggle="backlinks">
+            <span class="codicon ${chevron} chevron"></span>
+            <span class="codicon codicon-references"></span>
+            <h4>Backlinks</h4>
+            <span class="count">...</span>
+          </div>
+          <div class="section-content"><div class="loading-skeleton"><div class="skeleton-line"></div><div class="skeleton-line"></div><div class="skeleton-line"></div></div></div>
+        </div>
+      `;
+    }
     
     if (backlinks.length === 0) {
       return `
@@ -499,17 +578,31 @@ class SidebarApp {
 
   private renderRelatedFiles(): string {
     const related = this.data?.relatedFiles || [];
+    const loading = this.data?.loading?.relatedFiles || false;
     
-    if (related.length === 0) {
+    if (!loading && related.length === 0) {
       return '';
     }
     
     const isCollapsed = this.collapsedSections.has('related-files');
     const chevron = isCollapsed ? 'codicon-chevron-right' : 'codicon-chevron-down';
     const height = this.sectionHeights.get('related-files');
-    // Only apply explicit height if section is expanded
     const sectionStyle = (!isCollapsed && height) ? `style="height: ${height}px;"` : '';
     const heightClass = (!isCollapsed && height) ? 'has-explicit-height' : '';
+    
+    if (loading) {
+      return `
+        <div class="section resizable ${isCollapsed ? 'collapsed' : ''} ${heightClass}" data-section="related-files" ${sectionStyle}>
+          <div class="section-header" data-section-toggle="related-files">
+            <span class="codicon ${chevron} chevron"></span>
+            <span class="codicon codicon-file-symlink-directory"></span>
+            <h4>Related Files</h4>
+            <span class="count">...</span>
+          </div>
+          <div class="section-content"><div class="loading-skeleton"><div class="skeleton-line"></div><div class="skeleton-line"></div></div></div>
+        </div>
+      `;
+    }
 
     const relatedList = related.map(file => `
       <div class="file-item" data-action="openFile" data-path="${file.path}">
@@ -1031,6 +1124,40 @@ class SidebarApp {
         this.render();
       }
     }, 5000);
+  }
+
+  private updateCacheStatusDisplay(): void {
+    const statusEl = document.getElementById('cache-status');
+    if (!statusEl || !this.cacheStatus) return;
+
+    if (this.cacheStatus.isBuilding && this.cacheStatus.buildProgress) {
+      const { current, total, operation } = this.cacheStatus.buildProgress;
+      statusEl.innerHTML = `
+        <span class="cache-building" title="${this.escapeHtml(operation)}">
+          <span class="codicon codicon-sync codicon-modifier-spin"></span>
+          ${current}/${total}
+        </span>
+      `;
+      statusEl.classList.add('visible');
+    } else {
+      const cacheSize = this.cacheStatus.cacheSize;
+      const ttlMinutes = Math.floor(this.cacheStatus.ttl / 60000);
+      statusEl.innerHTML = `
+        <button class="cache-rebuild-btn" data-action="rebuildCache" title="Rebuild cache (${cacheSize} entries, ${ttlMinutes}min TTL)">
+          <span class="codicon codicon-database"></span>
+          <span class="cache-count">${cacheSize}</span>
+        </button>
+      `;
+      statusEl.classList.add('visible');
+      
+      // Attach event listener
+      const rebuildBtn = statusEl.querySelector('[data-action="rebuildCache"]');
+      if (rebuildBtn) {
+        rebuildBtn.addEventListener('click', () => {
+          this.vscode.postMessage({ command: 'rebuildCache' });
+        });
+      }
+    }
   }
 
   private escapeHtml(text: string): string {
