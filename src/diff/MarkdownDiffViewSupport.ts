@@ -79,7 +79,115 @@ export class MarkdownDiffViewSupport {
       }
     }
     
-    return changes;
+    // Post-process to detect modified lines (delete+add pairs)
+    return this.mergeModifiedLines(changes);
+  }
+
+  /**
+   * Merge consecutive delete+add pairs into modified changes
+   * This detects line modifications by finding deletions followed by additions at nearby positions
+   */
+  private mergeModifiedLines(changes: LineChange[]): LineChange[] {
+    const result: LineChange[] = [];
+    const deletions = changes.filter(c => c.type === 'deleted' && c.side === 'left');
+    const additions = changes.filter(c => c.type === 'added' && c.side === 'right');
+    const usedAdditions = new Set<number>();
+    const usedDeletions = new Set<number>();
+
+    // For each deletion, try to find a matching addition
+    for (let i = 0; i < deletions.length; i++) {
+      const deletion = deletions[i];
+      
+      // Calculate expected line number on right, accounting for all previous additions/deletions
+      const previousAdditions = additions.filter(a => a.lineNumber < deletion.lineNumber).length;
+      const previousDeletions = deletions.filter(d => d.lineNumber < deletion.lineNumber).length;
+      const offset = previousAdditions - previousDeletions;
+      const expectedRightLine = deletion.lineNumber + offset;
+      
+      // Find nearby additions within ±3 lines
+      const nearbyAdditions = additions.filter((a, idx) => {
+        if (usedAdditions.has(idx)) return false;
+        const positionDiff = Math.abs(a.lineNumber - expectedRightLine);
+        return positionDiff <= 3;
+      });
+      
+      if (nearbyAdditions.length > 0) {
+        // Find best match based on content similarity and position
+        let bestMatch: LineChange | null = null;
+        let bestScore = 0;
+        let bestMatchIdx = -1;
+        
+        for (const addition of nearbyAdditions) {
+          const additionIdx = additions.indexOf(addition);
+          const similarity = this.calculateSimilarity(deletion.content, addition.content);
+          const positionScore = 1 - Math.abs(addition.lineNumber - expectedRightLine) / 4;
+          const score = similarity * 0.7 + positionScore * 0.3;
+          
+          if (score > bestScore) {
+            bestScore = score;
+            bestMatch = addition;
+            bestMatchIdx = additionIdx;
+          }
+        }
+        
+        // Only merge if similarity is reasonable (>30% similar OR within 1 line)
+        if (bestMatch) {
+          const similarity = this.calculateSimilarity(deletion.content, bestMatch.content);
+          const positionDiff = Math.abs(bestMatch.lineNumber - expectedRightLine);
+          
+          if (similarity > 0.3 || positionDiff <= 1) {
+            // Merge into a modified change
+            result.push({
+              type: 'modified',
+              lineNumber: bestMatch.lineNumber, // Use the line number from the modified version
+              content: bestMatch.content,        // New content
+              oldContent: deletion.content,      // Old content
+              side: 'both'                       // Affects both sides
+            });
+            
+            usedDeletions.add(i);
+            usedAdditions.add(bestMatchIdx);
+            continue;
+          }
+        }
+      }
+    }
+    
+    // Add all changes: merged modifications + unused deletions + unused additions
+    for (let i = 0; i < deletions.length; i++) {
+      if (!usedDeletions.has(i)) {
+        result.push(deletions[i]);
+      }
+    }
+    
+    for (let i = 0; i < additions.length; i++) {
+      if (!usedAdditions.has(i)) {
+        result.push(additions[i]);
+      }
+    }
+    
+    // Sort by line number for consistent output
+    return result.sort((a, b) => a.lineNumber - b.lineNumber);
+  }
+
+  /**
+   * Calculate text similarity between two strings (0-1 scale)
+   */
+  private calculateSimilarity(text1: string, text2: string): number {
+    const longer = text1.length > text2.length ? text1 : text2;
+    const shorter = text1.length > text2.length ? text2 : text1;
+    
+    if (longer.length === 0) return 1.0;
+    
+    // Count matching characters at corresponding positions
+    let matches = 0;
+    for (let i = 0; i < shorter.length; i++) {
+      if (longer[i] === shorter[i]) {
+        matches++;
+      }
+    }
+    
+    return matches / longer.length;
   }
 
   /**

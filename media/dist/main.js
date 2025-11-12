@@ -43878,14 +43878,15 @@ console.log('Hello, World!');
       const alreadyMatched = new Set();
       relevantChangesForHighlight.forEach((change, index2) => {
         const changeText = change.content.trim();
-        if (!changeText) {
+        const oldText = change.oldContent?.trim();
+        if (!changeText && !oldText) {
           return;
         }
         const targetLineNumber = change.lineNumber;
         let targetElement = lineToDom.get(targetLineNumber);
         if (targetElement && !alreadyMatched.has(targetElement)) {
           const elementText = targetElement.textContent?.trim() || "";
-          if (elementText === changeText || elementText.includes(changeText)) {
+          if (elementText === changeText || elementText.includes(changeText) || elementText === oldText || elementText.includes(oldText)) {
           } else {
             targetElement = null;
           }
@@ -43893,7 +43894,7 @@ console.log('Hello, World!');
           targetElement = null;
         }
         if (!targetElement) {
-          const matchingNodes = allTextNodes.filter((node) => !alreadyMatched.has(node.element) && node.text === changeText);
+          const matchingNodes = allTextNodes.filter((node) => !alreadyMatched.has(node.element) && (node.text === changeText || node.text === oldText));
           if (matchingNodes.length === 1) {
             targetElement = matchingNodes[0].element;
           } else if (matchingNodes.length > 1) {

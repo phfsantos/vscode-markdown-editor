@@ -309,8 +309,9 @@ export class DiffVisualizer {
     
     relevantChangesForHighlight.forEach((change, index) => {
       const changeText = change.content.trim();
+      const oldText = change.oldContent?.trim();
       
-      if (!changeText) {
+      if (!changeText && !oldText) {
         return;
       }
       
@@ -323,7 +324,7 @@ export class DiffVisualizer {
       if (targetElement && !alreadyMatched.has(targetElement)) {
         // Verify the text matches
         const elementText = targetElement.textContent?.trim() || '';
-        if (elementText === changeText || elementText.includes(changeText)) {
+        if (elementText === changeText || elementText.includes(changeText) || elementText === oldText || elementText.includes(oldText)) {
         } else {
           targetElement = null;
         }
@@ -334,7 +335,7 @@ export class DiffVisualizer {
       // Fallback: search for matching text near the target line
       if (!targetElement) {
         const matchingNodes = allTextNodes.filter(node => 
-          !alreadyMatched.has(node.element) && node.text === changeText
+          !alreadyMatched.has(node.element) && (node.text === changeText || node.text === oldText)
         );
         
         if (matchingNodes.length === 1) {

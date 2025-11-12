@@ -7,6 +7,7 @@ const tests = [
   'link-resolver.test.js',
   'embed-handler.test.js',
   'relationship-analyzer.test.js',
+  'diff-support.test.js',
 ];
 
 let passed = 0;
