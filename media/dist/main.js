@@ -43804,7 +43804,7 @@ console.log('Hello, World!');
         z-index: 1000;
         background: var(--vscode-editor-background);
         border-bottom: 1px solid var(--vscode-panel-border);
-        padding: 8px 12px;
+        padding: 10px 12px;
         display: flex;
         align-items: center;
         gap: 12px;
@@ -46198,6 +46198,7 @@ console.log('Hello, World!');
   var wikiLinkAutocomplete = null;
   var wikiLinkHandler = null;
   var imageURIConverter = null;
+  var isReadOnly = false;
   function processAfterRender() {
     if (wikiLinkHandler) {
       wikiLinkHandler.processWikiLinksInEditor();
@@ -46632,6 +46633,123 @@ console.log('Hello, World!');
       message
     });
   }
+  var readOnlyTooltipTimeout = null;
+  var readOnlyTooltip = null;
+  function showReadOnlyTooltip(message = "This editor is read-only") {
+    if (readOnlyTooltip) {
+      readOnlyTooltip.remove();
+      readOnlyTooltip = null;
+    }
+    if (readOnlyTooltipTimeout) {
+      clearTimeout(readOnlyTooltipTimeout);
+      readOnlyTooltipTimeout = null;
+    }
+    const tooltip = document.createElement("div");
+    tooltip.className = "vscode-readonly-tooltip";
+    tooltip.textContent = message;
+    tooltip.style.position = "fixed";
+    tooltip.style.top = "50%";
+    tooltip.style.left = "50%";
+    tooltip.style.transform = "translate(-50%, -50%)";
+    tooltip.style.background = "var(--vscode-notifications-background, #2b2b2b)";
+    tooltip.style.color = "var(--vscode-notifications-foreground, #cccccc)";
+    tooltip.style.border = "1px solid var(--vscode-notifications-border, #454545)";
+    tooltip.style.borderRadius = "3px";
+    tooltip.style.padding = "8px 12px";
+    tooltip.style.boxShadow = "0 2px 8px rgba(0,0,0,0.5)";
+    tooltip.style.zIndex = "100000";
+    tooltip.style.fontSize = "13px";
+    tooltip.style.fontFamily = "var(--vscode-font-family)";
+    tooltip.style.pointerEvents = "none";
+    tooltip.style.opacity = "0";
+    tooltip.style.transition = "opacity 0.2s";
+    document.body.appendChild(tooltip);
+    readOnlyTooltip = tooltip;
+    requestAnimationFrame(() => {
+      if (tooltip && tooltip.parentElement) {
+        tooltip.style.opacity = "1";
+      }
+    });
+    readOnlyTooltipTimeout = window.setTimeout(() => {
+      if (tooltip && tooltip.parentElement) {
+        tooltip.style.opacity = "0";
+        setTimeout(() => {
+          if (tooltip && tooltip.parentElement) {
+            tooltip.remove();
+          }
+          if (readOnlyTooltip === tooltip) {
+            readOnlyTooltip = null;
+          }
+        }, 200);
+      }
+      readOnlyTooltipTimeout = null;
+    }, 2e3);
+  }
+  function setupReadOnlyWarnings() {
+    if (!window.vditor)
+      return;
+    const editorElement = document.querySelector(".vditor-ir .vditor-reset") || document.querySelector(".vditor-wysiwyg .vditor-reset") || document.querySelector(".vditor-sv .vditor-reset");
+    if (!editorElement)
+      return;
+    editorElement.addEventListener("keydown", (e7) => {
+      const keyEvent = e7;
+      if ((keyEvent.ctrlKey || keyEvent.metaKey) && keyEvent.key === "c") {
+        return;
+      }
+      if ((keyEvent.ctrlKey || keyEvent.metaKey) && keyEvent.key === "a") {
+        return;
+      }
+      if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Shift", "Control", "Meta", "Alt"].includes(keyEvent.key)) {
+        return;
+      }
+      e7.preventDefault();
+      e7.stopPropagation();
+      showReadOnlyTooltip("This editor is read-only. You can copy but not modify content.");
+    }, {capture: true});
+    editorElement.addEventListener("mousedown", (e7) => {
+      const target = e7.target;
+      if (e7 instanceof MouseEvent && e7.detail === 1) {
+        return;
+      }
+      if (e7 instanceof MouseEvent && e7.detail > 1) {
+        showReadOnlyTooltip("This editor is read-only. You can copy but not modify content.");
+      }
+    }, {capture: true});
+    editorElement.addEventListener("paste", (e7) => {
+      e7.preventDefault();
+      e7.stopPropagation();
+      showReadOnlyTooltip("This editor is read-only. Paste is disabled.");
+    }, {capture: true});
+    editorElement.addEventListener("cut", (e7) => {
+      e7.preventDefault();
+      e7.stopPropagation();
+      showReadOnlyTooltip("This editor is read-only. Cut is disabled.");
+    }, {capture: true});
+    editorElement.addEventListener("drop", (e7) => {
+      e7.preventDefault();
+      e7.stopPropagation();
+      showReadOnlyTooltip("This editor is read-only. Drop is disabled.");
+    }, {capture: true});
+    editorElement.addEventListener("dragstart", (e7) => {
+      const dragEvent = e7;
+      const selection = window.getSelection();
+      if (selection && selection.toString()) {
+        return;
+      }
+    }, {capture: true});
+    editorElement.setAttribute("contenteditable", "false");
+    const style = document.createElement("style");
+    style.textContent = `
+    .vditor-ir .vditor-reset[contenteditable="false"],
+    .vditor-wysiwyg .vditor-reset[contenteditable="false"],
+    .vditor-sv .vditor-reset[contenteditable="false"] {
+      cursor: default !important;
+      user-select: text !important;
+      -webkit-user-select: text !important;
+    }
+  `;
+    document.head.appendChild(style);
+  }
   initializeRendererSystem();
   function initVditor(msg) {
     let predictionary = null;
@@ -46801,6 +46919,7 @@ console.log('Hello, World!');
       },
       blur: void 0,
       focus: void 0,
+      undoDelay: isReadOnly ? 0 : 1e3,
       contextmenu: (event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -46899,6 +47018,9 @@ console.log('Hello, World!');
       },
       ...defaultOptions2,
       after() {
+        if (isReadOnly) {
+          setupReadOnlyWarnings();
+        }
         if (wikiLinkAutocomplete && window.vditor) {
           const documentPath = msg.documentPath || "untitled";
           wikiLinkAutocomplete.initialize(documentPath, window.vditor);
@@ -47159,6 +47281,10 @@ console.log('Hello, World!');
         }
       },
       input(value) {
+        if (isReadOnly) {
+          showReadOnlyTooltip("This editor is read-only");
+          return;
+        }
         const timestamp = Date.now();
         inputTimer && clearTimeout(inputTimer);
         inputTimer = setTimeout(() => {
@@ -47266,6 +47392,9 @@ console.log('Hello, World!');
       case "update": {
         if (msg.documentFilename) {
           window.currentDocumentFilename = msg.documentFilename;
+        }
+        if (msg.isReadOnly !== void 0) {
+          isReadOnly = msg.isReadOnly;
         }
         if (msg.type === "init") {
           if (msg.options && msg.options.useVscodeThemeColor) {

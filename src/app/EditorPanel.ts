@@ -584,7 +584,7 @@ export class EditorPanel {
                 vscode.ColorThemeKind.Dark
                   ? "dark"
                   : "light",
-              isReadOnly: false, // Both sides of diff should be editable
+              isReadOnly: this._readOnly || false, // Pass readOnly flag to webview
             });
             break;
           case "vditorReady":
@@ -1015,7 +1015,7 @@ export class EditorPanel {
 
     if (isInDiffContext && diffContext?.otherUri) {
       logger.debug(
-        `[${this.instanceId}]   ✅ Detected diff view! Updating instance state...`
+        `[${this.instanceId}] ✅ Detected diff view! Updating instance state...`
       );
 
       // Update instance state dynamically since we started with false
@@ -1032,8 +1032,8 @@ export class EditorPanel {
       }
 
       // Calculate diff using detected URIs
-      const leftUri = this._uri;
-      const rightUri = this._otherDiffUri;
+    const leftUri = diffContext.role === "left" ? this._uri : diffContext.otherUri;
+    const rightUri = diffContext.role === "right" ? this._uri : diffContext.otherUri;
 
       // Calculate diff using detected URIs
       const diffResult = await diffSupport.calculateDiff(leftUri, rightUri);
@@ -1114,9 +1114,19 @@ export class EditorPanel {
       `[${this.instanceId}] 🔄 Updating diff visualization after document change`
     );
 
+    
+    const diffPanels = EditorPanel._diffPanelTracking.get(this._tab);
+    const diffContext = {
+      role: diffPanels?.left?.instanceId === this.instanceId ? "left" : "right",
+      otherUri:
+        diffPanels?.left?.instanceId === this.instanceId
+          ? diffPanels?.right?._uri
+          : diffPanels?.left?._uri,
+    };
+
     // Calculate diff using this instance's URIs
-    const leftUri = this._uri;
-    const rightUri = this._otherDiffUri;
+    const leftUri = diffContext.role === "left" ? this._uri : diffContext.otherUri;
+    const rightUri = diffContext.role === "right" ? this._uri : diffContext.otherUri;
 
     const diffResult = await diffSupport.calculateDiff(leftUri, rightUri);
 

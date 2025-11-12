@@ -186,7 +186,7 @@ export class DiffVisualizer {
         z-index: 1000;
         background: var(--vscode-editor-background);
         border-bottom: 1px solid var(--vscode-panel-border);
-        padding: 8px 12px;
+        padding: 10px 12px;
         display: flex;
         align-items: center;
         gap: 12px;
