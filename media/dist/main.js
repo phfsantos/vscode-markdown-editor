@@ -44160,6 +44160,34 @@ console.log('Hello, World!');
             if (!htmlContent || htmlContent.trim().length === 0) {
               continue;
             }
+            let targetElementForLine = null;
+            targetElementForLine = lineToDom.get(lineNum) || null;
+            if (!targetElementForLine && lineNum >= lineToDom.size) {
+              const lastLineNum = Math.max(...Array.from(lineToDom.keys()));
+              targetElementForLine = lineToDom.get(lastLineNum) || null;
+            }
+            if (!targetElementForLine) {
+              for (let offset = 1; offset <= 3; offset++) {
+                targetElementForLine = lineToDom.get(lineNum - offset);
+                if (targetElementForLine)
+                  break;
+              }
+            }
+            if (!targetElementForLine) {
+              continue;
+            }
+            let parentElement2 = targetElementForLine.parentElement;
+            let isChildOfContent = false;
+            while (parentElement2) {
+              if (parentElement2 === contentElement) {
+                isChildOfContent = true;
+                break;
+              }
+              parentElement2 = parentElement2.parentElement;
+            }
+            if (!isChildOfContent) {
+              continue;
+            }
             const tempContainer = document.createElement("div");
             tempContainer.innerHTML = htmlContent;
             const spacer = tempContainer.firstElementChild;
@@ -44175,15 +44203,19 @@ console.log('Hello, World!');
             spacer.style.opacity = "0.6";
             spacer.style.position = spacer.style.position || "relative";
             try {
-              if (this.diffInfo.role === "left") {
-                if (targetElement.nextSibling) {
-                  targetElement.parentElement.insertBefore(spacer, targetElement.nextSibling);
-                } else {
-                  targetElement.parentElement.appendChild(spacer);
-                }
-                targetElement = spacer;
+              if (lineNum >= lineToDom.size && targetElementForLine.nextSibling === null) {
+                targetElementForLine.parentElement.appendChild(spacer);
+                const newLineNum = Math.max(...Array.from(lineToDom.keys())) + 1;
+                lineToDom.set(newLineNum, spacer);
               } else {
-                targetElement.parentElement.insertBefore(spacer, targetElement);
+                targetElementForLine.parentElement.insertBefore(spacer, targetElementForLine);
+                const keysToShift = Array.from(lineToDom.keys()).filter((key) => key >= lineNum).sort((a5, b4) => b4 - a5);
+                for (const key of keysToShift) {
+                  const element = lineToDom.get(key);
+                  lineToDom.delete(key);
+                  lineToDom.set(key + 1, element);
+                }
+                lineToDom.set(lineNum, spacer);
               }
             } catch (error2) {
             }

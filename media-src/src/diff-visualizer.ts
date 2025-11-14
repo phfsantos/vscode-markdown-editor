@@ -867,6 +867,46 @@ export class DiffVisualizer {
             continue;
           }
 
+          // For HTML-based diffs, find the target element at the exact line position
+          let targetElementForLine: HTMLElement | null = null;
+          
+          // Try to get the element at the exact line number first
+          targetElementForLine = lineToDom.get(lineNum) || null;
+          
+          // If line number exceeds current document length, append to end
+          if (!targetElementForLine && lineNum >= lineToDom.size) {
+            // Get the last element in the document to append after it
+            const lastLineNum = Math.max(...Array.from(lineToDom.keys()));
+            targetElementForLine = lineToDom.get(lastLineNum) || null;
+          }
+          
+          // If still not found, try nearby lines as fallback
+          if (!targetElementForLine) {
+            for (let offset = 1; offset <= 3; offset++) {
+              targetElementForLine = lineToDom.get(lineNum - offset);
+              if (targetElementForLine) break;
+            }
+          }
+
+          if (!targetElementForLine) {
+            continue;
+          }
+
+          // Verify that targetElement is a child of contentElement
+          let parentElement = targetElementForLine.parentElement;
+          let isChildOfContent = false;
+          while (parentElement) {
+            if (parentElement === contentElement) {
+              isChildOfContent = true;
+              break;
+            }
+            parentElement = parentElement.parentElement;
+          }
+
+          if (!isChildOfContent) {
+            continue;
+          }
+
           // Parse the HTML content into a DOM element
           const tempContainer = document.createElement("div");
           tempContainer.innerHTML = htmlContent;
@@ -891,24 +931,33 @@ export class DiffVisualizer {
           spacer.style.opacity = "0.6";
           spacer.style.position = spacer.style.position || "relative";
 
-          // Insert spacer - insert as a sibling of targetElement using its parent
+          // Insert spacer - ALWAYS insert BEFORE the target element for HTML-based diff
+          // This ensures consistent positioning regardless of left/right side
           try {
-            if (this.diffInfo.role === "left") {
-              // For original (left) editor, insert AFTER the target element (where added lines would be)
-              if (targetElement.nextSibling) {
-                targetElement.parentElement!.insertBefore(
-                  spacer,
-                  targetElement.nextSibling
-                );
-              } else {
-                targetElement.parentElement!.appendChild(spacer);
-              }
-              // Update target for next iteration (insert after the spacer we just added)
-              targetElement = spacer;
+            // Special case: if lineNum exceeds document length, append after last element
+            if (lineNum >= lineToDom.size && targetElementForLine.nextSibling === null) {
+              targetElementForLine.parentElement!.appendChild(spacer);
+              // Update lineToDom: append to end means it becomes the new last element
+              const newLineNum = Math.max(...Array.from(lineToDom.keys())) + 1;
+              lineToDom.set(newLineNum, spacer);
             } else {
-              // For modified (right) editor, insert BEFORE the target element (where deleted lines were)
-              targetElement.parentElement!.insertBefore(spacer, targetElement);
-              // Target remains the same for next iteration (we're inserting before it)
+              // Standard case: insert before the target element
+              targetElementForLine.parentElement!.insertBefore(spacer, targetElementForLine);
+              
+              // Update lineToDom: shift all entries at lineNum and after by 1
+              // Work backwards to avoid overwriting entries we need to shift
+              const keysToShift = Array.from(lineToDom.keys())
+                .filter(key => key >= lineNum)
+                .sort((a, b) => b - a); // Sort descending
+              
+              for (const key of keysToShift) {
+                const element = lineToDom.get(key)!;
+                lineToDom.delete(key);
+                lineToDom.set(key + 1, element);
+              }
+              
+              // Insert the spacer at the current line position
+              lineToDom.set(lineNum, spacer);
             }
           } catch (error) {
             // vscodeLogError(`❌ DIFF VISUALIZER: Failed to insert spacer for line ${lineNum}:`, error);
