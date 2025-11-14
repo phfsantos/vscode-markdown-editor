@@ -52,6 +52,7 @@ export class EditorPanel {
   private _diffCheckTimeout: NodeJS.Timeout | undefined;
   private _diffApplied = false; // Track if diff has been applied to THIS webview instance
   private _lastDiffCheckVisible = false; // Track last visibility state for diff checking
+  private _webviewReady = false; // Track if webview has sent ready signal
   public readonly instanceId: string; // Unique identifier for debugging webview instances
 
   // Diff-related properties (set reactively after creation)
@@ -464,6 +465,11 @@ export class EditorPanel {
         );
       }
 
+      // changes length
+      if (e.contentChanges.length > 0) {
+        this._diffApplied = false;
+      }
+
       // Handle external changes (like quick fixes, spell corrections) immediately
       if (isExternalChange) {
         if ((global as any).markdownEditorLog) {
@@ -555,11 +561,12 @@ export class EditorPanel {
         };
         switch (message.command) {
           case "ready":
+            // Mark webview as ready
+            this._webviewReady = true;
+            logger.debug(`[${this.instanceId}] 📥 Webview ready signal received`);
+            
             // REACTIVE DIFF CHECK: When webview is ready, check if we're in a diff view
             // This is a good time because the tab should be created by now
-            logger.debug(
-              `[${this.instanceId}] 📥 Webview ready - checking diff context...`
-            );
             this._checkDiffViewContextReactive();
 
             // Generate CDN base URI for Vditor to locate assets
@@ -974,6 +981,85 @@ export class EditorPanel {
   }
 
   /**
+   * Request IR HTML content from a webview panel
+   * Returns a promise that resolves when the webview responds
+   */
+  private async requestIRHtml(panel: EditorPanel): Promise<string | null> {
+    const requestId = `html-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Check if panel is ready
+    if (!panel._panel || !panel._panel.webview) {
+      logger.error(`[${this.instanceId}] Panel or webview not available for HTML request`);
+      return null;
+    }
+    
+    // Check if webview has signaled it's ready
+    if (!panel._webviewReady) {
+      logger.warn(`[${this.instanceId}] Webview not ready yet for panel ${panel.instanceId}, waiting...`);
+      // Wait up to 2 seconds for webview to become ready
+      let attempts = 0;
+      while (!panel._webviewReady && attempts < 20) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+      }
+      if (!panel._webviewReady) {
+        logger.error(`[${this.instanceId}] Webview still not ready after 2s for panel ${panel.instanceId}`);
+        return null;
+      }
+    }
+    
+    logger.debug(`[${this.instanceId}] Requesting HTML from panel ${panel.instanceId} with requestId ${requestId}`);
+    
+    return new Promise((resolve) => {
+      let resolved = false;
+      
+      // Set up one-time message listener for the response
+      const listener = (message: any) => {
+        if (message.command === 'irHtmlResponse' && message.requestId === requestId) {
+          if (resolved) return; // Prevent double resolution
+          resolved = true;
+          
+          logger.debug(`[${this.instanceId}] Received HTML response from panel ${panel.instanceId}`);
+          
+          // Clean up listener
+          disposable.dispose();
+          
+          if (message.error) {
+            logger.error(`[${this.instanceId}] Error getting IR HTML from panel ${panel.instanceId}: ${message.error}`);
+            resolve(null);
+          } else if (!message.html) {
+            logger.error(`[${this.instanceId}] No HTML content in response from panel ${panel.instanceId}`);
+            resolve(null);
+          } else {
+            logger.debug(`[${this.instanceId}] Successfully received ${message.html.length} characters of HTML from panel ${panel.instanceId}`);
+            resolve(message.html);
+          }
+        }
+      };
+      
+      // IMPORTANT: Listen on the TARGET panel's webview, not this panel's
+      const disposable = panel._panel.webview.onDidReceiveMessage(listener, null, panel._disposables);
+      
+      // Send request to webview
+      panel._panel.webview.postMessage({
+        command: 'requestIRHtml',
+        requestId: requestId
+      });
+      
+      logger.debug(`[${this.instanceId}] Sent HTML request to panel ${panel.instanceId}`);
+      
+      // Timeout after 5 seconds (increased from 3 for more reliable response)
+      setTimeout(() => {
+        if (resolved) return;
+        disposable.dispose();
+        resolved = true;
+        logger.warn(`[${this.instanceId}] Timeout waiting for IR HTML response from panel ${panel.instanceId}`);
+        resolve(null);
+      }, 5000);
+    });
+  }
+
+  /**
    * Reactively check if this editor is part of a diff view and send diff information to webview
    * Called multiple times: on setTimeout delay, on webview ready, and on viewState changes
    * This reactive approach works around the fact that tabGroups is not populated at creation time
@@ -1031,38 +1117,106 @@ export class EditorPanel {
         return;
       }
 
-      // Calculate diff using detected URIs
-    const leftUri = diffContext.role === "left" ? this._uri : diffContext.otherUri;
-    const rightUri = diffContext.role === "right" ? this._uri : diffContext.otherUri;
+      // Get the left and right panels for HTML extraction
+      const leftPanel = diffPanels?.left;
+      const rightPanel = diffPanels?.right;
+      
+      if (!leftPanel || !rightPanel) {
+        logger.warn(`[${this.instanceId}] Cannot calculate HTML diff: missing panel(s)`);
+        return;
+      }
 
-      // Calculate diff using detected URIs
-      const diffResult = await diffSupport.calculateDiff(leftUri, rightUri);
+      // Wait for webviews to be fully loaded and Vditor to render the content
+      // This is crucial because Vditor needs time to process markdown and render HTML
+      // Increased delay to 1 second to ensure content is fully rendered
+      logger.debug(`[${this.instanceId}]   Waiting 1s for Vditor to fully render content...`);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Request IR HTML content from BOTH panels
+      logger.debug(`[${this.instanceId}]   Requesting IR HTML from both panels (left: ${leftPanel.instanceId}, right: ${rightPanel.instanceId})...`);
+      const [leftHtml, rightHtml] = await Promise.all([
+        this.requestIRHtml(leftPanel),
+        this.requestIRHtml(rightPanel)
+      ]);
+      
+      logger.debug(`[${this.instanceId}]   HTML received - left: ${leftHtml ? leftHtml.length + ' chars' : 'null'}, right: ${rightHtml ? rightHtml.length + ' chars' : 'null'}`);
+      
+      if (!leftHtml || !rightHtml) {
+        logger.warn(`[${this.instanceId}] Failed to get HTML content from panels, falling back to markdown diff`);
+        // Fallback to markdown-based diff
+        const leftUri = diffContext.role === "left" ? this._uri : diffContext.otherUri!;
+        const rightUri = diffContext.role === "right" ? this._uri : diffContext.otherUri!;
+        const diffResult = await diffSupport.calculateDiff(leftUri, rightUri);
+        logger.debug(
+          `[${this.instanceId}]   Fallback markdown diff calculated: ${diffResult.changes.length} changes`
+        );
+        // Continue with existing markdown-based flow
+        const allChanges = diffResult.changes;
+        const thisDoc = await vscode.workspace.openTextDocument(this._uri);
+        const documentText = thisDoc.getText();
+
+        logger.debug(
+          `[${this.instanceId}]   Sending diff-view-detected to webview for "${fileName}"`
+        );
+
+        // Calculate role-specific stats for fallback markdown diff
+        const myRole = (diffContext.role || "left") as "left" | "right";
+        const roleSpecificStats = this._calculateRoleSpecificStats(allChanges, myRole);
+
+        this._panel.webview.postMessage({
+          type: "diff-view-detected",
+          diffInfo: {
+            role: myRole,
+            otherUri: diffContext.otherUri!.toString(),
+            instanceId: this.instanceId,
+            changes: allChanges,
+            stats: roleSpecificStats, // Use role-specific stats
+            documentText: documentText,
+          },
+        });
+
+        this._diffApplied = true;
+        logger.debug(
+          `[${this.instanceId}]   ✅ Diff applied and marked for "${fileName}"`
+        );
+        return;
+      }
+
+      // Calculate diff using HTML content
+      logger.debug(`[${this.instanceId}]   Calculating HTML-based diff...`);
+      const diffResult = await diffSupport.calculateDiffFromHTML(leftHtml, rightHtml);
       logger.debug(
-        `[${this.instanceId}]   Diff calculated: ${diffResult.changes.length} changes`
+        `[${this.instanceId}]   HTML diff calculated: ${diffResult.changes.length} changes`
       );
 
       // Send ALL changes to webview - it needs both sides for spacer blocks
       // The webview will filter what to highlight vs what to add spacers for
       const allChanges = diffResult.changes;
 
-      // Also send the full document text so the webview can build proper line mapping
-      const thisDoc = await vscode.workspace.openTextDocument(this._uri);
-      const documentText = thisDoc.getText();
+      // Send HTML lines for accurate spacer rendering
+      // The webview will use the actual HTML content of missing lines as spacers
+      const leftHtmlLines = (diffResult as any).leftHtmlLines || [];
+      const rightHtmlLines = (diffResult as any).rightHtmlLines || [];
 
       logger.debug(
         `[${this.instanceId}]   Sending diff-view-detected to webview for "${fileName}"`
       );
 
-      // Send diff information to webview with ALL changes
+      // Calculate role-specific stats for this panel
+      const myRole = (diffContext.role || "left") as "left" | "right";
+      const roleSpecificStats = this._calculateRoleSpecificStats(allChanges, myRole);
+
+      // Send diff information to webview with ALL changes and HTML lines
       this._panel.webview.postMessage({
         type: "diff-view-detected",
         diffInfo: {
-          role: diffContext.role || "left", // Use detected role, fallback to left
-          otherUri: diffContext.otherUri.toString(),
+          role: myRole, // Use detected role, fallback to left
+          otherUri: diffContext.otherUri!.toString(),
           instanceId: this.instanceId, // Include instance ID for unique identification
           changes: allChanges, // Send all changes, not filtered
-          stats: diffResult.stats,
-          documentText: documentText, // Send full text for accurate line mapping
+          stats: roleSpecificStats, // Use role-specific stats
+          htmlLines: diffContext.role === "left" ? rightHtmlLines : leftHtmlLines, // Send opposite side's HTML for spacers
+          isHtmlBased: true, // Flag to indicate this is HTML-based diff
         },
       });
 
@@ -1091,6 +1245,52 @@ export class EditorPanel {
   }
 
   /**
+   * Calculate role-specific stats for a diff panel
+   * Each side can have additions, deletions, and modifications depending on the changes
+   * - Deletions: lines removed from that side (side === 'left' or 'both')
+   * - Additions: lines added to that side (side === 'right' or 'both')
+   * - Modifications: changes that affect both sides (side === 'both')
+   */
+  private _calculateRoleSpecificStats(
+    changes: any[],
+    role: "left" | "right"
+  ): { added: number; deleted: number; modified: number } {
+    if (role === "left") {
+      // Left panel shows:
+      // - Deletions from left side OR both sides
+      // - Modifications (which affect both sides)
+      // - Additions that appear on both sides
+      return {
+        added: changes.filter(c => 
+          (c.type === 'added' && (c.side === 'both' || c.side === 'left'))
+        ).length,
+        deleted: changes.filter(c => 
+          (c.type === 'deleted' && (c.side === 'left' || c.side === 'both'))
+        ).length,
+        modified: changes.filter(c => 
+          c.type === 'modified' || c.side === 'both'
+        ).length
+      };
+    } else {
+      // Right panel shows:
+      // - Additions to right side OR both sides
+      // - Modifications (which affect both sides)
+      // - Deletions that appear on both sides
+      return {
+        added: changes.filter(c => 
+          (c.type === 'added' && (c.side === 'right' || c.side === 'both'))
+        ).length,
+        deleted: changes.filter(c => 
+          (c.type === 'deleted' && (c.side === 'both' || c.side === 'right'))
+        ).length,
+        modified: changes.filter(c => 
+          c.type === 'modified' || c.side === 'both'
+        ).length
+      };
+    }
+  }
+
+  /**
    * Update diff visualization for this instance when document changes
    * This is called when the document content changes and this editor is in diff view
    */
@@ -1114,6 +1314,8 @@ export class EditorPanel {
       `[${this.instanceId}] 🔄 Updating diff visualization after document change`
     );
 
+    // Reset flag so diff can be reapplied with updated content
+    this._diffApplied = false;
     
     const diffPanels = EditorPanel._diffPanelTracking.get(this._tab);
     const diffContext = {
@@ -1124,32 +1326,84 @@ export class EditorPanel {
           : diffPanels?.left?._uri,
     };
 
-    // Calculate diff using this instance's URIs
-    const leftUri = diffContext.role === "left" ? this._uri : diffContext.otherUri;
-    const rightUri = diffContext.role === "right" ? this._uri : diffContext.otherUri;
+    // Get both panels for HTML extraction
+    const leftPanel = diffPanels?.left;
+    const rightPanel = diffPanels?.right;
+    
+    if (!leftPanel || !rightPanel) {
+      logger.warn(`[${this.instanceId}] Cannot update HTML diff: missing panel(s)`);
+      return;
+    }
 
-    const diffResult = await diffSupport.calculateDiff(leftUri, rightUri);
+    // Request IR HTML content from BOTH panels
+    logger.debug(`[${this.instanceId}]   Requesting IR HTML for diff update...`);
+    const [leftHtml, rightHtml] = await Promise.all([
+      this.requestIRHtml(leftPanel),
+      this.requestIRHtml(rightPanel)
+    ]);
+    
+    let diffResult;
+    let leftHtmlLines: string[] = [];
+    let rightHtmlLines: string[] = [];
+    let isHtmlBased = false;
+    
+    if (leftHtml && rightHtml) {
+      // Calculate HTML-based diff
+      diffResult = await diffSupport.calculateDiffFromHTML(leftHtml, rightHtml);
+      leftHtmlLines = (diffResult as any).leftHtmlLines || [];
+      rightHtmlLines = (diffResult as any).rightHtmlLines || [];
+      isHtmlBased = true;
+      logger.debug(`[${this.instanceId}]   HTML-based diff update calculated`);
+    } else {
+      // Fallback to markdown-based diff
+      logger.warn(`[${this.instanceId}] Failed to get HTML, using markdown diff`);
+      const leftUri = diffContext.role === "left" ? this._uri : diffContext.otherUri!;
+      const rightUri = diffContext.role === "right" ? this._uri : diffContext.otherUri!;
+      diffResult = await diffSupport.calculateDiff(leftUri, rightUri);
+    }
 
-    // Get the updated document text
-    const thisDoc = await vscode.workspace.openTextDocument(this._uri);
-    const documentText = thisDoc.getText();
+    // Calculate role-specific stats for this panel
+    const myRole = this._diffRole || "left";
+    const myStats = this._calculateRoleSpecificStats(diffResult.changes, myRole);
 
     // Send updated diff information to webview
     this._panel.webview.postMessage({
       type: "diff-view-detected",
       diffInfo: {
-        role: this._diffRole || "left", // Use detected role, fallback to left
+        role: myRole, // Use detected role, fallback to left
         otherUri: this._otherDiffUri.toString(),
         instanceId: this.instanceId, // Include instance ID for unique identification
         changes: diffResult.changes,
-        stats: diffResult.stats,
-        documentText: documentText,
+        stats: myStats, // Use role-specific stats
+        htmlLines: isHtmlBased ? (diffContext.role === "left" ? rightHtmlLines : leftHtmlLines) : undefined,
+        isHtmlBased: isHtmlBased,
+        documentText: !isHtmlBased ? (await vscode.workspace.openTextDocument(this._uri)).getText() : undefined,
       },
     });
 
-    logger.debug(
-      `[${this.instanceId}] ✅ Diff visualization updated with ${diffResult.changes.length} changes`
-    );
+    // Calculate role-specific stats for the other panel
+    const otherPanel = diffContext.role === "left" ? rightPanel : leftPanel;
+    const otherRole = otherPanel._diffRole || (diffContext.role === "left" ? "right" : "left");
+    const otherStats = this._calculateRoleSpecificStats(diffResult.changes, otherRole);
+
+    // Send the diff detected message to the other webview as well
+    otherPanel._panel.webview.postMessage({
+      type: "diff-view-detected",
+      diffInfo: {
+        role: otherRole,
+        otherUri: otherPanel._otherDiffUri?.toString(),
+        instanceId: otherPanel.instanceId,
+        changes: diffResult.changes,
+        stats: otherStats, // Use role-specific stats for other panel
+        htmlLines: isHtmlBased ? (diffContext.role === "left" ? leftHtmlLines : rightHtmlLines) : undefined,
+        isHtmlBased: isHtmlBased,
+        documentText: !isHtmlBased ? (await vscode.workspace.openTextDocument(otherPanel._uri)).getText() : undefined,
+      },
+    });
+
+    // Mark diff as applied
+    this._diffApplied = true;
+    logger.debug(`[${this.instanceId}]   ✅ Diff update sent to webview`);
   }
 
   private _updateEditTitle() {

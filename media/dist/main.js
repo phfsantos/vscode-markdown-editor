@@ -43722,9 +43722,15 @@ console.log('Hello, World!');
       window.addEventListener("message", (event) => {
         const message = event.data;
         if (message.type === "diff-view-detected") {
+          if (window.markdownEditorLog) {
+            window.markdownEditorLog(`[DIFF-VIZ] \u{1F4E8} Received diff-view-detected: role=${message.diffInfo?.role}, changes=${message.diffInfo?.changes?.length}, isHtmlBased=${message.diffInfo?.isHtmlBased}`);
+          }
           this.diffInfo = message.diffInfo;
           this.isInDiffView = true;
           if (message.diffInfo.clearExistingSpacers) {
+            if (window.markdownEditorLog) {
+              window.markdownEditorLog(`[DIFF-VIZ] \u{1F9F9} Clearing existing spacers...`);
+            }
             this.clearSpacerBlocks();
           }
           this.applyDiffVisualizations();
@@ -43742,11 +43748,23 @@ console.log('Hello, World!');
     }
     applyDiffVisualizations() {
       if (!this.diffInfo) {
+        if (window.markdownEditorLog) {
+          window.markdownEditorLog(`[DIFF-VIZ] \u26A0\uFE0F  No diffInfo, skipping visualization`);
+        }
         return;
+      }
+      if (window.markdownEditorLog) {
+        window.markdownEditorLog(`[DIFF-VIZ] \u{1F3A8} Starting diff visualization for ${this.diffInfo.role} side with ${this.diffInfo.changes.length} changes`);
       }
       this.addDiffHeader();
       setTimeout(() => {
+        if (window.markdownEditorLog) {
+          window.markdownEditorLog(`[DIFF-VIZ] \u{1F58C}\uFE0F  Applying line decorations...`);
+        }
         this.applyLineDecorations();
+        if (window.markdownEditorLog) {
+          window.markdownEditorLog(`[DIFF-VIZ] \u2705 Diff visualization complete`);
+        }
         this.setupScrollSyncListeners();
       }, 1e3);
     }
@@ -43759,7 +43777,7 @@ console.log('Hello, World!');
       }
       const spacers = document.querySelectorAll(".diff-spacer-block");
       spacers.forEach((spacer) => spacer.remove());
-      const contentElement = document.querySelector(".vditor-ir") || document.querySelector(".vditor-wysiwyg") || document.querySelector(".vditor-sv");
+      const contentElement = document.querySelector(".vditor-ir > pre.vditor-reset") || document.querySelector("pre.vditor-reset");
       if (contentElement) {
         const allElements = contentElement.querySelectorAll('[style*="background"]');
         let clearedCount = 0;
@@ -43778,6 +43796,21 @@ console.log('Hello, World!');
     clearSpacerBlocks() {
       const spacers = document.querySelectorAll(".diff-spacer-block");
       spacers.forEach((spacer) => spacer.remove());
+    }
+    clearDiffDecorations() {
+      const contentElement = document.querySelector(".vditor-ir > pre.vditor-reset") || document.querySelector("pre.vditor-reset");
+      if (contentElement) {
+        const allElements = contentElement.querySelectorAll('[style*="background"]');
+        allElements.forEach((el) => {
+          const element = el;
+          if (element.style.borderLeft && element.style.borderLeft.includes("3px solid")) {
+            element.style.backgroundColor = "";
+            element.style.borderLeft = "";
+            element.style.paddingLeft = "";
+            element.title = "";
+          }
+        });
+      }
     }
     addDiffHeader() {
       if (!this.diffInfo) {
@@ -43838,7 +43871,7 @@ console.log('Hello, World!');
       if (!this.diffInfo) {
         return;
       }
-      const contentElement = document.querySelector(".vditor-ir") || document.querySelector(".vditor-wysiwyg") || document.querySelector(".vditor-sv");
+      const contentElement = document.querySelector(".vditor-ir > pre.vditor-reset") || document.querySelector("pre.vditor-reset");
       if (!contentElement) {
         return;
       }
@@ -43850,29 +43883,37 @@ console.log('Hello, World!');
           allTextNodes.push({element: el, text});
         }
       });
-      const sourceLines = this.diffInfo.documentText ? this.diffInfo.documentText.split("\n") : [];
       const lineToDom = new Map();
-      let domIndex = 0;
-      for (let lineNum = 0; lineNum < sourceLines.length && domIndex < allTextNodes.length; lineNum++) {
-        const sourceLine = sourceLines[lineNum].trim();
-        if (!sourceLine) {
-          continue;
-        }
-        let found = false;
-        for (let i6 = domIndex; i6 < allTextNodes.length; i6++) {
-          const domNode = allTextNodes[i6];
-          const domText = domNode.text.trim();
-          if (domText === sourceLine) {
-            lineToDom.set(lineNum, domNode.element);
-            domIndex = i6 + 1;
-            found = true;
-            break;
+      if (this.diffInfo.isHtmlBased) {
+        const topLevelElements = Array.from(contentElement.children);
+        topLevelElements.forEach((el, index2) => {
+          lineToDom.set(index2, el);
+        });
+      } else {
+        const sourceLines = this.diffInfo.documentText ? this.diffInfo.documentText.split("\n") : [];
+        let domIndex = 0;
+        for (let lineNum = 0; lineNum < sourceLines.length && domIndex < allTextNodes.length; lineNum++) {
+          const sourceLine = sourceLines[lineNum].trim();
+          if (!sourceLine) {
+            continue;
+          }
+          let found = false;
+          for (let i6 = domIndex; i6 < allTextNodes.length; i6++) {
+            const domNode = allTextNodes[i6];
+            const domText = domNode.text.trim();
+            if (domText === sourceLine) {
+              lineToDom.set(lineNum, domNode.element);
+              domIndex = i6 + 1;
+              found = true;
+              break;
+            }
+          }
+          if (!found) {
           }
         }
-        if (!found) {
-        }
       }
-      this.addSpacerBlocks(lineToDom, sourceLines);
+      const totalLines = this.diffInfo.isHtmlBased ? lineToDom.size : this.diffInfo.documentText ? this.diffInfo.documentText.split("\n").length : 0;
+      this.addSpacerBlocks(lineToDom, totalLines);
       const relevantChangesForHighlight = this.diffInfo.changes.filter((c5) => c5.side === this.diffInfo.role || c5.side === "both");
       let matchedCount = 0;
       const alreadyMatched = new Set();
@@ -43885,10 +43926,11 @@ console.log('Hello, World!');
         const targetLineNumber = change.lineNumber;
         let targetElement = lineToDom.get(targetLineNumber);
         if (targetElement && !alreadyMatched.has(targetElement)) {
-          const elementText = targetElement.textContent?.trim() || "";
-          if (elementText === changeText || elementText.includes(changeText) || elementText === oldText || elementText.includes(oldText)) {
-          } else {
-            targetElement = null;
+          if (!this.diffInfo.isHtmlBased) {
+            const elementText = targetElement.textContent?.trim() || "";
+            if (elementText !== changeText && !elementText.includes(changeText) && elementText !== oldText && !elementText.includes(oldText)) {
+              targetElement = null;
+            }
           }
         } else if (targetElement) {
           targetElement = null;
@@ -43898,7 +43940,7 @@ console.log('Hello, World!');
           if (matchingNodes.length === 1) {
             targetElement = matchingNodes[0].element;
           } else if (matchingNodes.length > 1) {
-            const relativePosition = targetLineNumber / Math.max(sourceLines.length, 1);
+            const relativePosition = targetLineNumber / Math.max(totalLines, 1);
             const targetIndex = Math.floor(relativePosition * allTextNodes.length);
             targetElement = matchingNodes.reduce((closest, node) => {
               const nodeIndex = allTextNodes.indexOf(node);
@@ -43985,7 +44027,10 @@ console.log('Hello, World!');
         const target = e7.target;
         this.handleScroll(target);
       };
-      scrollableElement.addEventListener("scroll", scrollHandler, {passive: true, capture: true});
+      scrollableElement.addEventListener("scroll", scrollHandler, {
+        passive: true,
+        capture: true
+      });
       const windowScrollHandler = () => {
         if (!this.scrollSyncEnabled || this.isScrolling) {
           return;
@@ -43994,11 +44039,11 @@ console.log('Hello, World!');
       };
       window.addEventListener("scroll", windowScrollHandler, {passive: true});
     }
-    addSpacerBlocks(lineToDom, sourceLines) {
+    addSpacerBlocks(lineToDom, totalLines) {
       if (!this.diffInfo) {
         return;
       }
-      const contentElement = document.querySelector(".vditor-ir pre.vditor-reset") || document.querySelector(".vditor-wysiwyg pre.vditor-reset") || document.querySelector(".vditor-sv pre.vditor-reset") || document.querySelector("pre.vditor-reset");
+      const contentElement = document.querySelector(".vditor-ir pre.vditor-reset") || document.querySelector("pre.vditor-reset");
       if (!contentElement) {
         return;
       }
@@ -44042,7 +44087,11 @@ console.log('Hello, World!');
       }
       const spacerBlocks = [];
       const sortedChanges = [...relevantChanges].sort((a5, b4) => a5.lineNumber - b4.lineNumber);
-      let currentBlock = {startLine: sortedChanges[0].lineNumber, endLine: sortedChanges[0].lineNumber, lineCount: 1};
+      let currentBlock = {
+        startLine: sortedChanges[0].lineNumber,
+        endLine: sortedChanges[0].lineNumber,
+        lineCount: 1
+      };
       for (let i6 = 1; i6 < sortedChanges.length; i6++) {
         const change = sortedChanges[i6];
         if (change.lineNumber === currentBlock.endLine + 1) {
@@ -44050,7 +44099,11 @@ console.log('Hello, World!');
           currentBlock.lineCount++;
         } else {
           spacerBlocks.push(currentBlock);
-          currentBlock = {startLine: change.lineNumber, endLine: change.lineNumber, lineCount: 1};
+          currentBlock = {
+            startLine: change.lineNumber,
+            endLine: change.lineNumber,
+            lineCount: 1
+          };
         }
       }
       spacerBlocks.push(currentBlock);
@@ -44098,54 +44151,94 @@ console.log('Hello, World!');
         if (!insertionParent) {
           continue;
         }
-        const singleLineHeight = this.estimateLineHeight(targetElement);
-        const totalHeight = singleLineHeight * block.lineCount;
-        const spacer = document.createElement("div");
-        spacer.className = "diff-spacer-block";
-        spacer.setAttribute("data-line-start", block.startLine.toString());
-        spacer.setAttribute("data-line-end", block.endLine.toString());
-        spacer.style.cssText = `
-        height: ${totalHeight}px;
-        min-height: ${totalHeight}px;
-        background: repeating-linear-gradient(
-          45deg,
-          var(--vscode-diffEditor-removedTextBackground, rgba(255, 0, 0, 0.05)),
-          var(--vscode-diffEditor-removedTextBackground, rgba(255, 0, 0, 0.05)) 10px,
-          transparent 10px,
-          transparent 20px
-        );
-        border-left: 3px dashed var(--vscode-gitDecoration-deletedResourceForeground, #c74e39);
-        margin: 0;
-        margin-bottom: 16px;
-        padding: 0;
-        padding-bottom: 4px;
-        position: relative;
-        display: block;
-        box-sizing: border-box;
-        opacity: 0.6;
-      `;
-        spacer.innerHTML = `<span style="
-        position: absolute;
-        left: 10px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: var(--vscode-descriptionForeground);
-        font-size: 11px;
-        opacity: 0.7;
-        user-select: none;
-        font-style: italic;
-      ">\u22EF ${block.lineCount} line${block.lineCount > 1 ? "s" : ""} not in this file</span>`;
-        try {
-          if (this.diffInfo.role === "left") {
-            if (targetElement.nextSibling) {
-              targetElement.parentElement.insertBefore(spacer, targetElement.nextSibling);
-            } else {
-              targetElement.parentElement.appendChild(spacer);
+        if (this.diffInfo.isHtmlBased && this.diffInfo.htmlLines) {
+          for (let lineNum = block.startLine; lineNum <= block.endLine; lineNum++) {
+            if (lineNum >= this.diffInfo.htmlLines.length) {
+              continue;
             }
-          } else {
-            targetElement.parentElement.insertBefore(spacer, targetElement);
+            const htmlContent = this.diffInfo.htmlLines[lineNum];
+            if (!htmlContent || htmlContent.trim().length === 0) {
+              continue;
+            }
+            const tempContainer = document.createElement("div");
+            tempContainer.innerHTML = htmlContent;
+            const spacer = tempContainer.firstElementChild;
+            if (!spacer) {
+              continue;
+            }
+            spacer.classList.add("diff-spacer-block");
+            spacer.setAttribute("data-line-number", lineNum.toString());
+            const existingBackground = spacer.style.background;
+            spacer.style.background = existingBackground ? `${existingBackground}, repeating-linear-gradient(45deg, var(--vscode-diffEditor-removedTextBackground, rgba(255, 0, 0, 0.05)), var(--vscode-diffEditor-removedTextBackground, rgba(255, 0, 0, 0.05)) 10px, transparent 10px, transparent 20px)` : `repeating-linear-gradient(45deg, var(--vscode-diffEditor-removedTextBackground, rgba(255, 0, 0, 0.05)), var(--vscode-diffEditor-removedTextBackground, rgba(255, 0, 0, 0.05)) 10px, transparent 10px, transparent 20px)`;
+            spacer.style.borderLeft = `3px dashed var(--vscode-gitDecoration-deletedResourceForeground, #c74e39)`;
+            spacer.style.paddingLeft = spacer.style.paddingLeft || "4px";
+            spacer.style.opacity = "0.6";
+            spacer.style.position = spacer.style.position || "relative";
+            try {
+              if (this.diffInfo.role === "left") {
+                if (targetElement.nextSibling) {
+                  targetElement.parentElement.insertBefore(spacer, targetElement.nextSibling);
+                } else {
+                  targetElement.parentElement.appendChild(spacer);
+                }
+                targetElement = spacer;
+              } else {
+                targetElement.parentElement.insertBefore(spacer, targetElement);
+              }
+            } catch (error2) {
+            }
           }
-        } catch (error2) {
+        } else {
+          const spacerContent = `<span style="
+          position: absolute;
+          left: 10px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: var(--vscode-descriptionForeground);
+          font-size: 11px;
+          opacity: 0.7;
+          user-select: none;
+          font-style: italic;
+        ">\u22EF ${block.lineCount} line${block.lineCount > 1 ? "s" : ""} not in this file</span>`;
+          const singleLineHeight = this.estimateLineHeight(targetElement);
+          const totalHeight = singleLineHeight * block.lineCount;
+          const spacer = document.createElement("div");
+          spacer.className = "diff-spacer-block";
+          spacer.setAttribute("data-line-start", block.startLine.toString());
+          spacer.setAttribute("data-line-end", block.endLine.toString());
+          spacer.style.cssText = `
+          height: ${totalHeight}px;
+          min-height: ${totalHeight}px;
+          background: repeating-linear-gradient(
+            45deg,
+            var(--vscode-diffEditor-removedTextBackground, rgba(255, 0, 0, 0.05)),
+            var(--vscode-diffEditor-removedTextBackground, rgba(255, 0, 0, 0.05)) 10px,
+            transparent 10px,
+            transparent 20px
+          );
+          border-left: 3px dashed var(--vscode-gitDecoration-deletedResourceForeground, #c74e39);
+          margin: 0;
+          margin-bottom: 16px;
+          padding: 0;
+          padding-bottom: 4px;
+          position: relative;
+          display: block;
+          box-sizing: border-box;
+          opacity: 0.6;
+        `;
+          spacer.innerHTML = spacerContent;
+          try {
+            if (this.diffInfo.role === "left") {
+              if (targetElement.nextSibling) {
+                targetElement.parentElement.insertBefore(spacer, targetElement.nextSibling);
+              } else {
+                targetElement.parentElement.appendChild(spacer);
+              }
+            } else {
+              targetElement.parentElement.insertBefore(spacer, targetElement);
+            }
+          } catch (error2) {
+          }
         }
       }
     }
@@ -46198,8 +46291,19 @@ console.log('Hello, World!');
   var wikiLinkAutocomplete = null;
   var wikiLinkHandler = null;
   var imageURIConverter = null;
+  var cachedCleanHtml = null;
   var isReadOnly = false;
+  function cacheCleanIRHtml() {
+    const irElement = document.querySelector(".vditor-ir pre.vditor-reset");
+    if (irElement) {
+      cachedCleanHtml = irElement.innerHTML;
+      if (window.markdownEditorLog) {
+        window.markdownEditorLog(`[CACHE] Cached clean HTML (${cachedCleanHtml.length} chars)`);
+      }
+    }
+  }
   function processAfterRender() {
+    cacheCleanIRHtml();
     if (wikiLinkHandler) {
       wikiLinkHandler.processWikiLinksInEditor();
     }
@@ -46208,17 +46312,6 @@ console.log('Hello, World!');
     }
     if (diagnosticVisualizer) {
       diagnosticVisualizer.addSimpleDiagnostics();
-    }
-    if (diffVisualizer && diffVisualizer.inDiffView()) {
-      setTimeout(() => {
-        const diffInfo = diffVisualizer.getDiffInfo();
-        if (diffInfo) {
-          window.postMessage({
-            type: "diff-view-detected",
-            diffInfo
-          }, "*");
-        }
-      }, 100);
     }
   }
   diffVisualizer.initialize();
@@ -46289,44 +46382,102 @@ console.log('Hello, World!');
     const selection = getSelectionInfo();
     const diagAvailable = event ? hasDiagnosticAtEventTarget(event.target) : false;
     const items = [];
-    items.push({label: "Cut", click: () => performClipboardAction("cut"), disabled: !selection.hasSelection}, {label: "Copy", click: () => performClipboardAction("copy"), disabled: !selection.hasSelection}, {label: "Paste", click: () => performClipboardAction("paste")}, {label: "Select All", click: () => {
-      const sel = window.getSelection();
-      const editor = document.querySelector(".vditor-ir .vditor-reset") || document.querySelector(".vditor-wysiwyg .vditor-reset") || document.querySelector(".vditor-sv .vditor-reset");
-      if (sel && editor) {
-        const range = document.createRange();
-        range.selectNodeContents(editor);
-        sel.removeAllRanges();
-        sel.addRange(range);
+    items.push({
+      label: "Cut",
+      click: () => performClipboardAction("cut"),
+      disabled: !selection.hasSelection
+    }, {
+      label: "Copy",
+      click: () => performClipboardAction("copy"),
+      disabled: !selection.hasSelection
+    }, {label: "Paste", click: () => performClipboardAction("paste")}, {
+      label: "Select All",
+      click: () => {
+        const sel = window.getSelection();
+        const editor = document.querySelector(".vditor-ir .vditor-reset") || document.querySelector(".vditor-wysiwyg .vditor-reset") || document.querySelector(".vditor-sv .vditor-reset");
+        if (sel && editor) {
+          const range = document.createRange();
+          range.selectNodeContents(editor);
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }
       }
-    }});
+    });
     items.push({separator: true});
-    items.push({label: "Quick Fix...", click: () => vscode.postMessage({command: "triggerQuickFix"}), disabled: !diagAvailable}, {label: "Format Document", click: () => vscode.postMessage({command: "formatDocument"})}, {label: "Format Selection", click: () => vscode.postMessage({command: "formatSelection"}), disabled: !selection.hasSelection}, {label: "Show Problems", click: () => vscode.postMessage({command: "showProblems"})});
+    items.push({
+      label: "Quick Fix...",
+      click: () => vscode.postMessage({command: "triggerQuickFix"}),
+      disabled: !diagAvailable
+    }, {
+      label: "Format Document",
+      click: () => vscode.postMessage({command: "formatDocument"})
+    }, {
+      label: "Format Selection",
+      click: () => vscode.postMessage({command: "formatSelection"}),
+      disabled: !selection.hasSelection
+    }, {
+      label: "Show Problems",
+      click: () => vscode.postMessage({command: "showProblems"})
+    });
     items.push({separator: true});
-    items.push({label: "Find", click: () => vscode.postMessage({command: "find"})}, {label: "Find & Replace", click: () => vscode.postMessage({command: "findAndReplace"})});
+    items.push({label: "Find", click: () => vscode.postMessage({command: "find"})}, {
+      label: "Find & Replace",
+      click: () => vscode.postMessage({command: "findAndReplace"})
+    });
     items.push({separator: true});
     items.push({
       label: "Insert",
       submenu: [
-        {label: "Link", click: () => vscode.postMessage({command: "insertLink"})},
-        {label: "Image", click: () => vscode.postMessage({command: "insertImage"})},
-        {label: "Table", click: () => vscode.postMessage({command: "insertTable"})},
+        {
+          label: "Link",
+          click: () => vscode.postMessage({command: "insertLink"})
+        },
+        {
+          label: "Image",
+          click: () => vscode.postMessage({command: "insertImage"})
+        },
+        {
+          label: "Table",
+          click: () => vscode.postMessage({command: "insertTable"})
+        },
         {separator: true},
-        {label: "Kanban Board", click: () => vscode.postMessage({command: "requestInsertRenderer", rendererType: "kanban-board"})},
-        {label: "Interactive Table", click: () => vscode.postMessage({command: "requestInsertRenderer", rendererType: "table"})},
-        {label: "Code Playground", click: () => {
-          const playgroundText = `
+        {
+          label: "Kanban Board",
+          click: () => vscode.postMessage({
+            command: "requestInsertRenderer",
+            rendererType: "kanban-board"
+          })
+        },
+        {
+          label: "Interactive Table",
+          click: () => vscode.postMessage({
+            command: "requestInsertRenderer",
+            rendererType: "table"
+          })
+        },
+        {
+          label: "Code Playground",
+          click: () => {
+            const playgroundText = `
 \`\`\`playground
 console.log('Hello, World!');
 \`\`\`
 `;
-          if (window.vditor) {
-            window.vditor.insertValue(playgroundText);
+            if (window.vditor) {
+              window.vditor.insertValue(playgroundText);
+            }
           }
-        }}
+        }
       ]
     });
     items.push({separator: true});
-    items.push({label: "Command Palette...", click: () => vscode.postMessage({command: "showCommandPalette"})}, {label: "Toggle Word Wrap", click: () => vscode.postMessage({command: "toggleWordWrap"})});
+    items.push({
+      label: "Command Palette...",
+      click: () => vscode.postMessage({command: "showCommandPalette"})
+    }, {
+      label: "Toggle Word Wrap",
+      click: () => vscode.postMessage({command: "toggleWordWrap"})
+    });
     return items;
   }
   function enhanceManualMenuForSubmenus(menuRoot) {
@@ -46609,7 +46760,11 @@ console.log('Hello, World!');
           y5 = rect.top + rect.height;
         }
       }
-      const fakeEvent = {clientX: x3, clientY: y5, target: document.elementFromPoint(x3, y5)};
+      const fakeEvent = {
+        clientX: x3,
+        clientY: y5,
+        target: document.elementFromPoint(x3, y5)
+      };
       const items = buildVSCodeContextMenu(fakeEvent);
       if (window.createManualContextMenu) {
         window.createManualContextMenu(x3, y5, items);
@@ -46699,7 +46854,16 @@ console.log('Hello, World!');
       if ((keyEvent.ctrlKey || keyEvent.metaKey) && keyEvent.key === "a") {
         return;
       }
-      if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Shift", "Control", "Meta", "Alt"].includes(keyEvent.key)) {
+      if ([
+        "ArrowUp",
+        "ArrowDown",
+        "ArrowLeft",
+        "ArrowRight",
+        "Shift",
+        "Control",
+        "Meta",
+        "Alt"
+      ].includes(keyEvent.key)) {
         return;
       }
       e7.preventDefault();
@@ -46929,28 +47093,58 @@ console.log('Hello, World!');
             {label: "Copy", click: () => performClipboardAction("copy")},
             {label: "Paste", click: () => performClipboardAction("paste")},
             {separator: true},
-            {label: "Select All", click: () => {
-              const sel = window.getSelection();
-              const editor = document.querySelector(".vditor-ir .vditor-reset") || document.querySelector(".vditor-wysiwyg .vditor-reset") || document.querySelector(".vditor-sv .vditor-reset");
-              if (sel && editor) {
-                const range = document.createRange();
-                range.selectNodeContents(editor);
-                sel.removeAllRanges();
-                sel.addRange(range);
+            {
+              label: "Select All",
+              click: () => {
+                const sel = window.getSelection();
+                const editor = document.querySelector(".vditor-ir .vditor-reset") || document.querySelector(".vditor-wysiwyg .vditor-reset") || document.querySelector(".vditor-sv .vditor-reset");
+                if (sel && editor) {
+                  const range = document.createRange();
+                  range.selectNodeContents(editor);
+                  sel.removeAllRanges();
+                  sel.addRange(range);
+                }
               }
-            }},
+            },
             {separator: true},
-            {label: "Format Document", click: () => vscode.postMessage({command: "formatDocument"})},
-            {label: "Show Problems", click: () => vscode.postMessage({command: "showProblems"})},
-            {label: "Find", click: () => vscode.postMessage({command: "find"})},
-            {label: "Find && Replace", click: () => vscode.postMessage({command: "findAndReplace"})},
+            {
+              label: "Format Document",
+              click: () => vscode.postMessage({command: "formatDocument"})
+            },
+            {
+              label: "Show Problems",
+              click: () => vscode.postMessage({command: "showProblems"})
+            },
+            {
+              label: "Find",
+              click: () => vscode.postMessage({command: "find"})
+            },
+            {
+              label: "Find && Replace",
+              click: () => vscode.postMessage({command: "findAndReplace"})
+            },
             {separator: true},
-            {label: "Insert Link", click: () => vscode.postMessage({command: "insertLink"})},
-            {label: "Insert Image", click: () => vscode.postMessage({command: "insertImage"})},
-            {label: "Insert Table", click: () => vscode.postMessage({command: "insertTable"})},
+            {
+              label: "Insert Link",
+              click: () => vscode.postMessage({command: "insertLink"})
+            },
+            {
+              label: "Insert Image",
+              click: () => vscode.postMessage({command: "insertImage"})
+            },
+            {
+              label: "Insert Table",
+              click: () => vscode.postMessage({command: "insertTable"})
+            },
             {separator: true},
-            {label: "Command Palette...", click: () => vscode.postMessage({command: "showCommandPalette"})},
-            {label: "Toggle Word Wrap", click: () => vscode.postMessage({command: "toggleWordWrap"})}
+            {
+              label: "Command Palette...",
+              click: () => vscode.postMessage({command: "showCommandPalette"})
+            },
+            {
+              label: "Toggle Word Wrap",
+              click: () => vscode.postMessage({command: "toggleWordWrap"})
+            }
           ];
         }
         try {
@@ -46986,23 +47180,32 @@ console.log('Hello, World!');
               {label: "Copy", click: () => performClipboardAction("copy")},
               {label: "Paste", click: () => performClipboardAction("paste")},
               {separator: true},
-              {label: "Select All", click: () => {
-                const sel = window.getSelection();
-                const editor = document.querySelector(".vditor-ir .vditor-reset") || document.querySelector(".vditor-wysiwyg .vditor-reset") || document.querySelector(".vditor-sv .vditor-reset");
-                if (sel && editor) {
-                  const range = document.createRange();
-                  range.selectNodeContents(editor);
-                  sel.removeAllRanges();
-                  sel.addRange(range);
+              {
+                label: "Select All",
+                click: () => {
+                  const sel = window.getSelection();
+                  const editor = document.querySelector(".vditor-ir .vditor-reset") || document.querySelector(".vditor-wysiwyg .vditor-reset") || document.querySelector(".vditor-sv .vditor-reset");
+                  if (sel && editor) {
+                    const range = document.createRange();
+                    range.selectNodeContents(editor);
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                  }
                 }
-              }},
+              },
               {separator: true},
-              {label: "Format Document", click: () => {
-                vscode.postMessage({command: "formatDocument"});
-              }},
-              {label: "Show Problems", click: () => {
-                vscode.postMessage({command: "showProblems"});
-              }}
+              {
+                label: "Format Document",
+                click: () => {
+                  vscode.postMessage({command: "formatDocument"});
+                }
+              },
+              {
+                label: "Show Problems",
+                click: () => {
+                  vscode.postMessage({command: "showProblems"});
+                }
+              }
             ];
           }
         } catch (error2) {
@@ -47285,7 +47488,7 @@ console.log('Hello, World!');
           showReadOnlyTooltip("This editor is read-only");
           return;
         }
-        const timestamp = Date.now();
+        let transientUiTimer;
         inputTimer && clearTimeout(inputTimer);
         inputTimer = setTimeout(() => {
           const customRenderTriggers = document.querySelectorAll(".vditor-copy");
@@ -47319,7 +47522,11 @@ console.log('Hello, World!');
           if (diagnosticVisualizer) {
             diagnosticVisualizer.cleanupTransientUI();
           }
-          const editor = document.querySelector(".vditor-ir .vditor-reset") || document.querySelector(".vditor-wysiwyg .vditor-reset") || document.querySelector(".vditor-sv .vditor-reset");
+          if (diffVisualizer) {
+            diffVisualizer.clearDiffDecorations();
+            diffVisualizer.clearSpacerBlocks();
+          }
+          const editor = document.querySelector(".vditor-ir .vditor-reset");
           if (editor) {
             const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT, null);
             let textNode;
@@ -47337,30 +47544,37 @@ console.log('Hello, World!');
             });
           }
           setTimeout(() => {
+            cacheCleanIRHtml();
             const content = vditor.getValue();
             vscode.postMessage({command: "edit", content});
-          }, 10);
-          const now = Date.now();
-          const timeSinceLastDiagnosticUpdate = now - window.__lastDiagnosticUpdate || 0;
-          if (timeSinceLastDiagnosticUpdate > 5e3) {
-            setTimeout(() => {
-              if (diagnosticVisualizer) {
-                diagnosticVisualizer.addSimpleDiagnostics();
-                window.__lastDiagnosticUpdate = Date.now();
-              }
-            }, 1e3);
-          }
-          if (wikiLinkHandler && !wikiLinkHandler.isSetup) {
-            const vdt = window.vditor;
-            const editorElement = vdt.vditor?.ir?.element || vdt.vditor?.wysiwyg?.element;
-            if (editorElement) {
-              wikiLinkHandler.isSetup = true;
-              wikiLinkHandler.editorElement = editorElement;
+          }, 50);
+          transientUiTimer && clearTimeout(transientUiTimer);
+          transientUiTimer = setTimeout(() => {
+            if (diagnosticVisualizer) {
+              diagnosticVisualizer.addSimpleDiagnostics();
+              window.__lastDiagnosticUpdate = Date.now();
             }
-          }
-          if (wikiLinkHandler && wikiLinkHandler.isSetup) {
-            wikiLinkHandler.handleInputForProcessing?.();
-          }
+            if (diffVisualizer && diffVisualizer.inDiffView()) {
+              const diffInfo = diffVisualizer.getDiffInfo();
+              if (diffInfo) {
+                window.postMessage({
+                  type: "diff-view-detected",
+                  diffInfo
+                }, "*");
+              }
+            }
+            if (wikiLinkHandler && !wikiLinkHandler.isSetup) {
+              const vdt = window.vditor;
+              const editorElement = vdt.vditor?.ir?.element || vdt.vditor?.wysiwyg?.element;
+              if (editorElement) {
+                wikiLinkHandler.isSetup = true;
+                wikiLinkHandler.editorElement = editorElement;
+              }
+            }
+            if (wikiLinkHandler && wikiLinkHandler.isSetup) {
+              wikiLinkHandler.handleInputForProcessing?.();
+            }
+          }, 5e3);
         }, 200);
       },
       upload: {
@@ -47635,6 +47849,60 @@ console.log('Hello, World!');
           overlay.appendChild(content);
         } catch (err) {
           vscodeLog3(`\u274C openEmbedPreview handler failed: ${err}`);
+        }
+        break;
+      }
+      case "requestIRHtml": {
+        if (window.markdownEditorLog) {
+          window.markdownEditorLog(`[WEBVIEW] Received requestIRHtml with requestId: ${msg.requestId}`);
+        }
+        try {
+          if (cachedCleanHtml) {
+            if (window.markdownEditorLog) {
+              window.markdownEditorLog(`[WEBVIEW] Using cached HTML (${cachedCleanHtml.length} chars) for requestId: ${msg.requestId}`);
+            }
+            vscode.postMessage({
+              command: "irHtmlResponse",
+              html: cachedCleanHtml,
+              requestId: msg.requestId
+            });
+          } else {
+            const irElement = document.querySelector(".vditor-ir pre.vditor-reset");
+            if (window.markdownEditorLog) {
+              window.markdownEditorLog(`[WEBVIEW] IR element found: ${!!irElement}, no cache available`);
+            }
+            if (irElement) {
+              const cleanHtml = irElement.innerHTML;
+              if (window.markdownEditorLog) {
+                window.markdownEditorLog(`[WEBVIEW] Sending current HTML (${cleanHtml.length} chars) for requestId: ${msg.requestId}`);
+              }
+              vscode.postMessage({
+                command: "irHtmlResponse",
+                html: cleanHtml,
+                requestId: msg.requestId
+              });
+            } else {
+              if (window.markdownEditorLog) {
+                window.markdownEditorLog(`[WEBVIEW] IR element not found, sending error for requestId: ${msg.requestId}`);
+              }
+              vscode.postMessage({
+                command: "irHtmlResponse",
+                html: null,
+                requestId: msg.requestId,
+                error: "IR element not found"
+              });
+            }
+          }
+        } catch (error2) {
+          if (window.markdownEditorLog) {
+            window.markdownEditorLog(`[WEBVIEW] Error processing requestIRHtml: ${error2}`);
+          }
+          vscode.postMessage({
+            command: "irHtmlResponse",
+            html: null,
+            requestId: msg.requestId,
+            error: String(error2)
+          });
         }
         break;
       }

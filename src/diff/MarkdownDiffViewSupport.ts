@@ -46,6 +46,114 @@ export class MarkdownDiffViewSupport {
   }
 
   /**
+   * Calculate diff from HTML strings (for more accurate diff visualization)
+   * HTML content should be the IR content from Vditor's rendering
+   */
+  public calculateDiffFromHTML(leftHtml: string, rightHtml: string): DiffResult {
+    // Parse HTML into lines by splitting on block-level elements
+    // This gives us a more accurate line-by-line representation of the rendered content
+    const leftLines = this.parseHTMLToLines(leftHtml);
+    const rightLines = this.parseHTMLToLines(rightHtml);
+    
+    const changes = this.computeLCSDiff(leftLines, rightLines);
+
+    return {
+      leftUri: vscode.Uri.parse('inmemory://left.html'),
+      rightUri: vscode.Uri.parse('inmemory://right.html'),
+      changes,
+      stats: {
+        added: changes.filter(c => c.type === 'added').length,
+        deleted: changes.filter(c => c.type === 'deleted').length,
+        modified: changes.filter(c => c.type === 'modified').length
+      },
+      leftHtmlLines: leftLines,
+      rightHtmlLines: rightLines
+    };
+  }
+
+  /**
+   * Parse HTML into logical lines using ONLY top-level block elements
+   * Each top-level block = one logical line with FULL HTML structure preserved
+   * This ensures accurate rendering (images, formatting, etc.) in diff visualizations
+   */
+  private parseHTMLToLines(html: string): string[] {
+    const lines: string[] = [];
+    
+    // Strategy: Parse ONLY top-level block elements (not nested ones)
+    // We need to track depth to identify top-level elements
+    
+    let depth = 0;
+    let currentElement = '';
+    let currentTag = '';
+    let inElement = false;
+    
+    // Regex to match opening and closing tags
+    const tagRegex = /<\/?([a-z][a-z0-9]*)\b[^>]*>/gi;
+    
+    let lastIndex = 0;
+    let match;
+    
+    while ((match = tagRegex.exec(html)) !== null) {
+      const fullTag = match[0];
+      const tagName = match[1].toLowerCase();
+      const isClosing = fullTag.startsWith('</');
+      const isSelfClosing = fullTag.endsWith('/>') || ['img', 'br', 'hr', 'input', 'meta', 'link'].includes(tagName);
+      
+      // Block-level elements that we care about
+      const isBlockElement = ['div', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'pre', 'blockquote', 'table'].includes(tagName);
+      
+      if (!isBlockElement) {
+        continue;
+      }
+      
+      if (!inElement && !isClosing && depth === 0) {
+        // Start of a new top-level element
+        inElement = true;
+        currentTag = tagName;
+        currentElement = html.substring(lastIndex, match.index);
+        lastIndex = match.index;
+      }
+      
+      if (inElement) {
+        if (!isClosing && !isSelfClosing && tagName === currentTag) {
+          depth++;
+        } else if (isClosing && tagName === currentTag) {
+          depth--;
+          
+          if (depth === 0) {
+            // End of the top-level element
+            currentElement = html.substring(lastIndex, tagRegex.lastIndex);
+            
+            // Check if element has content or images
+            const textContent = currentElement.replace(/<[^>]+>/g, '').trim();
+            if (textContent.length > 0 || currentElement.includes('<img')) {
+              lines.push(currentElement);
+            }
+            
+            inElement = false;
+            currentElement = '';
+            currentTag = '';
+            lastIndex = tagRegex.lastIndex;
+          }
+        }
+      }
+    }
+    
+    // If no elements found (shouldn't happen with valid Vditor output), fallback
+    if (lines.length === 0) {
+      logger.warn('[parseHTMLToLines] No top-level elements found, using fallback');
+      // Simple fallback: split by common block patterns (greedy match for first level)
+      const blockPattern = /<(div|p|h[1-6]|ul|ol|pre|blockquote|table)[^>]*>[\s\S]*?<\/\1>/gi;
+      let fallbackMatch;
+      while ((fallbackMatch = blockPattern.exec(html)) !== null) {
+        lines.push(fallbackMatch[0]);
+      }
+    }
+    
+    return lines;
+  }
+
+  /**
    * Compute diff using Longest Common Subsequence algorithm
    */
   private computeLCSDiff(leftLines: string[], rightLines: string[]): LineChange[] {
@@ -278,4 +386,6 @@ interface DiffResult {
     deleted: number;
     modified: number;
   };
+  leftHtmlLines?: string[];  // HTML lines from left side (for HTML-based diff)
+  rightHtmlLines?: string[]; // HTML lines from right side (for HTML-based diff)
 }
