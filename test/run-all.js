@@ -8,6 +8,7 @@ const tests = [
   'embed-handler.test.js',
   'relationship-analyzer.test.js',
   'diff-support.test.js',
+  'diff-algorithm-with-spacers.test.js',  // NEW
 ];
 
 let passed = 0;

@@ -48,23 +48,30 @@ export class MarkdownDiffViewSupport {
   /**
    * Calculate diff from HTML strings (for more accurate diff visualization)
    * HTML content should be the IR content from Vditor's rendering
+   * 
+   * NEW ALGORITHM: Process changes sequentially with offset tracking
+   * This produces aligned changes with spacers included, ready for frontend display
    */
   public calculateDiffFromHTML(leftHtml: string, rightHtml: string): DiffResult {
     // Parse HTML into lines by splitting on block-level elements
-    // This gives us a more accurate line-by-line representation of the rendered content
     const leftLines = this.parseHTMLToLines(leftHtml);
     const rightLines = this.parseHTMLToLines(rightHtml);
     
-    const changes = this.computeLCSDiff(leftLines, rightLines);
-
+    // Get raw LCS changes
+    const rawChanges = this.computeLCSDiff(leftLines, rightLines);
+    
+    // Process changes with offset tracking to create aligned diff with spacers
+    const alignedChanges = this.alignChangesWithSpacers(rawChanges, leftLines, rightLines);
+    
     return {
       leftUri: vscode.Uri.parse('inmemory://left.html'),
       rightUri: vscode.Uri.parse('inmemory://right.html'),
-      changes,
+      changes: alignedChanges,
       stats: {
-        added: changes.filter(c => c.type === 'added').length,
-        deleted: changes.filter(c => c.type === 'deleted').length,
-        modified: changes.filter(c => c.type === 'modified').length
+        added: alignedChanges.filter(c => c.type === 'added').length,
+        deleted: alignedChanges.filter(c => c.type === 'deleted').length,
+        modified: alignedChanges.filter(c => c.type === 'modified').length,
+        spacer: alignedChanges.filter(c => c.type === 'spacer').length
       },
       leftHtmlLines: leftLines,
       rightHtmlLines: rightLines
@@ -187,95 +194,153 @@ export class MarkdownDiffViewSupport {
       }
     }
     
+    // Debug: log raw changes before merge
+    logger.debug('[computeLCSDiff] Raw changes from LCS:', JSON.stringify(changes.map(c => ({
+      type: c.type,
+      line: c.lineNumber,
+      content: c.content.substring(0, 50)
+    }))));
+    
     // Post-process to detect modified lines (delete+add pairs)
-    return this.mergeModifiedLines(changes);
+    const merged = this.mergeModifiedLines(changes, leftLines, rightLines);
+    
+    // Debug: log merged changes
+    logger.debug('[computeLCSDiff] Merged changes:', JSON.stringify(merged.map(c => ({
+      type: c.type,
+      line: c.lineNumber,
+      content: c.content.substring(0, 50),
+      old: c.oldContent?.substring(0, 50)
+    }))));
+    
+    return merged;
   }
 
   /**
-   * Merge consecutive delete+add pairs into modified changes
-   * This detects line modifications by finding deletions followed by additions at nearby positions
+   * Merge delete+add pairs into modified changes ONLY when they truly represent replacements
+   * Strategy: Don't merge at all - let additions and deletions stand on their own
+   * The visualization layer will handle displaying them appropriately
    */
-  private mergeModifiedLines(changes: LineChange[]): LineChange[] {
-    const result: LineChange[] = [];
-    const deletions = changes.filter(c => c.type === 'deleted' && c.side === 'left');
-    const additions = changes.filter(c => c.type === 'added' && c.side === 'right');
-    const usedAdditions = new Set<number>();
-    const usedDeletions = new Set<number>();
+  private mergeModifiedLines(changes: LineChange[], leftLines: string[], rightLines: string[]): LineChange[] {
+    logger.debug('[computeLCSDiff mergeModifiedLines] NOT merging - keeping all changes as-is (additions and deletions separate)');
+    logger.debug('[computeLCSDiff mergeModifiedLines] Result: modified=0, deleted=' + 
+                 changes.filter(r => r.type === 'deleted').length + 
+                 ', added=' + changes.filter(r => r.type === 'added').length);
+    
+    // Return changes as-is, sorted by line number
+    return changes.sort((a, b) => a.lineNumber - b.lineNumber);
+  }
 
-    // For each deletion, try to find a matching addition
-    for (let i = 0; i < deletions.length; i++) {
-      const deletion = deletions[i];
+  /**
+   * NEW ALGORITHM: Align changes with spacers for perfect left-right synchronization
+   * 
+   * Process changes sequentially, tracking offsets for both sides.
+   * When one side has a change but the other doesn't, insert a spacer.
+   * When both sides have changes at the same position (after offset), combine them as modified.
+   * 
+   * This produces a complete aligned diff where line numbers directly correspond to display positions.
+   */
+  private alignChangesWithSpacers(rawChanges: LineChange[], leftLines: string[], rightLines: string[]): LineChange[] {
+    const result: LineChange[] = [];
+    
+    // Separate changes by type and sort
+    const deletions = rawChanges.filter(c => c.type === 'deleted').sort((a, b) => a.lineNumber - b.lineNumber);
+    const additions = rawChanges.filter(c => c.type === 'added').sort((a, b) => a.lineNumber - b.lineNumber);
+    
+    // Track current position in each document and offset counters
+    let leftIndex = 0;
+    let rightIndex = 0;
+    let leftOffset = 0;  // How many spacers added to left
+    let rightOffset = 0; // How many spacers added to right
+    
+    let delIdx = 0;
+    let addIdx = 0;
+    
+    // Determine which document has more lines (after changes applied)
+    const maxLines = Math.max(leftLines.length, rightLines.length);
+    
+    logger.debug(`[alignChangesWithSpacers] Processing ${deletions.length} deletions and ${additions.length} additions`);
+    logger.debug(`[alignChangesWithSpacers] Left lines: ${leftLines.length}, Right lines: ${rightLines.length}`);
+    
+    // Process all lines
+    while (leftIndex < leftLines.length || rightIndex < rightLines.length) {
+      const currentDeletion = delIdx < deletions.length ? deletions[delIdx] : null;
+      const currentAddition = addIdx < additions.length ? additions[addIdx] : null;
       
-      // Calculate expected line number on right, accounting for all previous additions/deletions
-      const previousAdditions = additions.filter(a => a.lineNumber < deletion.lineNumber).length;
-      const previousDeletions = deletions.filter(d => d.lineNumber < deletion.lineNumber).length;
-      const offset = previousAdditions - previousDeletions;
-      const expectedRightLine = deletion.lineNumber + offset;
+      const leftHasChange = currentDeletion && currentDeletion.lineNumber === leftIndex;
+      const rightHasChange = currentAddition && currentAddition.lineNumber === rightIndex;
       
-      // Find nearby additions within ±3 lines
-      const nearbyAdditions = additions.filter((a, idx) => {
-        if (usedAdditions.has(idx)) return false;
-        const positionDiff = Math.abs(a.lineNumber - expectedRightLine);
-        return positionDiff <= 3;
-      });
-      
-      if (nearbyAdditions.length > 0) {
-        // Find best match based on content similarity and position
-        let bestMatch: LineChange | null = null;
-        let bestScore = 0;
-        let bestMatchIdx = -1;
+      if (leftHasChange && rightHasChange) {
+        // Both sides have changes at the same position - combine as modified
+        result.push({
+          type: 'modified',
+          lineNumber: leftIndex + leftOffset,
+          content: currentAddition!.content,
+          oldContent: currentDeletion!.content,
+          side: 'both',
+          leftLine: leftIndex,
+          rightLine: rightIndex
+        });
         
-        for (const addition of nearbyAdditions) {
-          const additionIdx = additions.indexOf(addition);
-          const similarity = this.calculateSimilarity(deletion.content, addition.content);
-          const positionScore = 1 - Math.abs(addition.lineNumber - expectedRightLine) / 4;
-          const score = similarity * 0.7 + positionScore * 0.3;
-          
-          if (score > bestScore) {
-            bestScore = score;
-            bestMatch = addition;
-            bestMatchIdx = additionIdx;
-          }
-        }
+        leftIndex++;
+        rightIndex++;
+        delIdx++;
+        addIdx++;
+      } else if (leftHasChange && !rightHasChange) {
+        // Left has deletion, right doesn't - add deletion to left and spacer to right
+        result.push({
+          type: 'deleted',
+          lineNumber: leftIndex + leftOffset,
+          content: currentDeletion!.content,
+          side: 'left',
+          leftLine: leftIndex,
+          rightLine: -1
+        });
         
-        // Only merge if similarity is reasonable (>30% similar OR within 1 line)
-        if (bestMatch) {
-          const similarity = this.calculateSimilarity(deletion.content, bestMatch.content);
-          const positionDiff = Math.abs(bestMatch.lineNumber - expectedRightLine);
-          
-          if (similarity > 0.3 || positionDiff <= 1) {
-            // Merge into a modified change
-            result.push({
-              type: 'modified',
-              lineNumber: bestMatch.lineNumber, // Use the line number from the modified version
-              content: bestMatch.content,        // New content
-              oldContent: deletion.content,      // Old content
-              side: 'both'                       // Affects both sides
-            });
-            
-            usedDeletions.add(i);
-            usedAdditions.add(bestMatchIdx);
-            continue;
-          }
-        }
+        result.push({
+          type: 'spacer',
+          lineNumber: rightIndex + rightOffset,
+          content: currentDeletion!.content, // Content from opposite side for height matching
+          side: 'right',
+          leftLine: leftIndex,
+          rightLine: -1
+        });
+        
+        leftIndex++;
+        delIdx++;
+        rightOffset++;
+      } else if (!leftHasChange && rightHasChange) {
+        // Right has addition, left doesn't - add addition to right and spacer to left
+        result.push({
+          type: 'spacer',
+          lineNumber: leftIndex + leftOffset,
+          content: currentAddition!.content, // Content from opposite side for height matching
+          side: 'left',
+          leftLine: -1,
+          rightLine: rightIndex
+        });
+        
+        result.push({
+          type: 'added',
+          lineNumber: rightIndex + rightOffset,
+          content: currentAddition!.content,
+          side: 'right',
+          leftLine: -1,
+          rightLine: rightIndex
+        });
+        
+        rightIndex++;
+        addIdx++;
+        leftOffset++;
+      } else {
+        // Neither side has changes - common line, advance both
+        leftIndex++;
+        rightIndex++;
       }
     }
     
-    // Add all changes: merged modifications + unused deletions + unused additions
-    for (let i = 0; i < deletions.length; i++) {
-      if (!usedDeletions.has(i)) {
-        result.push(deletions[i]);
-      }
-    }
+    logger.debug(`[alignChangesWithSpacers] Generated ${result.length} aligned changes (leftOffset: ${leftOffset}, rightOffset: ${rightOffset})`);
     
-    for (let i = 0; i < additions.length; i++) {
-      if (!usedAdditions.has(i)) {
-        result.push(additions[i]);
-      }
-    }
-    
-    // Sort by line number for consistent output
-    return result.sort((a, b) => a.lineNumber - b.lineNumber);
+    return result;
   }
 
   /**
@@ -370,11 +435,13 @@ export class MarkdownDiffViewSupport {
 }
 
 interface LineChange {
-  type: 'added' | 'deleted' | 'modified';
+  type: 'added' | 'deleted' | 'modified' | 'spacer';
   lineNumber: number;
   content: string;
   oldContent?: string;
   side: 'left' | 'right' | 'both';
+  leftLine?: number;  // Original line number in left document (-1 if not applicable)
+  rightLine?: number; // Original line number in right document (-1 if not applicable)
 }
 
 interface DiffResult {
@@ -385,6 +452,7 @@ interface DiffResult {
     added: number;
     deleted: number;
     modified: number;
+    spacer?: number;
   };
   leftHtmlLines?: string[];  // HTML lines from left side (for HTML-based diff)
   rightHtmlLines?: string[]; // HTML lines from right side (for HTML-based diff)

@@ -43875,99 +43875,151 @@ console.log('Hello, World!');
       if (!contentElement) {
         return;
       }
-      const allTextNodes = [];
-      const elements = contentElement.querySelectorAll(".vditor-ir__node, .vditor-wysiwyg__block, p, div, h1, h2, h3, h4, h5, h6, li, pre, blockquote");
-      elements.forEach((el) => {
-        const text = el.textContent?.trim() || "";
-        if (text.length > 0) {
-          allTextNodes.push({element: el, text});
-        }
-      });
+      this.clearSpacerBlocks();
       const lineToDom = new Map();
-      if (this.diffInfo.isHtmlBased) {
-        const topLevelElements = Array.from(contentElement.children);
-        topLevelElements.forEach((el, index2) => {
-          lineToDom.set(index2, el);
-        });
-      } else {
-        const sourceLines = this.diffInfo.documentText ? this.diffInfo.documentText.split("\n") : [];
-        let domIndex = 0;
-        for (let lineNum = 0; lineNum < sourceLines.length && domIndex < allTextNodes.length; lineNum++) {
-          const sourceLine = sourceLines[lineNum].trim();
-          if (!sourceLine) {
-            continue;
-          }
-          let found = false;
-          for (let i6 = domIndex; i6 < allTextNodes.length; i6++) {
-            const domNode = allTextNodes[i6];
-            const domText = domNode.text.trim();
-            if (domText === sourceLine) {
-              lineToDom.set(lineNum, domNode.element);
-              domIndex = i6 + 1;
-              found = true;
-              break;
-            }
-          }
-          if (!found) {
-          }
-        }
-      }
-      const totalLines = this.diffInfo.isHtmlBased ? lineToDom.size : this.diffInfo.documentText ? this.diffInfo.documentText.split("\n").length : 0;
-      this.addSpacerBlocks(lineToDom, totalLines);
-      const relevantChangesForHighlight = this.diffInfo.changes.filter((c5) => c5.side === this.diffInfo.role || c5.side === "both");
-      let matchedCount = 0;
-      const alreadyMatched = new Set();
-      relevantChangesForHighlight.forEach((change, index2) => {
-        const changeText = change.content.trim();
-        const oldText = change.oldContent?.trim();
-        if (!changeText && !oldText) {
+      const topLevelElements = Array.from(contentElement.children);
+      topLevelElements.forEach((el, index2) => {
+        lineToDom.set(index2, el);
+      });
+      vscodeLogWarn(`[DIFF-VIZ] \u{1F3A8} Processing ${this.diffInfo.changes.length} changes for ${this.diffInfo.role} side`);
+      this.diffInfo.changes.forEach((change, index2) => {
+        if (change.side !== this.diffInfo.role && change.side !== "both") {
           return;
         }
-        const targetLineNumber = change.lineNumber;
-        let targetElement = lineToDom.get(targetLineNumber);
-        if (targetElement && !alreadyMatched.has(targetElement)) {
-          if (!this.diffInfo.isHtmlBased) {
-            const elementText = targetElement.textContent?.trim() || "";
-            if (elementText !== changeText && !elementText.includes(changeText) && elementText !== oldText && !elementText.includes(oldText)) {
-              targetElement = null;
-            }
-          }
-        } else if (targetElement) {
-          targetElement = null;
+        const targetElement = lineToDom.get(change.lineNumber);
+        if (change.type === "spacer") {
+          this.insertSpacerElement(contentElement, change, lineToDom);
+          return;
         }
-        if (!targetElement) {
-          const matchingNodes = allTextNodes.filter((node) => !alreadyMatched.has(node.element) && (node.text === changeText || node.text === oldText));
-          if (matchingNodes.length === 1) {
-            targetElement = matchingNodes[0].element;
-          } else if (matchingNodes.length > 1) {
-            const relativePosition = targetLineNumber / Math.max(totalLines, 1);
-            const targetIndex = Math.floor(relativePosition * allTextNodes.length);
-            targetElement = matchingNodes.reduce((closest, node) => {
-              const nodeIndex = allTextNodes.indexOf(node);
-              const closestIndex = allTextNodes.indexOf(allTextNodes.find((n5) => n5.element === closest));
-              return Math.abs(nodeIndex - targetIndex) < Math.abs(closestIndex - targetIndex) ? node.element : closest;
-            }, matchingNodes[0].element);
-          }
-        }
-        if (targetElement) {
-          const color = this.getChangeColor(change.type);
-          targetElement.style.backgroundColor = color.bg;
-          targetElement.style.borderLeft = `3px solid ${color.border}`;
-          targetElement.style.paddingLeft = "4px";
-          targetElement.title = this.getChangeTooltip(change);
-          alreadyMatched.add(targetElement);
-          matchedCount++;
-        } else {
-        }
+        const color = this.getChangeColor(change.type);
+        targetElement.style.backgroundColor = color.bg;
+        targetElement.style.borderLeft = `3px solid ${color.border}`;
+        targetElement.style.paddingLeft = "4px";
+        targetElement.title = this.getChangeTooltip(change);
+        this.matchElementHeight(targetElement, change);
+        vscodeLogWarn(`[DIFF-VIZ] \u2705 Applied ${change.type} to line ${change.lineNumber}: "${targetElement.textContent?.trim().substring(0, 20)}"`);
       });
     }
-    calculateSimilarity(text1, text2) {
-      const longer = text1.length > text2.length ? text1 : text2;
-      const shorter = text1.length > text2.length ? text2 : text1;
-      if (longer.length === 0)
-        return 1;
-      const matches = shorter.split("").filter((char, i6) => longer[i6] === char).length;
-      return matches / longer.length;
+    insertSpacerElement(contentElement, change, lineToDom) {
+      const tempContainer = document.createElement("div");
+      tempContainer.innerHTML = change.content;
+      const spacer = tempContainer.firstElementChild;
+      if (!spacer) {
+        vscodeLogWarn(`[DIFF-VIZ] \u26A0\uFE0F  Failed to create spacer from content: ${change.content.substring(0, 50)}`);
+        return;
+      }
+      spacer.classList.add("diff-spacer-block");
+      spacer.setAttribute("data-line-number", change.lineNumber.toString());
+      this.applySpacerStyle(spacer, change);
+      if (change.lineNumber === 0) {
+        if (contentElement.firstChild) {
+          contentElement.insertBefore(spacer, contentElement.firstChild);
+        } else {
+          contentElement.appendChild(spacer);
+        }
+      } else {
+        const prevElement = lineToDom.get(change.lineNumber - 1);
+        if (prevElement && prevElement.nextSibling) {
+          contentElement.insertBefore(spacer, prevElement.nextSibling);
+        } else if (prevElement) {
+          prevElement.parentElement?.insertBefore(spacer, prevElement.nextSibling);
+        } else {
+          contentElement.appendChild(spacer);
+        }
+      }
+      const linesToShift = [];
+      for (const [lineNum, element] of lineToDom.entries()) {
+        if (lineNum >= change.lineNumber) {
+          linesToShift.push([lineNum, element]);
+        }
+      }
+      for (const [lineNum] of linesToShift) {
+        lineToDom.delete(lineNum);
+      }
+      for (const [lineNum, element] of linesToShift) {
+        lineToDom.set(lineNum + 1, element);
+      }
+      lineToDom.set(change.lineNumber, spacer);
+      vscodeLogWarn(`[DIFF-VIZ] \u{1F4CD} Inserted spacer at line ${change.lineNumber}, shifted ${linesToShift.length} lines down`);
+    }
+    async matchElementHeight(element, change) {
+      let oppositeContent;
+      if (change.type === "modified" && change.oldContent) {
+        oppositeContent = this.diffInfo?.role === "left" ? change.content : change.oldContent;
+      } else if (change.type === "added" || change.type === "deleted") {
+        oppositeContent = change.content;
+      }
+      if (!oppositeContent) {
+        return;
+      }
+      const tempContainer = document.createElement("div");
+      tempContainer.innerHTML = oppositeContent;
+      const tempElement = tempContainer.firstElementChild;
+      if (!tempElement) {
+        return;
+      }
+      tempElement.style.position = "absolute";
+      tempElement.style.visibility = "hidden";
+      tempElement.style.pointerEvents = "none";
+      tempElement.style.top = "-9999px";
+      tempElement.style.left = "-9999px";
+      tempElement.style.width = `${element.offsetWidth}px`;
+      const computedStyle = window.getComputedStyle(element);
+      tempElement.style.fontFamily = computedStyle.fontFamily;
+      tempElement.style.fontSize = computedStyle.fontSize;
+      tempElement.style.lineHeight = computedStyle.lineHeight;
+      tempElement.style.padding = computedStyle.padding;
+      tempElement.style.margin = computedStyle.margin;
+      tempElement.style.border = computedStyle.border;
+      tempElement.style.boxSizing = computedStyle.boxSizing;
+      tempElement.setAttribute("data-temp-measurement", "true");
+      if (element.nextSibling) {
+        element.parentElement?.insertBefore(tempElement, element.nextSibling);
+      } else {
+        element.parentElement?.appendChild(tempElement);
+      }
+      await new Promise((resolve) => {
+        const images = tempElement.querySelectorAll("img");
+        if (images.length === 0) {
+          setTimeout(resolve, 100);
+          return;
+        }
+        let loadedCount = 0;
+        const totalImages = images.length;
+        const checkComplete = () => {
+          loadedCount++;
+          if (loadedCount >= totalImages) {
+            setTimeout(resolve, 50);
+          }
+        };
+        images.forEach((img) => {
+          if (img.complete) {
+            checkComplete();
+          } else {
+            img.addEventListener("load", checkComplete);
+            img.addEventListener("error", checkComplete);
+          }
+        });
+        setTimeout(() => resolve(), 2e3);
+      });
+      const currentHeight = element.offsetHeight;
+      const oppositeHeight = tempElement.offsetHeight;
+      tempElement.remove();
+      if (oppositeHeight > currentHeight) {
+        const heightDiff = oppositeHeight - currentHeight;
+        element.style.paddingBottom = `${heightDiff}px`;
+        vscodeLogWarn(`[DIFF-VIZ] \u{1F4CF} Matched height for line ${change.lineNumber}: current=${currentHeight}px, opposite=${oppositeHeight}px, added padding=${heightDiff}px`);
+      }
+    }
+    applySpacerStyle(element, change) {
+      element.style.display = "block";
+      element.style.background = `repeating-linear-gradient(45deg, var(--vscode-diffEditor-removedTextBackground, rgba(255, 0, 0, 0.05)), var(--vscode-diffEditor-removedTextBackground, rgba(255, 0, 0, 0.05)) 10px, transparent 10px, transparent 20px)`;
+      element.style.borderLeft = `3px dashed var(--vscode-gitDecoration-deletedResourceForeground, #c74e39)`;
+      element.style.paddingLeft = "4px";
+      element.style.opacity = "0.4";
+      element.style.position = "relative";
+      element.style.minHeight = "24px";
+      element.title = "This line does not exist in this version";
     }
     getChangeColor(type) {
       switch (type) {
@@ -44038,265 +44090,6 @@ console.log('Hello, World!');
         this.handleScroll(document.documentElement);
       };
       window.addEventListener("scroll", windowScrollHandler, {passive: true});
-    }
-    addSpacerBlocks(lineToDom, totalLines) {
-      if (!this.diffInfo) {
-        return;
-      }
-      const contentElement = document.querySelector(".vditor-ir pre.vditor-reset") || document.querySelector("pre.vditor-reset");
-      if (!contentElement) {
-        return;
-      }
-      const existingSpacers = document.querySelectorAll(".diff-spacer-block");
-      if (existingSpacers.length > 0) {
-        return;
-      }
-      const leftDeletions = this.diffInfo.changes.filter((c5) => c5.side === "left" && c5.type === "deleted");
-      const rightAdditions = this.diffInfo.changes.filter((c5) => c5.side === "right" && c5.type === "added");
-      const excludedRightLines = new Set();
-      const excludedLeftLines = new Set();
-      for (const deletion of leftDeletions) {
-        const previousAdditions = rightAdditions.filter((a5) => a5.lineNumber < deletion.lineNumber).length;
-        const previousDeletions = leftDeletions.filter((d5) => d5.lineNumber < deletion.lineNumber).length;
-        const offset = previousAdditions - previousDeletions;
-        const expectedRightLine = deletion.lineNumber + offset;
-        const nearbyAdditions = rightAdditions.filter((a5) => Math.abs(a5.lineNumber - expectedRightLine) <= 3 && !excludedRightLines.has(a5.lineNumber));
-        if (nearbyAdditions.length > 0) {
-          let bestMatch = nearbyAdditions[0];
-          let bestScore = 0;
-          for (const addition of nearbyAdditions) {
-            const similarity2 = this.calculateSimilarity(deletion.content, addition.content);
-            const positionScore = 1 - Math.abs(addition.lineNumber - expectedRightLine) / 4;
-            const score = similarity2 * 0.7 + positionScore * 0.3;
-            if (score > bestScore) {
-              bestScore = score;
-              bestMatch = addition;
-            }
-          }
-          const similarity = this.calculateSimilarity(deletion.content, bestMatch.content);
-          const positionDiff = Math.abs(bestMatch.lineNumber - expectedRightLine);
-          if (similarity > 0.3 || positionDiff <= 1) {
-            excludedRightLines.add(bestMatch.lineNumber);
-            excludedLeftLines.add(deletion.lineNumber);
-          }
-        }
-      }
-      const relevantChanges = this.diffInfo.role === "left" ? this.diffInfo.changes.filter((c5) => c5.side === "right" && c5.type === "added" && !excludedRightLines.has(c5.lineNumber) && c5.content.trim().length > 0) : this.diffInfo.changes.filter((c5) => c5.side === "left" && c5.type === "deleted" && !excludedLeftLines.has(c5.lineNumber) && c5.content.trim().length > 0);
-      if (relevantChanges.length === 0) {
-        return;
-      }
-      const spacerBlocks = [];
-      const sortedChanges = [...relevantChanges].sort((a5, b4) => a5.lineNumber - b4.lineNumber);
-      let currentBlock = {
-        startLine: sortedChanges[0].lineNumber,
-        endLine: sortedChanges[0].lineNumber,
-        lineCount: 1
-      };
-      for (let i6 = 1; i6 < sortedChanges.length; i6++) {
-        const change = sortedChanges[i6];
-        if (change.lineNumber === currentBlock.endLine + 1) {
-          currentBlock.endLine = change.lineNumber;
-          currentBlock.lineCount++;
-        } else {
-          spacerBlocks.push(currentBlock);
-          currentBlock = {
-            startLine: change.lineNumber,
-            endLine: change.lineNumber,
-            lineCount: 1
-          };
-        }
-      }
-      spacerBlocks.push(currentBlock);
-      for (let i6 = spacerBlocks.length - 1; i6 >= 0; i6--) {
-        const block = spacerBlocks[i6];
-        let targetElement = null;
-        let targetLineNum;
-        if (this.diffInfo.role === "left") {
-          const additionsBeforeThis = rightAdditions.filter((a5) => a5.lineNumber < block.startLine).length;
-          targetLineNum = block.startLine - additionsBeforeThis;
-        } else {
-          const deletionsBeforeThis = leftDeletions.filter((d5) => d5.lineNumber < block.startLine && !excludedLeftLines.has(d5.lineNumber)).length;
-          const additionsBeforeThis = rightAdditions.filter((a5) => a5.lineNumber < block.startLine).length;
-          targetLineNum = block.startLine - deletionsBeforeThis + additionsBeforeThis;
-        }
-        targetElement = lineToDom.get(targetLineNum) || null;
-        if (!targetElement) {
-          for (let offset = 1; offset <= 5; offset++) {
-            targetElement = lineToDom.get(targetLineNum - offset);
-            if (targetElement) {
-              break;
-            }
-          }
-          if (!targetElement) {
-            for (let offset = 1; offset <= 5; offset++) {
-              targetElement = lineToDom.get(targetLineNum + offset);
-              if (targetElement) {
-                break;
-              }
-            }
-          }
-        }
-        if (!targetElement) {
-          continue;
-        }
-        let parentElement = targetElement.parentElement;
-        let insertionParent = null;
-        while (parentElement) {
-          if (parentElement === contentElement) {
-            insertionParent = contentElement;
-            break;
-          }
-          parentElement = parentElement.parentElement;
-        }
-        if (!insertionParent) {
-          continue;
-        }
-        if (this.diffInfo.isHtmlBased && this.diffInfo.htmlLines) {
-          for (let lineNum = block.startLine; lineNum <= block.endLine; lineNum++) {
-            if (lineNum >= this.diffInfo.htmlLines.length) {
-              continue;
-            }
-            const htmlContent = this.diffInfo.htmlLines[lineNum];
-            if (!htmlContent || htmlContent.trim().length === 0) {
-              continue;
-            }
-            let targetElementForLine = null;
-            targetElementForLine = lineToDom.get(lineNum) || null;
-            if (!targetElementForLine && lineNum >= lineToDom.size) {
-              const lastLineNum = Math.max(...Array.from(lineToDom.keys()));
-              targetElementForLine = lineToDom.get(lastLineNum) || null;
-            }
-            if (!targetElementForLine) {
-              for (let offset = 1; offset <= 3; offset++) {
-                targetElementForLine = lineToDom.get(lineNum - offset);
-                if (targetElementForLine)
-                  break;
-              }
-            }
-            if (!targetElementForLine) {
-              continue;
-            }
-            let parentElement2 = targetElementForLine.parentElement;
-            let isChildOfContent = false;
-            while (parentElement2) {
-              if (parentElement2 === contentElement) {
-                isChildOfContent = true;
-                break;
-              }
-              parentElement2 = parentElement2.parentElement;
-            }
-            if (!isChildOfContent) {
-              continue;
-            }
-            const tempContainer = document.createElement("div");
-            tempContainer.innerHTML = htmlContent;
-            const spacer = tempContainer.firstElementChild;
-            if (!spacer) {
-              continue;
-            }
-            spacer.classList.add("diff-spacer-block");
-            spacer.setAttribute("data-line-number", lineNum.toString());
-            const existingBackground = spacer.style.background;
-            spacer.style.background = existingBackground ? `${existingBackground}, repeating-linear-gradient(45deg, var(--vscode-diffEditor-removedTextBackground, rgba(255, 0, 0, 0.05)), var(--vscode-diffEditor-removedTextBackground, rgba(255, 0, 0, 0.05)) 10px, transparent 10px, transparent 20px)` : `repeating-linear-gradient(45deg, var(--vscode-diffEditor-removedTextBackground, rgba(255, 0, 0, 0.05)), var(--vscode-diffEditor-removedTextBackground, rgba(255, 0, 0, 0.05)) 10px, transparent 10px, transparent 20px)`;
-            spacer.style.borderLeft = `3px dashed var(--vscode-gitDecoration-deletedResourceForeground, #c74e39)`;
-            spacer.style.paddingLeft = spacer.style.paddingLeft || "4px";
-            spacer.style.opacity = "0.6";
-            spacer.style.position = spacer.style.position || "relative";
-            try {
-              if (lineNum >= lineToDom.size && targetElementForLine.nextSibling === null) {
-                targetElementForLine.parentElement.appendChild(spacer);
-                const newLineNum = Math.max(...Array.from(lineToDom.keys())) + 1;
-                lineToDom.set(newLineNum, spacer);
-              } else {
-                targetElementForLine.parentElement.insertBefore(spacer, targetElementForLine);
-                const keysToShift = Array.from(lineToDom.keys()).filter((key) => key >= lineNum).sort((a5, b4) => b4 - a5);
-                for (const key of keysToShift) {
-                  const element = lineToDom.get(key);
-                  lineToDom.delete(key);
-                  lineToDom.set(key + 1, element);
-                }
-                lineToDom.set(lineNum, spacer);
-              }
-            } catch (error2) {
-            }
-          }
-        } else {
-          const spacerContent = `<span style="
-          position: absolute;
-          left: 10px;
-          top: 50%;
-          transform: translateY(-50%);
-          color: var(--vscode-descriptionForeground);
-          font-size: 11px;
-          opacity: 0.7;
-          user-select: none;
-          font-style: italic;
-        ">\u22EF ${block.lineCount} line${block.lineCount > 1 ? "s" : ""} not in this file</span>`;
-          const singleLineHeight = this.estimateLineHeight(targetElement);
-          const totalHeight = singleLineHeight * block.lineCount;
-          const spacer = document.createElement("div");
-          spacer.className = "diff-spacer-block";
-          spacer.setAttribute("data-line-start", block.startLine.toString());
-          spacer.setAttribute("data-line-end", block.endLine.toString());
-          spacer.style.cssText = `
-          height: ${totalHeight}px;
-          min-height: ${totalHeight}px;
-          background: repeating-linear-gradient(
-            45deg,
-            var(--vscode-diffEditor-removedTextBackground, rgba(255, 0, 0, 0.05)),
-            var(--vscode-diffEditor-removedTextBackground, rgba(255, 0, 0, 0.05)) 10px,
-            transparent 10px,
-            transparent 20px
-          );
-          border-left: 3px dashed var(--vscode-gitDecoration-deletedResourceForeground, #c74e39);
-          margin: 0;
-          margin-bottom: 16px;
-          padding: 0;
-          padding-bottom: 4px;
-          position: relative;
-          display: block;
-          box-sizing: border-box;
-          opacity: 0.6;
-        `;
-          spacer.innerHTML = spacerContent;
-          try {
-            if (this.diffInfo.role === "left") {
-              if (targetElement.nextSibling) {
-                targetElement.parentElement.insertBefore(spacer, targetElement.nextSibling);
-              } else {
-                targetElement.parentElement.appendChild(spacer);
-              }
-            } else {
-              targetElement.parentElement.insertBefore(spacer, targetElement);
-            }
-          } catch (error2) {
-          }
-        }
-      }
-    }
-    estimateLineHeight(element) {
-      const computedStyle = window.getComputedStyle(element);
-      const lineHeightStr = computedStyle.lineHeight;
-      if (lineHeightStr === "normal" || lineHeightStr === "") {
-        const fontSize = parseFloat(computedStyle.fontSize);
-        if (!isNaN(fontSize)) {
-          return Math.ceil(fontSize * 1.2);
-        }
-      } else {
-        const lineHeight = parseFloat(lineHeightStr);
-        if (!isNaN(lineHeight)) {
-          return Math.ceil(lineHeight);
-        }
-      }
-      const elementHeight = element.offsetHeight;
-      if (elementHeight > 40) {
-        const fontSize = parseFloat(computedStyle.fontSize);
-        if (!isNaN(fontSize)) {
-          return Math.ceil(fontSize * 1.2);
-        }
-        return 24;
-      }
-      return elementHeight || 24;
     }
     handleScroll(element) {
       if (this.isScrolling) {
