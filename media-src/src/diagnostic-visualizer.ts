@@ -303,30 +303,10 @@ export class DiagnosticVisualizer {
             return;
         }
 
-        // Count content before cleanup for verification
-        const beforeContent = editor.textContent?.length || 0;
-
         // Remove diagnostic CSS classes but preserve ALL original element structure
-        const elements = editor.querySelectorAll('[class*="vscode-diagnostic-"]');
-        
-        elements.forEach((el, index) => {
-            // Remove only diagnostic-related classes, preserve ALL others
-            const classes = el.className.split(' ').filter(cls => 
-                !cls.startsWith('vscode-diagnostic-')
-            );
-            
-            el.className = classes.join(' ');
-            el.removeAttribute('data-diagnostic-message');
-            el.removeAttribute('data-diagnostic-severity');
-            el.removeAttribute('data-single-char');
-        });
+        const diagnosticElements = editor.querySelectorAll('[class*="vscode-diagnostic-"]');
 
-        // Handle diagnostic spans with EXTREME care - preserve ALL child content and structure
-        const diagnosticSpans = editor.querySelectorAll('.vscode-diagnostic-span');
-        
-        diagnosticSpans.forEach((span, index) => {
-            const originalContent = span.textContent || '';
-            
+        diagnosticElements.forEach((span, index) => {
             // Remove diagnostic classes and attributes only
             span.className = span.className.replace(/\bvscode-diagnostic-\w+\b/g, '').trim();
             span.removeAttribute('data-diagnostic-message');
@@ -334,9 +314,15 @@ export class DiagnosticVisualizer {
             span.removeAttribute('data-diagnostic-severity');
             span.removeAttribute('data-diagnostic-ui');
             span.removeAttribute('data-single-char');
+            span.removeAttribute('data-has-lightbulb');
+
+            if (!span.className.trim()) {
+                // If no classes remain, remove class attribute entirely
+                span.removeAttribute('class');
+            }
             
             // Only unwrap if span is completely empty of useful classes/attributes
-            if (!span.className.trim() && !span.hasAttributes()) {
+            if (!span.hasAttributes()) {
                 const parent = span.parentNode;
                 if (parent) {
                     // Create document fragment to safely move children
@@ -353,13 +339,6 @@ export class DiagnosticVisualizer {
                 }
             }
         });
-
-        // Count content after cleanup for verification
-        const afterContent = editor.textContent?.length || 0;
-        
-        if (beforeContent !== afterContent) {
-        } else {
-        }
 
         // Clean up lightbulb overlays (completely separate system)
         this.cleanupLightbulbOverlays();
@@ -387,10 +366,6 @@ export class DiagnosticVisualizer {
                       document.querySelector('.vditor-wysiwyg .vditor-reset') || 
                       document.querySelector('.vditor-sv .vditor-reset');
 
-        if (!editor) {
-        } else {
-        }
-
         // FUNDAMENTAL PRINCIPLE: Do NOT remove ANY elements from the editor content
         // The editor contains actual content with diagnostic styling - that must NEVER be removed
         // Only clean up true overlay elements that are positioned separately
@@ -398,11 +373,12 @@ export class DiagnosticVisualizer {
         // 1. Clean up the dedicated lightbulb overlay system (Map-based overlays)
         this.cleanupLightbulbOverlays();
 
+        // 1.1 Clean up all styles
+        this.clearDiagnosticStyles();
+
         // 2. Clean up ONLY overlay elements from document.body with data-diagnostic-ui="true"
         const bodyOverlays = document.body.querySelectorAll('[data-diagnostic-ui="true"]');
         
-        
-        let removedCount = 0;
         bodyOverlays.forEach((element) => {
             // Enhanced debugging to understand what's being removed
             const elementInfo = {
@@ -415,25 +391,7 @@ export class DiagnosticVisualizer {
             
             
             element.remove();
-            removedCount++;
         });
-        
-        // 3. Count diagnostic styling elements being preserved in the editor (but don't touch them)
-        let diagnosticCount = 0;
-        if (editor) {
-            const diagnosticElements = editor.querySelectorAll('.vscode-diagnostic-error, .vscode-diagnostic-warning, .vscode-diagnostic-info, .vscode-diagnostic-hint');
-            diagnosticCount = diagnosticElements.length;
-            
-            if (diagnosticCount > 0) {
-            }
-        }
-        
-        // 4. Final summary
-        
-        // 5. Verify content integrity
-        if (editor) {
-            const contentLength = editor.textContent?.length || 0;
-        }
     }
 
     /**
@@ -1694,8 +1652,6 @@ export class DiagnosticVisualizer {
     }
 
     // Add lightbulb styling directly to the span
-    element.style.position = 'relative';
-    element.style.cursor = 'pointer';
     element.setAttribute('data-has-lightbulb', 'true');
 
     // Lightbulb CSS is already defined in main.css - no need to add dynamic styles
@@ -1715,14 +1671,6 @@ export class DiagnosticVisualizer {
       }
     });
 
-  }
-
-  /**
-   * Legacy method kept for compatibility with existing code
-   */
-  private addQuickFixLightbulb(element: HTMLElement, diagnostic: any): void {
-    // Redirect to integrated lightbulb to avoid duplicates
-    this.addIntegratedQuickFixLightbulb(element, diagnostic);
   }
 
   /**
@@ -2668,8 +2616,8 @@ export class DiagnosticVisualizer {
         if (targetIndex === -1) {
             // vscodeLogError(`❌ Target text "${targetText}" not found in element text`);
             // Fallback: apply styling to entire element
-            this.addDiagnosticStylingToElement(element, diagnostic);
-            return true;
+            // this.addDiagnosticStylingToElement(element, diagnostic);
+            return false;
         }
         
         // Find the text node containing the target text and wrap it

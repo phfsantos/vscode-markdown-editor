@@ -41129,25 +41129,19 @@ ${currentContent}`;
       if (!editor) {
         return;
       }
-      const beforeContent = editor.textContent?.length || 0;
-      const elements = editor.querySelectorAll('[class*="vscode-diagnostic-"]');
-      elements.forEach((el, index2) => {
-        const classes = el.className.split(" ").filter((cls) => !cls.startsWith("vscode-diagnostic-"));
-        el.className = classes.join(" ");
-        el.removeAttribute("data-diagnostic-message");
-        el.removeAttribute("data-diagnostic-severity");
-        el.removeAttribute("data-single-char");
-      });
-      const diagnosticSpans = editor.querySelectorAll(".vscode-diagnostic-span");
-      diagnosticSpans.forEach((span, index2) => {
-        const originalContent = span.textContent || "";
+      const diagnosticElements = editor.querySelectorAll('[class*="vscode-diagnostic-"]');
+      diagnosticElements.forEach((span, index2) => {
         span.className = span.className.replace(/\bvscode-diagnostic-\w+\b/g, "").trim();
         span.removeAttribute("data-diagnostic-message");
         span.removeAttribute("data-diagnostic-source");
         span.removeAttribute("data-diagnostic-severity");
         span.removeAttribute("data-diagnostic-ui");
         span.removeAttribute("data-single-char");
-        if (!span.className.trim() && !span.hasAttributes()) {
+        span.removeAttribute("data-has-lightbulb");
+        if (!span.className.trim()) {
+          span.removeAttribute("class");
+        }
+        if (!span.hasAttributes()) {
           const parent = span.parentNode;
           if (parent) {
             const fragment = document.createDocumentFragment();
@@ -41159,10 +41153,6 @@ ${currentContent}`;
           }
         }
       });
-      const afterContent = editor.textContent?.length || 0;
-      if (beforeContent !== afterContent) {
-      } else {
-      }
       this.cleanupLightbulbOverlays();
       this.clearAppliedDiagnosticTracking();
     }
@@ -41171,12 +41161,9 @@ ${currentContent}`;
     }
     cleanupTransientUI() {
       const editor = document.querySelector(".vditor-ir .vditor-reset") || document.querySelector(".vditor-wysiwyg .vditor-reset") || document.querySelector(".vditor-sv .vditor-reset");
-      if (!editor) {
-      } else {
-      }
       this.cleanupLightbulbOverlays();
+      this.clearDiagnosticStyles();
       const bodyOverlays = document.body.querySelectorAll('[data-diagnostic-ui="true"]');
-      let removedCount = 0;
       bodyOverlays.forEach((element) => {
         const elementInfo = {
           tag: element.tagName,
@@ -41186,18 +41173,7 @@ ${currentContent}`;
           attributes: Array.from(element.attributes).map((attr) => `${attr.name}="${attr.value}"`).join(" ")
         };
         element.remove();
-        removedCount++;
       });
-      let diagnosticCount = 0;
-      if (editor) {
-        const diagnosticElements = editor.querySelectorAll(".vscode-diagnostic-error, .vscode-diagnostic-warning, .vscode-diagnostic-info, .vscode-diagnostic-hint");
-        diagnosticCount = diagnosticElements.length;
-        if (diagnosticCount > 0) {
-        }
-      }
-      if (editor) {
-        const contentLength = editor.textContent?.length || 0;
-      }
     }
     applyDiagnosticStyles() {
       if (this.diagnostics.length === 0) {
@@ -41956,8 +41932,6 @@ ${currentContent}`;
       if (element.getAttribute("data-has-lightbulb") === "true") {
         return;
       }
-      element.style.position = "relative";
-      element.style.cursor = "pointer";
       element.setAttribute("data-has-lightbulb", "true");
       element.addEventListener("click", (e7) => {
         const rect = element.getBoundingClientRect();
@@ -41969,9 +41943,6 @@ ${currentContent}`;
           this.triggerQuickFix(diagnostic);
         }
       });
-    }
-    addQuickFixLightbulb(element, diagnostic) {
-      this.addIntegratedQuickFixLightbulb(element, diagnostic);
     }
     cleanupLightbulbOverlays() {
       const elementsWithLightbulbs = document.querySelectorAll('[data-has-lightbulb="true"]');
@@ -42561,8 +42532,7 @@ ${currentContent}`;
         }
       }
       if (targetIndex === -1) {
-        this.addDiagnosticStylingToElement(element, diagnostic);
-        return true;
+        return false;
       }
       return this.wrapTextAtPositionInElement(element, targetIndex, targetText.length, diagnostic);
     }
@@ -43766,6 +43736,7 @@ console.log('Hello, World!');
           window.markdownEditorLog(`[DIFF-VIZ] \u2705 Diff visualization complete`);
         }
         this.setupScrollSyncListeners();
+        this.addScrollbarDiffIndicators();
       }, 1e3);
     }
     clearDiffVisualizations() {
@@ -43774,6 +43745,10 @@ console.log('Hello, World!');
       const existingHeader = document.querySelector(".diff-view-header");
       if (existingHeader) {
         existingHeader.remove();
+      }
+      const existingIndicators = document.querySelector(".diff-scrollbar-indicators");
+      if (existingIndicators) {
+        existingIndicators.remove();
       }
       const spacers = document.querySelectorAll(".diff-spacer-block");
       spacers.forEach((spacer) => spacer.remove());
@@ -44162,6 +44137,103 @@ console.log('Hello, World!');
     }
     getDiffInfo() {
       return this.diffInfo;
+    }
+    addScrollbarDiffIndicators() {
+      if (!this.diffInfo) {
+        return;
+      }
+      const existingIndicators = document.querySelector(".diff-scrollbar-indicators");
+      if (existingIndicators) {
+        existingIndicators.remove();
+      }
+      const contentElement = document.querySelector(".vditor-ir > pre.vditor-reset") || document.querySelector("pre.vditor-reset");
+      if (!contentElement) {
+        vscodeLogWarn("[DIFF-VIZ] Cannot add scrollbar indicators - content element not found");
+        return;
+      }
+      const totalHeight = contentElement.scrollHeight;
+      if (totalHeight === 0) {
+        return;
+      }
+      const indicatorContainer = document.createElement("div");
+      indicatorContainer.className = "diff-scrollbar-indicators";
+      indicatorContainer.style.cssText = `
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 14px;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 9999;
+      background: transparent;
+    `;
+      const processedLines = new Set();
+      this.diffInfo.changes.forEach((change) => {
+        if (change.type === "spacer" || processedLines.has(change.lineNumber)) {
+          return;
+        }
+        if (change.side !== this.diffInfo.role && change.side !== "both") {
+          return;
+        }
+        processedLines.add(change.lineNumber);
+        const lineElement = contentElement.children[change.lineNumber];
+        if (!lineElement) {
+          return;
+        }
+        const elementTop = lineElement.offsetTop;
+        const position = elementTop / totalHeight * 100;
+        const color = this.getScrollbarMarkerColor(change.type);
+        const marker = document.createElement("div");
+        marker.className = `diff-scrollbar-marker diff-scrollbar-marker-${change.type}`;
+        marker.style.cssText = `
+        position: absolute;
+        top: ${position}%;
+        left: 0;
+        width: calc(100% - 3px);
+        height: 4px;
+        background-color: ${color};
+        opacity: 0.85;
+        transition: opacity 0.2s, height 0.2s;
+        border-radius: 2px;
+      `;
+        marker.title = this.getChangeTooltip(change);
+        marker.style.pointerEvents = "auto";
+        marker.style.cursor = "pointer";
+        marker.addEventListener("click", () => {
+          this.scrollToLine(change.lineNumber);
+        });
+        marker.addEventListener("mouseenter", () => {
+          marker.style.opacity = "1";
+          marker.style.height = "6px";
+        });
+        marker.addEventListener("mouseleave", () => {
+          marker.style.opacity = "0.85";
+          marker.style.height = "4px";
+        });
+        indicatorContainer.appendChild(marker);
+      });
+      document.body.appendChild(indicatorContainer);
+      vscodeLogWarn(`[DIFF-VIZ] \u{1F4CD} Added ${indicatorContainer.children.length} scrollbar indicators for ${this.diffInfo.role} side`);
+    }
+    scrollToLine(lineNumber) {
+      const contentElement = document.querySelector(".vditor-ir > pre.vditor-reset") || document.querySelector("pre.vditor-reset");
+      if (!contentElement) {
+        return;
+      }
+      const targetElement = contentElement.children[lineNumber];
+      if (targetElement) {
+        targetElement.scrollIntoView({behavior: "smooth", block: "center"});
+      }
+    }
+    getScrollbarMarkerColor(type) {
+      switch (type) {
+        case "added":
+          return "var(--vscode-gitDecoration-addedResourceForeground, #81b88b)";
+        case "deleted":
+          return "var(--vscode-gitDecoration-deletedResourceForeground, #c74e39)";
+        case "modified":
+          return "var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d)";
+      }
     }
   };
   var diffVisualizer = new DiffVisualizer();
@@ -47325,10 +47397,6 @@ console.log('Hello, World!');
               shouldResetValue = true;
             }
           });
-          if (shouldResetValue) {
-            const currentValue = vditor.getValue();
-            vditor.setValue(currentValue);
-          }
           const selection = window.getSelection();
           if (selection && selection.rangeCount > 0) {
             const range = selection.getRangeAt(0);
@@ -47372,6 +47440,9 @@ console.log('Hello, World!');
             cacheCleanIRHtml();
             const content = vditor.getValue();
             vscode.postMessage({command: "edit", content});
+            if (shouldResetValue) {
+              vditor.setValue(content);
+            }
           }, 50);
           transientUiTimer && clearTimeout(transientUiTimer);
           transientUiTimer = setTimeout(() => {
@@ -47400,7 +47471,7 @@ console.log('Hello, World!');
               wikiLinkHandler.handleInputForProcessing?.();
             }
           }, 5e3);
-        }, 200);
+        }, 400);
       },
       upload: {
         url: "/fuzzy",

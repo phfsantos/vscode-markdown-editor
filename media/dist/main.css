@@ -2479,6 +2479,10 @@ img.vscode-diagnostic-info {
 .vscode-diagnostic-span[data-single-char=true].vscode-diagnostic-info {
   background-color: rgba(55, 148, 255, 0.2);
 }
+span[data-has-lightbulb=true] {
+  position: relative;
+  cursor: pointer;
+}
 .vscode-diagnostic-span[data-has-lightbulb=true]::after {
   content: "\1f4a1";
   display: var(--lightbulb-display, none);

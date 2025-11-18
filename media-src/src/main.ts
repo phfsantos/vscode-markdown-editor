@@ -1691,12 +1691,6 @@ function initVditor(msg) {
           }
         });
 
-        if (shouldResetValue) {
-          // Re-set the editor content to trigger re-rendering of custom blocks
-          const currentValue = vditor.getValue();
-          vditor.setValue(currentValue);
-        }
-
         // Send cursor position with more detailed tracking
         const selection = window.getSelection();
         if (selection && selection.rangeCount > 0) {
@@ -1763,6 +1757,12 @@ function initVditor(msg) {
           // Update content after cleanup
           const content = vditor.getValue();
           vscode.postMessage({ command: "edit", content: content });
+          
+
+          // Re-set the editor content to trigger re-rendering of custom blocks
+          if (shouldResetValue) {
+            vditor.setValue(content);
+          }
         }, 50); // Small delay to ensure cleanup completes
 
         transientUiTimer && clearTimeout(transientUiTimer);
@@ -1803,7 +1803,7 @@ function initVditor(msg) {
             (wikiLinkHandler as any).handleInputForProcessing?.();
           }
         }, 5000); // Even longer delay to ensure user has finished immediate edits
-      }, 200); // ENHANCED: Increased delay to prevent cursor jumping after newlines
+      }, 400); // ENHANCED: Increased delay to prevent cursor jumping after newlines
     },
     upload: {
       url: "/fuzzy", // 没有 url 参数粘贴图片无法上传 see: https://github.com/Vanessa219/vditor/blob/d7628a0a7cfe5d28b055469bf06fb0ba5cfaa1b2/src/ts/util/fixBrowserBehavior.ts#L1409

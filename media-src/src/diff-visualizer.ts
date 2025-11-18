@@ -136,6 +136,9 @@ export class DiffVisualizer {
 
       // Setup scroll sync after visualizations are applied
       this.setupScrollSyncListeners();
+      
+      // Add scrollbar diff indicators
+      this.addScrollbarDiffIndicators();
     }, 1000);
   }
 
@@ -151,6 +154,12 @@ export class DiffVisualizer {
     const existingHeader = document.querySelector(".diff-view-header");
     if (existingHeader) {
       existingHeader.remove();
+    }
+    
+    // Remove scrollbar indicators
+    const existingIndicators = document.querySelector(".diff-scrollbar-indicators");
+    if (existingIndicators) {
+      existingIndicators.remove();
     }
 
     // Remove all spacer blocks
@@ -804,6 +813,156 @@ export class DiffVisualizer {
    */
   public getDiffInfo(): DiffInfo | null {
     return this.diffInfo;
+  }
+  
+  /**
+   * Add scrollbar diff indicators showing where changes are located
+   */
+  private addScrollbarDiffIndicators(): void {
+    if (!this.diffInfo) {
+      return;
+    }
+
+    // Remove any existing indicators
+    const existingIndicators = document.querySelector(".diff-scrollbar-indicators");
+    if (existingIndicators) {
+      existingIndicators.remove();
+    }
+
+    // Get the scrollable content element
+    const contentElement =
+      document.querySelector(".vditor-ir > pre.vditor-reset") ||
+      document.querySelector("pre.vditor-reset");
+
+    if (!contentElement) {
+      vscodeLogWarn("[DIFF-VIZ] Cannot add scrollbar indicators - content element not found");
+      return;
+    }
+
+    // Get total document height (scrollHeight)
+    const totalHeight = (contentElement as HTMLElement).scrollHeight;
+    if (totalHeight === 0) {
+      return;
+    }
+
+    // Create indicator container that overlays the scrollbar area
+    const indicatorContainer = document.createElement("div");
+    indicatorContainer.className = "diff-scrollbar-indicators";
+    indicatorContainer.style.cssText = `
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 14px;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 9999;
+      background: transparent;
+    `;
+
+    // Add markers for each change
+    const processedLines = new Set<number>();
+    
+    this.diffInfo.changes.forEach((change) => {
+      // Skip spacers and already processed lines
+      if (change.type === "spacer" || processedLines.has(change.lineNumber)) {
+        return;
+      }
+      
+      // Filter: only process changes for this side
+      if (change.side !== this.diffInfo!.role && change.side !== "both") {
+        return;
+      }
+      
+      processedLines.add(change.lineNumber);
+
+      // Get the actual DOM element for this line
+      const lineElement = contentElement.children[change.lineNumber] as HTMLElement;
+      if (!lineElement) {
+        return;
+      }
+
+      // Calculate position based on actual pixel offset from top
+      const elementTop = lineElement.offsetTop;
+      const position = (elementTop / totalHeight) * 100;
+      
+      // Get color for this change type
+      const color = this.getScrollbarMarkerColor(change.type);
+      
+      // Create marker element
+      const marker = document.createElement("div");
+      marker.className = `diff-scrollbar-marker diff-scrollbar-marker-${change.type}`;
+      marker.style.cssText = `
+        position: absolute;
+        top: ${position}%;
+        left: 0;
+        width: calc(100% - 3px);
+        height: 4px;
+        background-color: ${color};
+        opacity: 0.85;
+        transition: opacity 0.2s, height 0.2s;
+        border-radius: 2px;
+      `;
+      marker.title = this.getChangeTooltip(change);
+      
+      // Make marker clickable to jump to that line
+      marker.style.pointerEvents = "auto";
+      marker.style.cursor = "pointer";
+      
+      marker.addEventListener("click", () => {
+        this.scrollToLine(change.lineNumber);
+      });
+      
+      // Add hover effect
+      marker.addEventListener("mouseenter", () => {
+        marker.style.opacity = "1";
+        marker.style.height = "6px";
+      });
+      marker.addEventListener("mouseleave", () => {
+        marker.style.opacity = "0.85";
+        marker.style.height = "4px";
+      });
+      
+      indicatorContainer.appendChild(marker);
+    });
+
+    // Attach to document body for fixed positioning
+    document.body.appendChild(indicatorContainer);
+    
+    vscodeLogWarn(
+      `[DIFF-VIZ] 📍 Added ${indicatorContainer.children.length} scrollbar indicators for ${this.diffInfo.role} side`
+    );
+  }
+  
+  /**
+   * Scroll to a specific line number
+   */
+  private scrollToLine(lineNumber: number): void {
+    const contentElement =
+      document.querySelector(".vditor-ir > pre.vditor-reset") ||
+      document.querySelector("pre.vditor-reset");
+    
+    if (!contentElement) {
+      return;
+    }
+    
+    const targetElement = contentElement.children[lineNumber] as HTMLElement;
+    if (targetElement) {
+      targetElement.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }
+  
+  /**
+   * Get scrollbar marker color for change type
+   */
+  private getScrollbarMarkerColor(type: "added" | "deleted" | "modified"): string {
+    switch (type) {
+      case "added":
+        return "var(--vscode-gitDecoration-addedResourceForeground, #81b88b)";
+      case "deleted":
+        return "var(--vscode-gitDecoration-deletedResourceForeground, #c74e39)";
+      case "modified":
+        return "var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d)";
+    }
   }
 }
 

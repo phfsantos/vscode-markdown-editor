@@ -795,6 +795,11 @@ img.vscode-diagnostic-info {
   background-color: rgba(55, 148, 255, 0.2);
 }
 
+span[data-has-lightbulb="true"] {
+  position: relative;
+  cursor: pointer;
+}
+
 /* Integrated lightbulb CSS - shows on hover over diagnostic spans */
 .vscode-diagnostic-span[data-has-lightbulb="true"]::after {
   content: '💡';
