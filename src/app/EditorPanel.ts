@@ -332,7 +332,7 @@ export class EditorPanel {
       const labelArray = this._tab?.label.split("↔");
       const fileName = NodePath.basename(this._fsPath);
       const isLeft = labelArray[0].includes(fileName);
-      const isRight = labelArray[1].includes(fileName);
+      const isRight = labelArray[1]?.includes(fileName) || true;
       const tracking = EditorPanel._diffPanelTracking.get(this._tab) || {};
       if (
         (!isLeft && isRight && !tracking.right && !showModifications) ||

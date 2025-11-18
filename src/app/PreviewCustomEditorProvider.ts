@@ -34,7 +34,7 @@ export class PreviewCustomEditorProvider
 
       // Let check for git compare tabs
       if (
-        label.includes(".md (Working tree)") ||
+        label.includes(".md (Working Tree)") ||
         label.includes(".md (Index)")
       ) {
         return true;
