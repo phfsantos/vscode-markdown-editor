@@ -980,10 +980,10 @@ export class EditorPanel {
     this._panel.webview.html = this._getHtmlForWebview(webview);
     this._panel.title = NodePath.basename(this._fsPath);
 
-    // Send initial diagnostics to webview after a short delay to ensure webview is ready
+    // Send initial diagnostics to webview immediately after init
     setTimeout(() => {
       this._updateDiagnostics();
-    }, 500);
+    }, 100); // Very short delay - diagnostics at first opportunity
   }
 
   /**

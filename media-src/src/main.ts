@@ -26,8 +26,6 @@ import { toolbar } from "./toolbar";
 import { fixTableIr } from "./fix-table-ir";
 import words from "./words.en.txt";
 
-
-
 // Renderer System
 import {
   initializeRendererSystem,
@@ -54,6 +52,9 @@ let wikiLinkHandler: WikiLinkHandler | null = null;
 let imageURIConverter: ImageURIConverter | null = null;
 let cachedCleanHtml: string | null = null; // Cache clean HTML before decorations
 
+// Track when we just received setValue from external change (undo/redo)
+let justReceivedExternalChange = false;
+
 // Read-only state
 let isReadOnly = false;
 
@@ -62,12 +63,12 @@ let isReadOnly = false;
  * This is called after Vditor renders but before diagnostics/diff
  */
 function cacheCleanIRHtml(): void {
-    cachedCleanHtml = vditor.getHTML();
-    if ((window as any).markdownEditorLog) {
-      (window as any).markdownEditorLog(
-        `[CACHE] Cached clean HTML (${cachedCleanHtml.length} chars)`
-      );
-    }
+  cachedCleanHtml = vditor.getHTML();
+  if ((window as any).markdownEditorLog) {
+    (window as any).markdownEditorLog(
+      `[CACHE] Cached clean HTML (${cachedCleanHtml.length} chars)`
+    );
+  }
 }
 /**
  * Process wiki-links and diagnostics after Vditor renders/re-renders content
@@ -88,10 +89,11 @@ function processAfterRender() {
     imageURIConverter.convertAllImages();
   }
 
-  // Re-apply diagnostics
-  if (diagnosticVisualizer) {
-    diagnosticVisualizer.addSimpleDiagnostics();
-  }
+  // Note: We don't call addSimpleDiagnostics here because:
+  // 1. It only adds simple pattern-based diagnostics (broken links, missing alt)
+  // 2. Real VS Code diagnostics are handled by handleExternalChange()
+  // 3. Calling both can cause timing conflicts
+  // If you need to reapply diagnostics, use diagnosticVisualizer.handleExternalChange()
 }
 
 // Initialize diff visualizer - must be called to set up message listeners
@@ -1649,12 +1651,12 @@ function initVditor(msg) {
         vscodeLog(`❌ FindReplaceManager initialization error: ${error}`);
       }
 
-      // Apply simple diagnostics immediately
+      // Apply simple diagnostics immediately after render
       setTimeout(() => {
         if (diagnosticVisualizer) {
-          diagnosticVisualizer.addSimpleDiagnostics();
+          diagnosticVisualizer.addSimpleDiagnostics(true); // Force application
         }
-      }, 500); // Small delay to ensure editor is fully rendered
+      }, 50); // Very short delay - just enough for editor to be ready
 
       // Notify extension that Vditor has initialized/reloaded so sidebar can update
       try {
@@ -1774,9 +1776,30 @@ function initVditor(msg) {
     ),
   });
 
-  // Lets overwrite getValue and getHTML to always return cleaned content
-  window.vditor.getValue = () => getValue(window.vditor.vditor);
-  window.vditor.getHTML = () => getHTML(window.vditor.vditor);
+  if (window.vditor) {
+    // Lets overwrite getValue and getHTML to always return cleaned content
+    window.vditor.getValue = () => getValue(window.vditor.vditor);
+    window.vditor.getHTML = () => getHTML(window.vditor.vditor);
+    // Override setValue to preserve diagnostics and diffs through undo/redo
+    const originalSetValue = window.vditor.setValue.bind(window.vditor);
+    window.vditor.setValue = function (markdown: string, clearStack?: boolean) {
+      // Call original setValue
+      originalSetValue(markdown, clearStack);
+
+      // Reapply diagnostics and diffs after setValue completes
+      // setValue is called during undo/redo operations and clears all DOM decorations
+      // Use longer delay to ensure DOM is fully stable
+      setTimeout(() => {
+        // Notify diagnostic visualizer to reapply
+        if (diagnosticVisualizer) {
+          diagnosticVisualizer.handleExternalChange();
+        }
+
+        // Reprocess diffs and wiki-links
+        processAfterRender();
+      }, 50); // 50ms delay to ensure DOM is fully rendered
+    };
+  }
 
   // (Removed legacy ensureCustomContextMenu fallback - replaced by global capture interceptor above)
 }
@@ -1821,6 +1844,10 @@ window.addEventListener("message", (e) => {
           saveVditorOptions();
         }
       } else {
+        // Mark that we just received an external change (undo/redo/external edit)
+        justReceivedExternalChange = true;
+        vscodeLog('🔄 External change detected, setting justReceivedExternalChange=true');
+        
         vditor.setValue(msg.content);
 
         // Notify diagnostic visualizer about external change
@@ -1831,6 +1858,12 @@ window.addEventListener("message", (e) => {
         // Re-process wiki-links and diagnostics after setValue
         // setValue is called on undo/redo/external changes
         processAfterRender();
+        
+        // Clear flag after 500ms (diagnostics should arrive within this window)
+        setTimeout(() => {
+          vscodeLog('🔄 Clearing justReceivedExternalChange flag');
+          justReceivedExternalChange = false;
+        }, 500);
       }
       break;
     }
@@ -1862,10 +1895,18 @@ window.addEventListener("message", (e) => {
 
       if (diagnosticVisualizer) {
         // Pass additional document context to the visualizer
-        diagnosticVisualizer.updateDiagnostics(msg.diagnostics, {
-          documentText: msg.documentText,
-          documentLines: msg.documentLines,
-        });
+        // Force apply if we just received an external change (undo/redo)
+        const shouldForceApply = justReceivedExternalChange;
+        vscodeLog(`📊 Received ${msg.diagnostics.length} diagnostics, forceApply=${shouldForceApply}`);
+        
+        diagnosticVisualizer.updateDiagnostics(
+          msg.diagnostics, 
+          {
+            documentText: msg.documentText,
+            documentLines: msg.documentLines,
+          },
+          shouldForceApply // forceApply=true when from undo/redo
+        );
       }
       break;
     }

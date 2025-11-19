@@ -40963,6 +40963,7 @@ ${currentContent}`;
       this.elementsByLine = new Map();
       this.lastDiagnosticsHash = "";
       this.diagnosticsApplied = false;
+      this.isApplyingDiagnostics = false;
       this.pendingDiagnosticUpdate = false;
       this.lastUserInput = 0;
       this.focusedElement = null;
@@ -40971,30 +40972,162 @@ ${currentContent}`;
       this.previousCursorElement = null;
       this.isUserTyping = false;
       this.typingTimeout = null;
+      this.savedCursorState = null;
       this.vditor = vditorInstance;
       this.setupFocusAwareness();
     }
-    applyDiagnosticsToEditor(diagnostics) {
+    saveCursorPosition() {
+      try {
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) {
+          this.savedCursorState = null;
+          return false;
+        }
+        const range = selection.getRangeAt(0);
+        this.savedCursorState = {
+          anchorNode: selection.anchorNode,
+          anchorOffset: selection.anchorOffset,
+          focusNode: selection.focusNode,
+          focusOffset: selection.focusOffset,
+          isCollapsed: selection.isCollapsed
+        };
+        return true;
+      } catch (error2) {
+        this.savedCursorState = null;
+        return false;
+      }
+    }
+    restoreCursorPosition() {
+      try {
+        if (!this.savedCursorState) {
+          return false;
+        }
+        const selection = window.getSelection();
+        if (!selection) {
+          return false;
+        }
+        const {anchorNode, anchorOffset, focusNode, focusOffset, isCollapsed} = this.savedCursorState;
+        const anchorStillValid = document.contains(anchorNode);
+        const focusStillValid = document.contains(focusNode);
+        if (anchorStillValid && focusStillValid) {
+          const range = document.createRange();
+          range.setStart(anchorNode, Math.min(anchorOffset, anchorNode.textContent?.length || 0));
+          range.setEnd(focusNode, Math.min(focusOffset, focusNode.textContent?.length || 0));
+          selection.removeAllRanges();
+          selection.addRange(range);
+          return true;
+        } else {
+          return this.restoreCursorToEquivalentPosition(anchorNode, anchorOffset);
+        }
+      } catch (error2) {
+        return false;
+      } finally {
+        this.savedCursorState = null;
+      }
+    }
+    restoreCursorToEquivalentPosition(oldNode, oldOffset) {
+      try {
+        let parent = oldNode.parentNode;
+        while (parent && !document.contains(parent)) {
+          parent = parent.parentNode;
+        }
+        if (!parent || !document.contains(parent)) {
+          return false;
+        }
+        let targetOffset = oldOffset;
+        let sibling = oldNode.previousSibling;
+        while (sibling) {
+          targetOffset += sibling.textContent?.length || 0;
+          sibling = sibling.previousSibling;
+        }
+        const walker = document.createTreeWalker(parent, NodeFilter.SHOW_TEXT, null);
+        let currentOffset = 0;
+        let textNode;
+        while (textNode = walker.nextNode()) {
+          const nodeLength = textNode.textContent?.length || 0;
+          if (currentOffset + nodeLength >= targetOffset) {
+            const offsetInNode = targetOffset - currentOffset;
+            const selection = window.getSelection();
+            if (selection) {
+              const range = document.createRange();
+              range.setStart(textNode, Math.min(offsetInNode, nodeLength));
+              range.collapse(true);
+              selection.removeAllRanges();
+              selection.addRange(range);
+              return true;
+            }
+          }
+          currentOffset += nodeLength;
+        }
+        return false;
+      } catch (error2) {
+        return false;
+      }
+    }
+    applyDiagnosticsToEditor(diagnostics, force = false) {
+      vscodeLogWarn(`\u{1F3AF} applyDiagnosticsToEditor called: ${diagnostics.length} diagnostics, force=${force}`);
+      vscodeLogWarn(`   isApplyingDiagnostics=${this.isApplyingDiagnostics}`);
+      if (this.isApplyingDiagnostics) {
+        vscodeLogWarn(`   \u{1F512} BLOCKED: Already applying diagnostics, skipping duplicate call (force=${force})`);
+        return;
+      }
       const newHash = this.generateDiagnosticsHashForArray(diagnostics);
       const currentHash = this.generateDiagnosticsHash();
       const visualElementsExist = this.verifyDiagnosticElementsExist();
-      if (newHash === currentHash && this.diagnosticsApplied && visualElementsExist) {
+      vscodeLogWarn(`   newHash=${newHash.substring(0, 8)}..., currentHash=${currentHash.substring(0, 8)}...`);
+      vscodeLogWarn(`   visualElementsExist=${visualElementsExist}, diagnosticsApplied=${this.diagnosticsApplied}`);
+      if (!force && newHash === currentHash && this.diagnosticsApplied && visualElementsExist) {
+        vscodeLogWarn(`   \u23ED\uFE0F SKIP: diagnostics unchanged and visible`);
         return;
       }
-      if (!this.isSafeToUpdateDiagnostics()) {
+      const isSafe = this.isSafeToUpdateDiagnostics();
+      vscodeLogWarn(`   isSafeToUpdateDiagnostics=${isSafe}`);
+      if (!force && !isSafe) {
+        vscodeLogWarn(`   \u23F0 DEFER: user typing, scheduling for later`);
         this.diagnostics = diagnostics;
         this.pendingDiagnosticUpdate = true;
         return;
       }
-      requestAnimationFrame(() => {
-        this.clearDiagnosticStyles();
-        this.wrappedKeys.clear();
-        this.tokenSpanCache.clear();
-        this.tokenDiagnostics.clear();
-        this.diagnostics = diagnostics;
-        this.applyDiagnosticStyles();
-        this.lastDiagnosticsHash = newHash;
+      vscodeLogWarn(`   \u2705 PROCEEDING with application (force=${force})`);
+      if (force) {
+        vscodeLogWarn(`   \u{1F512} Locking diagnostic state to prevent race conditions`);
         this.diagnosticsApplied = true;
+        this.lastDiagnosticsHash = newHash;
+        this.isApplyingDiagnostics = true;
+      }
+      requestAnimationFrame(() => {
+        vscodeLogWarn(`   \u{1F3AC} Animation frame executing, starting application`);
+        const hashChanged = newHash !== currentHash;
+        if (hashChanged) {
+          vscodeLogWarn(`   \u{1F9F9} Clearing styles (hash changed)`);
+          this.clearDiagnosticStyles();
+          this.wrappedKeys.clear();
+          this.tokenSpanCache.clear();
+          this.tokenDiagnostics.clear();
+        } else if (!visualElementsExist) {
+          vscodeLogWarn(`   \u{1F9F9} Clearing tracking (elements missing)`);
+          this.wrappedKeys.clear();
+          this.tokenSpanCache.clear();
+          this.tokenDiagnostics.clear();
+        }
+        this.diagnostics = diagnostics;
+        const cursorSaved = this.saveCursorPosition();
+        if (cursorSaved) {
+          vscodeLogWarn(`   \u{1F4BE} Cursor saved before applying styles`);
+        }
+        this.applyDiagnosticStyles();
+        if (cursorSaved) {
+          const cursorRestored = this.restoreCursorPosition();
+          vscodeLogWarn(`   \u{1F3AF} Cursor restore ${cursorRestored ? "SUCCESS" : "FAILED"}`);
+        }
+        if (!force) {
+          this.lastDiagnosticsHash = newHash;
+          this.diagnosticsApplied = true;
+        }
+        setTimeout(() => {
+          this.isApplyingDiagnostics = false;
+          vscodeLogWarn(`   \u{1F513} Application lock released (diagnosticsApplied remains ${this.diagnosticsApplied})`);
+        }, 100);
       });
     }
     wrapTextWithDiagnostic(textNode, startOffset, endOffset, diagnostic) {
@@ -41034,7 +41167,39 @@ ${currentContent}`;
             fragment.appendChild(document.createTextNode(afterText));
           const parent = textNode.parentNode;
           if (parent) {
+            const selection = window.getSelection();
+            const cursorInThisNode = selection && selection.anchorNode === textNode;
+            let savedOffset = 0;
+            if (cursorInThisNode) {
+              savedOffset = selection.anchorOffset;
+            }
             parent.replaceChild(fragment, textNode);
+            if (cursorInThisNode && selection) {
+              try {
+                let targetNode;
+                let targetOffset;
+                if (savedOffset < startOffset && beforeText) {
+                  targetNode = fragment.firstChild;
+                  targetOffset = savedOffset;
+                } else if (savedOffset >= endOffset && afterText) {
+                  targetNode = fragment.lastChild;
+                  targetOffset = savedOffset - endOffset;
+                } else {
+                  targetNode = diagnosticSpan.firstChild || diagnosticSpan;
+                  targetOffset = diagnosticSpan.textContent?.length || 0;
+                }
+                const range = document.createRange();
+                if (targetNode.nodeType === Node.TEXT_NODE) {
+                  range.setStart(targetNode, Math.min(targetOffset, targetNode.textContent?.length || 0));
+                } else {
+                  range.setStart(targetNode, 0);
+                }
+                range.collapse(true);
+                selection.removeAllRanges();
+                selection.addRange(range);
+              } catch (error2) {
+              }
+            }
             this.wrappedKeys.add(tokenKey);
             return true;
           } else {
@@ -41130,24 +41295,6 @@ ${currentContent}`;
     }
     scheduleUpdate(force = false) {
       this.scheduleUpdateFocusAware(force);
-      const currentDiagnosticsHash = this.generateDiagnosticsHash();
-      const currentContent = this.vditor?.getValue() || "";
-      const contentChanged = currentContent !== this.lastContent;
-      const diagnosticsChanged = currentDiagnosticsHash !== this.lastDiagnosticsHash;
-      const noDiagnosticsApplied = !this.diagnosticsApplied || this.wrappedKeys.size === 0;
-      if (force || contentChanged || diagnosticsChanged || noDiagnosticsApplied) {
-        if (diagnosticsChanged || noDiagnosticsApplied || force) {
-          this.clearDiagnosticStyles();
-          this.applyDiagnosticStyles();
-          this.lastDiagnosticsHash = currentDiagnosticsHash;
-          this.diagnosticsApplied = true;
-        } else if (contentChanged) {
-          this.revalidateExistingDiagnostics();
-        }
-        this.lastContent = currentContent;
-      } else {
-      }
-      this.updateTimer = null;
     }
     clearDiagnosticStyles() {
       let editor = document.querySelector(".vditor-ir .vditor-reset");
@@ -41208,8 +41355,10 @@ ${currentContent}`;
     }
     applyDiagnosticStyles() {
       if (this.diagnostics.length === 0) {
+        vscodeLogWarn(`   \u26A0\uFE0F  applyDiagnosticStyles: No diagnostics to apply`);
         return;
       }
+      vscodeLogWarn(`   \u{1F3A8} applyDiagnosticStyles: Starting with ${this.diagnostics.length} diagnostics`);
       let editor = document.querySelector(".vditor-ir .vditor-reset");
       if (!editor) {
         editor = document.querySelector(".vditor-wysiwyg .vditor-reset");
@@ -41218,12 +41367,19 @@ ${currentContent}`;
         editor = document.querySelector(".vditor-sv .vditor-reset");
       }
       if (!editor) {
+        vscodeLogWarn(`   \u274C applyDiagnosticStyles: Could not find Vditor editor element`);
         return;
       }
-      const cursorElement = this.getCursorContainerElement();
+      vscodeLogWarn(`   \u2705 applyDiagnosticStyles: Found editor element`);
+      const cursorElement = this.isSafeToUpdateDiagnostics() ? this.getCursorContainerElement() : null;
       if (cursorElement) {
+        vscodeLogWarn(`   \u{1F446} applyDiagnosticStyles: Excluding cursor element from updates`);
+      } else {
+        vscodeLogWarn(`   \u270D\uFE0F  applyDiagnosticStyles: Applying to ALL elements (no cursor exclusion)`);
       }
       this.applySinglePassDiagnostics(editor, cursorElement);
+      const spansCreated = editor.querySelectorAll(".vscode-diagnostic-span").length;
+      vscodeLogWarn(`   \u{1F4CA} applyDiagnosticStyles: Created ${spansCreated} diagnostic spans in DOM`);
     }
     getCursorContainerElement() {
       const selection = window.getSelection();
@@ -41261,11 +41417,15 @@ ${currentContent}`;
     applySinglePassDiagnostics(editor, cursorElement) {
       const sortedDiagnostics = this.prepareSortedDiagnostics();
       if (sortedDiagnostics.length === 0) {
+        vscodeLogWarn(`   \u26A0\uFE0F  applySinglePass: No sorted diagnostics available`);
         return;
       }
+      vscodeLogWarn(`   \u{1F4CB} applySinglePass: Processing ${sortedDiagnostics.length} sorted diagnostics`);
       const blockElements = this.getMarkdownBlockElements(editor);
+      vscodeLogWarn(`   \u{1F4E6} applySinglePass: Found ${blockElements.length} block elements in editor`);
       const safeElements = cursorElement ? blockElements.filter((item) => item.element !== cursorElement && !this.isDescendantOf(item.element, cursorElement) && !this.isDescendantOf(cursorElement, item.element)) : blockElements;
       if (cursorElement && safeElements.length < blockElements.length) {
+        vscodeLogWarn(`   \u{1F6AB} applySinglePass: Filtered to ${safeElements.length} safe elements (${blockElements.length - safeElements.length} excluded for cursor)`);
       }
       this.matchDiagnosticsToElements(safeElements, sortedDiagnostics);
     }
@@ -42140,15 +42300,28 @@ ${currentContent}`;
     normalizeUrl(url2) {
       return url2?.trim().toLowerCase() || "";
     }
-    updateDiagnostics(diagnostics, context) {
+    updateDiagnostics(diagnostics, context, forceApply = false) {
+      vscodeLogWarn(`\u{1F50D} updateDiagnostics called: ${diagnostics.length} diagnostics, forceApply=${forceApply}`);
       const normalizedDiagnostics = diagnostics.map((diag) => this.normalizeDiagnostic(diag, context));
       const newDiagnosticsHash = this.generateDiagnosticsHashForArray(normalizedDiagnostics);
       const diagnosticsActuallyChanged = newDiagnosticsHash !== this.lastDiagnosticsHash;
+      vscodeLogWarn(`   diagnosticsActuallyChanged=${diagnosticsActuallyChanged}, diagnosticsApplied=${this.diagnosticsApplied}`);
       const visualElementsExist = this.verifyDiagnosticElementsExist();
-      if (diagnosticsActuallyChanged || !this.diagnosticsApplied || !visualElementsExist) {
+      vscodeLogWarn(`   visualElementsExist=${visualElementsExist}`);
+      if (forceApply || diagnosticsActuallyChanged || !this.diagnosticsApplied || !visualElementsExist) {
         this.diagnostics = normalizedDiagnostics;
-        this.scheduleUpdate();
+        const isSafe = this.isSafeToUpdateDiagnostics();
+        vscodeLogWarn(`   isSafeToUpdateDiagnostics=${isSafe}, will apply=${forceApply || isSafe}`);
+        if (forceApply || isSafe) {
+          vscodeLogWarn(`   \u2705 Calling applyDiagnosticsToEditor with force=${forceApply}`);
+          this.applyDiagnosticsToEditor(normalizedDiagnostics, forceApply);
+        } else {
+          vscodeLogWarn(`   \u23F0 Scheduling for later`);
+          this.pendingDiagnosticUpdate = true;
+          this.scheduleUpdate();
+        }
       } else {
+        vscodeLogWarn(`   \u23ED\uFE0F Skipping - diagnostics unchanged and applied`);
         this.diagnostics = normalizedDiagnostics;
       }
     }
@@ -42712,18 +42885,27 @@ ${currentContent}`;
       const diagnosticElements = editor.querySelectorAll('[class*="vscode-diagnostic-"]');
       const wrappedKeysCount = this.wrappedKeys.size;
       if (this.diagnostics.length > 0 && diagnosticElements.length === 0) {
+        this.diagnosticsApplied = false;
         this.clearAppliedDiagnosticTracking();
         return false;
       }
       const expectedMinElements = Math.min(this.diagnostics.length, wrappedKeysCount);
       if (diagnosticElements.length < expectedMinElements * 0.5) {
+        this.diagnosticsApplied = false;
         this.clearAppliedDiagnosticTracking();
         return false;
       }
       return true;
     }
     verifyDiagnosticElementsAfterCleanup() {
-      return this.verifyDiagnosticElementsExist();
+      const elementsExist = this.verifyDiagnosticElementsExist();
+      if (!elementsExist && this.diagnostics.length > 0) {
+        this.pendingDiagnosticUpdate = true;
+        if (this.isSafeToUpdateDiagnostics()) {
+          this.applyDiagnosticsToEditor(this.diagnostics);
+        }
+      }
+      return elementsExist;
     }
     revalidateExistingDiagnostics() {
       let editor = document.querySelector(".vditor-ir .vditor-reset");
@@ -42794,7 +42976,7 @@ ${currentContent}`;
       });
       document.addEventListener("keydown", (event) => {
         if (this.isTypingKey(event.key)) {
-          this.handleUserInput(event.target);
+          this.handleUserInput(event.target, event.key);
         }
       });
       document.addEventListener("click", () => {
@@ -42837,21 +43019,27 @@ ${currentContent}`;
         }
       }
     }
-    handleUserInput(element) {
+    handleUserInput(element, key) {
       this.lastUserInput = Date.now();
       this.isUserTyping = true;
       this.trackCursorPosition();
+      if (key === "Enter" && this.pendingDiagnosticUpdate) {
+        setTimeout(() => {
+          if (this.pendingDiagnosticUpdate) {
+            this.isUserTyping = false;
+            this.applyPendingDiagnosticUpdate();
+          }
+        }, 100);
+      }
       if (this.typingTimeout) {
         clearTimeout(this.typingTimeout);
       }
       this.typingTimeout = setTimeout(() => {
         this.isUserTyping = false;
-        setTimeout(() => {
-          if (this.pendingDiagnosticUpdate && this.isSafeToUpdateDiagnostics()) {
-            this.applyPendingDiagnosticUpdate();
-          }
-        }, 1e3);
-      }, 2e3);
+        if (this.pendingDiagnosticUpdate && this.isSafeToUpdateDiagnostics()) {
+          this.applyPendingDiagnosticUpdate();
+        }
+      }, 500);
     }
     trackCursorPosition() {
       const currentCursor = this.getCursorContainerElement();
@@ -42861,7 +43049,7 @@ ${currentContent}`;
         if (this.previousCursorElement && this.previousCursorElement !== currentCursor && this.pendingDiagnosticUpdate) {
           setTimeout(() => {
             this.applyPendingDiagnosticUpdateForElement(this.previousCursorElement);
-          }, 100);
+          }, 50);
         }
       }
     }
@@ -42877,11 +43065,14 @@ ${currentContent}`;
       return diagnosticChildren.length > 0;
     }
     isSafeToUpdateDiagnostics() {
+      if (this.lastUserInput === 0) {
+        return true;
+      }
       const timeSinceInput = Date.now() - this.lastUserInput;
       const hasActiveFocus = this.focusedElement && this.elementHasDiagnostics(this.focusedElement);
-      const recentTyping = this.isUserTyping || timeSinceInput < 3e3;
+      const recentTyping = this.isUserTyping || timeSinceInput < 1e3;
       const cursorInEditor = this.isCursorActiveInEditor();
-      const safe = !hasActiveFocus && !recentTyping && !cursorInEditor;
+      const safe = !hasActiveFocus && (!recentTyping || timeSinceInput > 2e3) && !cursorInEditor;
       return safe;
     }
     isCursorActiveInEditor() {
@@ -42909,7 +43100,7 @@ ${currentContent}`;
         return;
       }
       this.pendingDiagnosticUpdate = false;
-      this.applyDiagnosticStyles();
+      this.applyDiagnosticsToEditor(this.diagnostics);
     }
     applyPendingDiagnosticUpdateForElement(targetElement) {
       if (!this.pendingDiagnosticUpdate || !targetElement) {
@@ -42924,11 +43115,23 @@ ${currentContent}`;
       }
     }
     handleExternalChange() {
-      setTimeout(() => {
-        if (this.pendingDiagnosticUpdate) {
-          this.applyPendingDiagnosticUpdate();
+      const diagnosticsToApply = [...this.diagnostics];
+      requestAnimationFrame(() => {
+        const elementsExist = this.verifyDiagnosticElementsExist();
+        if (!elementsExist && diagnosticsToApply.length > 0) {
+          this.pendingDiagnosticUpdate = false;
+          this.applyDiagnosticsToEditor(diagnosticsToApply, true);
+        } else if (this.pendingDiagnosticUpdate && diagnosticsToApply.length > 0) {
+          this.pendingDiagnosticUpdate = false;
+          this.applyDiagnosticsToEditor(diagnosticsToApply, true);
         }
-      }, 200);
+      });
+      setTimeout(() => {
+        const elementsExist = this.verifyDiagnosticElementsExist();
+        if (!elementsExist && diagnosticsToApply.length > 0) {
+          this.applyDiagnosticsToEditor(diagnosticsToApply, true);
+        }
+      }, 100);
     }
     scheduleUpdateFocusAware(force = false) {
       if (this.updateTimer) {
@@ -42938,6 +43141,7 @@ ${currentContent}`;
         this.pendingDiagnosticUpdate = true;
         return;
       }
+      const debounceDelay = force ? 0 : 100;
       this.updateTimer = setTimeout(() => {
         if (!force && !this.isSafeToUpdateDiagnostics()) {
           this.pendingDiagnosticUpdate = true;
@@ -42951,6 +43155,9 @@ ${currentContent}`;
         if (force || contentChanged || diagnosticsChanged || noDiagnosticsApplied) {
           if (diagnosticsChanged || noDiagnosticsApplied || force) {
             this.clearDiagnosticStyles();
+            this.wrappedKeys.clear();
+            this.tokenSpanCache.clear();
+            this.tokenDiagnostics.clear();
             this.applyDiagnosticStyles();
             this.lastDiagnosticsHash = currentDiagnosticsHash;
             this.diagnosticsApplied = true;
@@ -46068,6 +46275,7 @@ console.log('Hello, World!');
   var wikiLinkHandler = null;
   var imageURIConverter = null;
   var cachedCleanHtml = null;
+  var justReceivedExternalChange = false;
   var isReadOnly = false;
   function cacheCleanIRHtml() {
     cachedCleanHtml = vditor.getHTML();
@@ -46082,9 +46290,6 @@ console.log('Hello, World!');
     }
     if (imageURIConverter) {
       imageURIConverter.convertAllImages();
-    }
-    if (diagnosticVisualizer) {
-      diagnosticVisualizer.addSimpleDiagnostics();
     }
   }
   diffVisualizer.initialize();
@@ -47245,9 +47450,9 @@ console.log('Hello, World!');
         }
         setTimeout(() => {
           if (diagnosticVisualizer) {
-            diagnosticVisualizer.addSimpleDiagnostics();
+            diagnosticVisualizer.addSimpleDiagnostics(true);
           }
-        }, 500);
+        }, 50);
         try {
           vscode.postMessage({
             command: "vditorReady"
@@ -47324,8 +47529,20 @@ console.log('Hello, World!');
       },
       customRenders: generateVditorCustomRenders(window.currentDocumentFilename || msg.documentFilename || "untitled", window.vditor)
     });
-    window.vditor.getValue = () => getValue(window.vditor.vditor);
-    window.vditor.getHTML = () => getHTML(window.vditor.vditor);
+    if (window.vditor) {
+      window.vditor.getValue = () => getValue(window.vditor.vditor);
+      window.vditor.getHTML = () => getHTML(window.vditor.vditor);
+      const originalSetValue = window.vditor.setValue.bind(window.vditor);
+      window.vditor.setValue = function(markdown, clearStack) {
+        originalSetValue(markdown, clearStack);
+        setTimeout(() => {
+          if (diagnosticVisualizer) {
+            diagnosticVisualizer.handleExternalChange();
+          }
+          processAfterRender();
+        }, 50);
+      };
+    }
   }
   window.addEventListener("message", (e7) => {
     const msg = e7.data;
@@ -47354,11 +47571,17 @@ console.log('Hello, World!');
             saveVditorOptions();
           }
         } else {
+          justReceivedExternalChange = true;
+          vscodeLog3("\u{1F504} External change detected, setting justReceivedExternalChange=true");
           vditor.setValue(msg.content);
           if (diagnosticVisualizer) {
             diagnosticVisualizer.handleExternalChange();
           }
           processAfterRender();
+          setTimeout(() => {
+            vscodeLog3("\u{1F504} Clearing justReceivedExternalChange flag");
+            justReceivedExternalChange = false;
+          }, 500);
         }
         break;
       }
@@ -47397,10 +47620,12 @@ console.log('Hello, World!');
           msg.diagnostics.forEach((d5) => __lastDiagnostics.push(d5));
         }
         if (diagnosticVisualizer) {
+          const shouldForceApply = justReceivedExternalChange;
+          vscodeLog3(`\u{1F4CA} Received ${msg.diagnostics.length} diagnostics, forceApply=${shouldForceApply}`);
           diagnosticVisualizer.updateDiagnostics(msg.diagnostics, {
             documentText: msg.documentText,
             documentLines: msg.documentLines
-          });
+          }, shouldForceApply);
         }
         break;
       }

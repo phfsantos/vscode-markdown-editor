@@ -27,6 +27,7 @@ export class DiagnosticVisualizer {
     // NEW: Smart diagnostic management to prevent unnecessary clearing/reapplying
     private lastDiagnosticsHash: string = '';
     private diagnosticsApplied: boolean = false;
+    private isApplyingDiagnostics: boolean = false; // Prevent overlapping applications
     
     // NEW: Focus-aware diagnostic management to prevent cursor jumping
     private pendingDiagnosticUpdate: boolean = false;
@@ -38,42 +39,246 @@ export class DiagnosticVisualizer {
     private isUserTyping: boolean = false;
     private typingTimeout: NodeJS.Timeout | null = null;
 
+    // Cursor preservation state for DOM mutations
+    private savedCursorState: {
+        anchorNode: Node;
+        anchorOffset: number;
+        focusNode: Node;
+        focusOffset: number;
+        isCollapsed: boolean;
+    } | null = null;
+
     constructor(vditorInstance: any) {
         this.vditor = vditorInstance;
         this.setupFocusAwareness();
+    }
+
+    /**
+     * Save current cursor position before DOM mutations
+     * Returns true if cursor was successfully saved
+     */
+    private saveCursorPosition(): boolean {
+        try {
+            const selection = window.getSelection();
+            if (!selection || selection.rangeCount === 0) {
+                this.savedCursorState = null;
+                return false;
+            }
+
+            const range = selection.getRangeAt(0);
+            this.savedCursorState = {
+                anchorNode: selection.anchorNode!,
+                anchorOffset: selection.anchorOffset,
+                focusNode: selection.focusNode!,
+                focusOffset: selection.focusOffset,
+                isCollapsed: selection.isCollapsed
+            };
+            return true;
+        } catch (error) {
+            this.savedCursorState = null;
+            return false;
+        }
+    }
+
+    /**
+     * Restore cursor position after DOM mutations
+     * Handles text node replacement by finding equivalent position in new nodes
+     */
+    private restoreCursorPosition(): boolean {
+        try {
+            if (!this.savedCursorState) {
+                return false;
+            }
+
+            const selection = window.getSelection();
+            if (!selection) {
+                return false;
+            }
+
+            const { anchorNode, anchorOffset, focusNode, focusOffset, isCollapsed } = this.savedCursorState;
+
+            // Check if saved nodes are still in the document
+            const anchorStillValid = document.contains(anchorNode);
+            const focusStillValid = document.contains(focusNode);
+
+            if (anchorStillValid && focusStillValid) {
+                // Nodes still exist, restore directly
+                const range = document.createRange();
+                range.setStart(anchorNode, Math.min(anchorOffset, anchorNode.textContent?.length || 0));
+                range.setEnd(focusNode, Math.min(focusOffset, focusNode.textContent?.length || 0));
+                selection.removeAllRanges();
+                selection.addRange(range);
+                return true;
+            } else {
+                // Nodes were replaced, try to find equivalent position
+                return this.restoreCursorToEquivalentPosition(anchorNode, anchorOffset);
+            }
+        } catch (error) {
+            // Graceful fallback - don't disrupt user if restore fails
+            return false;
+        } finally {
+            this.savedCursorState = null;
+        }
+    }
+
+    /**
+     * Find equivalent cursor position when original text node was replaced
+     * Uses parent element and character offset to locate new position
+     */
+    private restoreCursorToEquivalentPosition(oldNode: Node, oldOffset: number): boolean {
+        try {
+            // Find parent element that still exists
+            let parent = oldNode.parentNode;
+            while (parent && !document.contains(parent)) {
+                parent = parent.parentNode;
+            }
+
+            if (!parent || !document.contains(parent)) {
+                return false;
+            }
+
+            // Calculate character offset from start of parent
+            let targetOffset = oldOffset;
+            let sibling = oldNode.previousSibling;
+            while (sibling) {
+                targetOffset += sibling.textContent?.length || 0;
+                sibling = sibling.previousSibling;
+            }
+
+            // Find equivalent position in new DOM structure
+            const walker = document.createTreeWalker(
+                parent,
+                NodeFilter.SHOW_TEXT,
+                null
+            );
+
+            let currentOffset = 0;
+            let textNode: Text | null;
+            while ((textNode = walker.nextNode() as Text)) {
+                const nodeLength = textNode.textContent?.length || 0;
+                if (currentOffset + nodeLength >= targetOffset) {
+                    // Found the text node containing our position
+                    const offsetInNode = targetOffset - currentOffset;
+                    const selection = window.getSelection();
+                    if (selection) {
+                        const range = document.createRange();
+                        range.setStart(textNode, Math.min(offsetInNode, nodeLength));
+                        range.collapse(true);
+                        selection.removeAllRanges();
+                        selection.addRange(range);
+                        return true;
+                    }
+                }
+                currentOffset += nodeLength;
+            }
+
+            return false;
+        } catch (error) {
+            return false;
+        }
     }
 
   /**
    * Update diagnostic visualizations in the editor (private implementation)
    * Now includes focus-aware logic to prevent cursor jumping
    */
-  private applyDiagnosticsToEditor(diagnostics: any[]): void {
+  private applyDiagnosticsToEditor(diagnostics: any[], force: boolean = false): void {
+    vscodeLogWarn(`🎯 applyDiagnosticsToEditor called: ${diagnostics.length} diagnostics, force=${force}`);
+    vscodeLogWarn(`   isApplyingDiagnostics=${this.isApplyingDiagnostics}`);
+    
+    // CRITICAL: Prevent overlapping applications - block ALL calls when already applying
+    // This includes force=true to prevent cascade of overlapping requestAnimationFrames
+    if (this.isApplyingDiagnostics) {
+      vscodeLogWarn(`   🔒 BLOCKED: Already applying diagnostics, skipping duplicate call (force=${force})`);
+      return;
+    }
+    
     // SMART APPLICATION: Only clear if diagnostics actually changed AND visual elements exist
     const newHash = this.generateDiagnosticsHashForArray(diagnostics);
     const currentHash = this.generateDiagnosticsHash();
     const visualElementsExist = this.verifyDiagnosticElementsExist();
     
-    if (newHash === currentHash && this.diagnosticsApplied && visualElementsExist) {
+    vscodeLogWarn(`   newHash=${newHash.substring(0, 8)}..., currentHash=${currentHash.substring(0, 8)}...`);
+    vscodeLogWarn(`   visualElementsExist=${visualElementsExist}, diagnosticsApplied=${this.diagnosticsApplied}`);
+    
+    // OPTIMIZATION: If diagnostics haven't changed and are still visible, skip entire operation
+    if (!force && newHash === currentHash && this.diagnosticsApplied && visualElementsExist) {
+      vscodeLogWarn(`   ⏭️ SKIP: diagnostics unchanged and visible`);
       return;
     }
 
-    // FOCUS-AWARE CHECK: Don't apply diagnostics if user is actively typing
-    if (!this.isSafeToUpdateDiagnostics()) {
+    // FOCUS-AWARE CHECK: Don't apply diagnostics if user is actively typing (unless forced)
+    const isSafe = this.isSafeToUpdateDiagnostics();
+    vscodeLogWarn(`   isSafeToUpdateDiagnostics=${isSafe}`);
+    
+    if (!force && !isSafe) {
+      vscodeLogWarn(`   ⏰ DEFER: user typing, scheduling for later`);
       this.diagnostics = diagnostics; // Store the new diagnostics
       this.pendingDiagnosticUpdate = true;
       return;
     }
+    
+    vscodeLogWarn(`   ✅ PROCEEDING with application (force=${force})`);
+
+    // CRITICAL FIX: When forced, mark as "in progress" IMMEDIATELY to prevent race conditions
+    // This stops other diagnostic updates from interfering while we're applying
+    if (force) {
+      vscodeLogWarn(`   🔒 Locking diagnostic state to prevent race conditions`);
+      this.diagnosticsApplied = true; // Claim we're applying NOW
+      this.lastDiagnosticsHash = newHash; // Update hash NOW to prevent duplicate attempts
+      this.isApplyingDiagnostics = true; // Block other applications
+    }
 
     // Use requestAnimationFrame to ensure DOM is ready
     requestAnimationFrame(() => {
-      this.clearDiagnosticStyles();
-      this.wrappedKeys.clear();
-      this.tokenSpanCache.clear();
-      this.tokenDiagnostics.clear();
+      vscodeLogWarn(`   🎬 Animation frame executing, starting application`);
+      // OPTIMIZATION: Only clear if diagnostics content changed (not just missing from DOM)
+      // This prevents unnecessary clearing during getValue() operations that temporarily strip styles
+      const hashChanged = newHash !== currentHash;
+      
+      if (hashChanged) {
+        // Only clear when diagnostics content changed
+        vscodeLogWarn(`   🧹 Clearing styles (hash changed)`);
+        this.clearDiagnosticStyles();
+        this.wrappedKeys.clear();
+        this.tokenSpanCache.clear();
+        this.tokenDiagnostics.clear();
+      } else if (!visualElementsExist) {
+        // Diagnostics same but missing from DOM - lightweight clear of tracking only
+        vscodeLogWarn(`   🧹 Clearing tracking (elements missing)`);
+        this.wrappedKeys.clear();
+        this.tokenSpanCache.clear();
+        this.tokenDiagnostics.clear();
+      }
+      
       this.diagnostics = diagnostics;
+      
+      // CURSOR PRESERVATION: Save cursor before DOM mutations
+      const cursorSaved = this.saveCursorPosition();
+      if (cursorSaved) {
+        vscodeLogWarn(`   💾 Cursor saved before applying styles`);
+      }
+      
       this.applyDiagnosticStyles();
-      this.lastDiagnosticsHash = newHash;
-      this.diagnosticsApplied = true;
+      
+      // CURSOR PRESERVATION: Restore cursor after DOM mutations
+      if (cursorSaved) {
+        const cursorRestored = this.restoreCursorPosition();
+        vscodeLogWarn(`   🎯 Cursor restore ${cursorRestored ? 'SUCCESS' : 'FAILED'}`);
+      }
+      
+      // Update state after application (only if not already set by force flag above)
+      if (!force) {
+        this.lastDiagnosticsHash = newHash;
+        this.diagnosticsApplied = true;
+      }
+      
+      // Release the lock after a short delay to allow DOM to stabilize
+      // IMPORTANT: Only reset isApplyingDiagnostics, keep diagnosticsApplied as-is
+      setTimeout(() => {
+        this.isApplyingDiagnostics = false;
+        vscodeLogWarn(`   🔓 Application lock released (diagnosticsApplied remains ${this.diagnosticsApplied})`);
+      }, 100);
     });
   }
 
@@ -132,7 +337,54 @@ export class DiagnosticVisualizer {
         if (afterText) fragment.appendChild(document.createTextNode(afterText));
         const parent = textNode.parentNode;
         if (parent) {
+          // CURSOR PRESERVATION: Check if cursor is in this text node
+          const selection = window.getSelection();
+          const cursorInThisNode = selection && selection.anchorNode === textNode;
+          let savedOffset = 0;
+          
+          if (cursorInThisNode) {
+            savedOffset = selection!.anchorOffset;
+          }
+          
+          // Perform the replacement
           parent.replaceChild(fragment, textNode);
+          
+          // CURSOR PRESERVATION: Restore cursor to equivalent position if it was here
+          if (cursorInThisNode && selection) {
+            try {
+              // Find the appropriate new text node based on cursor position
+              let targetNode: Node;
+              let targetOffset: number;
+              
+              if (savedOffset < startOffset && beforeText) {
+                // Cursor was before diagnostic text
+                targetNode = fragment.firstChild!;
+                targetOffset = savedOffset;
+              } else if (savedOffset >= endOffset && afterText) {
+                // Cursor was after diagnostic text
+                targetNode = fragment.lastChild!;
+                targetOffset = savedOffset - endOffset;
+              } else {
+                // Cursor was in diagnostic text - place at end of diagnostic span
+                targetNode = diagnosticSpan.firstChild || diagnosticSpan;
+                targetOffset = diagnosticSpan.textContent?.length || 0;
+              }
+              
+              // Restore selection
+              const range = document.createRange();
+              if (targetNode.nodeType === Node.TEXT_NODE) {
+                range.setStart(targetNode, Math.min(targetOffset, targetNode.textContent?.length || 0));
+              } else {
+                range.setStart(targetNode, 0);
+              }
+              range.collapse(true);
+              selection.removeAllRanges();
+              selection.addRange(range);
+            } catch (error) {
+              // Graceful fallback - cursor preservation failed but diagnostic applied
+            }
+          }
+          
           this.wrappedKeys.add(tokenKey);
           return true;
         } else {
@@ -254,35 +506,11 @@ export class DiagnosticVisualizer {
     }
   }    /**
      * Schedule diagnostic update with debouncing to prevent flickering
+     * DEPRECATED: This method now delegates to scheduleUpdateFocusAware
      */
     private scheduleUpdate(force: boolean = false): void {
         // Delegate to the new focus-aware scheduling method
         this.scheduleUpdateFocusAware(force);
-            // Generate hash of current diagnostics for comparison
-            const currentDiagnosticsHash = this.generateDiagnosticsHash();
-            const currentContent = this.vditor?.getValue() || '';
-            
-            const contentChanged = currentContent !== this.lastContent;
-            const diagnosticsChanged = currentDiagnosticsHash !== this.lastDiagnosticsHash;
-            const noDiagnosticsApplied = !this.diagnosticsApplied || this.wrappedKeys.size === 0;
-            
-            
-            // Only update if there's a real change or we're forced to
-            if (force || contentChanged || diagnosticsChanged || noDiagnosticsApplied) {
-                if (diagnosticsChanged || noDiagnosticsApplied || force) {
-                    this.clearDiagnosticStyles();
-                    this.applyDiagnosticStyles();
-                    this.lastDiagnosticsHash = currentDiagnosticsHash;
-                    this.diagnosticsApplied = true;
-                } else if (contentChanged) {
-                    // Content changed but diagnostics are the same - try to preserve existing diagnostics
-                    // Only revalidate diagnostics without full clear/reapply
-                    this.revalidateExistingDiagnostics();
-                }
-                this.lastContent = currentContent;
-            } else {
-            }
-            this.updateTimer = null;
     }
 
     /**
@@ -400,8 +628,11 @@ export class DiagnosticVisualizer {
      */
     private applyDiagnosticStyles(): void {
         if (this.diagnostics.length === 0) {
+            vscodeLogWarn(`   ⚠️  applyDiagnosticStyles: No diagnostics to apply`);
             return;
         }
+
+        vscodeLogWarn(`   🎨 applyDiagnosticStyles: Starting with ${this.diagnostics.length} diagnostics`);
 
         // Try to find the active editor element
         let editor = document.querySelector('.vditor-ir .vditor-reset'); // IR mode
@@ -412,17 +643,28 @@ export class DiagnosticVisualizer {
             editor = document.querySelector('.vditor-sv .vditor-reset'); // Source mode
         }
         if (!editor) {
-            // vscodeLogWarn('DiagnosticVisualizer: Could not find Vditor editor element');
+            vscodeLogWarn(`   ❌ applyDiagnosticStyles: Could not find Vditor editor element`);
             return;
         }
 
-        // Get the element that contains the cursor to exclude it from updates
-        const cursorElement = this.getCursorContainerElement();
+        vscodeLogWarn(`   ✅ applyDiagnosticStyles: Found editor element`);
+
+        // CRITICAL FIX: Don't exclude cursor during force application (undo/redo/external changes)
+        // The cursor detection was too aggressive, filtering out ALL elements during undo/redo
+        // Only exclude cursor during normal typing to prevent disruption
+        const cursorElement = this.isSafeToUpdateDiagnostics() ? this.getCursorContainerElement() : null;
         if (cursorElement) {
+            vscodeLogWarn(`   👆 applyDiagnosticStyles: Excluding cursor element from updates`);
+        } else {
+            vscodeLogWarn(`   ✍️  applyDiagnosticStyles: Applying to ALL elements (no cursor exclusion)`);
         }
 
         // Use the new efficient single-pass approach with cursor awareness
         this.applySinglePassDiagnostics(editor as HTMLElement, cursorElement);
+        
+        // Verify that spans were actually created
+        const spansCreated = editor.querySelectorAll('.vscode-diagnostic-span').length;
+        vscodeLogWarn(`   📊 applyDiagnosticStyles: Created ${spansCreated} diagnostic spans in DOM`);
     }
 
     /**
@@ -491,11 +733,15 @@ export class DiagnosticVisualizer {
         // Step 1: Sort diagnostics by line number for efficient processing
         const sortedDiagnostics = this.prepareSortedDiagnostics();
         if (sortedDiagnostics.length === 0) {
+            vscodeLogWarn(`   ⚠️  applySinglePass: No sorted diagnostics available`);
             return;
         }
         
+        vscodeLogWarn(`   📋 applySinglePass: Processing ${sortedDiagnostics.length} sorted diagnostics`);
+        
         // Step 2: Get all block elements that could represent markdown lines
         const blockElements = this.getMarkdownBlockElements(editor);
+        vscodeLogWarn(`   📦 applySinglePass: Found ${blockElements.length} block elements in editor`);
         
         // Step 3: Filter out the cursor element to avoid disrupting user's typing
         const safeElements = cursorElement 
@@ -507,6 +753,7 @@ export class DiagnosticVisualizer {
             : blockElements;
             
         if (cursorElement && safeElements.length < blockElements.length) {
+            vscodeLogWarn(`   🚫 applySinglePass: Filtered to ${safeElements.length} safe elements (${blockElements.length - safeElements.length} excluded for cursor)`);
         }
         
         // Step 4: Single pass through safe DOM elements, matching with sorted diagnostics
@@ -1944,7 +2191,8 @@ export class DiagnosticVisualizer {
     /**
      * Update diagnostic visualizations from external source (VS Code extension)
      */
-    public updateDiagnostics(diagnostics: any[], context?: { documentText?: string; documentLines?: number }): void {
+    public updateDiagnostics(diagnostics: any[], context?: { documentText?: string; documentLines?: number }, forceApply: boolean = false): void {
+        vscodeLogWarn(`🔍 updateDiagnostics called: ${diagnostics.length} diagnostics, forceApply=${forceApply}`);
         
         // Normalize diagnostic format - convert VS Code format to our internal format
         const normalizedDiagnostics = diagnostics.map(diag => this.normalizeDiagnostic(diag, context));
@@ -1953,16 +2201,36 @@ export class DiagnosticVisualizer {
         const newDiagnosticsHash = this.generateDiagnosticsHashForArray(normalizedDiagnostics);
         const diagnosticsActuallyChanged = newDiagnosticsHash !== this.lastDiagnosticsHash;
         
+        vscodeLogWarn(`   diagnosticsActuallyChanged=${diagnosticsActuallyChanged}, diagnosticsApplied=${this.diagnosticsApplied}`);
         
         // Process all diagnostics
         
-        // SMART CHECK: Only update if diagnostics actually changed OR if visual elements are missing
+        // CRITICAL: Always check if visual elements exist to detect if they were cleared
         const visualElementsExist = this.verifyDiagnosticElementsExist();
+        vscodeLogWarn(`   visualElementsExist=${visualElementsExist}`);
         
-        if (diagnosticsActuallyChanged || !this.diagnosticsApplied || !visualElementsExist) {
+        // Update if: diagnostics changed OR not applied yet OR visual elements missing OR forced
+        if (forceApply || diagnosticsActuallyChanged || !this.diagnosticsApplied || !visualElementsExist) {
             this.diagnostics = normalizedDiagnostics;
-            this.scheduleUpdate();
+            
+            // OPTIMIZATION: Apply immediately if safe OR forced, otherwise schedule
+            // This ensures diagnostics appear at the first opportunity
+            const isSafe = this.isSafeToUpdateDiagnostics();
+            vscodeLogWarn(`   isSafeToUpdateDiagnostics=${isSafe}, will apply=${forceApply || isSafe}`);
+            
+            if (forceApply || isSafe) {
+                // Apply immediately for instant feedback
+                // CRITICAL: Pass forceApply through to bypass all safety checks
+                vscodeLogWarn(`   ✅ Calling applyDiagnosticsToEditor with force=${forceApply}`);
+                this.applyDiagnosticsToEditor(normalizedDiagnostics, forceApply);
+            } else {
+                // User is typing, schedule for later
+                vscodeLogWarn(`   ⏰ Scheduling for later`);
+                this.pendingDiagnosticUpdate = true;
+                this.scheduleUpdate();
+            }
         } else {
+            vscodeLogWarn(`   ⏭️ Skipping - diagnostics unchanged and applied`);
             // Still update the diagnostics array in case there are minor differences
             this.diagnostics = normalizedDiagnostics;
         }
@@ -2900,7 +3168,8 @@ export class DiagnosticVisualizer {
         
         // If we expect diagnostics but have no DOM elements, something cleared them
         if (this.diagnostics.length > 0 && diagnosticElements.length === 0) {
-            // AGGRESSIVE RESET: Clear all tracking state since visual elements are gone
+            // CRITICAL: Mark diagnostics as not applied so they will be reapplied
+            this.diagnosticsApplied = false;
             this.clearAppliedDiagnosticTracking();
             return false;
         }
@@ -2908,7 +3177,8 @@ export class DiagnosticVisualizer {
         // Check if the number of elements is roughly what we expect
         const expectedMinElements = Math.min(this.diagnostics.length, wrappedKeysCount);
         if (diagnosticElements.length < expectedMinElements * 0.5) { // Allow some tolerance
-            // AGGRESSIVE RESET: Clear all tracking state to allow re-application
+            // CRITICAL: Mark diagnostics as not applied so they will be reapplied
+            this.diagnosticsApplied = false;
             this.clearAppliedDiagnosticTracking();
             return false;
         }
@@ -2918,9 +3188,23 @@ export class DiagnosticVisualizer {
 
     /**
      * Public method to verify diagnostic elements after cleanup operations
+     * Returns true if diagnostics are properly applied, false if they need reapplication
      */
     public verifyDiagnosticElementsAfterCleanup(): boolean {
-        return this.verifyDiagnosticElementsExist();
+        const elementsExist = this.verifyDiagnosticElementsExist();
+        
+        // If elements don't exist but we have diagnostics, trigger reapplication
+        if (!elementsExist && this.diagnostics.length > 0) {
+            // Mark as needing reapplication
+            this.pendingDiagnosticUpdate = true;
+            
+            // Apply immediately if safe
+            if (this.isSafeToUpdateDiagnostics()) {
+                this.applyDiagnosticsToEditor(this.diagnostics);
+            }
+        }
+        
+        return elementsExist;
     }
 
     /**
@@ -3032,7 +3316,7 @@ export class DiagnosticVisualizer {
         
         document.addEventListener('keydown', (event) => {
             if (this.isTypingKey(event.key)) {
-                this.handleUserInput(event.target as Element);
+                this.handleUserInput(event.target as Element, event.key);
             }
         });
         
@@ -3100,29 +3384,38 @@ export class DiagnosticVisualizer {
     /**
      * Handle user input activity
      */
-    private handleUserInput(element: Element): void {
+    private handleUserInput(element: Element, key?: string): void {
         this.lastUserInput = Date.now();
         this.isUserTyping = true;
         
         // Track cursor position changes
         this.trackCursorPosition();
         
+        // OPTIMIZATION: If Enter key was pressed, apply pending diagnostics immediately after a short delay
+        // This gives the user instant feedback when they move to a new line
+        if (key === 'Enter' && this.pendingDiagnosticUpdate) {
+            setTimeout(() => {
+                if (this.pendingDiagnosticUpdate) {
+                    this.isUserTyping = false; // Temporarily allow diagnostics
+                    this.applyPendingDiagnosticUpdate();
+                }
+            }, 100); // Very short delay after Enter for instant line feedback
+        }
+        
         // Clear existing timeout
         if (this.typingTimeout) {
             clearTimeout(this.typingTimeout);
         }
         
-        // Set typing to false after a longer pause to be more conservative
+        // Set typing to false after a shorter pause for better responsiveness
         this.typingTimeout = setTimeout(() => {
             this.isUserTyping = false;
             
-            // Wait a bit more before applying updates to ensure user has really stopped
-            setTimeout(() => {
-                if (this.pendingDiagnosticUpdate && this.isSafeToUpdateDiagnostics()) {
-                    this.applyPendingDiagnosticUpdate();
-                }
-            }, 1000); // Additional 1 second delay
-        }, 2000); // 2 second pause to determine when user stops typing
+            // Apply updates immediately when typing stops
+            if (this.pendingDiagnosticUpdate && this.isSafeToUpdateDiagnostics()) {
+                this.applyPendingDiagnosticUpdate();
+            }
+        }, 500); // Reduced from 2000ms to 500ms for faster response
         
     }
 
@@ -3140,9 +3433,10 @@ export class DiagnosticVisualizer {
             // If cursor moved from one element to another, apply pending diagnostics to the previous element
             if (this.previousCursorElement && this.previousCursorElement !== currentCursor && this.pendingDiagnosticUpdate) {
                 
+                // OPTIMIZATION: Immediate application when cursor moves to different element
                 setTimeout(() => {
                     this.applyPendingDiagnosticUpdateForElement(this.previousCursorElement);
-                }, 100); // Small delay to ensure cursor movement is complete
+                }, 50); // Reduced from 100ms to 50ms for faster response
             }
         }
     }
@@ -3178,14 +3472,21 @@ export class DiagnosticVisualizer {
      * Check if it's safe to update diagnostics (user is not actively typing)
      */
     private isSafeToUpdateDiagnostics(): boolean {
+        // If no recent user input, it's always safe (e.g., on file load)
+        if (this.lastUserInput === 0) {
+            return true;
+        }
+        
         const timeSinceInput = Date.now() - this.lastUserInput;
         const hasActiveFocus = this.focusedElement && this.elementHasDiagnostics(this.focusedElement);
-        const recentTyping = this.isUserTyping || timeSinceInput < 3000; // 3 second grace period - much longer
+        const recentTyping = this.isUserTyping || timeSinceInput < 1000; // 1 second grace period after typing
         
         // Additional check: see if cursor is currently positioned in the editor
         const cursorInEditor = this.isCursorActiveInEditor();
         
-        const safe = !hasActiveFocus && !recentTyping && !cursorInEditor;
+        // It's safe if: no active focus on diagnostic elements AND not recently typing AND cursor not in editor
+        // OR if enough time has passed since last input (allow background updates)
+        const safe = !hasActiveFocus && (!recentTyping || timeSinceInput > 2000) && !cursorInEditor;
         
         
         return safe;
@@ -3234,8 +3535,9 @@ export class DiagnosticVisualizer {
         
         this.pendingDiagnosticUpdate = false;
         
-        // Apply the update now
-        this.applyDiagnosticStyles();
+        // OPTIMIZATION: Force immediate application using the main method
+        // This ensures all smart checking and state management happens correctly
+        this.applyDiagnosticsToEditor(this.diagnostics);
     }
 
     /**
@@ -3261,16 +3563,41 @@ export class DiagnosticVisualizer {
     }
 
     /**
-     * Handle external changes (like quick fixes) by applying pending diagnostics after a small delay
+     * Handle external changes (like quick fixes, setValue from save) by forcing diagnostic verification
+     * CRITICAL: Apply immediately after save/external change without waiting for user interaction
      */
     public handleExternalChange(): void {
         
-        // Apply pending diagnostics after a small delay to ensure external change is processed
-        setTimeout(() => {
-            if (this.pendingDiagnosticUpdate) {
-                this.applyPendingDiagnosticUpdate();
+        // IMMEDIATE APPLICATION: After setValue (from save/external change), DOM is reset
+        // Force immediate reapplication without any delays or safety checks
+        
+        // Store current diagnostics to ensure they survive the operation
+        const diagnosticsToApply = [...this.diagnostics];
+        
+        // Use requestAnimationFrame for immediate next-frame application
+        requestAnimationFrame(() => {
+            // Verify if diagnostics still exist in DOM
+            const elementsExist = this.verifyDiagnosticElementsExist();
+            
+            // If elements missing and we have diagnostics, force reapply immediately
+            if (!elementsExist && diagnosticsToApply.length > 0) {
+                // FORCE APPLICATION: Bypass all safety checks for external changes
+                this.pendingDiagnosticUpdate = false; // Clear pending flag
+                this.applyDiagnosticsToEditor(diagnosticsToApply, true); // CRITICAL: force=true
+            } else if (this.pendingDiagnosticUpdate && diagnosticsToApply.length > 0) {
+                // Apply pending updates immediately
+                this.pendingDiagnosticUpdate = false;
+                this.applyDiagnosticsToEditor(diagnosticsToApply, true); // CRITICAL: force=true
             }
-        }, 200); // 200ms delay to ensure external change is fully processed
+        });
+        
+        // Fallback: If immediate application fails, try again after a very short delay
+        setTimeout(() => {
+            const elementsExist = this.verifyDiagnosticElementsExist();
+            if (!elementsExist && diagnosticsToApply.length > 0) {
+                this.applyDiagnosticsToEditor(diagnosticsToApply, true); // CRITICAL: force=true
+            }
+        }, 100); // 100ms fallback safety net
     }
 
     /**
@@ -3286,6 +3613,9 @@ export class DiagnosticVisualizer {
             this.pendingDiagnosticUpdate = true;
             return;
         }
+        
+        // OPTIMIZATION: Reduce debounce delay for faster diagnostic updates
+        const debounceDelay = force ? 0 : 100; // Reduced from 150ms to 100ms
         
         // Proceed with normal scheduling
         this.updateTimer = setTimeout(() => {
@@ -3307,7 +3637,12 @@ export class DiagnosticVisualizer {
             // Only update if there's a real change or we're forced to
             if (force || contentChanged || diagnosticsChanged || noDiagnosticsApplied) {
                 if (diagnosticsChanged || noDiagnosticsApplied || force) {
+                    // OPTIMIZATION: Only clear if diagnostics content actually changed
+                    // This prevents unnecessary clearing during getValue() operations
                     this.clearDiagnosticStyles();
+                    this.wrappedKeys.clear();
+                    this.tokenSpanCache.clear();
+                    this.tokenDiagnostics.clear();
                     this.applyDiagnosticStyles();
                     this.lastDiagnosticsHash = currentDiagnosticsHash;
                     this.diagnosticsApplied = true;

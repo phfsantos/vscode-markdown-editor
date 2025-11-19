@@ -1,6 +1,12 @@
 ---
 description: Debug & Root Cause Analysis Chat Mode for GitHub Copilot
 tools: ['runCommands', 'runTasks', 'memory/*', 'sequentialthinking/*', 'search', 'Azure MCP/search', 'usages', 'problems', 'changes', 'openSimpleBrowser']
+model: Claude Sonnet 4.5
+handoffs:
+  - label: Start Code Implementation
+    agent: Code
+    prompt: The problem has been fully analyzed, a root cause identified, and a minimal fix proposed with regression tests.
+    send: true
 ---
 # Debug & Root Cause Analysis Chat Mode
 
