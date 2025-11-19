@@ -39,143 +39,9 @@ export class DiagnosticVisualizer {
     private isUserTyping: boolean = false;
     private typingTimeout: NodeJS.Timeout | null = null;
 
-    // Cursor preservation state for DOM mutations
-    private savedCursorState: {
-        anchorNode: Node;
-        anchorOffset: number;
-        focusNode: Node;
-        focusOffset: number;
-        isCollapsed: boolean;
-    } | null = null;
-
     constructor(vditorInstance: any) {
         this.vditor = vditorInstance;
         this.setupFocusAwareness();
-    }
-
-    /**
-     * Save current cursor position before DOM mutations
-     * Returns true if cursor was successfully saved
-     */
-    private saveCursorPosition(): boolean {
-        try {
-            const selection = window.getSelection();
-            if (!selection || selection.rangeCount === 0) {
-                this.savedCursorState = null;
-                return false;
-            }
-
-            const range = selection.getRangeAt(0);
-            this.savedCursorState = {
-                anchorNode: selection.anchorNode!,
-                anchorOffset: selection.anchorOffset,
-                focusNode: selection.focusNode!,
-                focusOffset: selection.focusOffset,
-                isCollapsed: selection.isCollapsed
-            };
-            return true;
-        } catch (error) {
-            this.savedCursorState = null;
-            return false;
-        }
-    }
-
-    /**
-     * Restore cursor position after DOM mutations
-     * Handles text node replacement by finding equivalent position in new nodes
-     */
-    private restoreCursorPosition(): boolean {
-        try {
-            if (!this.savedCursorState) {
-                return false;
-            }
-
-            const selection = window.getSelection();
-            if (!selection) {
-                return false;
-            }
-
-            const { anchorNode, anchorOffset, focusNode, focusOffset, isCollapsed } = this.savedCursorState;
-
-            // Check if saved nodes are still in the document
-            const anchorStillValid = document.contains(anchorNode);
-            const focusStillValid = document.contains(focusNode);
-
-            if (anchorStillValid && focusStillValid) {
-                // Nodes still exist, restore directly
-                const range = document.createRange();
-                range.setStart(anchorNode, Math.min(anchorOffset, anchorNode.textContent?.length || 0));
-                range.setEnd(focusNode, Math.min(focusOffset, focusNode.textContent?.length || 0));
-                selection.removeAllRanges();
-                selection.addRange(range);
-                return true;
-            } else {
-                // Nodes were replaced, try to find equivalent position
-                return this.restoreCursorToEquivalentPosition(anchorNode, anchorOffset);
-            }
-        } catch (error) {
-            // Graceful fallback - don't disrupt user if restore fails
-            return false;
-        } finally {
-            this.savedCursorState = null;
-        }
-    }
-
-    /**
-     * Find equivalent cursor position when original text node was replaced
-     * Uses parent element and character offset to locate new position
-     */
-    private restoreCursorToEquivalentPosition(oldNode: Node, oldOffset: number): boolean {
-        try {
-            // Find parent element that still exists
-            let parent = oldNode.parentNode;
-            while (parent && !document.contains(parent)) {
-                parent = parent.parentNode;
-            }
-
-            if (!parent || !document.contains(parent)) {
-                return false;
-            }
-
-            // Calculate character offset from start of parent
-            let targetOffset = oldOffset;
-            let sibling = oldNode.previousSibling;
-            while (sibling) {
-                targetOffset += sibling.textContent?.length || 0;
-                sibling = sibling.previousSibling;
-            }
-
-            // Find equivalent position in new DOM structure
-            const walker = document.createTreeWalker(
-                parent,
-                NodeFilter.SHOW_TEXT,
-                null
-            );
-
-            let currentOffset = 0;
-            let textNode: Text | null;
-            while ((textNode = walker.nextNode() as Text)) {
-                const nodeLength = textNode.textContent?.length || 0;
-                if (currentOffset + nodeLength >= targetOffset) {
-                    // Found the text node containing our position
-                    const offsetInNode = targetOffset - currentOffset;
-                    const selection = window.getSelection();
-                    if (selection) {
-                        const range = document.createRange();
-                        range.setStart(textNode, Math.min(offsetInNode, nodeLength));
-                        range.collapse(true);
-                        selection.removeAllRanges();
-                        selection.addRange(range);
-                        return true;
-                    }
-                }
-                currentOffset += nodeLength;
-            }
-
-            return false;
-        } catch (error) {
-            return false;
-        }
     }
 
   /**
@@ -252,20 +118,7 @@ export class DiagnosticVisualizer {
       }
       
       this.diagnostics = diagnostics;
-      
-      // CURSOR PRESERVATION: Save cursor before DOM mutations
-      const cursorSaved = this.saveCursorPosition();
-      if (cursorSaved) {
-        vscodeLogWarn(`   💾 Cursor saved before applying styles`);
-      }
-      
       this.applyDiagnosticStyles();
-      
-      // CURSOR PRESERVATION: Restore cursor after DOM mutations
-      if (cursorSaved) {
-        const cursorRestored = this.restoreCursorPosition();
-        vscodeLogWarn(`   🎯 Cursor restore ${cursorRestored ? 'SUCCESS' : 'FAILED'}`);
-      }
       
       // Update state after application (only if not already set by force flag above)
       if (!force) {
@@ -337,54 +190,7 @@ export class DiagnosticVisualizer {
         if (afterText) fragment.appendChild(document.createTextNode(afterText));
         const parent = textNode.parentNode;
         if (parent) {
-          // CURSOR PRESERVATION: Check if cursor is in this text node
-          const selection = window.getSelection();
-          const cursorInThisNode = selection && selection.anchorNode === textNode;
-          let savedOffset = 0;
-          
-          if (cursorInThisNode) {
-            savedOffset = selection!.anchorOffset;
-          }
-          
-          // Perform the replacement
           parent.replaceChild(fragment, textNode);
-          
-          // CURSOR PRESERVATION: Restore cursor to equivalent position if it was here
-          if (cursorInThisNode && selection) {
-            try {
-              // Find the appropriate new text node based on cursor position
-              let targetNode: Node;
-              let targetOffset: number;
-              
-              if (savedOffset < startOffset && beforeText) {
-                // Cursor was before diagnostic text
-                targetNode = fragment.firstChild!;
-                targetOffset = savedOffset;
-              } else if (savedOffset >= endOffset && afterText) {
-                // Cursor was after diagnostic text
-                targetNode = fragment.lastChild!;
-                targetOffset = savedOffset - endOffset;
-              } else {
-                // Cursor was in diagnostic text - place at end of diagnostic span
-                targetNode = diagnosticSpan.firstChild || diagnosticSpan;
-                targetOffset = diagnosticSpan.textContent?.length || 0;
-              }
-              
-              // Restore selection
-              const range = document.createRange();
-              if (targetNode.nodeType === Node.TEXT_NODE) {
-                range.setStart(targetNode, Math.min(targetOffset, targetNode.textContent?.length || 0));
-              } else {
-                range.setStart(targetNode, 0);
-              }
-              range.collapse(true);
-              selection.removeAllRanges();
-              selection.addRange(range);
-            } catch (error) {
-              // Graceful fallback - cursor preservation failed but diagnostic applied
-            }
-          }
-          
           this.wrappedKeys.add(tokenKey);
           return true;
         } else {
@@ -515,6 +321,7 @@ export class DiagnosticVisualizer {
 
     /**
      * Clear all diagnostic styles from the editor with enhanced content preservation
+     * Now cursor-aware to prevent cursor jumping during typing
      */
     private clearDiagnosticStyles(): void {
         
@@ -531,10 +338,22 @@ export class DiagnosticVisualizer {
             return;
         }
 
+        // CURSOR-AWARE: Get cursor element to avoid clearing it during typing
+        const cursorElement = this.isSafeToUpdateDiagnostics() ? this.getCursorContainerElement() : null;
+        if (cursorElement) {
+            vscodeLogWarn(`   🎯 clearDiagnosticStyles: Preserving diagnostics in cursor element during clear`);
+        }
+
         // Remove diagnostic CSS classes but preserve ALL original element structure
         const diagnosticElements = editor.querySelectorAll('[class*="vscode-diagnostic-"]');
 
         diagnosticElements.forEach((span, index) => {
+            // CURSOR-AWARE: Skip clearing diagnostics in cursor element
+            if (cursorElement && (span === cursorElement || this.isDescendantOf(span, cursorElement) || this.isDescendantOf(cursorElement, span as Node))) {
+                vscodeLogWarn(`   ⏭️  clearDiagnosticStyles: Skipping element in cursor line (index ${index})`);
+                return; // Skip this element
+            }
+
             // Remove diagnostic classes and attributes only
             span.className = span.className.replace(/\bvscode-diagnostic-\w+\b/g, '').trim();
             span.removeAttribute('data-diagnostic-message');
@@ -574,6 +393,48 @@ export class DiagnosticVisualizer {
         // Clear applied diagnostic tracking
         this.clearAppliedDiagnosticTracking();
 
+    }
+
+    /**
+     * Clear diagnostics from a specific element (e.g., the cursor line when user starts typing)
+     */
+    private clearDiagnosticsFromElement(element: Element): void {
+        if (!element) {
+            return;
+        }
+
+        // Find all diagnostic spans within this element
+        const diagnosticSpans = element.querySelectorAll('[class*="vscode-diagnostic-"]');
+        
+        diagnosticSpans.forEach((span) => {
+            // Remove diagnostic classes and attributes
+            span.className = span.className.replace(/\bvscode-diagnostic-\w+\b/g, '').trim();
+            span.removeAttribute('data-diagnostic-message');
+            span.removeAttribute('data-diagnostic-source');
+            span.removeAttribute('data-diagnostic-severity');
+            span.removeAttribute('data-diagnostic-ui');
+            span.removeAttribute('data-single-char');
+            span.removeAttribute('data-has-lightbulb');
+
+            if (!span.className.trim()) {
+                span.removeAttribute('class');
+            }
+            
+            // Unwrap if span has no useful attributes
+            if (!span.hasAttributes()) {
+                const parent = span.parentNode;
+                if (parent) {
+                    const fragment = document.createDocumentFragment();
+                    while (span.firstChild) {
+                        fragment.appendChild(span.firstChild);
+                    }
+                    parent.insertBefore(fragment, span);
+                    parent.removeChild(span);
+                }
+            }
+        });
+
+        vscodeLogWarn(`   🧹 Cleared diagnostics from element`);
     }
 
     /**
@@ -3387,6 +3248,13 @@ export class DiagnosticVisualizer {
     private handleUserInput(element: Element, key?: string): void {
         this.lastUserInput = Date.now();
         this.isUserTyping = true;
+        
+        // CLEAR DIAGNOSTICS: Remove diagnostics from the current line when user starts typing
+        // This provides immediate visual feedback and prevents stale diagnostics
+        const cursorElement = this.getCursorContainerElement();
+        if (cursorElement) {
+            this.clearDiagnosticsFromElement(cursorElement);
+        }
         
         // Track cursor position changes
         this.trackCursorPosition();
