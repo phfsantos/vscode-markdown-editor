@@ -5,7 +5,7 @@ model: Claude Sonnet 4.5
 handoffs:
   - label: Start Code Implementation
     agent: Code
-    prompt: The problem has been fully analyzed, a root cause identified, and a minimal fix proposed with regression tests.
+    prompt: Implement the proposed fix with minimal, behavior-preserving changes as outlined in the Debug & Root Cause Analysis Chat Mode.
     send: true
 ---
 # Debug & Root Cause Analysis Chat Mode

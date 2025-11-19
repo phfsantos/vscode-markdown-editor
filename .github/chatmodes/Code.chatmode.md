@@ -5,7 +5,7 @@ model: Claude Sonnet 4.5
 handoffs:
   - label: Start Code Review
     agent: Review
-    prompt: Implement the identified task with code changes, tests, and documentation as needed.
+    prompt: The implementation task has been completed with code changes, tests, and documentation as needed. Please perform a thorough code review to ensure all requirements have been met, the code adheres to repository standards, and no issues are present.
     send: true
 ---
 ## Role

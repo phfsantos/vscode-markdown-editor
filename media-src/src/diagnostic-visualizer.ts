@@ -38,10 +38,9 @@ export class DiagnosticVisualizer {
     private previousCursorElement: Element | null = null;
     private isUserTyping: boolean = false;
     private typingTimeout: NodeJS.Timeout | null = null;
-    // Track diagnostics that were skipped because they're on the cursor line
-    // These will be applied when cursor moves away or typing stops
-    // Using WeakMap for automatic garbage collection when elements are removed
-    private skippedDiagnostics: WeakMap<Element, any[]> = new WeakMap();
+    // Track if diagnostics were skipped due to cursor position
+    // When true, we need to re-apply diagnostics when cursor moves or typing stops
+    private hasSkippedDiagnostics: boolean = false;
 
     constructor(vditorInstance: any) {
         this.vditor = vditorInstance;
@@ -619,26 +618,9 @@ export class DiagnosticVisualizer {
             
         if (cursorElement && safeElements.length < blockElements.length) {
             vscodeLogWarn(`   🚫 applySinglePass: Filtered to ${safeElements.length} safe elements (${blockElements.length - safeElements.length} excluded for cursor)`);
-            
-            // Track diagnostics that would apply to the cursor element
-            const cursorDiagnostics: any[] = [];
-            for (const {diagnostic} of sortedDiagnostics) {
-                // Check if any of the filtered elements match this diagnostic's line
-                const filteredElements = blockElements.filter(item => 
-                    item.element === cursorElement || 
-                    this.isDescendantOf(item.element, cursorElement) || 
-                    this.isDescendantOf(cursorElement, item.element)
-                );
-                
-                if (filteredElements.length > 0) {
-                    cursorDiagnostics.push(diagnostic);
-                }
-            }
-            
-            if (cursorDiagnostics.length > 0) {
-                this.skippedDiagnostics.set(cursorElement, cursorDiagnostics);
-                vscodeLogWarn(`   ⏭️  Tracked ${cursorDiagnostics.length} diagnostics for cursor element (will apply later)`);
-            }
+            // Mark that we skipped some diagnostics due to cursor position
+            this.hasSkippedDiagnostics = true;
+            vscodeLogWarn(`   ⏭️  Marked diagnostics as skipped - will re-apply when cursor moves or typing stops`);
         }
         
         // Step 4: Single pass through safe DOM elements, matching with sorted diagnostics
@@ -3322,18 +3304,16 @@ export class DiagnosticVisualizer {
             this.previousCursorElement = this.currentCursorElement;
             this.currentCursorElement = currentCursor;
             
-            // If cursor moved from one element to another, apply skipped diagnostics to the previous element
+            // If cursor moved from one element to another, apply any skipped diagnostics
             if (this.previousCursorElement && this.previousCursorElement !== currentCursor) {
-                // Apply skipped diagnostics from the previous cursor element
-                const skipped = this.skippedDiagnostics.get(this.previousCursorElement);
-                if (skipped && skipped.length > 0) {
-                    vscodeLogWarn(`   🔄 Cursor moved away - applying ${skipped.length} skipped diagnostics`);
+                // If we have skipped diagnostics, trigger a full re-application
+                if (this.hasSkippedDiagnostics) {
+                    vscodeLogWarn(`   🔄 Cursor moved away - re-applying all diagnostics`);
                     
                     setTimeout(() => {
-                        // Apply diagnostics specifically to the previous element
-                        this.applySkippedDiagnosticsToElement(this.previousCursorElement, skipped);
-                        // Clear the skipped diagnostics for this element
-                        this.skippedDiagnostics.delete(this.previousCursorElement!);
+                        // Trigger full re-application (cursor is now on different element)
+                        this.hasSkippedDiagnostics = false;
+                        this.applyDiagnosticStyles();
                     }, 50);
                 }
                 
@@ -3441,18 +3421,10 @@ export class DiagnosticVisualizer {
         
         this.pendingDiagnosticUpdate = false;
         
-        // First, apply any skipped diagnostics from the current cursor element
-        // (user stopped typing, so we can now apply them)
-        const currentCursor = this.getCursorContainerElement();
-        if (currentCursor) {
-            const skipped = this.skippedDiagnostics.get(currentCursor);
-            if (skipped && skipped.length > 0) {
-                vscodeLogWarn(`   ⏱️  User stopped typing - applying ${skipped.length} skipped diagnostics to cursor line`);
-                
-                // Apply diagnostics to the cursor element now that user stopped typing
-                this.applySkippedDiagnosticsToElement(currentCursor, skipped);
-                this.skippedDiagnostics.delete(currentCursor);
-            }
+        // If we have skipped diagnostics, clear the flag (they'll be applied in the next line)
+        if (this.hasSkippedDiagnostics) {
+            vscodeLogWarn(`   ⏱️  User stopped typing - will re-apply skipped diagnostics`);
+            this.hasSkippedDiagnostics = false;
         }
         
         // OPTIMIZATION: Force immediate application using the main method
@@ -3479,61 +3451,6 @@ export class DiagnosticVisualizer {
             // Apply diagnostics but exclude the current cursor element
             this.applyDiagnosticStyles();
         } else {
-        }
-    }
-
-    /**
-     * Apply skipped diagnostics to a specific element now that cursor has moved away
-     */
-    private applySkippedDiagnosticsToElement(element: Element | null, diagnostics: any[]): void {
-        if (!element || !diagnostics || diagnostics.length === 0) {
-            return;
-        }
-        
-        vscodeLogWarn(`   🎯 Applying ${diagnostics.length} skipped diagnostics to element`);
-        
-        // Get current cursor to ensure we don't apply if cursor moved back
-        const currentCursor = this.getCursorContainerElement();
-        if (currentCursor && (
-            currentCursor === element || 
-            this.isDescendantOf(element as Node, currentCursor) || 
-            this.isDescendantOf(currentCursor, element as Node)
-        )) {
-            vscodeLogWarn(`   ⏸️  Cursor is back on element - deferring application`);
-            return;
-        }
-        
-        // Apply each diagnostic specifically to this element
-        for (const diagnostic of diagnostics) {
-            const range = diagnostic.range;
-            const lineText = diagnostic.lineText || '';
-            
-            if (!range || !lineText.trim()) {
-                continue;
-            }
-            
-            const startChar = range.start?.character || 0;
-            const endChar = range.end?.character || startChar + 1;
-            const targetText = lineText.substring(startChar, endChar);
-            
-            if (!targetText.trim()) {
-                continue;
-            }
-            
-            // Try to apply the diagnostic to this specific element
-            const matchResult = this.tryMatchDiagnosticToElement(
-                element as HTMLElement, 
-                diagnostic, 
-                lineText, 
-                0 // position difference is 0 since we know this is the right element
-            );
-            
-            if (matchResult.matched) {
-                this.applyDiagnosticToMatchedElement(element as HTMLElement, diagnostic, matchResult);
-                vscodeLogWarn(`   ✅ Applied skipped diagnostic: "${targetText}"`);
-            } else {
-                vscodeLogWarn(`   ❌ Failed to apply skipped diagnostic: "${targetText}"`);
-            }
         }
     }
 
