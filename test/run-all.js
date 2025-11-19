@@ -1,4 +1,5 @@
 const path = require('path');
+const { execSync } = require('child_process');
 
 console.log('🧪 Running markdown-editor test suite...\n');
 
@@ -8,7 +9,8 @@ const tests = [
   'embed-handler.test.js',
   'relationship-analyzer.test.js',
   'diff-support.test.js',
-  'diff-algorithm-with-spacers.test.js',  // NEW
+  'diff-algorithm-with-spacers.test.js',
+  'clean-content-for-save.test.js',
 ];
 
 let passed = 0;
@@ -17,10 +19,11 @@ let failed = 0;
 for (const testFile of tests) {
   console.log(`\n📝 Running ${testFile}...`);
   try {
-    require(path.join(__dirname, testFile));
+    const testPath = path.join(__dirname, testFile);
+    execSync(`node "${testPath}"`, { stdio: 'inherit', cwd: __dirname });
     passed++;
   } catch (e) {
-    console.error(`❌ ${testFile} failed:`, e.message);
+    console.error(`❌ ${testFile} failed`);
     failed++;
   }
 }

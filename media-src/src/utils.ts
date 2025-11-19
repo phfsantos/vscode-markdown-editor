@@ -139,3 +139,83 @@ export function fixCut() {
     }
   }
 }
+
+
+/**
+ * Clean HTML/markdown content by removing diagnostic and diff decoration artifacts
+ * This avoids DOM manipulation and prevents text jumping
+ * @param content The raw content from vditor.getValue()
+ * @returns Cleaned content without diagnostic/diff decorations
+ */
+export function cleanContentForSave(content: string): string {
+  if (!content) return content;
+
+  // Remove diagnostic decoration spans and attributes
+  let cleaned = content;
+
+  // Remove diagnostic severity class spans (e.g., vscode-diagnostic-error-underline)
+  // Handles class attribute anywhere in the span tag and diagnostic class anywhere in the class list
+  // Apply multiple times to handle nested spans
+  let prevCleaned = "";
+  while (prevCleaned !== cleaned) {
+    prevCleaned = cleaned;
+    cleaned = cleaned.replace(
+      /<span\s+(?:[^>]*\s+)?class="[^"]*\bvscode-diagnostic-[^"\s]*[^"]*"[^>]*>(.*?)<\/span>/g,
+      "$1"
+    );
+  }
+
+  // Remove diagnostic source attributes
+  cleaned = cleaned.replace(/\s+data-diagnostic-source="[^"]*"/g, "");
+
+  // Remove diff decoration spans (added, removed, modified)
+  // Handles class attribute anywhere in the span tag and diff class anywhere in the class list
+  // Apply multiple times to handle nested spans
+  prevCleaned = "";
+  while (prevCleaned !== cleaned) {
+    prevCleaned = cleaned;
+    cleaned = cleaned.replace(
+      /<span\s+(?:[^>]*\s+)?class="[^"]*\bvscode-diff-(?:added|removed|modified)\b[^"]*"[^>]*>(.*?)<\/span>/g,
+      "$1"
+    );
+  }
+
+  // Remove lightbulb emoji characters
+  cleaned = cleaned.replace(/💡/g, "");
+
+  // Remove any inline styles added by decorations
+  cleaned = cleaned.replace(
+    /\s+style="[^"]*(?:text-decoration|background-color|border-bottom)[^"]*"/g,
+    ""
+  );
+
+  // Remove diff spacer block markers
+  cleaned = cleaned.replace(/<!--\s*vscode-diff-spacer:\s*\d+\s*-->/g, "");
+
+  // Remove any empty spans that might be left over
+  cleaned = cleaned.replace(/<span><\/span>/g, "");
+
+  return cleaned;
+}
+
+/**
+ * Get cleaned HTML content from Vditor instance
+ * @param vditor The Vditor instance
+ * @returns Cleaned HTML content
+ */
+export const getHTML = (vditor: IVditor) => {
+  const currentHTML = vditor.ir.element.innerHTML;
+  const cleanedHTML = cleanContentForSave(currentHTML);
+  return vditor.lute.VditorIRDOM2HTML(cleanedHTML);
+};
+
+/**
+ * Get cleaned markdown content from Vditor instance
+ * @param vditor The Vditor instance
+ * @returns Cleaned markdown content
+ */
+export const getValue = (vditor: IVditor) => {
+  const currentHTML = vditor.ir.element.innerHTML;
+  const cleanedHTML = cleanContentForSave(currentHTML);
+  return vditor.lute.VditorIRDOM2Md(cleanedHTML);
+};

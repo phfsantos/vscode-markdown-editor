@@ -1,5 +1,5 @@
 import { t } from "./lang";
-import { confirm } from "./utils";
+import { cleanContentForSave } from "./utils";
 
 export const toolbar = [
   {

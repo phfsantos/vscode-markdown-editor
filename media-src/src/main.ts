@@ -8,6 +8,9 @@ import {
   fixPanelHover,
   handleToolbarClick,
   saveVditorOptions,
+  cleanContentForSave,
+  getHTML,
+  getValue,
 } from "./utils";
 
 import { merge } from "lodash";
@@ -22,6 +25,8 @@ import { t, lang } from "./lang";
 import { toolbar } from "./toolbar";
 import { fixTableIr } from "./fix-table-ir";
 import words from "./words.en.txt";
+
+
 
 // Renderer System
 import {
@@ -57,17 +62,13 @@ let isReadOnly = false;
  * This is called after Vditor renders but before diagnostics/diff
  */
 function cacheCleanIRHtml(): void {
-  const irElement = document.querySelector(".vditor-ir pre.vditor-reset");
-  if (irElement) {
-    cachedCleanHtml = irElement.innerHTML;
+    cachedCleanHtml = vditor.getHTML();
     if ((window as any).markdownEditorLog) {
       (window as any).markdownEditorLog(
         `[CACHE] Cached clean HTML (${cachedCleanHtml.length} chars)`
       );
     }
-  }
 }
-
 /**
  * Process wiki-links and diagnostics after Vditor renders/re-renders content
  * Called after: initial load, setValue (undo/redo), and any content refresh
@@ -929,7 +930,8 @@ function initVditor(msg) {
     predictionary = null;
   }
 
-  let inputTimer;
+  // Initialize WikiLink autocomplete handler
+  let transientUiTimer: number | undefined | NodeJS.Timeout;
 
   // Initialize wiki-link autocomplete BEFORE building hint configuration
   if (!wikiLinkAutocomplete) {
@@ -1670,140 +1672,78 @@ function initVditor(msg) {
         return;
       }
 
-      let transientUiTimer: number | undefined | NodeJS.Timeout;
-      inputTimer && clearTimeout(inputTimer);
-      inputTimer = setTimeout(() => {
-        // Custom renderer triggering
-        // find instances where we have a element with class vditor-copy right before one of the custom blocks: language-kanban-board, language-table, language-playground
-        const customRenderTriggers = document.querySelectorAll(".vditor-copy");
-        let shouldResetValue = false;
-        customRenderTriggers.forEach((trigger) => {
-          const next = trigger.nextElementSibling;
-          if (
-            next &&
-            (next.classList.contains("language-kanban-board") ||
-              next.classList.contains("language-table") ||
-              next.classList.contains("language-playground"))
-          ) {
-            // remove the .vditor-copy element to prevent re-triggering
-            trigger.remove();
-            shouldResetValue = true;
-          }
-        });
-
-        // Send cursor position with more detailed tracking
-        const selection = window.getSelection();
-        if (selection && selection.rangeCount > 0) {
-          const range = selection.getRangeAt(0);
-          const editor = document.querySelector(
-            ".vditor-ir .vditor-reset"
-          ) as HTMLElement;
-          if (editor) {
-            // Calculate approximate line and character position
-            const textContent = editor.textContent || "";
-            const beforeCursor = textContent.substring(0, range.startOffset);
-            const lines = beforeCursor.split("\n");
-
-            vscode.postMessage({
-              command: "cursorPosition",
-              line: lines.length - 1,
-              character: lines[lines.length - 1].length,
-            });
-          }
+      // Custom renderer triggering
+      // find instances where we have a element with class vditor-copy right before one of the custom blocks: language-kanban-board, language-table, language-playground
+      const customRenderTriggers = document.querySelectorAll(".vditor-copy");
+      let shouldResetValue = false;
+      customRenderTriggers.forEach((trigger) => {
+        const next = trigger.nextElementSibling;
+        if (
+          next &&
+          (next.classList.contains("language-kanban-board") ||
+            next.classList.contains("language-table") ||
+            next.classList.contains("language-playground"))
+        ) {
+          // remove the .vditor-copy element to prevent re-triggering
+          trigger.remove();
+          shouldResetValue = true;
         }
+      });
 
-        // Clean up ALL transient UI elements before getting content to prevent them from being saved
-        if (diagnosticVisualizer) {
-          diagnosticVisualizer.cleanupTransientUI();
-        }
-
-        // Clean up diff decorations before getting content to prevent them from being saved
-        if (diffVisualizer) {
-          diffVisualizer.clearDiffDecorations();
-          diffVisualizer.clearSpacerBlocks();
-        }
-
-        // Extra aggressive cleanup: remove any lightbulb characters from the editor DOM
-        const editor = document.querySelector(".vditor-ir .vditor-reset");
-
+      // Send cursor position with more detailed tracking
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        const editor = document.querySelector(
+          ".vditor-ir .vditor-reset"
+        ) as HTMLElement;
         if (editor) {
-          const walker = document.createTreeWalker(
-            editor,
-            NodeFilter.SHOW_TEXT,
-            null
-          );
+          // Calculate approximate line and character position
+          const textContent = editor.textContent || "";
+          const beforeCursor = textContent.substring(0, range.startOffset);
+          const lines = beforeCursor.split("\n");
 
-          let textNode;
-          const textNodesToFix = [];
-          while ((textNode = walker.nextNode()) !== null) {
-            if (textNode.textContent && textNode.textContent.includes("💡")) {
-              textNodesToFix.push(textNode);
-            }
-          }
-
-          textNodesToFix.forEach((node) => {
-            const cleanText = node.textContent.replace(/💡/g, "");
-            if (cleanText !== node.textContent) {
-              node.textContent = cleanText;
-            }
+          vscode.postMessage({
+            command: "cursorPosition",
+            line: lines.length - 1,
+            character: lines[lines.length - 1].length,
           });
         }
+      }
 
-        // Extra safety: wait a moment for cleanup to complete, then get content
-        setTimeout(() => {
-          // Cache cleaned IR HTML
-          cacheCleanIRHtml();
+      // Get content and clean it from diagnostic/diff decorations
+      // Using string manipulation instead of DOM cleanup prevents text jumping
+      const rawContent = vditor.getValue();
 
-          // Update content after cleanup
-          const content = vditor.getValue();
-          vscode.postMessage({ command: "edit", content: content });
-          
+      // Cache cleaned IR HTML
+      cacheCleanIRHtml();
 
-          // Re-set the editor content to trigger re-rendering of custom blocks
-          if (shouldResetValue) {
-            vditor.setValue(content);
+      // Send cleaned content to VS Code
+      vscode.postMessage({ command: "edit", content: rawContent });
+
+      // Re-set the editor content to trigger re-rendering of custom blocks
+      if (shouldResetValue) {
+        vditor.setValue(rawContent);
+      }
+
+      transientUiTimer && clearTimeout(transientUiTimer);
+      transientUiTimer = setTimeout(() => {
+        // Initialize wiki-link handler if not already done and process links
+        if (wikiLinkHandler && !(wikiLinkHandler as any).isSetup) {
+          const vdt = window.vditor as any;
+          const editorElement =
+            vdt.vditor?.ir?.element || vdt.vditor?.wysiwyg?.element;
+          if (editorElement) {
+            (wikiLinkHandler as any).isSetup = true;
+            (wikiLinkHandler as any).editorElement = editorElement;
           }
-        }, 50); // Small delay to ensure cleanup completes
+        }
 
-        transientUiTimer && clearTimeout(transientUiTimer);
-        transientUiTimer = setTimeout(() => {
-          if (diagnosticVisualizer) {
-            diagnosticVisualizer.addSimpleDiagnostics();
-            (window as any).__lastDiagnosticUpdate = Date.now();
-          }
-
-          // Re-apply diff visualizations if we're in diff view
-          if (diffVisualizer && diffVisualizer.inDiffView()) {
-            // Give Vditor a moment to finish rendering before applying diff
-            const diffInfo = diffVisualizer.getDiffInfo();
-            if (diffInfo) {
-              // Trigger re-application by simulating the diff-view-detected message
-              window.postMessage(
-                {
-                  type: "diff-view-detected",
-                  diffInfo: diffInfo,
-                },
-                "*"
-              );
-            }
-          }
-          // Initialize wiki-link handler if not already done and process links
-          if (wikiLinkHandler && !(wikiLinkHandler as any).isSetup) {
-            const vdt = window.vditor as any;
-            const editorElement =
-              vdt.vditor?.ir?.element || vdt.vditor?.wysiwyg?.element;
-            if (editorElement) {
-              (wikiLinkHandler as any).isSetup = true;
-              (wikiLinkHandler as any).editorElement = editorElement;
-            }
-          }
-
-          // Process wiki-links on every input (after setup check)
-          if (wikiLinkHandler && (wikiLinkHandler as any).isSetup) {
-            (wikiLinkHandler as any).handleInputForProcessing?.();
-          }
-        }, 5000); // Even longer delay to ensure user has finished immediate edits
-      }, 400); // ENHANCED: Increased delay to prevent cursor jumping after newlines
+        // Process wiki-links on every input (after setup check)
+        if (wikiLinkHandler && (wikiLinkHandler as any).isSetup) {
+          (wikiLinkHandler as any).handleInputForProcessing?.();
+        }
+      }, 5000); // Even longer delay to ensure user has finished immediate edits
     },
     upload: {
       url: "/fuzzy", // 没有 url 参数粘贴图片无法上传 see: https://github.com/Vanessa219/vditor/blob/d7628a0a7cfe5d28b055469bf06fb0ba5cfaa1b2/src/ts/util/fixBrowserBehavior.ts#L1409
@@ -1833,6 +1773,10 @@ function initVditor(msg) {
       window.vditor
     ),
   });
+
+  // Lets overwrite getValue and getHTML to always return cleaned content
+  window.vditor.getValue = () => getValue(window.vditor.vditor);
+  window.vditor.getHTML = () => getHTML(window.vditor.vditor);
 
   // (Removed legacy ensureCustomContextMenu fallback - replaced by global capture interceptor above)
 }
@@ -2274,13 +2218,13 @@ window.addEventListener("message", (e) => {
 
           // CRITICAL: Sync the updated content back to VS Code AND trigger re-render
           if (window.vditor) {
-            const fullContent = window.vditor.getValue();
-            vscode.postMessage({ command: "edit", content: fullContent });
+            const rawContent = vditor.getValue();
+            vscode.postMessage({ command: "edit", content: rawContent });
 
             // Force Vditor to re-render the updated code block
             // This ensures the renderer re-initializes with the correct board ID and file
             setTimeout(() => {
-              window.vditor.setValue(fullContent);
+              window.vditor.setValue(rawContent);
             }, 100);
           }
           break;

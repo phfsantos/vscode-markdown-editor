@@ -839,32 +839,49 @@ export class DiffVisualizer {
       return;
     }
 
-    // Get total document height (scrollHeight)
+    // Get the content container (not .vditor which includes toolbar)
+    // Use .vditor-ir, .vditor-wysiwyg, or .vditor-sv which are the actual content areas
+    const contentContainer = 
+      document.querySelector(".vditor-ir") ||
+      document.querySelector(".vditor-wysiwyg") ||
+      document.querySelector(".vditor-sv");
+      
+    if (!contentContainer) {
+      vscodeLogWarn("[DIFF-VIZ] Cannot add scrollbar indicators - content container not found");
+      return;
+    }
+
+    // Get total document height (scrollHeight) and viewport bounds
     const totalHeight = (contentElement as HTMLElement).scrollHeight;
     if (totalHeight === 0) {
       return;
     }
 
-    // Create indicator container that overlays the scrollbar area
+    // Get the content container's position to calculate relative positioning (excludes toolbar)
+    const containerRect = contentContainer.getBoundingClientRect();
+    const containerTop = containerRect.top;
+    const containerHeight = containerRect.height;
+
+    // Create indicator container that overlays the scrollbar area within the Vditor container
     const indicatorContainer = document.createElement("div");
     indicatorContainer.className = "diff-scrollbar-indicators";
     indicatorContainer.style.cssText = `
       position: fixed;
-      top: 0;
+      top: ${containerTop}px;
       right: 0;
       width: 14px;
-      height: 100vh;
+      height: ${containerHeight}px;
       pointer-events: none;
       z-index: 9999;
       background: transparent;
     `;
 
-    // Add markers for each change
+    // Add markers for each change (including spacers)
     const processedLines = new Set<number>();
     
     this.diffInfo.changes.forEach((change) => {
-      // Skip spacers and already processed lines
-      if (change.type === "spacer" || processedLines.has(change.lineNumber)) {
+      // Skip already processed lines (but include spacers this time)
+      if (processedLines.has(change.lineNumber)) {
         return;
       }
       
@@ -876,14 +893,47 @@ export class DiffVisualizer {
       processedLines.add(change.lineNumber);
 
       // Get the actual DOM element for this line
-      const lineElement = contentElement.children[change.lineNumber] as HTMLElement;
+      // For spacers, look for elements with diff-spacer-block class
+      let lineElement: HTMLElement | null = null;
+      
+      if (change.type === "spacer") {
+        // Find spacer by data-line-number attribute
+        lineElement = contentElement.querySelector(
+          `.diff-spacer-block[data-line-number="${change.lineNumber}"]`
+        ) as HTMLElement;
+      } else {
+        // For regular elements, we need to get the actual child at this index
+        // BUT skip any temporary measurement elements (they shouldn't be in children but let's be safe)
+        const allChildren = Array.from(contentElement.children);
+        const realChildren = allChildren.filter(child => 
+          !child.hasAttribute('data-temp-measurement')
+        );
+        lineElement = realChildren[change.lineNumber] as HTMLElement;
+      }
+      
       if (!lineElement) {
         return;
       }
+      
+      // Skip temporary measurement elements (they have negative offsetTop from being positioned at -9999px)
+      if (lineElement.hasAttribute('data-temp-measurement') || lineElement.offsetTop < 0) {
+        return;
+      }
 
-      // Calculate position based on actual pixel offset from top
-      const elementTop = lineElement.offsetTop;
-      const position = (elementTop / totalHeight) * 100;
+      // Calculate position for scrollbar indicator
+      // The indicator container height represents the VIEWPORT, not the total scrollable height
+      // So we need to map element positions to the viewport-relative scrollbar
+      
+      // Use offsetTop which gives us the position relative to the offsetParent (the content element)
+      const elementOffsetTop = lineElement.offsetTop;
+      
+      // Map the element's position in the document to a position on the scrollbar
+      // The scrollbar represents the entire document (totalHeight) compressed into the viewport height
+      // So position on scrollbar = (elementPosition / totalHeight) * 100%
+      const scrollbarPosition = (elementOffsetTop / totalHeight) * 100;
+      
+      // Clamp position to valid range (0-100%)
+      const clampedPosition = Math.max(0, Math.min(100, scrollbarPosition));
       
       // Get color for this change type
       const color = this.getScrollbarMarkerColor(change.type);
@@ -893,16 +943,17 @@ export class DiffVisualizer {
       marker.className = `diff-scrollbar-marker diff-scrollbar-marker-${change.type}`;
       marker.style.cssText = `
         position: absolute;
-        top: ${position}%;
+        top: ${clampedPosition}%;
         left: 0;
         width: calc(100% - 3px);
-        height: 4px;
+        height: ${change.type === "spacer" ? "3px" : "4px"};
         background-color: ${color};
-        opacity: 0.85;
+        opacity: ${change.type === "spacer" ? "0.6" : "0.85"};
         transition: opacity 0.2s, height 0.2s;
         border-radius: 2px;
+        ${change.type === "spacer" ? "background: repeating-linear-gradient(90deg, " + color + " 0px, " + color + " 4px, transparent 4px, transparent 8px);" : ""}
       `;
-      marker.title = this.getChangeTooltip(change);
+      marker.title = change.type === "spacer" ? "This line does not exist in this version" : this.getChangeTooltip(change);
       
       // Make marker clickable to jump to that line
       marker.style.pointerEvents = "auto";
@@ -915,11 +966,11 @@ export class DiffVisualizer {
       // Add hover effect
       marker.addEventListener("mouseenter", () => {
         marker.style.opacity = "1";
-        marker.style.height = "6px";
+        marker.style.height = change.type === "spacer" ? "5px" : "6px";
       });
       marker.addEventListener("mouseleave", () => {
-        marker.style.opacity = "0.85";
-        marker.style.height = "4px";
+        marker.style.opacity = change.type === "spacer" ? "0.6" : "0.85";
+        marker.style.height = change.type === "spacer" ? "3px" : "4px";
       });
       
       indicatorContainer.appendChild(marker);
@@ -927,10 +978,6 @@ export class DiffVisualizer {
 
     // Attach to document body for fixed positioning
     document.body.appendChild(indicatorContainer);
-    
-    vscodeLogWarn(
-      `[DIFF-VIZ] 📍 Added ${indicatorContainer.children.length} scrollbar indicators for ${this.diffInfo.role} side`
-    );
   }
   
   /**
@@ -954,7 +1001,7 @@ export class DiffVisualizer {
   /**
    * Get scrollbar marker color for change type
    */
-  private getScrollbarMarkerColor(type: "added" | "deleted" | "modified"): string {
+  private getScrollbarMarkerColor(type: "added" | "deleted" | "modified" | "spacer"): string {
     switch (type) {
       case "added":
         return "var(--vscode-gitDecoration-addedResourceForeground, #81b88b)";
@@ -962,6 +1009,8 @@ export class DiffVisualizer {
         return "var(--vscode-gitDecoration-deletedResourceForeground, #c74e39)";
       case "modified":
         return "var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d)";
+      case "spacer":
+        return "var(--vscode-gitDecoration-deletedResourceForeground, #c74e39)";
     }
   }
 }

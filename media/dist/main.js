@@ -7469,7 +7469,7 @@
         function escapeStringChar(chr) {
           return "\\" + stringEscapes[chr];
         }
-        function getValue(object2, key) {
+        function getValue2(object2, key) {
           return object2 == null ? undefined2 : object2[key];
         }
         function hasUnicode(string2) {
@@ -9550,7 +9550,7 @@
             return result2;
           }
           function getNative(object2, key) {
-            var value = getValue(object2, key);
+            var value = getValue2(object2, key);
             return baseIsNative(value) ? value : undefined2;
           }
           function getRawTag(value) {
@@ -22931,7 +22931,7 @@ onclick="event.stopPropagation();this.previousElementSibling.select();document.e
               return IR2;
             }();
             ;
-            var getHTML = function(vditor2) {
+            var getHTML2 = function(vditor2) {
               if (vditor2.currentMode === "sv") {
                 return vditor2.lute.Md2HTML(getMarkdown(vditor2));
               } else if (vditor2.currentMode === "wysiwyg") {
@@ -23844,7 +23844,7 @@ window.addEventListener("message", (e) => {
               }, 200);
             };
             var exportHTML = function(vditor2) {
-              var content = getHTML(vditor2);
+              var content = getHTML2(vditor2);
               var html = '<html><head><link rel="stylesheet" type="text/css" href="'.concat(vditor2.options.cdn, '/dist/index.css"/>\n<script src="').concat(vditor2.options.cdn, "/dist/js/i18n/").concat(vditor2.options.lang, '.js"></script>\n<script src="').concat(vditor2.options.cdn, '/dist/method.min.js"></script></head>\n<body><div class="vditor-reset" id="preview">').concat(content, "</div>\n<script>\n    const previewElement = document.getElementById('preview')\n    Vditor.setContentTheme('").concat(vditor2.options.preview.theme.current, "', '").concat(vditor2.options.preview.theme.path, "');\n    Vditor.codeRender(previewElement);\n    Vditor.highlightRender(").concat(JSON.stringify(vditor2.options.preview.hljs), ", previewElement, '").concat(vditor2.options.cdn, "');\n    Vditor.mathRender(previewElement, {\n        cdn: '").concat(vditor2.options.cdn, "',\n        math: ").concat(JSON.stringify(vditor2.options.preview.math), ",\n    });\n    Vditor.mermaidRender(previewElement, '").concat(vditor2.options.cdn, "', '").concat(vditor2.options.theme, "');\n    Vditor.SMILESRender(previewElement, '").concat(vditor2.options.cdn, "', '").concat(vditor2.options.theme, "');\n    Vditor.markmapRender(previewElement, '").concat(vditor2.options.cdn, "');\n    Vditor.flowchartRender(previewElement, '").concat(vditor2.options.cdn, "');\n    Vditor.graphvizRender(previewElement, '").concat(vditor2.options.cdn, "');\n    Vditor.chartRender(previewElement, '").concat(vditor2.options.cdn, "', '").concat(vditor2.options.theme, "');\n    Vditor.mindmapRender(previewElement, '").concat(vditor2.options.cdn, "', '").concat(vditor2.options.theme, "');\n    Vditor.abcRender(previewElement, '").concat(vditor2.options.cdn, "');\n    ").concat(vditor2.options.preview.render.media.enable ? "Vditor.mediaRender(previewElement);" : "", '\n    Vditor.speechRender(previewElement);\n</script>\n<script src="').concat(vditor2.options.cdn, "/dist/js/icons/").concat(vditor2.options.icon, '.js"></script></body></html>');
               download(vditor2, html, content.substr(0, 10) + ".html");
             };
@@ -26150,7 +26150,7 @@ window.addEventListener("message", (e) => {
                 return this.vditor.lute.RenderJSON(value);
               };
               Vditor3.prototype.getHTML = function() {
-                return getHTML(this.vditor);
+                return getHTML2(this.vditor);
               };
               Vditor3.prototype.tip = function(text, time2) {
                 this.vditor.tip.show(text, time2);
@@ -26475,6 +26475,37 @@ window.addEventListener("message", (e) => {
       }
     };
   }
+  function cleanContentForSave(content) {
+    if (!content)
+      return content;
+    let cleaned = content;
+    let prevCleaned = "";
+    while (prevCleaned !== cleaned) {
+      prevCleaned = cleaned;
+      cleaned = cleaned.replace(/<span\s+(?:[^>]*\s+)?class="[^"]*\bvscode-diagnostic-[^"\s]*[^"]*"[^>]*>(.*?)<\/span>/g, "$1");
+    }
+    cleaned = cleaned.replace(/\s+data-diagnostic-source="[^"]*"/g, "");
+    prevCleaned = "";
+    while (prevCleaned !== cleaned) {
+      prevCleaned = cleaned;
+      cleaned = cleaned.replace(/<span\s+(?:[^>]*\s+)?class="[^"]*\bvscode-diff-(?:added|removed|modified)\b[^"]*"[^>]*>(.*?)<\/span>/g, "$1");
+    }
+    cleaned = cleaned.replace(/💡/g, "");
+    cleaned = cleaned.replace(/\s+style="[^"]*(?:text-decoration|background-color|border-bottom)[^"]*"/g, "");
+    cleaned = cleaned.replace(/<!--\s*vscode-diff-spacer:\s*\d+\s*-->/g, "");
+    cleaned = cleaned.replace(/<span><\/span>/g, "");
+    return cleaned;
+  }
+  var getHTML = (vditor2) => {
+    const currentHTML = vditor2.ir.element.innerHTML;
+    const cleanedHTML = cleanContentForSave(currentHTML);
+    return vditor2.lute.VditorIRDOM2HTML(cleanedHTML);
+  };
+  var getValue = (vditor2) => {
+    const currentHTML = vditor2.ir.element.innerHTML;
+    const cleanedHTML = cleanContentForSave(currentHTML);
+    return vditor2.lute.VditorIRDOM2Md(cleanedHTML);
+  };
 
   // src/main.ts
   var import_lodash = __toModule(require_lodash());
@@ -44151,52 +44182,72 @@ console.log('Hello, World!');
         vscodeLogWarn("[DIFF-VIZ] Cannot add scrollbar indicators - content element not found");
         return;
       }
+      const contentContainer = document.querySelector(".vditor-ir") || document.querySelector(".vditor-wysiwyg") || document.querySelector(".vditor-sv");
+      if (!contentContainer) {
+        vscodeLogWarn("[DIFF-VIZ] Cannot add scrollbar indicators - content container not found");
+        return;
+      }
       const totalHeight = contentElement.scrollHeight;
       if (totalHeight === 0) {
         return;
       }
+      const containerRect = contentContainer.getBoundingClientRect();
+      const containerTop = containerRect.top;
+      const containerHeight = containerRect.height;
       const indicatorContainer = document.createElement("div");
       indicatorContainer.className = "diff-scrollbar-indicators";
       indicatorContainer.style.cssText = `
       position: fixed;
-      top: 0;
+      top: ${containerTop}px;
       right: 0;
       width: 14px;
-      height: 100vh;
+      height: ${containerHeight}px;
       pointer-events: none;
       z-index: 9999;
       background: transparent;
     `;
       const processedLines = new Set();
       this.diffInfo.changes.forEach((change) => {
-        if (change.type === "spacer" || processedLines.has(change.lineNumber)) {
+        if (processedLines.has(change.lineNumber)) {
           return;
         }
         if (change.side !== this.diffInfo.role && change.side !== "both") {
           return;
         }
         processedLines.add(change.lineNumber);
-        const lineElement = contentElement.children[change.lineNumber];
+        let lineElement = null;
+        if (change.type === "spacer") {
+          lineElement = contentElement.querySelector(`.diff-spacer-block[data-line-number="${change.lineNumber}"]`);
+        } else {
+          const allChildren = Array.from(contentElement.children);
+          const realChildren = allChildren.filter((child) => !child.hasAttribute("data-temp-measurement"));
+          lineElement = realChildren[change.lineNumber];
+        }
         if (!lineElement) {
           return;
         }
-        const elementTop = lineElement.offsetTop;
-        const position = elementTop / totalHeight * 100;
+        if (lineElement.hasAttribute("data-temp-measurement") || lineElement.offsetTop < 0) {
+          return;
+        }
+        const elementOffsetTop = lineElement.offsetTop;
+        const scrollbarPosition = elementOffsetTop / totalHeight * 100;
+        const clampedPosition = Math.max(0, Math.min(100, scrollbarPosition));
         const color = this.getScrollbarMarkerColor(change.type);
         const marker = document.createElement("div");
         marker.className = `diff-scrollbar-marker diff-scrollbar-marker-${change.type}`;
         marker.style.cssText = `
         position: absolute;
-        top: ${position}%;
+        top: ${clampedPosition}%;
         left: 0;
         width: calc(100% - 3px);
-        height: 4px;
+        height: ${change.type === "spacer" ? "3px" : "4px"};
         background-color: ${color};
-        opacity: 0.85;
+        opacity: ${change.type === "spacer" ? "0.6" : "0.85"};
         transition: opacity 0.2s, height 0.2s;
         border-radius: 2px;
+        ${change.type === "spacer" ? "background: repeating-linear-gradient(90deg, " + color + " 0px, " + color + " 4px, transparent 4px, transparent 8px);" : ""}
       `;
-        marker.title = this.getChangeTooltip(change);
+        marker.title = change.type === "spacer" ? "This line does not exist in this version" : this.getChangeTooltip(change);
         marker.style.pointerEvents = "auto";
         marker.style.cursor = "pointer";
         marker.addEventListener("click", () => {
@@ -44204,16 +44255,15 @@ console.log('Hello, World!');
         });
         marker.addEventListener("mouseenter", () => {
           marker.style.opacity = "1";
-          marker.style.height = "6px";
+          marker.style.height = change.type === "spacer" ? "5px" : "6px";
         });
         marker.addEventListener("mouseleave", () => {
-          marker.style.opacity = "0.85";
-          marker.style.height = "4px";
+          marker.style.opacity = change.type === "spacer" ? "0.6" : "0.85";
+          marker.style.height = change.type === "spacer" ? "3px" : "4px";
         });
         indicatorContainer.appendChild(marker);
       });
       document.body.appendChild(indicatorContainer);
-      vscodeLogWarn(`[DIFF-VIZ] \u{1F4CD} Added ${indicatorContainer.children.length} scrollbar indicators for ${this.diffInfo.role} side`);
     }
     scrollToLine(lineNumber) {
       const contentElement = document.querySelector(".vditor-ir > pre.vditor-reset") || document.querySelector("pre.vditor-reset");
@@ -44233,6 +44283,8 @@ console.log('Hello, World!');
           return "var(--vscode-gitDecoration-deletedResourceForeground, #c74e39)";
         case "modified":
           return "var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d)";
+        case "spacer":
+          return "var(--vscode-gitDecoration-deletedResourceForeground, #c74e39)";
       }
     }
   };
@@ -44263,35 +44315,6 @@ console.log('Hello, World!');
         return;
       this.logCursor("\u26A0\uFE0F CursorManager input handling DISABLED for debugging");
     }
-    handleInputEvent(e7) {
-      const inputType = e7.inputType;
-      if (inputType === "insertText" || inputType === "insertCompositionText" || inputType === "deleteContentBackward" || inputType === "deleteContentForward") {
-        this.storeCursorPosition();
-        if (this.isTypingAtEnd()) {
-          this.handleEndOfDocumentTyping(e7);
-        }
-      }
-    }
-    handleKeydown(e7) {
-      if ([
-        "ArrowUp",
-        "ArrowDown",
-        "ArrowLeft",
-        "ArrowRight",
-        "Home",
-        "End",
-        "PageUp",
-        "PageDown"
-      ].includes(e7.key)) {
-        this.storeCursorPosition();
-      }
-      if (e7.key === " " || e7.key === "Spacebar") {
-        this.handleSpaceKey(e7);
-      }
-      if (e7.key === "Enter") {
-        this.handleEnterKey(e7);
-      }
-    }
     handleAfterPaste() {
       this.storeCursorPosition();
       if (this.isTypingAtEnd()) {
@@ -44321,15 +44344,6 @@ console.log('Hello, World!');
       const isInLastNode = range.startContainer === lastTextNode;
       const isAfterLastNode = editor.contains(range.startContainer) && this.getNodePosition(range.startContainer) >= this.getNodePosition(lastTextNode);
       return isInLastNode || isAfterLastNode;
-    }
-    handleEndOfDocumentTyping(e7) {
-      const editor = this.getEditorElement();
-      if (!editor)
-        return;
-      setTimeout(() => {
-        this.ensureTrailingSpace();
-        this.ensureCursorAtActualEnd();
-      }, 5);
     }
     handleSpaceKey(e7) {
       this.storeCursorPosition();
@@ -44366,37 +44380,6 @@ console.log('Hello, World!');
         }
       }, 50);
     }
-    handleEnterKey(e7) {
-      this.storeCursorPosition();
-      e7.preventDefault();
-      e7.stopPropagation();
-      this.insertNewlineManually();
-    }
-    insertNewlineManually() {
-      const selection = window.getSelection();
-      const range = selection?.getRangeAt(0);
-      if (range) {
-        const br = document.createElement("br");
-        const textNode = document.createTextNode("\n");
-        range.insertNode(br);
-        range.setStartAfter(br);
-        range.insertNode(textNode);
-        range.setStartAfter(textNode);
-        range.collapse(true);
-        selection?.removeAllRanges();
-        selection?.addRange(range);
-        this.logCursor("\u21B5 Manual newline insertion completed");
-        setTimeout(() => {
-          if (this.vditor && typeof this.vditor.getValue === "function") {
-            const content = this.vditor.getValue();
-            window.vscode?.postMessage({command: "edit", content});
-          }
-        }, 50);
-      }
-    }
-    handleEndOfDocumentEnter(e7) {
-      this.insertNewlineManually();
-    }
     storeCursorPosition() {
       const selection = window.getSelection();
       if (!selection || selection.rangeCount === 0)
@@ -44406,23 +44389,6 @@ console.log('Hello, World!');
       if (position) {
         this.lastPosition = position;
         this.logCursor(`\u{1F4CD} Stored cursor position: line ${position.line}, char ${position.character}, offset ${position.offset}`);
-      }
-    }
-    restoreCursorPosition() {
-      if (!this.lastPosition || this.isRestoring)
-        return;
-      this.isRestoring = true;
-      try {
-        const restored = this.setCursorToPosition(this.lastPosition);
-        if (restored) {
-          this.logCursor(`\u{1F504} Restored cursor to: line ${this.lastPosition.line}, char ${this.lastPosition.character}`);
-        } else {
-          this.logCursor(`\u274C Failed to restore cursor position`);
-        }
-      } catch (error2) {
-        this.logCursor(`\u274C Error restoring cursor: ${error2}`);
-      } finally {
-        this.isRestoring = false;
       }
     }
     calculateCursorPosition(range) {
@@ -44442,64 +44408,6 @@ console.log('Hello, World!');
       } catch (error2) {
         this.logCursor(`\u274C Error calculating cursor position: ${error2}`);
         return null;
-      }
-    }
-    setCursorToPosition(position) {
-      const editor = this.getEditorElement();
-      if (!editor)
-        return false;
-      try {
-        const textNode = this.findTextNodeAtPosition(position);
-        if (textNode) {
-          const range = document.createRange();
-          const selection = window.getSelection();
-          const offset = Math.min(position.character, textNode.textContent?.length || 0);
-          range.setStart(textNode, offset);
-          range.collapse(true);
-          selection?.removeAllRanges();
-          selection?.addRange(range);
-          return true;
-        }
-        return this.setCursorAtEnd();
-      } catch (error2) {
-        this.logCursor(`\u274C Error setting cursor position: ${error2}`);
-        return false;
-      }
-    }
-    ensureCursorAtActualEnd() {
-      const editor = this.getEditorElement();
-      if (!editor)
-        return;
-      const selection = window.getSelection();
-      if (!selection)
-        return;
-      const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT, null);
-      let lastTextNode = null;
-      let currentNode;
-      currentNode = walker.nextNode();
-      while (currentNode) {
-        if (currentNode.textContent && currentNode.textContent.trim() !== "") {
-          lastTextNode = currentNode;
-        }
-        currentNode = walker.nextNode();
-      }
-      if (lastTextNode) {
-        const range = document.createRange();
-        range.setStart(lastTextNode, lastTextNode.textContent?.length || 0);
-        range.collapse(true);
-        selection.removeAllRanges();
-        selection.addRange(range);
-      }
-    }
-    ensureTrailingSpace() {
-      const editor = this.getEditorElement();
-      if (!editor)
-        return;
-      const lastChild = editor.lastElementChild || editor;
-      const textContent = editor.textContent || "";
-      if (!textContent.endsWith(" ") && !textContent.endsWith("\n")) {
-        const textNode = document.createTextNode(" ");
-        lastChild.appendChild(textNode);
       }
     }
     setCursorAtEnd() {
@@ -44534,35 +44442,6 @@ console.log('Hello, World!');
       beforeRange.setStart(editor, 0);
       beforeRange.setEnd(range.startContainer, range.startOffset);
       return beforeRange.toString();
-    }
-    findTextNodeAtPosition(position) {
-      const editor = this.getEditorElement();
-      if (!editor)
-        return null;
-      const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT, null);
-      let currentLine = 0;
-      let currentChar = 0;
-      let textNode;
-      textNode = walker.nextNode();
-      while (textNode) {
-        const text = textNode.textContent || "";
-        const lines = text.split("\n");
-        if (currentLine === position.line) {
-          if (currentChar + lines[0].length >= position.character) {
-            return textNode;
-          }
-        }
-        currentLine += lines.length - 1;
-        if (lines.length > 1) {
-          currentChar = lines[lines.length - 1].length;
-        } else {
-          currentChar += text.length;
-        }
-        if (currentLine > position.line)
-          break;
-        textNode = walker.nextNode();
-      }
-      return null;
     }
     getNodePosition(node) {
       const editor = this.getEditorElement();
@@ -46191,12 +46070,9 @@ console.log('Hello, World!');
   var cachedCleanHtml = null;
   var isReadOnly = false;
   function cacheCleanIRHtml() {
-    const irElement = document.querySelector(".vditor-ir pre.vditor-reset");
-    if (irElement) {
-      cachedCleanHtml = irElement.innerHTML;
-      if (window.markdownEditorLog) {
-        window.markdownEditorLog(`[CACHE] Cached clean HTML (${cachedCleanHtml.length} chars)`);
-      }
+    cachedCleanHtml = vditor.getHTML();
+    if (window.markdownEditorLog) {
+      window.markdownEditorLog(`[CACHE] Cached clean HTML (${cachedCleanHtml.length} chars)`);
     }
   }
   function processAfterRender() {
@@ -46828,7 +46704,7 @@ console.log('Hello, World!');
     } catch (error2) {
       predictionary = null;
     }
-    let inputTimer;
+    let transientUiTimer;
     if (!wikiLinkAutocomplete) {
       wikiLinkAutocomplete = new WikiLinkAutocomplete();
     }
@@ -47385,93 +47261,50 @@ console.log('Hello, World!');
           showReadOnlyTooltip("This editor is read-only");
           return;
         }
-        let transientUiTimer;
-        inputTimer && clearTimeout(inputTimer);
-        inputTimer = setTimeout(() => {
-          const customRenderTriggers = document.querySelectorAll(".vditor-copy");
-          let shouldResetValue = false;
-          customRenderTriggers.forEach((trigger) => {
-            const next = trigger.nextElementSibling;
-            if (next && (next.classList.contains("language-kanban-board") || next.classList.contains("language-table") || next.classList.contains("language-playground"))) {
-              trigger.remove();
-              shouldResetValue = true;
-            }
-          });
-          const selection = window.getSelection();
-          if (selection && selection.rangeCount > 0) {
-            const range = selection.getRangeAt(0);
-            const editor2 = document.querySelector(".vditor-ir .vditor-reset");
-            if (editor2) {
-              const textContent = editor2.textContent || "";
-              const beforeCursor = textContent.substring(0, range.startOffset);
-              const lines = beforeCursor.split("\n");
-              vscode.postMessage({
-                command: "cursorPosition",
-                line: lines.length - 1,
-                character: lines[lines.length - 1].length
-              });
-            }
+        const customRenderTriggers = document.querySelectorAll(".vditor-copy");
+        let shouldResetValue = false;
+        customRenderTriggers.forEach((trigger) => {
+          const next = trigger.nextElementSibling;
+          if (next && (next.classList.contains("language-kanban-board") || next.classList.contains("language-table") || next.classList.contains("language-playground"))) {
+            trigger.remove();
+            shouldResetValue = true;
           }
-          if (diagnosticVisualizer) {
-            diagnosticVisualizer.cleanupTransientUI();
-          }
-          if (diffVisualizer) {
-            diffVisualizer.clearDiffDecorations();
-            diffVisualizer.clearSpacerBlocks();
-          }
+        });
+        const selection = window.getSelection();
+        if (selection && selection.rangeCount > 0) {
+          const range = selection.getRangeAt(0);
           const editor = document.querySelector(".vditor-ir .vditor-reset");
           if (editor) {
-            const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT, null);
-            let textNode;
-            const textNodesToFix = [];
-            while ((textNode = walker.nextNode()) !== null) {
-              if (textNode.textContent && textNode.textContent.includes("\u{1F4A1}")) {
-                textNodesToFix.push(textNode);
-              }
-            }
-            textNodesToFix.forEach((node) => {
-              const cleanText = node.textContent.replace(/💡/g, "");
-              if (cleanText !== node.textContent) {
-                node.textContent = cleanText;
-              }
+            const textContent = editor.textContent || "";
+            const beforeCursor = textContent.substring(0, range.startOffset);
+            const lines = beforeCursor.split("\n");
+            vscode.postMessage({
+              command: "cursorPosition",
+              line: lines.length - 1,
+              character: lines[lines.length - 1].length
             });
           }
-          setTimeout(() => {
-            cacheCleanIRHtml();
-            const content = vditor.getValue();
-            vscode.postMessage({command: "edit", content});
-            if (shouldResetValue) {
-              vditor.setValue(content);
+        }
+        const rawContent = vditor.getValue();
+        cacheCleanIRHtml();
+        vscode.postMessage({command: "edit", content: rawContent});
+        if (shouldResetValue) {
+          vditor.setValue(rawContent);
+        }
+        transientUiTimer && clearTimeout(transientUiTimer);
+        transientUiTimer = setTimeout(() => {
+          if (wikiLinkHandler && !wikiLinkHandler.isSetup) {
+            const vdt = window.vditor;
+            const editorElement = vdt.vditor?.ir?.element || vdt.vditor?.wysiwyg?.element;
+            if (editorElement) {
+              wikiLinkHandler.isSetup = true;
+              wikiLinkHandler.editorElement = editorElement;
             }
-          }, 50);
-          transientUiTimer && clearTimeout(transientUiTimer);
-          transientUiTimer = setTimeout(() => {
-            if (diagnosticVisualizer) {
-              diagnosticVisualizer.addSimpleDiagnostics();
-              window.__lastDiagnosticUpdate = Date.now();
-            }
-            if (diffVisualizer && diffVisualizer.inDiffView()) {
-              const diffInfo = diffVisualizer.getDiffInfo();
-              if (diffInfo) {
-                window.postMessage({
-                  type: "diff-view-detected",
-                  diffInfo
-                }, "*");
-              }
-            }
-            if (wikiLinkHandler && !wikiLinkHandler.isSetup) {
-              const vdt = window.vditor;
-              const editorElement = vdt.vditor?.ir?.element || vdt.vditor?.wysiwyg?.element;
-              if (editorElement) {
-                wikiLinkHandler.isSetup = true;
-                wikiLinkHandler.editorElement = editorElement;
-              }
-            }
-            if (wikiLinkHandler && wikiLinkHandler.isSetup) {
-              wikiLinkHandler.handleInputForProcessing?.();
-            }
-          }, 5e3);
-        }, 400);
+          }
+          if (wikiLinkHandler && wikiLinkHandler.isSetup) {
+            wikiLinkHandler.handleInputForProcessing?.();
+          }
+        }, 5e3);
       },
       upload: {
         url: "/fuzzy",
@@ -47491,6 +47324,8 @@ console.log('Hello, World!');
       },
       customRenders: generateVditorCustomRenders(window.currentDocumentFilename || msg.documentFilename || "untitled", window.vditor)
     });
+    window.vditor.getValue = () => getValue(window.vditor.vditor);
+    window.vditor.getHTML = () => getHTML(window.vditor.vditor);
   }
   window.addEventListener("message", (e7) => {
     const msg = e7.data;
@@ -47823,10 +47658,10 @@ console.log('Hello, World!');
             }
             codeBlock.textContent = newContent;
             if (window.vditor) {
-              const fullContent = window.vditor.getValue();
-              vscode.postMessage({command: "edit", content: fullContent});
+              const rawContent = vditor.getValue();
+              vscode.postMessage({command: "edit", content: rawContent});
               setTimeout(() => {
-                window.vditor.setValue(fullContent);
+                window.vditor.setValue(rawContent);
               }, 100);
             }
             break;

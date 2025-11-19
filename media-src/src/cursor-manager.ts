@@ -69,65 +69,6 @@ export class CursorManager {
 
     // TEMPORARILY DISABLED - Let's test vanilla Vditor behavior first
     this.logCursor("⚠️ CursorManager input handling DISABLED for debugging");
-    
-    // TODO: Re-enable after identifying root cause
-    /*
-    // Handle input events
-    editor.addEventListener('input', (e) => {
-      this.handleInputEvent(e as InputEvent);
-    });
-
-    // Handle key events that might cause cursor movement
-    editor.addEventListener('keydown', (e) => {
-      this.handleKeydown(e as KeyboardEvent);
-    });
-    */
-
-    // Note: Paste events are handled by VSCodeIntegrator to avoid conflicts
-    // CursorManager will be notified via handleAfterPaste() method
-  }
-
-  /**
-   * Handle input events to maintain cursor position
-   */
-  private handleInputEvent(e: InputEvent): void {
-    const inputType = e.inputType;
-    
-    // Store position before potentially problematic operations
-    if (inputType === 'insertText' || 
-        inputType === 'insertCompositionText' ||
-        inputType === 'deleteContentBackward' ||
-        inputType === 'deleteContentForward') {
-      
-      // Store current position
-      this.storeCursorPosition();
-      
-      // Handle end-of-document typing specifically
-      if (this.isTypingAtEnd()) {
-        this.handleEndOfDocumentTyping(e);
-      }
-    }
-  }
-
-  /**
-   * Handle keydown events
-   */
-  private handleKeydown(e: KeyboardEvent): void {
-    // Store position before navigation keys
-    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 
-         'Home', 'End', 'PageUp', 'PageDown'].includes(e.key)) {
-      this.storeCursorPosition();
-    }
-    
-    // Handle space key to prevent cursor jumping
-    if (e.key === ' ' || e.key === 'Spacebar') {
-      this.handleSpaceKey(e);
-    }
-    
-    // Handle Enter key at end of document
-    if (e.key === 'Enter') {
-      this.handleEnterKey(e);
-    }
   }
 
   /**
@@ -180,21 +121,6 @@ export class CursorManager {
                            this.getNodePosition(range.startContainer) >= this.getNodePosition(lastTextNode);
 
     return isInLastNode || isAfterLastNode;
-  }
-
-  /**
-   * Handle typing at end of document to prevent cursor jumping
-   */
-  private handleEndOfDocumentTyping(e: InputEvent): void {
-    // Ensure there's always a place for the cursor at the end
-    const editor = this.getEditorElement();
-    if (!editor) return;
-
-    // Add a trailing space or ensure proper structure
-    setTimeout(() => {
-      this.ensureTrailingSpace();
-      this.ensureCursorAtActualEnd();
-    }, 5);
   }
 
   /**
@@ -253,62 +179,6 @@ export class CursorManager {
   }
 
   /**
-   * Handle Enter key to prevent cursor jumping
-   */
-  public handleEnterKey(e: KeyboardEvent): void {
-    // Store current position before enter
-    this.storeCursorPosition();
-    
-    // Prevent default to stop Vditor from processing the enter key
-    e.preventDefault();
-    e.stopPropagation();
-    
-    this.insertNewlineManually();
-  }
-
-  /**
-   * Manually insert newline to prevent Vditor formatting
-   */
-  private insertNewlineManually(): void {
-    const selection = window.getSelection();
-    const range = selection?.getRangeAt(0);
-    
-    if (range) {
-      // Create a new line break element
-      const br = document.createElement('br');
-      const textNode = document.createTextNode('\n');
-      
-      // Insert both br for display and text node for content
-      range.insertNode(br);
-      range.setStartAfter(br);
-      range.insertNode(textNode);
-      range.setStartAfter(textNode);
-      range.collapse(true);
-      
-      selection?.removeAllRanges();
-      selection?.addRange(range);
-      
-      this.logCursor('↵ Manual newline insertion completed');
-      
-      // Trigger content update to VS Code
-      setTimeout(() => {
-        if (this.vditor && typeof this.vditor.getValue === 'function') {
-          const content = this.vditor.getValue();
-          (window as any).vscode?.postMessage({ command: "edit", content });
-        }
-      }, 50);
-    }
-  }
-
-  /**
-   * Handle Enter key at end of document (legacy method, now uses manual insertion)
-   */
-  private handleEndOfDocumentEnter(e: KeyboardEvent): void {
-    // This method is now handled by insertNewlineManually
-    this.insertNewlineManually();
-  }
-
-  /**
    * Store current cursor position
    */
   public storeCursorPosition(): void {
@@ -321,28 +191,6 @@ export class CursorManager {
     if (position) {
       this.lastPosition = position;
       this.logCursor(`📍 Stored cursor position: line ${position.line}, char ${position.character}, offset ${position.offset}`);
-    }
-  }
-
-  /**
-   * Restore cursor position
-   */
-  private restoreCursorPosition(): void {
-    if (!this.lastPosition || this.isRestoring) return;
-
-    this.isRestoring = true;
-    
-    try {
-      const restored = this.setCursorToPosition(this.lastPosition);
-      if (restored) {
-        this.logCursor(`🔄 Restored cursor to: line ${this.lastPosition.line}, char ${this.lastPosition.character}`);
-      } else {
-        this.logCursor(`❌ Failed to restore cursor position`);
-      }
-    } catch (error) {
-      this.logCursor(`❌ Error restoring cursor: ${error}`);
-    } finally {
-      this.isRestoring = false;
     }
   }
 
@@ -369,95 +217,6 @@ export class CursorManager {
     } catch (error) {
       this.logCursor(`❌ Error calculating cursor position: ${error}`);
       return null;
-    }
-  }
-
-  /**
-   * Set cursor to specific position
-   */
-  private setCursorToPosition(position: { line: number; character: number; offset: number }): boolean {
-    const editor = this.getEditorElement();
-    if (!editor) return false;
-
-    try {
-      // Try to find the exact position in the DOM
-      const textNode = this.findTextNodeAtPosition(position);
-      if (textNode) {
-        const range = document.createRange();
-        const selection = window.getSelection();
-        
-        // Set range at calculated position
-        const offset = Math.min(position.character, textNode.textContent?.length || 0);
-        range.setStart(textNode, offset);
-        range.collapse(true);
-        
-        selection?.removeAllRanges();
-        selection?.addRange(range);
-        
-        return true;
-      }
-
-      // Fallback: position at end of editor
-      return this.setCursorAtEnd();
-      
-    } catch (error) {
-      this.logCursor(`❌ Error setting cursor position: ${error}`);
-      return false;
-    }
-  }
-
-  /**
-   * Ensure cursor is positioned at the actual end of content
-   */
-  private ensureCursorAtActualEnd(): void {
-    const editor = this.getEditorElement();
-    if (!editor) return;
-
-    const selection = window.getSelection();
-    if (!selection) return;
-
-    // Find the actual last position in the editor
-    const walker = document.createTreeWalker(
-      editor,
-      NodeFilter.SHOW_TEXT,
-      null
-    );
-
-    let lastTextNode: Text | null = null;
-    let currentNode: Node | null;
-    
-    currentNode = walker.nextNode();
-    while (currentNode) {
-      if (currentNode.textContent && currentNode.textContent.trim() !== '') {
-        lastTextNode = currentNode as Text;
-      }
-      currentNode = walker.nextNode();
-    }
-
-    if (lastTextNode) {
-      const range = document.createRange();
-      range.setStart(lastTextNode, lastTextNode.textContent?.length || 0);
-      range.collapse(true);
-      
-      selection.removeAllRanges();
-      selection.addRange(range);
-    }
-  }
-
-  /**
-   * Ensure there's always a trailing space for cursor positioning
-   */
-  private ensureTrailingSpace(): void {
-    const editor = this.getEditorElement();
-    if (!editor) return;
-
-    const lastChild = editor.lastElementChild || editor;
-    const textContent = editor.textContent || '';
-    
-    // If content doesn't end with whitespace, add a space
-    if (!textContent.endsWith(' ') && !textContent.endsWith('\n')) {
-      const textNode = document.createTextNode(' ');
-      lastChild.appendChild(textNode);
     }
   }
 
@@ -508,50 +267,6 @@ export class CursorManager {
     beforeRange.setEnd(range.startContainer, range.startOffset);
     
     return beforeRange.toString();
-  }
-
-  /**
-   * Find text node at specific position
-   */
-  private findTextNodeAtPosition(position: { line: number; character: number }): Text | null {
-    const editor = this.getEditorElement();
-    if (!editor) return null;
-
-    const walker = document.createTreeWalker(
-      editor,
-      NodeFilter.SHOW_TEXT,
-      null
-    );
-
-    let currentLine = 0;
-    let currentChar = 0;
-    let textNode: Node | null;
-
-    textNode = walker.nextNode();
-    while (textNode) {
-      const text = textNode.textContent || '';
-      const lines = text.split('\n');
-      
-      if (currentLine === position.line) {
-        // We're on the target line
-        if (currentChar + lines[0].length >= position.character) {
-          return textNode as Text;
-        }
-      }
-      
-      // Update counters
-      currentLine += lines.length - 1;
-      if (lines.length > 1) {
-        currentChar = lines[lines.length - 1].length;
-      } else {
-        currentChar += text.length;
-      }
-      
-      if (currentLine > position.line) break;
-      textNode = walker.nextNode();
-    }
-
-    return null;
   }
 
   /**
