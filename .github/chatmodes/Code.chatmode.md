@@ -5,7 +5,7 @@ model: Claude Sonnet 4.5
 handoffs:
   - label: Start Code Review
     agent: Review
-    prompt: The implementation task has been completed with code changes, tests, and documentation as needed.
+    prompt: Implement the identified task with code changes, tests, and documentation as needed.
     send: true
 ---
 ## Role
