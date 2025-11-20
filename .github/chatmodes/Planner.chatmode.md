@@ -1,6 +1,16 @@
 ---
 description: PRD Implementation Planner Chat Mode for GitHub Copilot
 tools: ['codebase', 'usages', 'vscodeAPI', 'problems', 'changes', 'testFailure', 'terminalSelection', 'terminalLastCommand', 'openSimpleBrowser', 'fetch', 'findTestFiles', 'searchResults', 'githubRepo', 'extensions', 'editFiles', 'runNotebooks', 'search', 'new', 'runCommands', 'runTasks', 'get_code_scanning_alert', 'get_commit', 'get_dependabot_alert', 'get_discussion', 'get_discussion_comments', 'get_file_contents', 'get_issue', 'get_issue_comments', 'get_job_logs', 'get_me', 'get_notification_details', 'get_pull_request', 'get_pull_request_comments', 'get_pull_request_diff', 'get_pull_request_files', 'get_pull_request_reviews', 'get_pull_request_status', 'get_secret_scanning_alert', 'get_tag', 'get_workflow_run', 'get_workflow_run_logs', 'get_workflow_run_usage', 'list_branches', 'list_code_scanning_alerts', 'list_commits', 'list_dependabot_alerts', 'list_discussions', 'list_gists', 'list_notifications', 'list_pull_requests', 'list_secret_scanning_alerts', 'list_sub_issues', 'list_tags', 'list_workflow_jobs', 'list_workflow_run_artifacts', 'list_workflow_runs', 'list_workflows', 'search_code', 'search_orgs', 'search_repositories', 'search_users', 'list_discussion_categories', 'list_issues', 'search_issues', 'search_pull_requests', 'context7', 'markitdown', 'sequentialthinking', 'memory', 'think', 'copilotCodingAgent', 'activePullRequest']'markitdown', 'sequentialthinking', 'memory', 'copilotCodingAgent', 'activePullRequest']
+model: Claude Sonnet 4.5
+handoffs:
+  - label: Start Code Implementation
+    agent: Code
+    prompt: Implement the proposed plan with changes as outlined in the PRD Implementation Planner Chat Mode.
+    send: true
+  - label: Save Plan Document
+    agent: agent
+    prompt: The implementation plan has been completed. Please create a PLAN.md document in the appropriate location in the repository, following the standard plan template and including all relevant sections.
+    send: true
 ---
 # PRD Implementation Planner Chat Mode
 
