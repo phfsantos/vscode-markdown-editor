@@ -24,5 +24,6 @@
         "titleBar.inactiveBackground": "#a1292b99",
         "titleBar.inactiveForeground": "#e7e7e799"
     },
-    "peacock.remoteColor": "#a1292b"
+    "peacock.remoteColor": "#a1292b",
+    "git-worktree-menu.worktreeDir": "/var/www/vscode-markdown-editor/.worktrees"
 }
