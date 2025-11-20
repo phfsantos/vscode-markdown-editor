@@ -4,7 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const distDir = path.join(__dirname, '..', 'sidebar-dist');
+const distDir = path.join(__dirname, '..', '..', 'out', 'sidebar');
 
 // Create dist directory
 if (!fs.existsSync(distDir)) {
@@ -12,7 +12,7 @@ if (!fs.existsSync(distDir)) {
 }
 
 // Copy compiled JS
-const jsSource = path.join(__dirname, '..', 'sidebar-dist', 'sidebar.js');
+const jsSource = path.join(__dirname, '..', '..', 'out', 'sidebar', 'sidebar.js');
 const jsTarget = path.join(distDir, 'sidebar.js');
 if (fs.existsSync(jsSource)) {
   fs.copyFileSync(jsSource, jsTarget);
@@ -28,7 +28,7 @@ if (fs.existsSync(cssSource)) {
 }
 
 // Copy codicon font
-const codiconTtfSource = path.join(__dirname, '..', 'node_modules', '@vscode', 'codicons', 'dist', 'codicon.ttf');
+const codiconTtfSource = path.join(__dirname, '..', '..', 'node_modules', '@vscode', 'codicons', 'dist', 'codicon.ttf');
 const codiconTtfTarget = path.join(distDir, 'codicon.ttf');
 if (fs.existsSync(codiconTtfSource)) {
   fs.copyFileSync(codiconTtfSource, codiconTtfTarget);

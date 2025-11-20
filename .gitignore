@@ -60,8 +60,7 @@ typings/
 lib
 *.vsix
 out
-sidebar-dist/
-media/
+./media/
 
 #worktrees
 .worktrees/

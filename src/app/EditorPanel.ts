@@ -579,7 +579,7 @@ export class EditorPanel {
             // Generate CDN base URI for Vditor to locate assets
             // Points to media/dist directory where all Vditor assets are bundled
             const mediaUri = this._panel.webview.asWebviewUri(
-              vscode.Uri.joinPath(this._extensionUri, "media")
+              vscode.Uri.joinPath(this._extensionUri, "out", "media")
             );
             const cdnBaseUri = mediaUri.toString();
 
@@ -3415,23 +3415,23 @@ export class EditorPanel {
       NodePath.dirname(
         webview.asWebviewUri(vscode.Uri.file(this._fsPath)).toString()
       ) + "/";
-    const toMediaPath = (f: string) => `media/dist/${f}`;
+    const toMediaPath = (f: string) => `out/media/${f}`;
     const JsFiles = ["main.js"].map(toMediaPath).map(toUri);
     const CssFiles = ["main.css"].map(toMediaPath).map(toUri);
 
     // Add Vditor dependencies that need to execute before main.js
     // These set window.VditorI18n and insert SVG icons into the DOM
     const VditorDepsFiles = [
-      "js/i18n/en_US.js",
-      "js/icons/ant.js",
-      "js/icons/material.js",
+      "dist/js/i18n/en_US.js",
+      "dist/js/icons/ant.js",
+      "dist/js/icons/material.js",
     ]
       .map(toMediaPath)
       .map(toUri);
 
-    // Add codicon CSS from sidebar-dist (same as sidebar)
+    // Add codicon CSS from out/sidebar (same as sidebar)
     const codiconsUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, "sidebar-dist", "codicon.css")
+      vscode.Uri.joinPath(this._extensionUri, "out", "sidebar", "codicon.css")
     );
 
     return `<!DOCTYPE html>

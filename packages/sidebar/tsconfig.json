@@ -5,7 +5,7 @@
     "lib": ["ES2020", "DOM"],
     "sourceMap": true,
     "rootDir": ".",
-    "outDir": "../sidebar-dist",
+    "outDir": "../../out/sidebar",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,

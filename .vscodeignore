@@ -1,8 +1,8 @@
 .vscode
 .github
 src/
-media-src/
-sidebar-src/
+packages/media/
+packages/sidebar/
 test/
 node_modules
 tsconfig.json

@@ -1,10 +1,10 @@
 {
-  "name": "media-src",
+  "name": "@markdown-editor/media",
   "version": "0.0.0",
   "private": "true",
   "scripts": {
-    "start": "yarn esbuild ./src/main.ts --bundle --watch --sourcemap --outfile=../media/dist/main.js",
-    "build": "rm -rf ../media/dist; yarn esbuild ./src/main.ts --bundle --minify --sourcemap --outfile=../media/dist/main.js && mkdir -p ../media/dist && cp -r ./node_modules/vditor/dist/js ../media/dist/ && cp -r ./node_modules/vditor/dist/css ../media/dist/"
+    "start": "yarn esbuild ./src/main.ts --bundle --watch --sourcemap --outfile=../../out/media/main.js",
+    "build": "rm -rf ../../out/media; yarn esbuild ./src/main.ts --bundle --minify --sourcemap --outfile=../../out/media/main.js && mkdir -p ../../out/media/dist/js && mkdir -p ../../out/media/dist/css && cp -r ./node_modules/vditor/dist/js ../../out/media/dist/ && cp -r ./node_modules/vditor/dist/css ../../out/media/dist/"
   },
   "browserslist": "> 0%",
   "devDependencies": {

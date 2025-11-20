@@ -370,7 +370,7 @@ export class MarkdownSidebarProvider implements vscode.WebviewViewProvider {
     webviewView.webview.options = {
       enableScripts: true,
       localResourceRoots: [
-        vscode.Uri.joinPath(this._extensionUri, 'sidebar-dist')
+        vscode.Uri.joinPath(this._extensionUri, 'out', 'sidebar')
       ]
     };
 
@@ -906,13 +906,13 @@ export class MarkdownSidebarProvider implements vscode.WebviewViewProvider {
    */
   private _getHtmlForWebview(webview: vscode.Webview): string {
     const scriptUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, 'sidebar-dist', 'sidebar.js')
+      vscode.Uri.joinPath(this._extensionUri, 'out', 'sidebar', 'sidebar.js')
     );
     const styleUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, 'sidebar-dist', 'sidebar.css')
+      vscode.Uri.joinPath(this._extensionUri, 'out', 'sidebar', 'sidebar.css')
     );
     const codiconsUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, 'sidebar-dist', 'codicon.css')
+      vscode.Uri.joinPath(this._extensionUri, 'out', 'sidebar', 'codicon.css')
     );
 
     return `<!DOCTYPE html>
