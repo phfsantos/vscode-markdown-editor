@@ -60,7 +60,6 @@ typings/
 lib
 *.vsix
 out
-./media/
 
 #worktrees
 .worktrees/
