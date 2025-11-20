@@ -3,27 +3,22 @@ import "./preload";
 import {
   fileToBase64,
   fixCut,
-  fixDarkTheme,
   fixLinkClick,
-  fixPanelHover,
-  handleToolbarClick,
   saveVditorOptions,
-  cleanContentForSave,
   getHTML,
   getValue,
 } from "./utils";
 
 import { merge } from "lodash";
 import Vditor from "vditor";
-import { format, set } from "date-fns";
+import { format } from "date-fns";
 // Import Predictionary v1.6.0 - ES6 module with proper exports
 import Predictionary from "predictionary/src/index.mjs";
 import "vditor/dist/index.css";
 // Note: Vditor i18n and icons are loaded as separate <script> tags in the HTML
 // before main.js to ensure they execute first and set window.VditorI18n and insert SVG icons
-import { t, lang } from "./lang";
+import { lang } from "./lang";
 import { toolbar } from "./toolbar";
-import { fixTableIr } from "./fix-table-ir";
 import words from "./words.en.txt";
 
 // Renderer System
@@ -50,7 +45,6 @@ let findReplaceManager: FindReplaceManager | null = null;
 let wikiLinkAutocomplete: WikiLinkAutocomplete | null = null;
 let wikiLinkHandler: WikiLinkHandler | null = null;
 let imageURIConverter: ImageURIConverter | null = null;
-let cachedCleanHtml: string | null = null; // Cache clean HTML before decorations
 
 // Track when we just received setValue from external change (undo/redo)
 let justReceivedExternalChange = false;
@@ -59,26 +53,10 @@ let justReceivedExternalChange = false;
 let isReadOnly = false;
 
 /**
- * Cache the clean IR HTML before any decorations are applied
- * This is called after Vditor renders but before diagnostics/diff
- */
-function cacheCleanIRHtml(): void {
-  cachedCleanHtml = vditor.getHTML();
-  if ((window as any).markdownEditorLog) {
-    (window as any).markdownEditorLog(
-      `[CACHE] Cached clean HTML (${cachedCleanHtml.length} chars)`
-    );
-  }
-}
-/**
  * Process wiki-links and diagnostics after Vditor renders/re-renders content
  * Called after: initial load, setValue (undo/redo), and any content refresh
  */
 function processAfterRender() {
-  // CRITICAL: Cache clean HTML BEFORE applying any decorations
-  // This gives us a baseline for diff calculation without needing to clear decorations
-  cacheCleanIRHtml();
-
   // Re-process wiki-links to restore IR structure
   if (wikiLinkHandler) {
     wikiLinkHandler.processWikiLinksInEditor();
@@ -1717,9 +1695,6 @@ function initVditor(msg) {
       // Using string manipulation instead of DOM cleanup prevents text jumping
       const rawContent = vditor.getValue();
 
-      // Cache cleaned IR HTML
-      cacheCleanIRHtml();
-
       // Send cleaned content to VS Code
       vscode.postMessage({ command: "edit", content: rawContent });
 
@@ -1846,7 +1821,6 @@ window.addEventListener("message", (e) => {
       } else {
         // Mark that we just received an external change (undo/redo/external edit)
         justReceivedExternalChange = true;
-        vscodeLog('🔄 External change detected, setting justReceivedExternalChange=true');
         
         vditor.setValue(msg.content);
 
@@ -1861,7 +1835,6 @@ window.addEventListener("message", (e) => {
         
         // Clear flag after 500ms (diagnostics should arrive within this window)
         setTimeout(() => {
-          vscodeLog('🔄 Clearing justReceivedExternalChange flag');
           justReceivedExternalChange = false;
         }, 500);
       }
@@ -1897,7 +1870,6 @@ window.addEventListener("message", (e) => {
         // Pass additional document context to the visualizer
         // Force apply if we just received an external change (undo/redo)
         const shouldForceApply = justReceivedExternalChange;
-        vscodeLog(`📊 Received ${msg.diagnostics.length} diagnostics, forceApply=${shouldForceApply}`);
         
         diagnosticVisualizer.updateDiagnostics(
           msg.diagnostics, 
@@ -2136,61 +2108,11 @@ window.addEventListener("message", (e) => {
       }
 
       try {
-        // BETTER SOLUTION: Use cached clean HTML if available
-        // This avoids clearing and reapplying decorations
-        if (cachedCleanHtml) {
-          if ((window as any).markdownEditorLog) {
-            (window as any).markdownEditorLog(
-              `[WEBVIEW] Using cached HTML (${cachedCleanHtml.length} chars) for requestId: ${msg.requestId}`
-            );
-          }
-
           vscode.postMessage({
             command: "irHtmlResponse",
-            html: cachedCleanHtml,
+            html: vditor.getHTML(), // still use vditor.getHTML() to ensure consistency
             requestId: msg.requestId,
           });
-        } else {
-          // Fallback: Get current HTML (may have decorations, but better than nothing)
-          const irElement = document.querySelector(
-            ".vditor-ir pre.vditor-reset"
-          );
-
-          if ((window as any).markdownEditorLog) {
-            (window as any).markdownEditorLog(
-              `[WEBVIEW] IR element found: ${!!irElement}, no cache available`
-            );
-          }
-
-          if (irElement) {
-            const cleanHtml = irElement.innerHTML;
-
-            if ((window as any).markdownEditorLog) {
-              (window as any).markdownEditorLog(
-                `[WEBVIEW] Sending current HTML (${cleanHtml.length} chars) for requestId: ${msg.requestId}`
-              );
-            }
-
-            vscode.postMessage({
-              command: "irHtmlResponse",
-              html: cleanHtml,
-              requestId: msg.requestId,
-            });
-          } else {
-            if ((window as any).markdownEditorLog) {
-              (window as any).markdownEditorLog(
-                `[WEBVIEW] IR element not found, sending error for requestId: ${msg.requestId}`
-              );
-            }
-
-            vscode.postMessage({
-              command: "irHtmlResponse",
-              html: null,
-              requestId: msg.requestId,
-              error: "IR element not found",
-            });
-          }
-        }
       } catch (error) {
         if ((window as any).markdownEditorLog) {
           (window as any).markdownEditorLog(

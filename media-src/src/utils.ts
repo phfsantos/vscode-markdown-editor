@@ -141,6 +141,24 @@ export function fixCut() {
 }
 
 
+// Regex patterns for content cleaning - extracted for performance and maintainability
+const REGEX_DIAGNOSTIC_SPAN = /<span\s+(?:[^>]*\s+)?class="[^"]*\bvscode-diagnostic-[^"\s]*[^"]*"[^>]*>(.*?)<\/span>/g;
+const REGEX_DIAGNOSTIC_SOURCE_ATTR = /\s+data-diagnostic-source="[^"]*"/g;
+const REGEX_DIFF_SPAN = /<span\s+(?:[^>]*\s+)?class="[^"]*\bvscode-diff-(?:added|removed|modified)\b[^"]*"[^>]*>(.*?)<\/span>/g;
+const REGEX_SPACER_BLOCK_BY_CLASS = /<(?:div|p|span|section|article)[^>]*\bclass="[^"]*\bdiff-spacer-block\b[^"]*"[^>]*>[\s\S]*?<\/(?:div|p|span|section|article)>/g;
+const REGEX_SPACER_BLOCK_BY_ATTR = /<[^>]*\bdata-diff-spacer="true"[^>]*>[\s\S]*?<\/[^>]+>/g;
+const REGEX_DATA_DIFF_TYPE = /\s+data-diff-type="[^"]*"/g;
+const REGEX_DATA_DIFF_LINE = /\s+data-diff-line="[^"]*"/g;
+const REGEX_DATA_DECORATION_ID = /\s+data-decoration-id="[^"]*"/g;
+const REGEX_DATA_DIFF_SPACER = /\s+data-diff-spacer="[^"]*"/g;
+const REGEX_DATA_LINE_NUMBER = /\s+data-line-number="[^"]*"/g;
+const REGEX_LIGHTBULB_EMOJI = /💡/g;
+const REGEX_LOCK_EMOJI = /🔒/g;
+const REGEX_DECORATION_STYLES = /\s+style="[^"]*(?:text-decoration|background-color|border-bottom|border-left|padding-left|padding-bottom|pointer-events|user-select|cursor|opacity|display|background|position|min-height)[^"]*"/g;
+const REGEX_SPACER_COMMENT = /<!--\s*vscode-diff-spacer:\s*\d+\s*-->/g;
+const REGEX_CONTENTEDITABLE_FALSE = /\s+contenteditable="false"/g;
+const REGEX_EMPTY_SPAN = /<span><\/span>/g;
+
 /**
  * Clean HTML/markdown content by removing diagnostic and diff decoration artifacts
  * This avoids DOM manipulation and prevents text jumping
@@ -159,14 +177,34 @@ export function cleanContentForSave(content: string): string {
   let prevCleaned = "";
   while (prevCleaned !== cleaned) {
     prevCleaned = cleaned;
-    cleaned = cleaned.replace(
-      /<span\s+(?:[^>]*\s+)?class="[^"]*\bvscode-diagnostic-[^"\s]*[^"]*"[^>]*>(.*?)<\/span>/g,
-      "$1"
-    );
+    cleaned = cleaned.replace(REGEX_DIAGNOSTIC_SPAN, "$1");
   }
 
   // Remove diagnostic source attributes
-  cleaned = cleaned.replace(/\s+data-diagnostic-source="[^"]*"/g, "");
+  cleaned = cleaned.replace(REGEX_DIAGNOSTIC_SOURCE_ATTR, "");
+
+  // CRITICAL: Remove entire diff spacer blocks (prevents them from being compared)
+  // This must be done BEFORE removing other attributes to catch complete elements
+  // Remove spacer divs/elements with class="diff-spacer-block"
+  prevCleaned = "";
+  while (prevCleaned !== cleaned) {
+    prevCleaned = cleaned;
+    cleaned = cleaned.replace(REGEX_SPACER_BLOCK_BY_CLASS, "");
+  }
+  
+  // Also remove any standalone spacer blocks with data-diff-spacer attribute
+  prevCleaned = "";
+  while (prevCleaned !== cleaned) {
+    prevCleaned = cleaned;
+    cleaned = cleaned.replace(REGEX_SPACER_BLOCK_BY_ATTR, "");
+  }
+
+  // Remove diff decoration data attributes
+  cleaned = cleaned.replace(REGEX_DATA_DIFF_TYPE, "");
+  cleaned = cleaned.replace(REGEX_DATA_DIFF_LINE, "");
+  cleaned = cleaned.replace(REGEX_DATA_DECORATION_ID, "");
+  cleaned = cleaned.replace(REGEX_DATA_DIFF_SPACER, "");
+  cleaned = cleaned.replace(REGEX_DATA_LINE_NUMBER, "");
 
   // Remove diff decoration spans (added, removed, modified)
   // Handles class attribute anywhere in the span tag and diff class anywhere in the class list
@@ -174,26 +212,26 @@ export function cleanContentForSave(content: string): string {
   prevCleaned = "";
   while (prevCleaned !== cleaned) {
     prevCleaned = cleaned;
-    cleaned = cleaned.replace(
-      /<span\s+(?:[^>]*\s+)?class="[^"]*\bvscode-diff-(?:added|removed|modified)\b[^"]*"[^>]*>(.*?)<\/span>/g,
-      "$1"
-    );
+    cleaned = cleaned.replace(REGEX_DIFF_SPAN, "$1");
   }
 
   // Remove lightbulb emoji characters
-  cleaned = cleaned.replace(/💡/g, "");
+  cleaned = cleaned.replace(REGEX_LIGHTBULB_EMOJI, "");
+  
+  // Remove lock emoji characters from spacers
+  cleaned = cleaned.replace(REGEX_LOCK_EMOJI, "");
 
   // Remove any inline styles added by decorations
-  cleaned = cleaned.replace(
-    /\s+style="[^"]*(?:text-decoration|background-color|border-bottom)[^"]*"/g,
-    ""
-  );
+  cleaned = cleaned.replace(REGEX_DECORATION_STYLES, "");
 
-  // Remove diff spacer block markers
-  cleaned = cleaned.replace(/<!--\s*vscode-diff-spacer:\s*\d+\s*-->/g, "");
+  // Remove diff spacer block markers (comment format)
+  cleaned = cleaned.replace(REGEX_SPACER_COMMENT, "");
+  
+  // Remove contenteditable attributes added to spacers
+  cleaned = cleaned.replace(REGEX_CONTENTEDITABLE_FALSE, "");
 
   // Remove any empty spans that might be left over
-  cleaned = cleaned.replace(/<span><\/span>/g, "");
+  cleaned = cleaned.replace(REGEX_EMPTY_SPAN, "");
 
   return cleaned;
 }

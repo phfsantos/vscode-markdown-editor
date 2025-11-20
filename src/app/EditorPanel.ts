@@ -56,6 +56,7 @@ export class EditorPanel {
   } | null = null;
   private _lastWebviewEdit = 0;
   private _diffCheckTimeout: NodeJS.Timeout | undefined;
+  private _diffUpdateDebounceTimeout: NodeJS.Timeout | undefined; // NEW: Debounce diff updates while typing
   private _diffApplied = false; // Track if diff has been applied to THIS webview instance
   private _lastDiffCheckVisible = false; // Track last visibility state for diff checking
   private _webviewReady = false; // Track if webview has sent ready signal
@@ -942,6 +943,12 @@ export class EditorPanel {
       clearTimeout(this._diffCheckTimeout);
       this._diffCheckTimeout = undefined;
     }
+    
+    // Clear any pending diff update debounce timeout
+    if (this._diffUpdateDebounceTimeout) {
+      clearTimeout(this._diffUpdateDebounceTimeout);
+      this._diffUpdateDebounceTimeout = undefined;
+    }
 
     if (!this._isEditor) {
       EditorPanel.currentPanel = undefined;
@@ -1337,6 +1344,7 @@ export class EditorPanel {
    * Update diff visualization for this instance when document changes
    * This is called when the document content changes and this editor is in diff view
    * OPTIMIZED: Only uses HTML-based diff, calculates once, and sends to both panels
+   * DEBOUNCED: Waits 500ms after typing stops to prevent constant recalculation
    */
   private async _updateDiffVisualization(): Promise<void> {
     if (!this._isDiffView || !this._otherDiffUri) {
@@ -1354,43 +1362,51 @@ export class EditorPanel {
       return;
     }
 
-    logger.debug(
-      `[${this.instanceId}] 🔄 Updating diff visualization after document change`
-    );
-
-    const diffPanels = EditorPanel._diffPanelTracking.get(this._tab);
-    const leftPanel = diffPanels?.left;
-    const rightPanel = diffPanels?.right;
-    
-    if (!leftPanel || !rightPanel) {
-      logger.warn(`[${this.instanceId}] Cannot update HTML diff: missing panel(s)`);
-      return;
+    // DEBOUNCING: Cancel any pending diff update and schedule a new one
+    // This prevents constant recalculation while user is typing
+    if (this._diffUpdateDebounceTimeout) {
+      clearTimeout(this._diffUpdateDebounceTimeout);
     }
 
-    // Reset both panels' diff applied flags
-    leftPanel._diffApplied = false;
-    rightPanel._diffApplied = false;
+    this._diffUpdateDebounceTimeout = setTimeout(async () => {
+      logger.debug(
+        `[${this.instanceId}] 🔄 Updating diff visualization after document change`
+      );
 
-    // Check if a diff calculation is already in progress for this tab
-    const existingCalculation = EditorPanel._diffCalculationInProgress.get(this._tab);
-    if (existingCalculation) {
-      logger.debug(`[${this.instanceId}]   ⏳ Diff update already in progress, waiting...`);
-      await existingCalculation;
-      return;
-    }
+      const diffPanels = EditorPanel._diffPanelTracking.get(this._tab!);
+      const leftPanel = diffPanels?.left;
+      const rightPanel = diffPanels?.right;
+      
+      if (!leftPanel || !rightPanel) {
+        logger.warn(`[${this.instanceId}] Cannot update HTML diff: missing panel(s)`);
+        return;
+      }
 
-    // Start a new diff calculation and track it
-    const calculationPromise = this._calculateAndApplyDiff(leftPanel, rightPanel, diffSupport);
-    EditorPanel._diffCalculationInProgress.set(this._tab, calculationPromise);
-    
-    try {
-      await calculationPromise;
-    } finally {
-      // Clean up the tracking entry
-      EditorPanel._diffCalculationInProgress.delete(this._tab);
-    }
-    
-    logger.debug(`[${this.instanceId}]   ✅ Diff update completed`);
+      // Reset both panels' diff applied flags
+      leftPanel._diffApplied = false;
+      rightPanel._diffApplied = false;
+
+      // Check if a diff calculation is already in progress for this tab
+      const existingCalculation = EditorPanel._diffCalculationInProgress.get(this._tab!);
+      if (existingCalculation) {
+        logger.debug(`[${this.instanceId}]   ⏳ Diff update already in progress, waiting...`);
+        await existingCalculation;
+        return;
+      }
+
+      // Start a new diff calculation and track it
+      const calculationPromise = this._calculateAndApplyDiff(leftPanel, rightPanel, diffSupport);
+      EditorPanel._diffCalculationInProgress.set(this._tab!, calculationPromise);
+      
+      try {
+        await calculationPromise;
+      } finally {
+        // Clean up the tracking entry
+        EditorPanel._diffCalculationInProgress.delete(this._tab!);
+      }
+      
+      logger.debug(`[${this.instanceId}]   ✅ Diff update completed`);
+    }, 500); // Wait 500ms after last change before updating diff
   }
 
   private _updateEditTitle() {

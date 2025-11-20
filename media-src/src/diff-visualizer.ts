@@ -4,27 +4,70 @@ import { vscodeLogWarn, vscodeLogError } from "./webview-logger";
  * Handles diff visualization in the markdown editor webview
  */
 
+// Debounce and throttle timing constants (in milliseconds)
+const DEBOUNCE_INPUT_REAPPLY_MS = 500;    // Wait time after input before re-applying decorations
+const DEBOUNCE_DIFF_UPDATE_MS = 500;       // Wait time in EditorPanel before full diff recalculation
+const THROTTLE_SCROLL_SYNC_MS = 50;        // Max scroll sync messages per second (20/sec)
+const DEBOUNCE_SCROLL_FINAL_MS = 100;      // Wait time after scrolling stops for final position
+const TIMEOUT_HTML_REQUEST_MS = 5000;      // Timeout for IR HTML content requests
+const DELAY_DIAGNOSTICS_REAPPLY_MS = 50;   // Short delay before re-applying diagnostics
+const DELAY_VDITOR_RENDER_MS = 1000;       // Wait time for Vditor to fully render content
+
+/**
+ * Represents a single change in the diff between two documents
+ * @interface DiffChange
+ */
 interface DiffChange {
+  /** Type of change: added, deleted, modified, or spacer (alignment placeholder) */
   type: "added" | "deleted" | "modified" | "spacer";
+  /** Line number in the target document (includes offset from spacers) */
   lineNumber: number;
+  /** HTML content of the changed line */
   content: string;
+  /** Original content before modification (only for 'modified' type) */
   oldContent?: string;
+  /** Which side(s) this change affects: left (original), right (modified), or both */
   side: "left" | "right" | "both";
-  leftLine?: number;  // Original line number in left document
-  rightLine?: number; // Original line number in right document
+  /** Original line number in left document (-1 for spacers/additions) */
+  leftLine?: number;
+  /** Original line number in right document (-1 for spacers/deletions) */
+  rightLine?: number;
 }
 
+/**
+ * Contains all diff information for a single editor panel
+ * @interface DiffInfo
+ */
 interface DiffInfo {
+  /** Role of this panel: left (original) or right (modified) */
   role: "left" | "right";
+  /** URI of the other file in the diff pair */
   otherUri: string;
-  instanceId?: string; // Unique instance ID for this editor panel
+  /** Unique instance ID for this editor panel */
+  instanceId?: string;
+  /** Array of all changes (including spacers) for this diff */
   changes: DiffChange[];
+  /** Statistics about the changes */
   stats: {
     added: number;
     deleted: number;
     modified: number;
-    spacers?: number; // Number of spacer lines inserted
+    /** Number of spacer lines inserted for alignment */
+    spacers?: number;
   };
+}
+
+/**
+ * Tracks applied decorations in the DOM for idempotency checks
+ * @interface DecorationInfo
+ */
+interface DecorationInfo {
+  /** Type of decoration applied */
+  type: "added" | "deleted" | "modified" | "spacer";
+  /** Line number where decoration is applied */
+  lineNumber: number;
+  /** Unique identifier for this decoration instance */
+  decorationId: string;
 }
 
 export class DiffVisualizer {
@@ -36,6 +79,12 @@ export class DiffVisualizer {
   private scrollDebounceTimeout: number | null = null;
   private lastScrollSyncTime = 0;
   private initialized = false;
+  
+  // Tracking system for idempotent decoration application
+  private appliedDecorations: Map<HTMLElement, DecorationInfo> = new Map();
+  private lastDiffHash: string = "";
+  private isApplyingDiff: boolean = false;
+  private inputDebounceTimeout: number | null = null;
 
   /**
    * Initialize the diff visualizer by setting up message listeners.
@@ -47,6 +96,7 @@ export class DiffVisualizer {
     }
     this.setupMessageListener();
     this.setupScrollSync();
+    this.setupInputListener();
     this.initialized = true;
   }
 
@@ -85,7 +135,7 @@ export class DiffVisualizer {
           // Force re-application to bypass smart checks since DOM may have been modified
           setTimeout(() => {
             (window as any).diagnosticVisualizer.addSimpleDiagnostics(true);
-          }, 50);
+          }, DELAY_DIAGNOSTICS_REAPPLY_MS);
         }
       } else if (message.type === "diff-view-cleared") {
         // Clear diff visualization
@@ -98,7 +148,89 @@ export class DiffVisualizer {
   }
 
   /**
+   * Setup input event listener to re-apply decorations after Vditor strips them
+   * Vditor removes styles and data attributes when content is edited, so we need to re-apply
+   */
+  private setupInputListener(): void {
+    // Listen for input events on the document (will bubble from Vditor)
+    document.addEventListener('input', (e) => {
+      // Only process if we're in diff view
+      if (!this.isInDiffView || !this.diffInfo) {
+        return;
+      }
+
+      // Debounce: wait 300ms after last input before re-applying
+      if (this.inputDebounceTimeout) {
+        clearTimeout(this.inputDebounceTimeout);
+      }
+
+      this.inputDebounceTimeout = window.setTimeout(() => {
+        this.reapplyDecorationsAfterInput();
+      }, DEBOUNCE_INPUT_REAPPLY_MS);
+    }, { passive: true });
+  }
+
+  /**
+   * Re-apply decorations after input events (Vditor strips them during editing)
+   * This is lighter than full applyDiffVisualizations - just re-applies to existing elements
+   */
+  private reapplyDecorationsAfterInput(): void {
+    if (!this.diffInfo || this.isApplyingDiff) {
+      return;
+    }
+
+    // Get the content element
+    const contentElement =
+      document.querySelector(".vditor-ir > pre.vditor-reset") ||
+      document.querySelector("pre.vditor-reset");
+
+    if (!contentElement) {
+      return;
+    }
+
+    // Build current line mapping
+    const lineToDom: Map<number, HTMLElement> = new Map();
+    const topLevelElements = Array.from(contentElement.children);
+    topLevelElements.forEach((el, index) => {
+      lineToDom.set(index, el as HTMLElement);
+    });
+
+    // Re-apply decorations to lines that need them
+    this.diffInfo.changes.forEach((change) => {
+      // Filter: only process changes for this side
+      if (change.side !== this.diffInfo!.role && change.side !== "both") {
+        return;
+      }
+
+      // Skip spacers (they're separate elements)
+      if (change.type === "spacer") {
+        return;
+      }
+
+      const targetElement = lineToDom.get(change.lineNumber);
+      if (!targetElement) {
+        return;
+      }
+
+      // Check if decoration needs re-application
+      // If element lost its data-diff-type attribute, Vditor stripped it
+      if (!targetElement.hasAttribute('data-diff-type')) {
+        // Re-apply the decoration
+        const color = this.getChangeColor(change.type);
+        targetElement.style.backgroundColor = color.bg;
+        targetElement.style.borderLeft = `3px solid ${color.border}`;
+        targetElement.style.paddingLeft = "4px";
+        targetElement.title = this.getChangeTooltip(change);
+
+        // Re-record the decoration
+        this.recordAppliedDecoration(targetElement, change.type, change.lineNumber);
+      }
+    });
+  }
+
+  /**
    * Apply diff visualizations to the editor
+   * Now with smart hash-based application and concurrent prevention
    */
   private applyDiffVisualizations(): void {
     if (!this.diffInfo) {
@@ -110,36 +242,48 @@ export class DiffVisualizer {
       return;
     }
 
-    if ((window as any).markdownEditorLog) {
-      (window as any).markdownEditorLog(
-        `[DIFF-VIZ] 🎨 Starting diff visualization for ${this.diffInfo.role} side with ${this.diffInfo.changes.length} changes`
-      );
+    // PREVENT CONCURRENT APPLICATION
+    if (this.isApplyingDiff) {
+      return;
     }
+
+    // SMART APPLICATION: Check if diff info actually changed
+    const newHash = this.generateDiffHash();
+    const decorationsExist = this.verifyDiffDecorationsExist();
+
+    if (newHash === this.lastDiffHash && decorationsExist) {
+      return;
+    }
+
+    // Set flag to prevent concurrent applications
+    this.isApplyingDiff = true;
+
+    // Clear stale decorations from previous diff (if hash changed)
+    if (newHash !== this.lastDiffHash) {
+      this.clearStaleDecorations();
+    }
+
+    // Update hash
+    this.lastDiffHash = newHash;
 
     // Add a header showing diff stats
     this.addDiffHeader();
 
     // Wait for Vditor to render, then apply line decorations and setup scroll sync
     setTimeout(() => {
-      if ((window as any).markdownEditorLog) {
-        (window as any).markdownEditorLog(
-          `[DIFF-VIZ] 🖌️  Applying line decorations...`
-        );
-      }
-      this.applyLineDecorations();
+      try {
+        this.applyLineDecorations();
 
-      if ((window as any).markdownEditorLog) {
-        (window as any).markdownEditorLog(
-          `[DIFF-VIZ] ✅ Diff visualization complete`
-        );
+        // Setup scroll sync after visualizations are applied
+        this.setupScrollSyncListeners();
+        
+        // Add scrollbar diff indicators
+        this.addScrollbarDiffIndicators();
+      } finally {
+        // Always clear the flag, even if there's an error
+        this.isApplyingDiff = false;
       }
-
-      // Setup scroll sync after visualizations are applied
-      this.setupScrollSyncListeners();
-      
-      // Add scrollbar diff indicators
-      this.addScrollbarDiffIndicators();
-    }, 1000);
+    }, DELAY_VDITOR_RENDER_MS);
   }
 
   /**
@@ -149,6 +293,7 @@ export class DiffVisualizer {
     // Reset state
     this.diffInfo = null;
     this.isInDiffView = false;
+    this.lastDiffHash = "";
 
     // Remove diff header
     const existingHeader = document.querySelector(".diff-view-header");
@@ -166,31 +311,27 @@ export class DiffVisualizer {
     const spacers = document.querySelectorAll(".diff-spacer-block");
     spacers.forEach((spacer) => spacer.remove());
 
-    // Remove all diff decorations (background colors, borders)
-    const contentElement =
-      document.querySelector(".vditor-ir > pre.vditor-reset") ||
-      document.querySelector("pre.vditor-reset");
-
-    if (contentElement) {
-      const allElements = contentElement.querySelectorAll(
-        '[style*="background"]'
-      );
-      let clearedCount = 0;
-      allElements.forEach((el) => {
-        const element = el as HTMLElement;
-        // Only clear if it looks like a diff decoration
-        if (
-          element.style.borderLeft &&
-          element.style.borderLeft.includes("3px solid")
-        ) {
-          element.style.backgroundColor = "";
-          element.style.borderLeft = "";
-          element.style.paddingLeft = "";
-          element.title = "";
-          clearedCount++;
-        }
-      });
+    // Clear decorations using tracking Map
+    for (const [element, info] of this.appliedDecorations.entries()) {
+      if (document.body.contains(element)) {
+        // Remove visual styling
+        element.style.backgroundColor = "";
+        element.style.borderLeft = "";
+        element.style.paddingLeft = "";
+        element.style.paddingBottom = "";
+        element.title = "";
+        
+        // Remove data attributes
+        element.removeAttribute('data-diff-type');
+        element.removeAttribute('data-diff-line');
+        element.removeAttribute('data-decoration-id');
+        element.removeAttribute('data-diff-spacer');
+        element.removeAttribute('contenteditable');
+      }
     }
+    
+    // Clear tracking Map
+    this.appliedDecorations.clear();
   }
 
   /**
@@ -334,10 +475,6 @@ export class DiffVisualizer {
       lineToDom.set(index, el as HTMLElement);
     });
 
-    vscodeLogWarn(
-      `[DIFF-VIZ] 🎨 Processing ${this.diffInfo.changes.length} changes for ${this.diffInfo.role} side`
-    );
-
     // Process ALL changes - line numbers are already correct from backend
     this.diffInfo.changes.forEach((change, index) => {
       // Filter: only process changes meant for THIS side
@@ -352,19 +489,27 @@ export class DiffVisualizer {
         return;
       }
      
+      // IDEMPOTENCY CHECK: Skip if decoration already applied
+      if (!targetElement) {
+        return;
+      }
+      
+      if (this.isDecorationAlreadyApplied(targetElement, change.type, change.lineNumber)) {
+        return;
+      }
+     
       // Apply normal change decoration (added, deleted, modified)
       const color = this.getChangeColor(change.type);
       targetElement.style.backgroundColor = color.bg;
       targetElement.style.borderLeft = `3px solid ${color.border}`;
       targetElement.style.paddingLeft = "4px";
       targetElement.title = this.getChangeTooltip(change);
+      
+      // Record the applied decoration
+      this.recordAppliedDecoration(targetElement, change.type, change.lineNumber);
 
       // Match height with opposite side content for better scroll sync
       this.matchElementHeight(targetElement, change);
-
-      vscodeLogWarn(
-        `[DIFF-VIZ] ✅ Applied ${change.type} to line ${change.lineNumber}: "${targetElement.textContent?.trim().substring(0, 20)}"`
-      );
     });
   }
 
@@ -383,16 +528,22 @@ export class DiffVisualizer {
     const spacer = tempContainer.firstElementChild as HTMLElement;
     
     if (!spacer) {
-      vscodeLogWarn(`[DIFF-VIZ] ⚠️  Failed to create spacer from content: ${change.content.substring(0, 50)}`);
       return;
     }
     
     // Add spacer class and attributes
     spacer.classList.add("diff-spacer-block");
     spacer.setAttribute("data-line-number", change.lineNumber.toString());
+    spacer.setAttribute("data-diff-spacer", "true");
+    
+    // CRITICAL: Make spacer non-editable
+    spacer.setAttribute("contenteditable", "false");
     
     // Apply spacer styling
     this.applySpacerStyle(spacer, change);
+    
+    // Record the spacer decoration
+    this.recordAppliedDecoration(spacer, "spacer", change.lineNumber);
 
     // Insert at the correct position
     if (change.lineNumber === 0) {
@@ -433,10 +584,6 @@ export class DiffVisualizer {
     
     // Now add the spacer at the correct position
     lineToDom.set(change.lineNumber, spacer);
-
-    vscodeLogWarn(
-      `[DIFF-VIZ] 📍 Inserted spacer at line ${change.lineNumber}, shifted ${linesToShift.length} lines down`
-    );
   }
 
   /**
@@ -543,10 +690,6 @@ export class DiffVisualizer {
     if (oppositeHeight > currentHeight) {
       const heightDiff = oppositeHeight - currentHeight;
       element.style.paddingBottom = `${heightDiff}px`;
-      
-      vscodeLogWarn(
-        `[DIFF-VIZ] 📏 Matched height for line ${change.lineNumber}: current=${currentHeight}px, opposite=${oppositeHeight}px, added padding=${heightDiff}px`
-      );
     }
   }
 
@@ -561,7 +704,10 @@ export class DiffVisualizer {
     element.style.opacity = "0.4";
     element.style.position = "relative";
     element.style.minHeight = "24px";
-    element.title = "This line does not exist in this version";
+    element.style.pointerEvents = "none"; // Prevent interaction
+    element.style.userSelect = "none"; // Prevent selection
+    element.style.cursor = "not-allowed"; // Visual feedback
+    element.title = "🔒 This line does not exist in this version (read-only)";
   }
 
   /**
@@ -700,16 +846,14 @@ export class DiffVisualizer {
 
     // Only send if we have a valid percentage
     if (isNaN(scrollPercentage)) {
-      // vscodeLogWarn('⚠️ DIFF VISUALIZER: Invalid scroll percentage (NaN), skipping');
       return;
     }
 
     // THROTTLING: Send immediate message if enough time has passed (for smooth continuous scrolling)
     const now = Date.now();
     const timeSinceLastSync = now - this.lastScrollSyncTime;
-    const THROTTLE_MS = 50; // Max 20 messages per second for smoother continuous scroll
 
-    if (timeSinceLastSync >= THROTTLE_MS) {
+    if (timeSinceLastSync >= THROTTLE_SCROLL_SYNC_MS) {
       this.sendScrollSyncMessage(scrollPercentage);
       this.lastScrollSyncTime = now;
     }
@@ -719,11 +863,10 @@ export class DiffVisualizer {
       clearTimeout(this.scrollDebounceTimeout);
     }
 
-    const DEBOUNCE_MS = 100; // Wait 100ms after scroll stops for final accurate position
     this.scrollDebounceTimeout = window.setTimeout(() => {
       this.sendScrollSyncMessage(scrollPercentage);
       this.lastScrollSyncTime = Date.now();
-    }, DEBOUNCE_MS);
+    }, DEBOUNCE_SCROLL_FINAL_MS);
   }
 
   /**
@@ -737,8 +880,6 @@ export class DiffVisualizer {
         scrollPercentage: scrollPercentage,
         role: this.diffInfo?.role,
       });
-    } else {
-      // vscodeLogWarn('⚠️ DIFF VISUALIZER: vscode object not available!');
     }
   }
 
@@ -760,7 +901,6 @@ export class DiffVisualizer {
       document.documentElement;
 
     if (!scrollableElement) {
-      // vscodeLogWarn('⚠️ DIFF VISUALIZER: No element found to apply scroll');
       return;
     }
 
@@ -772,11 +912,6 @@ export class DiffVisualizer {
     const scrollableHeight = element.scrollHeight - element.clientHeight;
 
     if (scrollableHeight <= 0) {
-      // vscodeLogWarn('⚠️ DIFF VISUALIZER: Element is not scrollable!', {
-      //   scrollHeight: element.scrollHeight,
-      //   clientHeight: element.clientHeight,
-      //   element: element.tagName + '.' + element.className
-      // });
       this.isScrolling = false;
       return;
     }
@@ -791,7 +926,7 @@ export class DiffVisualizer {
 
     this.scrollTimeout = window.setTimeout(() => {
       this.isScrolling = false;
-    }, 100);
+    }, DEBOUNCE_SCROLL_FINAL_MS);
   }
 
   /**
@@ -816,6 +951,127 @@ export class DiffVisualizer {
   }
   
   /**
+   * Generate a hash from DiffInfo to detect changes
+   */
+  private generateDiffHash(): string {
+    if (!this.diffInfo) {
+      return "";
+    }
+    
+    // Create a stable string representation of the diff info
+    const hashData = {
+      role: this.diffInfo.role,
+      changesCount: this.diffInfo.changes.length,
+      changes: this.diffInfo.changes.map(c => ({
+        type: c.type,
+        lineNumber: c.lineNumber,
+        contentHash: c.content.substring(0, 50) // First 50 chars for change detection
+      }))
+    };
+    
+    return JSON.stringify(hashData);
+  }
+  
+  /**
+   * Verify that diff decorations still exist in the DOM
+   */
+  private verifyDiffDecorationsExist(): boolean {
+    if (this.appliedDecorations.size === 0) {
+      return false;
+    }
+    
+    let foundCount = 0;
+    for (const [element, info] of this.appliedDecorations.entries()) {
+      // Check if element is still in DOM and has decoration markers
+      if (document.body.contains(element) && 
+          element.hasAttribute('data-diff-type')) {
+        foundCount++;
+      }
+    }
+    
+    // Consider decorations to exist if at least 50% are still present
+    // (some may be legitimately removed during editing)
+    return foundCount >= this.appliedDecorations.size * 0.5;
+  }
+  
+  /**
+   * Check if decoration is already applied to an element
+   * CRITICAL: Only returns true if element is tracked AND in DOM AND has correct attributes
+   * This ensures we re-apply decorations to re-rendered elements
+   */
+  private isDecorationAlreadyApplied(element: HTMLElement, type: string, lineNumber: number): boolean {
+    // Check Map first - if element is tracked and in DOM, it's applied
+    const existing = this.appliedDecorations.get(element);
+    if (existing && 
+        existing.type === type && 
+        existing.lineNumber === lineNumber &&
+        document.body.contains(element)) {
+      // Also verify the element still has the decoration attributes
+      const hasAttributes = element.hasAttribute('data-diff-type') &&
+                           element.getAttribute('data-diff-type') === type;
+      return hasAttributes;
+    }
+    
+    // Not in tracking Map or element was re-rendered - needs application
+    return false;
+  }
+  
+  /**
+   * Record an applied decoration in the tracking Map
+   */
+  private recordAppliedDecoration(element: HTMLElement, type: "added" | "deleted" | "modified" | "spacer", lineNumber: number): void {
+    const decorationId = `${type}-${lineNumber}-${Date.now()}`;
+    
+    this.appliedDecorations.set(element, {
+      type,
+      lineNumber,
+      decorationId
+    });
+    
+    // Also add data attributes for DOM verification
+    element.setAttribute('data-diff-type', type);
+    element.setAttribute('data-diff-line', lineNumber.toString());
+    element.setAttribute('data-decoration-id', decorationId);
+  }
+  
+  /**
+   * Clear stale decorations that are no longer in the new diff info
+   * CRITICAL: Only removes from tracking Map, doesn't touch DOM
+   * This allows decorations to be re-applied to new elements at the same line
+   */
+  private clearStaleDecorations(): void {
+    if (!this.diffInfo || this.appliedDecorations.size === 0) {
+      return;
+    }
+    
+    // Build a set of valid line numbers from current diff info
+    const validLines = new Set<number>();
+    this.diffInfo.changes.forEach(change => {
+      if (change.side === this.diffInfo!.role || change.side === "both") {
+        validLines.add(change.lineNumber);
+      }
+    });
+    
+    // Remove decorations from tracking Map if:
+    // 1. Line number is no longer in diff (diff changed)
+    // 2. Element is no longer in DOM (Vditor re-rendered it)
+    // We DON'T remove styles from DOM - just clear tracking so decorations can be re-applied
+    const toRemove: HTMLElement[] = [];
+    for (const [element, info] of this.appliedDecorations.entries()) {
+      // Remove from tracking if line no longer needs decoration OR element was re-rendered
+      if (!validLines.has(info.lineNumber) || !document.body.contains(element)) {
+        toRemove.push(element);
+      }
+    }
+    
+    toRemove.forEach(element => {
+      // ONLY remove from tracking Map - DON'T touch DOM
+      // This allows the decoration to be re-applied in applyLineDecorations()
+      this.appliedDecorations.delete(element);
+    });
+  }
+  
+  /**
    * Add scrollbar diff indicators showing where changes are located
    */
   private addScrollbarDiffIndicators(): void {
@@ -835,7 +1091,6 @@ export class DiffVisualizer {
       document.querySelector("pre.vditor-reset");
 
     if (!contentElement) {
-      vscodeLogWarn("[DIFF-VIZ] Cannot add scrollbar indicators - content element not found");
       return;
     }
 
@@ -847,7 +1102,6 @@ export class DiffVisualizer {
       document.querySelector(".vditor-sv");
       
     if (!contentContainer) {
-      vscodeLogWarn("[DIFF-VIZ] Cannot add scrollbar indicators - content container not found");
       return;
     }
 

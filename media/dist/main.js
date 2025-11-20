@@ -2573,7 +2573,7 @@
         jQuery2.event = {
           global: {},
           add: function(elem, types, handler, data, selector) {
-            var handleObjIn, eventHandle, tmp, events, t7, handleObj, special, handlers, type, namespaces, origType, elemData = dataPriv.get(elem);
+            var handleObjIn, eventHandle, tmp, events, t6, handleObj, special, handlers, type, namespaces, origType, elemData = dataPriv.get(elem);
             if (!acceptData(elem)) {
               return;
             }
@@ -2597,9 +2597,9 @@
               };
             }
             types = (types || "").match(rnothtmlwhite) || [""];
-            t7 = types.length;
-            while (t7--) {
-              tmp = rtypenamespace.exec(types[t7]) || [];
+            t6 = types.length;
+            while (t6--) {
+              tmp = rtypenamespace.exec(types[t6]) || [];
               type = origType = tmp[1];
               namespaces = (tmp[2] || "").split(".").sort();
               if (!type) {
@@ -2642,19 +2642,19 @@
             }
           },
           remove: function(elem, types, handler, selector, mappedTypes) {
-            var j2, origCount, tmp, events, t7, handleObj, special, handlers, type, namespaces, origType, elemData = dataPriv.hasData(elem) && dataPriv.get(elem);
+            var j2, origCount, tmp, events, t6, handleObj, special, handlers, type, namespaces, origType, elemData = dataPriv.hasData(elem) && dataPriv.get(elem);
             if (!elemData || !(events = elemData.events)) {
               return;
             }
             types = (types || "").match(rnothtmlwhite) || [""];
-            t7 = types.length;
-            while (t7--) {
-              tmp = rtypenamespace.exec(types[t7]) || [];
+            t6 = types.length;
+            while (t6--) {
+              tmp = rtypenamespace.exec(types[t6]) || [];
               type = origType = tmp[1];
               namespaces = (tmp[2] || "").split(".").sort();
               if (!type) {
                 for (type in events) {
-                  jQuery2.event.remove(elem, type + types[t7], handler, selector, true);
+                  jQuery2.event.remove(elem, type + types[t6], handler, selector, true);
                 }
                 continue;
               }
@@ -7508,16 +7508,16 @@
           }
           return result;
         }
-        function setToArray(set3) {
-          var index2 = -1, result = Array(set3.size);
-          set3.forEach(function(value) {
+        function setToArray(set2) {
+          var index2 = -1, result = Array(set2.size);
+          set2.forEach(function(value) {
             result[++index2] = value;
           });
           return result;
         }
-        function setToPairs(set3) {
-          var index2 = -1, result = Array(set3.size);
-          set3.forEach(function(value) {
+        function setToPairs(set2) {
+          var index2 = -1, result = Array(set2.size);
+          set2.forEach(function(value) {
             result[++index2] = [value, value];
           });
           return result;
@@ -8732,9 +8732,9 @@
               isCommon = false;
               includes2 = arrayIncludesWith;
             } else if (length >= LARGE_ARRAY_SIZE) {
-              var set4 = iteratee2 ? null : createSet(array2);
-              if (set4) {
-                return setToArray(set4);
+              var set3 = iteratee2 ? null : createSet(array2);
+              if (set3) {
+                return setToArray(set3);
               }
               isCommon = false;
               includes2 = cacheHas;
@@ -11241,7 +11241,7 @@
             }
             return object2;
           }
-          function set3(object2, path, value) {
+          function set2(object2, path, value) {
             return object2 == null ? object2 : baseSet(object2, path, value);
           }
           function setWith(object2, path, value, customizer) {
@@ -11901,7 +11901,7 @@
           lodash.rest = rest;
           lodash.reverse = reverse;
           lodash.sampleSize = sampleSize;
-          lodash.set = set3;
+          lodash.set = set2;
           lodash.setWith = setWith;
           lodash.shuffle = shuffle;
           lodash.slice = slice;
@@ -13883,10 +13883,10 @@
               };
               var __generator = function(thisArg, body) {
                 var _2 = {label: 0, sent: function() {
-                  if (t7[0] & 1)
-                    throw t7[1];
-                  return t7[1];
-                }, trys: [], ops: []}, f3, y5, t7, g2;
+                  if (t6[0] & 1)
+                    throw t6[1];
+                  return t6[1];
+                }, trys: [], ops: []}, f3, y5, t6, g2;
                 return g2 = {next: verb(0), "throw": verb(1), "return": verb(2)}, typeof Symbol === "function" && (g2[Symbol.iterator] = function() {
                   return this;
                 }), g2;
@@ -13900,14 +13900,14 @@
                     throw new TypeError("Generator is already executing.");
                   while (g2 && (g2 = 0, op[0] && (_2 = 0)), _2)
                     try {
-                      if (f3 = 1, y5 && (t7 = op[0] & 2 ? y5["return"] : op[0] ? y5["throw"] || ((t7 = y5["return"]) && t7.call(y5), 0) : y5.next) && !(t7 = t7.call(y5, op[1])).done)
-                        return t7;
-                      if (y5 = 0, t7)
-                        op = [op[0] & 2, t7.value];
+                      if (f3 = 1, y5 && (t6 = op[0] & 2 ? y5["return"] : op[0] ? y5["throw"] || ((t6 = y5["return"]) && t6.call(y5), 0) : y5.next) && !(t6 = t6.call(y5, op[1])).done)
+                        return t6;
+                      if (y5 = 0, t6)
+                        op = [op[0] & 2, t6.value];
                       switch (op[0]) {
                         case 0:
                         case 1:
-                          t7 = op;
+                          t6 = op;
                           break;
                         case 4:
                           _2.label++;
@@ -13922,25 +13922,25 @@
                           _2.trys.pop();
                           continue;
                         default:
-                          if (!(t7 = _2.trys, t7 = t7.length > 0 && t7[t7.length - 1]) && (op[0] === 6 || op[0] === 2)) {
+                          if (!(t6 = _2.trys, t6 = t6.length > 0 && t6[t6.length - 1]) && (op[0] === 6 || op[0] === 2)) {
                             _2 = 0;
                             continue;
                           }
-                          if (op[0] === 3 && (!t7 || op[1] > t7[0] && op[1] < t7[3])) {
+                          if (op[0] === 3 && (!t6 || op[1] > t6[0] && op[1] < t6[3])) {
                             _2.label = op[1];
                             break;
                           }
-                          if (op[0] === 6 && _2.label < t7[1]) {
-                            _2.label = t7[1];
-                            t7 = op;
+                          if (op[0] === 6 && _2.label < t6[1]) {
+                            _2.label = t6[1];
+                            t6 = op;
                             break;
                           }
-                          if (t7 && _2.label < t7[2]) {
-                            _2.label = t7[2];
+                          if (t6 && _2.label < t6[2]) {
+                            _2.label = t6[2];
                             _2.ops.push(op);
                             break;
                           }
-                          if (t7[2])
+                          if (t6[2])
                             _2.ops.pop();
                           _2.trys.pop();
                           continue;
@@ -13950,7 +13950,7 @@
                       op = [6, e7];
                       y5 = 0;
                     } finally {
-                      f3 = t7 = 0;
+                      f3 = t6 = 0;
                     }
                   if (op[0] & 5)
                     throw op[1];
@@ -14696,10 +14696,10 @@
               };
               var __generator = function(thisArg, body) {
                 var _2 = {label: 0, sent: function() {
-                  if (t7[0] & 1)
-                    throw t7[1];
-                  return t7[1];
-                }, trys: [], ops: []}, f3, y5, t7, g2;
+                  if (t6[0] & 1)
+                    throw t6[1];
+                  return t6[1];
+                }, trys: [], ops: []}, f3, y5, t6, g2;
                 return g2 = {next: verb(0), "throw": verb(1), "return": verb(2)}, typeof Symbol === "function" && (g2[Symbol.iterator] = function() {
                   return this;
                 }), g2;
@@ -14713,14 +14713,14 @@
                     throw new TypeError("Generator is already executing.");
                   while (g2 && (g2 = 0, op[0] && (_2 = 0)), _2)
                     try {
-                      if (f3 = 1, y5 && (t7 = op[0] & 2 ? y5["return"] : op[0] ? y5["throw"] || ((t7 = y5["return"]) && t7.call(y5), 0) : y5.next) && !(t7 = t7.call(y5, op[1])).done)
-                        return t7;
-                      if (y5 = 0, t7)
-                        op = [op[0] & 2, t7.value];
+                      if (f3 = 1, y5 && (t6 = op[0] & 2 ? y5["return"] : op[0] ? y5["throw"] || ((t6 = y5["return"]) && t6.call(y5), 0) : y5.next) && !(t6 = t6.call(y5, op[1])).done)
+                        return t6;
+                      if (y5 = 0, t6)
+                        op = [op[0] & 2, t6.value];
                       switch (op[0]) {
                         case 0:
                         case 1:
-                          t7 = op;
+                          t6 = op;
                           break;
                         case 4:
                           _2.label++;
@@ -14735,25 +14735,25 @@
                           _2.trys.pop();
                           continue;
                         default:
-                          if (!(t7 = _2.trys, t7 = t7.length > 0 && t7[t7.length - 1]) && (op[0] === 6 || op[0] === 2)) {
+                          if (!(t6 = _2.trys, t6 = t6.length > 0 && t6[t6.length - 1]) && (op[0] === 6 || op[0] === 2)) {
                             _2 = 0;
                             continue;
                           }
-                          if (op[0] === 3 && (!t7 || op[1] > t7[0] && op[1] < t7[3])) {
+                          if (op[0] === 3 && (!t6 || op[1] > t6[0] && op[1] < t6[3])) {
                             _2.label = op[1];
                             break;
                           }
-                          if (op[0] === 6 && _2.label < t7[1]) {
-                            _2.label = t7[1];
-                            t7 = op;
+                          if (op[0] === 6 && _2.label < t6[1]) {
+                            _2.label = t6[1];
+                            t6 = op;
                             break;
                           }
-                          if (t7 && _2.label < t7[2]) {
-                            _2.label = t7[2];
+                          if (t6 && _2.label < t6[2]) {
+                            _2.label = t6[2];
                             _2.ops.push(op);
                             break;
                           }
-                          if (t7[2])
+                          if (t6[2])
                             _2.ops.pop();
                           _2.trys.pop();
                           continue;
@@ -14763,7 +14763,7 @@
                       op = [6, e7];
                       y5 = 0;
                     } finally {
-                      f3 = t7 = 0;
+                      f3 = t6 = 0;
                     }
                   if (op[0] & 5)
                     throw op[1];
@@ -15366,10 +15366,10 @@ onclick="event.stopPropagation();this.previousElementSibling.select();document.e
               };
               var __generator = function(thisArg, body) {
                 var _2 = {label: 0, sent: function() {
-                  if (t7[0] & 1)
-                    throw t7[1];
-                  return t7[1];
-                }, trys: [], ops: []}, f3, y5, t7, g2;
+                  if (t6[0] & 1)
+                    throw t6[1];
+                  return t6[1];
+                }, trys: [], ops: []}, f3, y5, t6, g2;
                 return g2 = {next: verb(0), "throw": verb(1), "return": verb(2)}, typeof Symbol === "function" && (g2[Symbol.iterator] = function() {
                   return this;
                 }), g2;
@@ -15383,14 +15383,14 @@ onclick="event.stopPropagation();this.previousElementSibling.select();document.e
                     throw new TypeError("Generator is already executing.");
                   while (g2 && (g2 = 0, op[0] && (_2 = 0)), _2)
                     try {
-                      if (f3 = 1, y5 && (t7 = op[0] & 2 ? y5["return"] : op[0] ? y5["throw"] || ((t7 = y5["return"]) && t7.call(y5), 0) : y5.next) && !(t7 = t7.call(y5, op[1])).done)
-                        return t7;
-                      if (y5 = 0, t7)
-                        op = [op[0] & 2, t7.value];
+                      if (f3 = 1, y5 && (t6 = op[0] & 2 ? y5["return"] : op[0] ? y5["throw"] || ((t6 = y5["return"]) && t6.call(y5), 0) : y5.next) && !(t6 = t6.call(y5, op[1])).done)
+                        return t6;
+                      if (y5 = 0, t6)
+                        op = [op[0] & 2, t6.value];
                       switch (op[0]) {
                         case 0:
                         case 1:
-                          t7 = op;
+                          t6 = op;
                           break;
                         case 4:
                           _2.label++;
@@ -15405,25 +15405,25 @@ onclick="event.stopPropagation();this.previousElementSibling.select();document.e
                           _2.trys.pop();
                           continue;
                         default:
-                          if (!(t7 = _2.trys, t7 = t7.length > 0 && t7[t7.length - 1]) && (op[0] === 6 || op[0] === 2)) {
+                          if (!(t6 = _2.trys, t6 = t6.length > 0 && t6[t6.length - 1]) && (op[0] === 6 || op[0] === 2)) {
                             _2 = 0;
                             continue;
                           }
-                          if (op[0] === 3 && (!t7 || op[1] > t7[0] && op[1] < t7[3])) {
+                          if (op[0] === 3 && (!t6 || op[1] > t6[0] && op[1] < t6[3])) {
                             _2.label = op[1];
                             break;
                           }
-                          if (op[0] === 6 && _2.label < t7[1]) {
-                            _2.label = t7[1];
-                            t7 = op;
+                          if (op[0] === 6 && _2.label < t6[1]) {
+                            _2.label = t6[1];
+                            t6 = op;
                             break;
                           }
-                          if (t7 && _2.label < t7[2]) {
-                            _2.label = t7[2];
+                          if (t6 && _2.label < t6[2]) {
+                            _2.label = t6[2];
                             _2.ops.push(op);
                             break;
                           }
-                          if (t7[2])
+                          if (t6[2])
                             _2.ops.pop();
                           _2.trys.pop();
                           continue;
@@ -15433,7 +15433,7 @@ onclick="event.stopPropagation();this.previousElementSibling.select();document.e
                       op = [6, e7];
                       y5 = 0;
                     } finally {
-                      f3 = t7 = 0;
+                      f3 = t6 = 0;
                     }
                   if (op[0] & 5)
                     throw op[1];
@@ -20268,10 +20268,10 @@ onclick="event.stopPropagation();this.previousElementSibling.select();document.e
             };
             var __generator = function(thisArg, body) {
               var _2 = {label: 0, sent: function() {
-                if (t7[0] & 1)
-                  throw t7[1];
-                return t7[1];
-              }, trys: [], ops: []}, f3, y5, t7, g2;
+                if (t6[0] & 1)
+                  throw t6[1];
+                return t6[1];
+              }, trys: [], ops: []}, f3, y5, t6, g2;
               return g2 = {next: verb(0), "throw": verb(1), "return": verb(2)}, typeof Symbol === "function" && (g2[Symbol.iterator] = function() {
                 return this;
               }), g2;
@@ -20285,14 +20285,14 @@ onclick="event.stopPropagation();this.previousElementSibling.select();document.e
                   throw new TypeError("Generator is already executing.");
                 while (g2 && (g2 = 0, op[0] && (_2 = 0)), _2)
                   try {
-                    if (f3 = 1, y5 && (t7 = op[0] & 2 ? y5["return"] : op[0] ? y5["throw"] || ((t7 = y5["return"]) && t7.call(y5), 0) : y5.next) && !(t7 = t7.call(y5, op[1])).done)
-                      return t7;
-                    if (y5 = 0, t7)
-                      op = [op[0] & 2, t7.value];
+                    if (f3 = 1, y5 && (t6 = op[0] & 2 ? y5["return"] : op[0] ? y5["throw"] || ((t6 = y5["return"]) && t6.call(y5), 0) : y5.next) && !(t6 = t6.call(y5, op[1])).done)
+                      return t6;
+                    if (y5 = 0, t6)
+                      op = [op[0] & 2, t6.value];
                     switch (op[0]) {
                       case 0:
                       case 1:
-                        t7 = op;
+                        t6 = op;
                         break;
                       case 4:
                         _2.label++;
@@ -20307,25 +20307,25 @@ onclick="event.stopPropagation();this.previousElementSibling.select();document.e
                         _2.trys.pop();
                         continue;
                       default:
-                        if (!(t7 = _2.trys, t7 = t7.length > 0 && t7[t7.length - 1]) && (op[0] === 6 || op[0] === 2)) {
+                        if (!(t6 = _2.trys, t6 = t6.length > 0 && t6[t6.length - 1]) && (op[0] === 6 || op[0] === 2)) {
                           _2 = 0;
                           continue;
                         }
-                        if (op[0] === 3 && (!t7 || op[1] > t7[0] && op[1] < t7[3])) {
+                        if (op[0] === 3 && (!t6 || op[1] > t6[0] && op[1] < t6[3])) {
                           _2.label = op[1];
                           break;
                         }
-                        if (op[0] === 6 && _2.label < t7[1]) {
-                          _2.label = t7[1];
-                          t7 = op;
+                        if (op[0] === 6 && _2.label < t6[1]) {
+                          _2.label = t6[1];
+                          t6 = op;
                           break;
                         }
-                        if (t7 && _2.label < t7[2]) {
-                          _2.label = t7[2];
+                        if (t6 && _2.label < t6[2]) {
+                          _2.label = t6[2];
                           _2.ops.push(op);
                           break;
                         }
-                        if (t7[2])
+                        if (t6[2])
                           _2.ops.pop();
                         _2.trys.pop();
                         continue;
@@ -20335,7 +20335,7 @@ onclick="event.stopPropagation();this.previousElementSibling.select();document.e
                     op = [6, e7];
                     y5 = 0;
                   } finally {
-                    f3 = t7 = 0;
+                    f3 = t6 = 0;
                   }
                 if (op[0] & 5)
                   throw op[1];
@@ -20771,10 +20771,10 @@ onclick="event.stopPropagation();this.previousElementSibling.select();document.e
             };
             var fixBrowserBehavior_generator = function(thisArg, body) {
               var _2 = {label: 0, sent: function() {
-                if (t7[0] & 1)
-                  throw t7[1];
-                return t7[1];
-              }, trys: [], ops: []}, f3, y5, t7, g2;
+                if (t6[0] & 1)
+                  throw t6[1];
+                return t6[1];
+              }, trys: [], ops: []}, f3, y5, t6, g2;
               return g2 = {next: verb(0), "throw": verb(1), "return": verb(2)}, typeof Symbol === "function" && (g2[Symbol.iterator] = function() {
                 return this;
               }), g2;
@@ -20788,14 +20788,14 @@ onclick="event.stopPropagation();this.previousElementSibling.select();document.e
                   throw new TypeError("Generator is already executing.");
                 while (g2 && (g2 = 0, op[0] && (_2 = 0)), _2)
                   try {
-                    if (f3 = 1, y5 && (t7 = op[0] & 2 ? y5["return"] : op[0] ? y5["throw"] || ((t7 = y5["return"]) && t7.call(y5), 0) : y5.next) && !(t7 = t7.call(y5, op[1])).done)
-                      return t7;
-                    if (y5 = 0, t7)
-                      op = [op[0] & 2, t7.value];
+                    if (f3 = 1, y5 && (t6 = op[0] & 2 ? y5["return"] : op[0] ? y5["throw"] || ((t6 = y5["return"]) && t6.call(y5), 0) : y5.next) && !(t6 = t6.call(y5, op[1])).done)
+                      return t6;
+                    if (y5 = 0, t6)
+                      op = [op[0] & 2, t6.value];
                     switch (op[0]) {
                       case 0:
                       case 1:
-                        t7 = op;
+                        t6 = op;
                         break;
                       case 4:
                         _2.label++;
@@ -20810,25 +20810,25 @@ onclick="event.stopPropagation();this.previousElementSibling.select();document.e
                         _2.trys.pop();
                         continue;
                       default:
-                        if (!(t7 = _2.trys, t7 = t7.length > 0 && t7[t7.length - 1]) && (op[0] === 6 || op[0] === 2)) {
+                        if (!(t6 = _2.trys, t6 = t6.length > 0 && t6[t6.length - 1]) && (op[0] === 6 || op[0] === 2)) {
                           _2 = 0;
                           continue;
                         }
-                        if (op[0] === 3 && (!t7 || op[1] > t7[0] && op[1] < t7[3])) {
+                        if (op[0] === 3 && (!t6 || op[1] > t6[0] && op[1] < t6[3])) {
                           _2.label = op[1];
                           break;
                         }
-                        if (op[0] === 6 && _2.label < t7[1]) {
-                          _2.label = t7[1];
-                          t7 = op;
+                        if (op[0] === 6 && _2.label < t6[1]) {
+                          _2.label = t6[1];
+                          t6 = op;
                           break;
                         }
-                        if (t7 && _2.label < t7[2]) {
-                          _2.label = t7[2];
+                        if (t6 && _2.label < t6[2]) {
+                          _2.label = t6[2];
                           _2.ops.push(op);
                           break;
                         }
-                        if (t7[2])
+                        if (t6[2])
                           _2.ops.pop();
                         _2.trys.pop();
                         continue;
@@ -20838,7 +20838,7 @@ onclick="event.stopPropagation();this.previousElementSibling.select();document.e
                     op = [6, e7];
                     y5 = 0;
                   } finally {
-                    f3 = t7 = 0;
+                    f3 = t6 = 0;
                   }
                 if (op[0] & 5)
                   throw op[1];
@@ -22414,10 +22414,10 @@ onclick="event.stopPropagation();this.previousElementSibling.select();document.e
             };
             var hint_generator = function(thisArg, body) {
               var _2 = {label: 0, sent: function() {
-                if (t7[0] & 1)
-                  throw t7[1];
-                return t7[1];
-              }, trys: [], ops: []}, f3, y5, t7, g2;
+                if (t6[0] & 1)
+                  throw t6[1];
+                return t6[1];
+              }, trys: [], ops: []}, f3, y5, t6, g2;
               return g2 = {next: verb(0), "throw": verb(1), "return": verb(2)}, typeof Symbol === "function" && (g2[Symbol.iterator] = function() {
                 return this;
               }), g2;
@@ -22431,14 +22431,14 @@ onclick="event.stopPropagation();this.previousElementSibling.select();document.e
                   throw new TypeError("Generator is already executing.");
                 while (g2 && (g2 = 0, op[0] && (_2 = 0)), _2)
                   try {
-                    if (f3 = 1, y5 && (t7 = op[0] & 2 ? y5["return"] : op[0] ? y5["throw"] || ((t7 = y5["return"]) && t7.call(y5), 0) : y5.next) && !(t7 = t7.call(y5, op[1])).done)
-                      return t7;
-                    if (y5 = 0, t7)
-                      op = [op[0] & 2, t7.value];
+                    if (f3 = 1, y5 && (t6 = op[0] & 2 ? y5["return"] : op[0] ? y5["throw"] || ((t6 = y5["return"]) && t6.call(y5), 0) : y5.next) && !(t6 = t6.call(y5, op[1])).done)
+                      return t6;
+                    if (y5 = 0, t6)
+                      op = [op[0] & 2, t6.value];
                     switch (op[0]) {
                       case 0:
                       case 1:
-                        t7 = op;
+                        t6 = op;
                         break;
                       case 4:
                         _2.label++;
@@ -22453,25 +22453,25 @@ onclick="event.stopPropagation();this.previousElementSibling.select();document.e
                         _2.trys.pop();
                         continue;
                       default:
-                        if (!(t7 = _2.trys, t7 = t7.length > 0 && t7[t7.length - 1]) && (op[0] === 6 || op[0] === 2)) {
+                        if (!(t6 = _2.trys, t6 = t6.length > 0 && t6[t6.length - 1]) && (op[0] === 6 || op[0] === 2)) {
                           _2 = 0;
                           continue;
                         }
-                        if (op[0] === 3 && (!t7 || op[1] > t7[0] && op[1] < t7[3])) {
+                        if (op[0] === 3 && (!t6 || op[1] > t6[0] && op[1] < t6[3])) {
                           _2.label = op[1];
                           break;
                         }
-                        if (op[0] === 6 && _2.label < t7[1]) {
-                          _2.label = t7[1];
-                          t7 = op;
+                        if (op[0] === 6 && _2.label < t6[1]) {
+                          _2.label = t6[1];
+                          t6 = op;
                           break;
                         }
-                        if (t7 && _2.label < t7[2]) {
-                          _2.label = t7[2];
+                        if (t6 && _2.label < t6[2]) {
+                          _2.label = t6[2];
                           _2.ops.push(op);
                           break;
                         }
-                        if (t7[2])
+                        if (t6[2])
                           _2.ops.pop();
                         _2.trys.pop();
                         continue;
@@ -22481,7 +22481,7 @@ onclick="event.stopPropagation();this.previousElementSibling.select();document.e
                     op = [6, e7];
                     y5 = 0;
                   } finally {
-                    f3 = t7 = 0;
+                    f3 = t6 = 0;
                   }
                 if (op[0] & 5)
                   throw op[1];
@@ -26475,6 +26475,22 @@ window.addEventListener("message", (e) => {
       }
     };
   }
+  var REGEX_DIAGNOSTIC_SPAN = /<span\s+(?:[^>]*\s+)?class="[^"]*\bvscode-diagnostic-[^"\s]*[^"]*"[^>]*>(.*?)<\/span>/g;
+  var REGEX_DIAGNOSTIC_SOURCE_ATTR = /\s+data-diagnostic-source="[^"]*"/g;
+  var REGEX_DIFF_SPAN = /<span\s+(?:[^>]*\s+)?class="[^"]*\bvscode-diff-(?:added|removed|modified)\b[^"]*"[^>]*>(.*?)<\/span>/g;
+  var REGEX_SPACER_BLOCK_BY_CLASS = /<(?:div|p|span|section|article)[^>]*\bclass="[^"]*\bdiff-spacer-block\b[^"]*"[^>]*>[\s\S]*?<\/(?:div|p|span|section|article)>/g;
+  var REGEX_SPACER_BLOCK_BY_ATTR = /<[^>]*\bdata-diff-spacer="true"[^>]*>[\s\S]*?<\/[^>]+>/g;
+  var REGEX_DATA_DIFF_TYPE = /\s+data-diff-type="[^"]*"/g;
+  var REGEX_DATA_DIFF_LINE = /\s+data-diff-line="[^"]*"/g;
+  var REGEX_DATA_DECORATION_ID = /\s+data-decoration-id="[^"]*"/g;
+  var REGEX_DATA_DIFF_SPACER = /\s+data-diff-spacer="[^"]*"/g;
+  var REGEX_DATA_LINE_NUMBER = /\s+data-line-number="[^"]*"/g;
+  var REGEX_LIGHTBULB_EMOJI = /💡/g;
+  var REGEX_LOCK_EMOJI = /🔒/g;
+  var REGEX_DECORATION_STYLES = /\s+style="[^"]*(?:text-decoration|background-color|border-bottom|border-left|padding-left|padding-bottom|pointer-events|user-select|cursor|opacity|display|background|position|min-height)[^"]*"/g;
+  var REGEX_SPACER_COMMENT = /<!--\s*vscode-diff-spacer:\s*\d+\s*-->/g;
+  var REGEX_CONTENTEDITABLE_FALSE = /\s+contenteditable="false"/g;
+  var REGEX_EMPTY_SPAN = /<span><\/span>/g;
   function cleanContentForSave(content) {
     if (!content)
       return content;
@@ -26482,18 +26498,35 @@ window.addEventListener("message", (e) => {
     let prevCleaned = "";
     while (prevCleaned !== cleaned) {
       prevCleaned = cleaned;
-      cleaned = cleaned.replace(/<span\s+(?:[^>]*\s+)?class="[^"]*\bvscode-diagnostic-[^"\s]*[^"]*"[^>]*>(.*?)<\/span>/g, "$1");
+      cleaned = cleaned.replace(REGEX_DIAGNOSTIC_SPAN, "$1");
     }
-    cleaned = cleaned.replace(/\s+data-diagnostic-source="[^"]*"/g, "");
+    cleaned = cleaned.replace(REGEX_DIAGNOSTIC_SOURCE_ATTR, "");
     prevCleaned = "";
     while (prevCleaned !== cleaned) {
       prevCleaned = cleaned;
-      cleaned = cleaned.replace(/<span\s+(?:[^>]*\s+)?class="[^"]*\bvscode-diff-(?:added|removed|modified)\b[^"]*"[^>]*>(.*?)<\/span>/g, "$1");
+      cleaned = cleaned.replace(REGEX_SPACER_BLOCK_BY_CLASS, "");
     }
-    cleaned = cleaned.replace(/💡/g, "");
-    cleaned = cleaned.replace(/\s+style="[^"]*(?:text-decoration|background-color|border-bottom)[^"]*"/g, "");
-    cleaned = cleaned.replace(/<!--\s*vscode-diff-spacer:\s*\d+\s*-->/g, "");
-    cleaned = cleaned.replace(/<span><\/span>/g, "");
+    prevCleaned = "";
+    while (prevCleaned !== cleaned) {
+      prevCleaned = cleaned;
+      cleaned = cleaned.replace(REGEX_SPACER_BLOCK_BY_ATTR, "");
+    }
+    cleaned = cleaned.replace(REGEX_DATA_DIFF_TYPE, "");
+    cleaned = cleaned.replace(REGEX_DATA_DIFF_LINE, "");
+    cleaned = cleaned.replace(REGEX_DATA_DECORATION_ID, "");
+    cleaned = cleaned.replace(REGEX_DATA_DIFF_SPACER, "");
+    cleaned = cleaned.replace(REGEX_DATA_LINE_NUMBER, "");
+    prevCleaned = "";
+    while (prevCleaned !== cleaned) {
+      prevCleaned = cleaned;
+      cleaned = cleaned.replace(REGEX_DIFF_SPAN, "$1");
+    }
+    cleaned = cleaned.replace(REGEX_LIGHTBULB_EMOJI, "");
+    cleaned = cleaned.replace(REGEX_LOCK_EMOJI, "");
+    cleaned = cleaned.replace(REGEX_DECORATION_STYLES, "");
+    cleaned = cleaned.replace(REGEX_SPACER_COMMENT, "");
+    cleaned = cleaned.replace(REGEX_CONTENTEDITABLE_FALSE, "");
+    cleaned = cleaned.replace(REGEX_EMPTY_SPAN, "");
     return cleaned;
   }
   var getHTML = (vditor2) => {
@@ -29014,50 +29047,50 @@ window.addEventListener("message", (e) => {
   var s3 = Symbol();
   var o = new WeakMap();
   var n = class {
-    constructor(t7, e7, o6) {
+    constructor(t6, e7, o6) {
       if (this._$cssResult$ = true, o6 !== s3)
         throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
-      this.cssText = t7, this.t = e7;
+      this.cssText = t6, this.t = e7;
     }
     get styleSheet() {
-      let t7 = this.o;
+      let t6 = this.o;
       const s6 = this.t;
-      if (e2 && t7 === void 0) {
+      if (e2 && t6 === void 0) {
         const e7 = s6 !== void 0 && s6.length === 1;
-        e7 && (t7 = o.get(s6)), t7 === void 0 && ((this.o = t7 = new CSSStyleSheet()).replaceSync(this.cssText), e7 && o.set(s6, t7));
+        e7 && (t6 = o.get(s6)), t6 === void 0 && ((this.o = t6 = new CSSStyleSheet()).replaceSync(this.cssText), e7 && o.set(s6, t6));
       }
-      return t7;
+      return t6;
     }
     toString() {
       return this.cssText;
     }
   };
-  var r = (t7) => new n(typeof t7 == "string" ? t7 : t7 + "", void 0, s3);
-  var i2 = (t7, ...e7) => {
-    const o6 = t7.length === 1 ? t7[0] : e7.reduce((e8, s6, o7) => e8 + ((t8) => {
-      if (t8._$cssResult$ === true)
-        return t8.cssText;
-      if (typeof t8 == "number")
-        return t8;
-      throw Error("Value passed to 'css' function must be a 'css' function result: " + t8 + ". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.");
-    })(s6) + t7[o7 + 1], t7[0]);
-    return new n(o6, t7, s3);
+  var r = (t6) => new n(typeof t6 == "string" ? t6 : t6 + "", void 0, s3);
+  var i2 = (t6, ...e7) => {
+    const o6 = t6.length === 1 ? t6[0] : e7.reduce((e8, s6, o7) => e8 + ((t7) => {
+      if (t7._$cssResult$ === true)
+        return t7.cssText;
+      if (typeof t7 == "number")
+        return t7;
+      throw Error("Value passed to 'css' function must be a 'css' function result: " + t7 + ". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.");
+    })(s6) + t6[o7 + 1], t6[0]);
+    return new n(o6, t6, s3);
   };
   var S3 = (s6, o6) => {
     if (e2)
-      s6.adoptedStyleSheets = o6.map((t7) => t7 instanceof CSSStyleSheet ? t7 : t7.styleSheet);
+      s6.adoptedStyleSheets = o6.map((t6) => t6 instanceof CSSStyleSheet ? t6 : t6.styleSheet);
     else
       for (const e7 of o6) {
         const o7 = document.createElement("style"), n5 = t3.litNonce;
         n5 !== void 0 && o7.setAttribute("nonce", n5), o7.textContent = e7.cssText, s6.appendChild(o7);
       }
   };
-  var c2 = e2 ? (t7) => t7 : (t7) => t7 instanceof CSSStyleSheet ? ((t8) => {
+  var c2 = e2 ? (t6) => t6 : (t6) => t6 instanceof CSSStyleSheet ? ((t7) => {
     let e7 = "";
-    for (const s6 of t8.cssRules)
+    for (const s6 of t7.cssRules)
       e7 += s6.cssText;
     return r(e7);
-  })(t7) : t7;
+  })(t6) : t6;
 
   // node_modules/@lit/reactive-element/reactive-element.js
   var {is: i3, defineProperty: e3, getOwnPropertyDescriptor: h3, getOwnPropertyNames: r2, getOwnPropertySymbols: o2, getPrototypeOf: n2} = Object;
@@ -29065,91 +29098,91 @@ window.addEventListener("message", (e) => {
   var c3 = a3.trustedTypes;
   var l = c3 ? c3.emptyScript : "";
   var p = a3.reactiveElementPolyfillSupport;
-  var d3 = (t7, s6) => t7;
-  var u2 = {toAttribute(t7, s6) {
+  var d3 = (t6, s6) => t6;
+  var u2 = {toAttribute(t6, s6) {
     switch (s6) {
       case Boolean:
-        t7 = t7 ? l : null;
+        t6 = t6 ? l : null;
         break;
       case Object:
       case Array:
-        t7 = t7 == null ? t7 : JSON.stringify(t7);
+        t6 = t6 == null ? t6 : JSON.stringify(t6);
     }
-    return t7;
-  }, fromAttribute(t7, s6) {
-    let i6 = t7;
+    return t6;
+  }, fromAttribute(t6, s6) {
+    let i6 = t6;
     switch (s6) {
       case Boolean:
-        i6 = t7 !== null;
+        i6 = t6 !== null;
         break;
       case Number:
-        i6 = t7 === null ? null : Number(t7);
+        i6 = t6 === null ? null : Number(t6);
         break;
       case Object:
       case Array:
         try {
-          i6 = JSON.parse(t7);
-        } catch (t8) {
+          i6 = JSON.parse(t6);
+        } catch (t7) {
           i6 = null;
         }
     }
     return i6;
   }};
-  var f = (t7, s6) => !i3(t7, s6);
+  var f = (t6, s6) => !i3(t6, s6);
   var b2 = {attribute: true, type: String, converter: u2, reflect: false, useDefault: false, hasChanged: f};
   Symbol.metadata ??= Symbol("metadata"), a3.litPropertyMetadata ??= new WeakMap();
   var y3 = class extends HTMLElement {
-    static addInitializer(t7) {
-      this._$Ei(), (this.l ??= []).push(t7);
+    static addInitializer(t6) {
+      this._$Ei(), (this.l ??= []).push(t6);
     }
     static get observedAttributes() {
       return this.finalize(), this._$Eh && [...this._$Eh.keys()];
     }
-    static createProperty(t7, s6 = b2) {
-      if (s6.state && (s6.attribute = false), this._$Ei(), this.prototype.hasOwnProperty(t7) && ((s6 = Object.create(s6)).wrapped = true), this.elementProperties.set(t7, s6), !s6.noAccessor) {
-        const i6 = Symbol(), h5 = this.getPropertyDescriptor(t7, i6, s6);
-        h5 !== void 0 && e3(this.prototype, t7, h5);
+    static createProperty(t6, s6 = b2) {
+      if (s6.state && (s6.attribute = false), this._$Ei(), this.prototype.hasOwnProperty(t6) && ((s6 = Object.create(s6)).wrapped = true), this.elementProperties.set(t6, s6), !s6.noAccessor) {
+        const i6 = Symbol(), h5 = this.getPropertyDescriptor(t6, i6, s6);
+        h5 !== void 0 && e3(this.prototype, t6, h5);
       }
     }
-    static getPropertyDescriptor(t7, s6, i6) {
-      const {get: e7, set: r6} = h3(this.prototype, t7) ?? {get() {
+    static getPropertyDescriptor(t6, s6, i6) {
+      const {get: e7, set: r6} = h3(this.prototype, t6) ?? {get() {
         return this[s6];
-      }, set(t8) {
-        this[s6] = t8;
+      }, set(t7) {
+        this[s6] = t7;
       }};
       return {get: e7, set(s7) {
         const h5 = e7?.call(this);
-        r6?.call(this, s7), this.requestUpdate(t7, h5, i6);
+        r6?.call(this, s7), this.requestUpdate(t6, h5, i6);
       }, configurable: true, enumerable: true};
     }
-    static getPropertyOptions(t7) {
-      return this.elementProperties.get(t7) ?? b2;
+    static getPropertyOptions(t6) {
+      return this.elementProperties.get(t6) ?? b2;
     }
     static _$Ei() {
       if (this.hasOwnProperty(d3("elementProperties")))
         return;
-      const t7 = n2(this);
-      t7.finalize(), t7.l !== void 0 && (this.l = [...t7.l]), this.elementProperties = new Map(t7.elementProperties);
+      const t6 = n2(this);
+      t6.finalize(), t6.l !== void 0 && (this.l = [...t6.l]), this.elementProperties = new Map(t6.elementProperties);
     }
     static finalize() {
       if (this.hasOwnProperty(d3("finalized")))
         return;
       if (this.finalized = true, this._$Ei(), this.hasOwnProperty(d3("properties"))) {
-        const t8 = this.properties, s6 = [...r2(t8), ...o2(t8)];
+        const t7 = this.properties, s6 = [...r2(t7), ...o2(t7)];
         for (const i6 of s6)
-          this.createProperty(i6, t8[i6]);
+          this.createProperty(i6, t7[i6]);
       }
-      const t7 = this[Symbol.metadata];
-      if (t7 !== null) {
-        const s6 = litPropertyMetadata.get(t7);
+      const t6 = this[Symbol.metadata];
+      if (t6 !== null) {
+        const s6 = litPropertyMetadata.get(t6);
         if (s6 !== void 0)
-          for (const [t8, i6] of s6)
-            this.elementProperties.set(t8, i6);
+          for (const [t7, i6] of s6)
+            this.elementProperties.set(t7, i6);
       }
       this._$Eh = new Map();
-      for (const [t8, s6] of this.elementProperties) {
-        const i6 = this._$Eu(t8, s6);
-        i6 !== void 0 && this._$Eh.set(i6, t8);
+      for (const [t7, s6] of this.elementProperties) {
+        const i6 = this._$Eu(t7, s6);
+        i6 !== void 0 && this._$Eh.set(i6, t7);
       }
       this.elementStyles = this.finalizeStyles(this.styles);
     }
@@ -29163,80 +29196,80 @@ window.addEventListener("message", (e) => {
         s6 !== void 0 && i6.push(c2(s6));
       return i6;
     }
-    static _$Eu(t7, s6) {
+    static _$Eu(t6, s6) {
       const i6 = s6.attribute;
-      return i6 === false ? void 0 : typeof i6 == "string" ? i6 : typeof t7 == "string" ? t7.toLowerCase() : void 0;
+      return i6 === false ? void 0 : typeof i6 == "string" ? i6 : typeof t6 == "string" ? t6.toLowerCase() : void 0;
     }
     constructor() {
       super(), this._$Ep = void 0, this.isUpdatePending = false, this.hasUpdated = false, this._$Em = null, this._$Ev();
     }
     _$Ev() {
-      this._$ES = new Promise((t7) => this.enableUpdating = t7), this._$AL = new Map(), this._$E_(), this.requestUpdate(), this.constructor.l?.forEach((t7) => t7(this));
+      this._$ES = new Promise((t6) => this.enableUpdating = t6), this._$AL = new Map(), this._$E_(), this.requestUpdate(), this.constructor.l?.forEach((t6) => t6(this));
     }
-    addController(t7) {
-      (this._$EO ??= new Set()).add(t7), this.renderRoot !== void 0 && this.isConnected && t7.hostConnected?.();
+    addController(t6) {
+      (this._$EO ??= new Set()).add(t6), this.renderRoot !== void 0 && this.isConnected && t6.hostConnected?.();
     }
-    removeController(t7) {
-      this._$EO?.delete(t7);
+    removeController(t6) {
+      this._$EO?.delete(t6);
     }
     _$E_() {
-      const t7 = new Map(), s6 = this.constructor.elementProperties;
+      const t6 = new Map(), s6 = this.constructor.elementProperties;
       for (const i6 of s6.keys())
-        this.hasOwnProperty(i6) && (t7.set(i6, this[i6]), delete this[i6]);
-      t7.size > 0 && (this._$Ep = t7);
+        this.hasOwnProperty(i6) && (t6.set(i6, this[i6]), delete this[i6]);
+      t6.size > 0 && (this._$Ep = t6);
     }
     createRenderRoot() {
-      const t7 = this.shadowRoot ?? this.attachShadow(this.constructor.shadowRootOptions);
-      return S3(t7, this.constructor.elementStyles), t7;
+      const t6 = this.shadowRoot ?? this.attachShadow(this.constructor.shadowRootOptions);
+      return S3(t6, this.constructor.elementStyles), t6;
     }
     connectedCallback() {
-      this.renderRoot ??= this.createRenderRoot(), this.enableUpdating(true), this._$EO?.forEach((t7) => t7.hostConnected?.());
+      this.renderRoot ??= this.createRenderRoot(), this.enableUpdating(true), this._$EO?.forEach((t6) => t6.hostConnected?.());
     }
-    enableUpdating(t7) {
+    enableUpdating(t6) {
     }
     disconnectedCallback() {
-      this._$EO?.forEach((t7) => t7.hostDisconnected?.());
+      this._$EO?.forEach((t6) => t6.hostDisconnected?.());
     }
-    attributeChangedCallback(t7, s6, i6) {
-      this._$AK(t7, i6);
+    attributeChangedCallback(t6, s6, i6) {
+      this._$AK(t6, i6);
     }
-    _$ET(t7, s6) {
-      const i6 = this.constructor.elementProperties.get(t7), e7 = this.constructor._$Eu(t7, i6);
+    _$ET(t6, s6) {
+      const i6 = this.constructor.elementProperties.get(t6), e7 = this.constructor._$Eu(t6, i6);
       if (e7 !== void 0 && i6.reflect === true) {
         const h5 = (i6.converter?.toAttribute !== void 0 ? i6.converter : u2).toAttribute(s6, i6.type);
-        this._$Em = t7, h5 == null ? this.removeAttribute(e7) : this.setAttribute(e7, h5), this._$Em = null;
+        this._$Em = t6, h5 == null ? this.removeAttribute(e7) : this.setAttribute(e7, h5), this._$Em = null;
       }
     }
-    _$AK(t7, s6) {
-      const i6 = this.constructor, e7 = i6._$Eh.get(t7);
+    _$AK(t6, s6) {
+      const i6 = this.constructor, e7 = i6._$Eh.get(t6);
       if (e7 !== void 0 && this._$Em !== e7) {
-        const t8 = i6.getPropertyOptions(e7), h5 = typeof t8.converter == "function" ? {fromAttribute: t8.converter} : t8.converter?.fromAttribute !== void 0 ? t8.converter : u2;
+        const t7 = i6.getPropertyOptions(e7), h5 = typeof t7.converter == "function" ? {fromAttribute: t7.converter} : t7.converter?.fromAttribute !== void 0 ? t7.converter : u2;
         this._$Em = e7;
-        const r6 = h5.fromAttribute(s6, t8.type);
+        const r6 = h5.fromAttribute(s6, t7.type);
         this[e7] = r6 ?? this._$Ej?.get(e7) ?? r6, this._$Em = null;
       }
     }
-    requestUpdate(t7, s6, i6) {
-      if (t7 !== void 0) {
-        const e7 = this.constructor, h5 = this[t7];
-        if (i6 ??= e7.getPropertyOptions(t7), !((i6.hasChanged ?? f)(h5, s6) || i6.useDefault && i6.reflect && h5 === this._$Ej?.get(t7) && !this.hasAttribute(e7._$Eu(t7, i6))))
+    requestUpdate(t6, s6, i6) {
+      if (t6 !== void 0) {
+        const e7 = this.constructor, h5 = this[t6];
+        if (i6 ??= e7.getPropertyOptions(t6), !((i6.hasChanged ?? f)(h5, s6) || i6.useDefault && i6.reflect && h5 === this._$Ej?.get(t6) && !this.hasAttribute(e7._$Eu(t6, i6))))
           return;
-        this.C(t7, s6, i6);
+        this.C(t6, s6, i6);
       }
       this.isUpdatePending === false && (this._$ES = this._$EP());
     }
-    C(t7, s6, {useDefault: i6, reflect: e7, wrapped: h5}, r6) {
-      i6 && !(this._$Ej ??= new Map()).has(t7) && (this._$Ej.set(t7, r6 ?? s6 ?? this[t7]), h5 !== true || r6 !== void 0) || (this._$AL.has(t7) || (this.hasUpdated || i6 || (s6 = void 0), this._$AL.set(t7, s6)), e7 === true && this._$Em !== t7 && (this._$Eq ??= new Set()).add(t7));
+    C(t6, s6, {useDefault: i6, reflect: e7, wrapped: h5}, r6) {
+      i6 && !(this._$Ej ??= new Map()).has(t6) && (this._$Ej.set(t6, r6 ?? s6 ?? this[t6]), h5 !== true || r6 !== void 0) || (this._$AL.has(t6) || (this.hasUpdated || i6 || (s6 = void 0), this._$AL.set(t6, s6)), e7 === true && this._$Em !== t6 && (this._$Eq ??= new Set()).add(t6));
     }
     async _$EP() {
       this.isUpdatePending = true;
       try {
         await this._$ES;
-      } catch (t8) {
-        Promise.reject(t8);
+      } catch (t7) {
+        Promise.reject(t7);
       }
-      const t7 = this.scheduleUpdate();
-      return t7 != null && await t7, !this.isUpdatePending;
+      const t6 = this.scheduleUpdate();
+      return t6 != null && await t6, !this.isUpdatePending;
     }
     scheduleUpdate() {
       return this.performUpdate();
@@ -29246,30 +29279,30 @@ window.addEventListener("message", (e) => {
         return;
       if (!this.hasUpdated) {
         if (this.renderRoot ??= this.createRenderRoot(), this._$Ep) {
-          for (const [t9, s7] of this._$Ep)
-            this[t9] = s7;
+          for (const [t8, s7] of this._$Ep)
+            this[t8] = s7;
           this._$Ep = void 0;
         }
-        const t8 = this.constructor.elementProperties;
-        if (t8.size > 0)
-          for (const [s7, i6] of t8) {
-            const {wrapped: t9} = i6, e7 = this[s7];
-            t9 !== true || this._$AL.has(s7) || e7 === void 0 || this.C(s7, void 0, i6, e7);
+        const t7 = this.constructor.elementProperties;
+        if (t7.size > 0)
+          for (const [s7, i6] of t7) {
+            const {wrapped: t8} = i6, e7 = this[s7];
+            t8 !== true || this._$AL.has(s7) || e7 === void 0 || this.C(s7, void 0, i6, e7);
           }
       }
-      let t7 = false;
+      let t6 = false;
       const s6 = this._$AL;
       try {
-        t7 = this.shouldUpdate(s6), t7 ? (this.willUpdate(s6), this._$EO?.forEach((t8) => t8.hostUpdate?.()), this.update(s6)) : this._$EM();
+        t6 = this.shouldUpdate(s6), t6 ? (this.willUpdate(s6), this._$EO?.forEach((t7) => t7.hostUpdate?.()), this.update(s6)) : this._$EM();
       } catch (s7) {
-        throw t7 = false, this._$EM(), s7;
+        throw t6 = false, this._$EM(), s7;
       }
-      t7 && this._$AE(s6);
+      t6 && this._$AE(s6);
     }
-    willUpdate(t7) {
+    willUpdate(t6) {
     }
-    _$AE(t7) {
-      this._$EO?.forEach((t8) => t8.hostUpdated?.()), this.hasUpdated || (this.hasUpdated = true, this.firstUpdated(t7)), this.updated(t7);
+    _$AE(t6) {
+      this._$EO?.forEach((t7) => t7.hostUpdated?.()), this.hasUpdated || (this.hasUpdated = true, this.firstUpdated(t6)), this.updated(t6);
     }
     _$EM() {
       this._$AL = new Map(), this.isUpdatePending = false;
@@ -29280,15 +29313,15 @@ window.addEventListener("message", (e) => {
     getUpdateComplete() {
       return this._$ES;
     }
-    shouldUpdate(t7) {
+    shouldUpdate(t6) {
       return true;
     }
-    update(t7) {
-      this._$Eq &&= this._$Eq.forEach((t8) => this._$ET(t8, this[t8])), this._$EM();
+    update(t6) {
+      this._$Eq &&= this._$Eq.forEach((t7) => this._$ET(t7, this[t7])), this._$EM();
     }
-    updated(t7) {
+    updated(t6) {
     }
-    firstUpdated(t7) {
+    firstUpdated(t6) {
     }
   };
   y3.elementStyles = [], y3.shadowRootOptions = {mode: "open"}, y3[d3("elementProperties")] = new Map(), y3[d3("finalized")] = new Map(), p?.({ReactiveElement: y3}), (a3.reactiveElementVersions ??= []).push("2.1.1");
@@ -29296,16 +29329,16 @@ window.addEventListener("message", (e) => {
   // node_modules/lit-html/lit-html.js
   var t4 = globalThis;
   var i4 = t4.trustedTypes;
-  var s4 = i4 ? i4.createPolicy("lit-html", {createHTML: (t7) => t7}) : void 0;
+  var s4 = i4 ? i4.createPolicy("lit-html", {createHTML: (t6) => t6}) : void 0;
   var e4 = "$lit$";
   var h4 = `lit$${Math.random().toFixed(9).slice(2)}$`;
   var o3 = "?" + h4;
   var n3 = `<${o3}>`;
   var r3 = document;
   var l2 = () => r3.createComment("");
-  var c4 = (t7) => t7 === null || typeof t7 != "object" && typeof t7 != "function";
+  var c4 = (t6) => t6 === null || typeof t6 != "object" && typeof t6 != "function";
   var a4 = Array.isArray;
-  var u3 = (t7) => a4(t7) || typeof t7?.[Symbol.iterator] == "function";
+  var u3 = (t6) => a4(t6) || typeof t6?.[Symbol.iterator] == "function";
   var d4 = "[ 	\n\f\r]";
   var f2 = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g;
   var v = /-->/g;
@@ -29315,7 +29348,7 @@ window.addEventListener("message", (e) => {
   var p2 = /'/g;
   var g = /"/g;
   var $2 = /^(?:script|style|textarea|title)$/i;
-  var y4 = (t7) => (i6, ...s6) => ({_$litType$: t7, strings: i6, values: s6});
+  var y4 = (t6) => (i6, ...s6) => ({_$litType$: t6, strings: i6, values: s6});
   var x2 = y4(1);
   var b3 = y4(2);
   var w2 = y4(3);
@@ -29323,78 +29356,78 @@ window.addEventListener("message", (e) => {
   var E2 = Symbol.for("lit-nothing");
   var A = new WeakMap();
   var C = r3.createTreeWalker(r3, 129);
-  function P(t7, i6) {
-    if (!a4(t7) || !t7.hasOwnProperty("raw"))
+  function P(t6, i6) {
+    if (!a4(t6) || !t6.hasOwnProperty("raw"))
       throw Error("invalid template strings array");
     return s4 !== void 0 ? s4.createHTML(i6) : i6;
   }
-  var V = (t7, i6) => {
-    const s6 = t7.length - 1, o6 = [];
+  var V = (t6, i6) => {
+    const s6 = t6.length - 1, o6 = [];
     let r6, l3 = i6 === 2 ? "<svg>" : i6 === 3 ? "<math>" : "", c5 = f2;
     for (let i7 = 0; i7 < s6; i7++) {
-      const s7 = t7[i7];
+      const s7 = t6[i7];
       let a5, u4, d5 = -1, y5 = 0;
       for (; y5 < s7.length && (c5.lastIndex = y5, u4 = c5.exec(s7), u4 !== null); )
         y5 = c5.lastIndex, c5 === f2 ? u4[1] === "!--" ? c5 = v : u4[1] !== void 0 ? c5 = _ : u4[2] !== void 0 ? ($2.test(u4[2]) && (r6 = RegExp("</" + u4[2], "g")), c5 = m3) : u4[3] !== void 0 && (c5 = m3) : c5 === m3 ? u4[0] === ">" ? (c5 = r6 ?? f2, d5 = -1) : u4[1] === void 0 ? d5 = -2 : (d5 = c5.lastIndex - u4[2].length, a5 = u4[1], c5 = u4[3] === void 0 ? m3 : u4[3] === '"' ? g : p2) : c5 === g || c5 === p2 ? c5 = m3 : c5 === v || c5 === _ ? c5 = f2 : (c5 = m3, r6 = void 0);
-      const x3 = c5 === m3 && t7[i7 + 1].startsWith("/>") ? " " : "";
+      const x3 = c5 === m3 && t6[i7 + 1].startsWith("/>") ? " " : "";
       l3 += c5 === f2 ? s7 + n3 : d5 >= 0 ? (o6.push(a5), s7.slice(0, d5) + e4 + s7.slice(d5) + h4 + x3) : s7 + h4 + (d5 === -2 ? i7 : x3);
     }
-    return [P(t7, l3 + (t7[s6] || "<?>") + (i6 === 2 ? "</svg>" : i6 === 3 ? "</math>" : "")), o6];
+    return [P(t6, l3 + (t6[s6] || "<?>") + (i6 === 2 ? "</svg>" : i6 === 3 ? "</math>" : "")), o6];
   };
   var N = class {
-    constructor({strings: t7, _$litType$: s6}, n5) {
+    constructor({strings: t6, _$litType$: s6}, n5) {
       let r6;
       this.parts = [];
       let c5 = 0, a5 = 0;
-      const u4 = t7.length - 1, d5 = this.parts, [f3, v2] = V(t7, s6);
+      const u4 = t6.length - 1, d5 = this.parts, [f3, v2] = V(t6, s6);
       if (this.el = N.createElement(f3, n5), C.currentNode = this.el.content, s6 === 2 || s6 === 3) {
-        const t8 = this.el.content.firstChild;
-        t8.replaceWith(...t8.childNodes);
+        const t7 = this.el.content.firstChild;
+        t7.replaceWith(...t7.childNodes);
       }
       for (; (r6 = C.nextNode()) !== null && d5.length < u4; ) {
         if (r6.nodeType === 1) {
           if (r6.hasAttributes())
-            for (const t8 of r6.getAttributeNames())
-              if (t8.endsWith(e4)) {
-                const i6 = v2[a5++], s7 = r6.getAttribute(t8).split(h4), e7 = /([.?@])?(.*)/.exec(i6);
-                d5.push({type: 1, index: c5, name: e7[2], strings: s7, ctor: e7[1] === "." ? H3 : e7[1] === "?" ? I2 : e7[1] === "@" ? L2 : k2}), r6.removeAttribute(t8);
+            for (const t7 of r6.getAttributeNames())
+              if (t7.endsWith(e4)) {
+                const i6 = v2[a5++], s7 = r6.getAttribute(t7).split(h4), e7 = /([.?@])?(.*)/.exec(i6);
+                d5.push({type: 1, index: c5, name: e7[2], strings: s7, ctor: e7[1] === "." ? H3 : e7[1] === "?" ? I2 : e7[1] === "@" ? L2 : k2}), r6.removeAttribute(t7);
               } else
-                t8.startsWith(h4) && (d5.push({type: 6, index: c5}), r6.removeAttribute(t8));
+                t7.startsWith(h4) && (d5.push({type: 6, index: c5}), r6.removeAttribute(t7));
           if ($2.test(r6.tagName)) {
-            const t8 = r6.textContent.split(h4), s7 = t8.length - 1;
+            const t7 = r6.textContent.split(h4), s7 = t7.length - 1;
             if (s7 > 0) {
               r6.textContent = i4 ? i4.emptyScript : "";
               for (let i6 = 0; i6 < s7; i6++)
-                r6.append(t8[i6], l2()), C.nextNode(), d5.push({type: 2, index: ++c5});
-              r6.append(t8[s7], l2());
+                r6.append(t7[i6], l2()), C.nextNode(), d5.push({type: 2, index: ++c5});
+              r6.append(t7[s7], l2());
             }
           }
         } else if (r6.nodeType === 8)
           if (r6.data === o3)
             d5.push({type: 2, index: c5});
           else {
-            let t8 = -1;
-            for (; (t8 = r6.data.indexOf(h4, t8 + 1)) !== -1; )
-              d5.push({type: 7, index: c5}), t8 += h4.length - 1;
+            let t7 = -1;
+            for (; (t7 = r6.data.indexOf(h4, t7 + 1)) !== -1; )
+              d5.push({type: 7, index: c5}), t7 += h4.length - 1;
           }
         c5++;
       }
     }
-    static createElement(t7, i6) {
+    static createElement(t6, i6) {
       const s6 = r3.createElement("template");
-      return s6.innerHTML = t7, s6;
+      return s6.innerHTML = t6, s6;
     }
   };
-  function S4(t7, i6, s6 = t7, e7) {
+  function S4(t6, i6, s6 = t6, e7) {
     if (i6 === T2)
       return i6;
     let h5 = e7 !== void 0 ? s6._$Co?.[e7] : s6._$Cl;
     const o6 = c4(i6) ? void 0 : i6._$litDirective$;
-    return h5?.constructor !== o6 && (h5?._$AO?.(false), o6 === void 0 ? h5 = void 0 : (h5 = new o6(t7), h5._$AT(t7, s6, e7)), e7 !== void 0 ? (s6._$Co ??= [])[e7] = h5 : s6._$Cl = h5), h5 !== void 0 && (i6 = S4(t7, h5._$AS(t7, i6.values), h5, e7)), i6;
+    return h5?.constructor !== o6 && (h5?._$AO?.(false), o6 === void 0 ? h5 = void 0 : (h5 = new o6(t6), h5._$AT(t6, s6, e7)), e7 !== void 0 ? (s6._$Co ??= [])[e7] = h5 : s6._$Cl = h5), h5 !== void 0 && (i6 = S4(t6, h5._$AS(t6, i6.values), h5, e7)), i6;
   }
   var M3 = class {
-    constructor(t7, i6) {
-      this._$AV = [], this._$AN = void 0, this._$AD = t7, this._$AM = i6;
+    constructor(t6, i6) {
+      this._$AV = [], this._$AN = void 0, this._$AD = t6, this._$AM = i6;
     }
     get parentNode() {
       return this._$AM.parentNode;
@@ -29402,36 +29435,36 @@ window.addEventListener("message", (e) => {
     get _$AU() {
       return this._$AM._$AU;
     }
-    u(t7) {
-      const {el: {content: i6}, parts: s6} = this._$AD, e7 = (t7?.creationScope ?? r3).importNode(i6, true);
+    u(t6) {
+      const {el: {content: i6}, parts: s6} = this._$AD, e7 = (t6?.creationScope ?? r3).importNode(i6, true);
       C.currentNode = e7;
       let h5 = C.nextNode(), o6 = 0, n5 = 0, l3 = s6[0];
       for (; l3 !== void 0; ) {
         if (o6 === l3.index) {
           let i7;
-          l3.type === 2 ? i7 = new R2(h5, h5.nextSibling, this, t7) : l3.type === 1 ? i7 = new l3.ctor(h5, l3.name, l3.strings, this, t7) : l3.type === 6 && (i7 = new z2(h5, this, t7)), this._$AV.push(i7), l3 = s6[++n5];
+          l3.type === 2 ? i7 = new R2(h5, h5.nextSibling, this, t6) : l3.type === 1 ? i7 = new l3.ctor(h5, l3.name, l3.strings, this, t6) : l3.type === 6 && (i7 = new z2(h5, this, t6)), this._$AV.push(i7), l3 = s6[++n5];
         }
         o6 !== l3?.index && (h5 = C.nextNode(), o6++);
       }
       return C.currentNode = r3, e7;
     }
-    p(t7) {
+    p(t6) {
       let i6 = 0;
       for (const s6 of this._$AV)
-        s6 !== void 0 && (s6.strings !== void 0 ? (s6._$AI(t7, s6, i6), i6 += s6.strings.length - 2) : s6._$AI(t7[i6])), i6++;
+        s6 !== void 0 && (s6.strings !== void 0 ? (s6._$AI(t6, s6, i6), i6 += s6.strings.length - 2) : s6._$AI(t6[i6])), i6++;
     }
   };
   var R2 = class {
     get _$AU() {
       return this._$AM?._$AU ?? this._$Cv;
     }
-    constructor(t7, i6, s6, e7) {
-      this.type = 2, this._$AH = E2, this._$AN = void 0, this._$AA = t7, this._$AB = i6, this._$AM = s6, this.options = e7, this._$Cv = e7?.isConnected ?? true;
+    constructor(t6, i6, s6, e7) {
+      this.type = 2, this._$AH = E2, this._$AN = void 0, this._$AA = t6, this._$AB = i6, this._$AM = s6, this.options = e7, this._$Cv = e7?.isConnected ?? true;
     }
     get parentNode() {
-      let t7 = this._$AA.parentNode;
+      let t6 = this._$AA.parentNode;
       const i6 = this._$AM;
-      return i6 !== void 0 && t7?.nodeType === 11 && (t7 = i6.parentNode), t7;
+      return i6 !== void 0 && t6?.nodeType === 11 && (t6 = i6.parentNode), t6;
     }
     get startNode() {
       return this._$AA;
@@ -29439,47 +29472,47 @@ window.addEventListener("message", (e) => {
     get endNode() {
       return this._$AB;
     }
-    _$AI(t7, i6 = this) {
-      t7 = S4(this, t7, i6), c4(t7) ? t7 === E2 || t7 == null || t7 === "" ? (this._$AH !== E2 && this._$AR(), this._$AH = E2) : t7 !== this._$AH && t7 !== T2 && this._(t7) : t7._$litType$ !== void 0 ? this.$(t7) : t7.nodeType !== void 0 ? this.T(t7) : u3(t7) ? this.k(t7) : this._(t7);
+    _$AI(t6, i6 = this) {
+      t6 = S4(this, t6, i6), c4(t6) ? t6 === E2 || t6 == null || t6 === "" ? (this._$AH !== E2 && this._$AR(), this._$AH = E2) : t6 !== this._$AH && t6 !== T2 && this._(t6) : t6._$litType$ !== void 0 ? this.$(t6) : t6.nodeType !== void 0 ? this.T(t6) : u3(t6) ? this.k(t6) : this._(t6);
     }
-    O(t7) {
-      return this._$AA.parentNode.insertBefore(t7, this._$AB);
+    O(t6) {
+      return this._$AA.parentNode.insertBefore(t6, this._$AB);
     }
-    T(t7) {
-      this._$AH !== t7 && (this._$AR(), this._$AH = this.O(t7));
+    T(t6) {
+      this._$AH !== t6 && (this._$AR(), this._$AH = this.O(t6));
     }
-    _(t7) {
-      this._$AH !== E2 && c4(this._$AH) ? this._$AA.nextSibling.data = t7 : this.T(r3.createTextNode(t7)), this._$AH = t7;
+    _(t6) {
+      this._$AH !== E2 && c4(this._$AH) ? this._$AA.nextSibling.data = t6 : this.T(r3.createTextNode(t6)), this._$AH = t6;
     }
-    $(t7) {
-      const {values: i6, _$litType$: s6} = t7, e7 = typeof s6 == "number" ? this._$AC(t7) : (s6.el === void 0 && (s6.el = N.createElement(P(s6.h, s6.h[0]), this.options)), s6);
+    $(t6) {
+      const {values: i6, _$litType$: s6} = t6, e7 = typeof s6 == "number" ? this._$AC(t6) : (s6.el === void 0 && (s6.el = N.createElement(P(s6.h, s6.h[0]), this.options)), s6);
       if (this._$AH?._$AD === e7)
         this._$AH.p(i6);
       else {
-        const t8 = new M3(e7, this), s7 = t8.u(this.options);
-        t8.p(i6), this.T(s7), this._$AH = t8;
+        const t7 = new M3(e7, this), s7 = t7.u(this.options);
+        t7.p(i6), this.T(s7), this._$AH = t7;
       }
     }
-    _$AC(t7) {
-      let i6 = A.get(t7.strings);
-      return i6 === void 0 && A.set(t7.strings, i6 = new N(t7)), i6;
+    _$AC(t6) {
+      let i6 = A.get(t6.strings);
+      return i6 === void 0 && A.set(t6.strings, i6 = new N(t6)), i6;
     }
-    k(t7) {
+    k(t6) {
       a4(this._$AH) || (this._$AH = [], this._$AR());
       const i6 = this._$AH;
       let s6, e7 = 0;
-      for (const h5 of t7)
+      for (const h5 of t6)
         e7 === i6.length ? i6.push(s6 = new R2(this.O(l2()), this.O(l2()), this, this.options)) : s6 = i6[e7], s6._$AI(h5), e7++;
       e7 < i6.length && (this._$AR(s6 && s6._$AB.nextSibling, e7), i6.length = e7);
     }
-    _$AR(t7 = this._$AA.nextSibling, i6) {
-      for (this._$AP?.(false, true, i6); t7 !== this._$AB; ) {
-        const i7 = t7.nextSibling;
-        t7.remove(), t7 = i7;
+    _$AR(t6 = this._$AA.nextSibling, i6) {
+      for (this._$AP?.(false, true, i6); t6 !== this._$AB; ) {
+        const i7 = t6.nextSibling;
+        t6.remove(), t6 = i7;
       }
     }
-    setConnected(t7) {
-      this._$AM === void 0 && (this._$Cv = t7, this._$AP?.(t7));
+    setConnected(t6) {
+      this._$AM === void 0 && (this._$Cv = t6, this._$AP?.(t6));
     }
   };
   var k2 = class {
@@ -29489,77 +29522,77 @@ window.addEventListener("message", (e) => {
     get _$AU() {
       return this._$AM._$AU;
     }
-    constructor(t7, i6, s6, e7, h5) {
-      this.type = 1, this._$AH = E2, this._$AN = void 0, this.element = t7, this.name = i6, this._$AM = e7, this.options = h5, s6.length > 2 || s6[0] !== "" || s6[1] !== "" ? (this._$AH = Array(s6.length - 1).fill(new String()), this.strings = s6) : this._$AH = E2;
+    constructor(t6, i6, s6, e7, h5) {
+      this.type = 1, this._$AH = E2, this._$AN = void 0, this.element = t6, this.name = i6, this._$AM = e7, this.options = h5, s6.length > 2 || s6[0] !== "" || s6[1] !== "" ? (this._$AH = Array(s6.length - 1).fill(new String()), this.strings = s6) : this._$AH = E2;
     }
-    _$AI(t7, i6 = this, s6, e7) {
+    _$AI(t6, i6 = this, s6, e7) {
       const h5 = this.strings;
       let o6 = false;
       if (h5 === void 0)
-        t7 = S4(this, t7, i6, 0), o6 = !c4(t7) || t7 !== this._$AH && t7 !== T2, o6 && (this._$AH = t7);
+        t6 = S4(this, t6, i6, 0), o6 = !c4(t6) || t6 !== this._$AH && t6 !== T2, o6 && (this._$AH = t6);
       else {
-        const e8 = t7;
+        const e8 = t6;
         let n5, r6;
-        for (t7 = h5[0], n5 = 0; n5 < h5.length - 1; n5++)
-          r6 = S4(this, e8[s6 + n5], i6, n5), r6 === T2 && (r6 = this._$AH[n5]), o6 ||= !c4(r6) || r6 !== this._$AH[n5], r6 === E2 ? t7 = E2 : t7 !== E2 && (t7 += (r6 ?? "") + h5[n5 + 1]), this._$AH[n5] = r6;
+        for (t6 = h5[0], n5 = 0; n5 < h5.length - 1; n5++)
+          r6 = S4(this, e8[s6 + n5], i6, n5), r6 === T2 && (r6 = this._$AH[n5]), o6 ||= !c4(r6) || r6 !== this._$AH[n5], r6 === E2 ? t6 = E2 : t6 !== E2 && (t6 += (r6 ?? "") + h5[n5 + 1]), this._$AH[n5] = r6;
       }
-      o6 && !e7 && this.j(t7);
+      o6 && !e7 && this.j(t6);
     }
-    j(t7) {
-      t7 === E2 ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, t7 ?? "");
+    j(t6) {
+      t6 === E2 ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, t6 ?? "");
     }
   };
   var H3 = class extends k2 {
     constructor() {
       super(...arguments), this.type = 3;
     }
-    j(t7) {
-      this.element[this.name] = t7 === E2 ? void 0 : t7;
+    j(t6) {
+      this.element[this.name] = t6 === E2 ? void 0 : t6;
     }
   };
   var I2 = class extends k2 {
     constructor() {
       super(...arguments), this.type = 4;
     }
-    j(t7) {
-      this.element.toggleAttribute(this.name, !!t7 && t7 !== E2);
+    j(t6) {
+      this.element.toggleAttribute(this.name, !!t6 && t6 !== E2);
     }
   };
   var L2 = class extends k2 {
-    constructor(t7, i6, s6, e7, h5) {
-      super(t7, i6, s6, e7, h5), this.type = 5;
+    constructor(t6, i6, s6, e7, h5) {
+      super(t6, i6, s6, e7, h5), this.type = 5;
     }
-    _$AI(t7, i6 = this) {
-      if ((t7 = S4(this, t7, i6, 0) ?? E2) === T2)
+    _$AI(t6, i6 = this) {
+      if ((t6 = S4(this, t6, i6, 0) ?? E2) === T2)
         return;
-      const s6 = this._$AH, e7 = t7 === E2 && s6 !== E2 || t7.capture !== s6.capture || t7.once !== s6.once || t7.passive !== s6.passive, h5 = t7 !== E2 && (s6 === E2 || e7);
-      e7 && this.element.removeEventListener(this.name, this, s6), h5 && this.element.addEventListener(this.name, this, t7), this._$AH = t7;
+      const s6 = this._$AH, e7 = t6 === E2 && s6 !== E2 || t6.capture !== s6.capture || t6.once !== s6.once || t6.passive !== s6.passive, h5 = t6 !== E2 && (s6 === E2 || e7);
+      e7 && this.element.removeEventListener(this.name, this, s6), h5 && this.element.addEventListener(this.name, this, t6), this._$AH = t6;
     }
-    handleEvent(t7) {
-      typeof this._$AH == "function" ? this._$AH.call(this.options?.host ?? this.element, t7) : this._$AH.handleEvent(t7);
+    handleEvent(t6) {
+      typeof this._$AH == "function" ? this._$AH.call(this.options?.host ?? this.element, t6) : this._$AH.handleEvent(t6);
     }
   };
   var z2 = class {
-    constructor(t7, i6, s6) {
-      this.element = t7, this.type = 6, this._$AN = void 0, this._$AM = i6, this.options = s6;
+    constructor(t6, i6, s6) {
+      this.element = t6, this.type = 6, this._$AN = void 0, this._$AM = i6, this.options = s6;
     }
     get _$AU() {
       return this._$AM._$AU;
     }
-    _$AI(t7) {
-      S4(this, t7);
+    _$AI(t6) {
+      S4(this, t6);
     }
   };
   var j = t4.litHtmlPolyfillSupport;
   j?.(N, R2), (t4.litHtmlVersions ??= []).push("3.3.1");
-  var B2 = (t7, i6, s6) => {
+  var B2 = (t6, i6, s6) => {
     const e7 = s6?.renderBefore ?? i6;
     let h5 = e7._$litPart$;
     if (h5 === void 0) {
-      const t8 = s6?.renderBefore ?? null;
-      e7._$litPart$ = h5 = new R2(i6.insertBefore(l2(), t8), t8, void 0, s6 ?? {});
+      const t7 = s6?.renderBefore ?? null;
+      e7._$litPart$ = h5 = new R2(i6.insertBefore(l2(), t7), t7, void 0, s6 ?? {});
     }
-    return h5._$AI(t7), h5;
+    return h5._$AI(t6), h5;
   };
 
   // node_modules/lit-element/lit-element.js
@@ -29569,12 +29602,12 @@ window.addEventListener("message", (e) => {
       super(...arguments), this.renderOptions = {host: this}, this._$Do = void 0;
     }
     createRenderRoot() {
-      const t7 = super.createRenderRoot();
-      return this.renderOptions.renderBefore ??= t7.firstChild, t7;
+      const t6 = super.createRenderRoot();
+      return this.renderOptions.renderBefore ??= t6.firstChild, t6;
     }
-    update(t7) {
+    update(t6) {
       const r6 = this.render();
-      this.hasUpdated || (this.renderOptions.isConnected = this.isConnected), super.update(t7), this._$Do = B2(r6, this.renderRoot, this.renderOptions);
+      this.hasUpdated || (this.renderOptions.isConnected = this.isConnected), super.update(t6), this._$Do = B2(r6, this.renderRoot, this.renderOptions);
     }
     connectedCallback() {
       super.connectedCallback(), this._$Do?.setConnected(true);
@@ -29592,40 +29625,40 @@ window.addEventListener("message", (e) => {
   (s5.litElementVersions ??= []).push("4.2.1");
 
   // node_modules/@lit/reactive-element/decorators/custom-element.js
-  var t5 = (t7) => (e7, o6) => {
+  var t5 = (t6) => (e7, o6) => {
     o6 !== void 0 ? o6.addInitializer(() => {
-      customElements.define(t7, e7);
-    }) : customElements.define(t7, e7);
+      customElements.define(t6, e7);
+    }) : customElements.define(t6, e7);
   };
 
   // node_modules/@lit/reactive-element/decorators/property.js
   var o5 = {attribute: true, type: String, converter: u2, reflect: false, hasChanged: f};
-  var r4 = (t7 = o5, e7, r6) => {
+  var r4 = (t6 = o5, e7, r6) => {
     const {kind: n5, metadata: i6} = r6;
     let s6 = globalThis.litPropertyMetadata.get(i6);
-    if (s6 === void 0 && globalThis.litPropertyMetadata.set(i6, s6 = new Map()), n5 === "setter" && ((t7 = Object.create(t7)).wrapped = true), s6.set(r6.name, t7), n5 === "accessor") {
+    if (s6 === void 0 && globalThis.litPropertyMetadata.set(i6, s6 = new Map()), n5 === "setter" && ((t6 = Object.create(t6)).wrapped = true), s6.set(r6.name, t6), n5 === "accessor") {
       const {name: o6} = r6;
       return {set(r7) {
         const n6 = e7.get.call(this);
-        e7.set.call(this, r7), this.requestUpdate(o6, n6, t7);
+        e7.set.call(this, r7), this.requestUpdate(o6, n6, t6);
       }, init(e8) {
-        return e8 !== void 0 && this.C(o6, void 0, t7, e8), e8;
+        return e8 !== void 0 && this.C(o6, void 0, t6, e8), e8;
       }};
     }
     if (n5 === "setter") {
       const {name: o6} = r6;
       return function(r7) {
         const n6 = this[o6];
-        e7.call(this, r7), this.requestUpdate(o6, n6, t7);
+        e7.call(this, r7), this.requestUpdate(o6, n6, t6);
       };
     }
     throw Error("Unsupported decorator location: " + n5);
   };
-  function n4(t7) {
-    return (e7, o6) => typeof o6 == "object" ? r4(t7, e7, o6) : ((t8, e8, o7) => {
+  function n4(t6) {
+    return (e7, o6) => typeof o6 == "object" ? r4(t6, e7, o6) : ((t7, e8, o7) => {
       const r6 = e8.hasOwnProperty(o7);
-      return e8.constructor.createProperty(o7, t8), r6 ? Object.getOwnPropertyDescriptor(e8, o7) : void 0;
-    })(t7, e7, o6);
+      return e8.constructor.createProperty(o7, t7), r6 ? Object.getOwnPropertyDescriptor(e8, o7) : void 0;
+    })(t6, e7, o6);
   }
 
   // node_modules/@lit/reactive-element/decorators/state.js
@@ -29634,24 +29667,24 @@ window.addEventListener("message", (e) => {
   }
 
   // node_modules/@lit/reactive-element/decorators/base.js
-  var e5 = (e7, t7, c5) => (c5.configurable = true, c5.enumerable = true, Reflect.decorate && typeof t7 != "object" && Object.defineProperty(e7, t7, c5), c5);
+  var e5 = (e7, t6, c5) => (c5.configurable = true, c5.enumerable = true, Reflect.decorate && typeof t6 != "object" && Object.defineProperty(e7, t6, c5), c5);
 
   // node_modules/@lit/reactive-element/decorators/query.js
   function e6(e7, r6) {
     return (n5, s6, i6) => {
-      const o6 = (t7) => t7.renderRoot?.querySelector(e7) ?? null;
+      const o6 = (t6) => t6.renderRoot?.querySelector(e7) ?? null;
       if (r6) {
         const {get: e8, set: r7} = typeof s6 == "object" ? n5 : i6 ?? (() => {
-          const t7 = Symbol();
+          const t6 = Symbol();
           return {get() {
-            return this[t7];
+            return this[t6];
           }, set(e9) {
-            this[t7] = e9;
+            this[t6] = e9;
           }};
         })();
         return e5(n5, s6, {get() {
-          let t7 = e8.call(this);
-          return t7 === void 0 && (t7 = o6(this), (t7 !== null || this.hasUpdated) && r7.call(this, t7)), t7;
+          let t6 = e8.call(this);
+          return t6 === void 0 && (t6 = o6(this), (t6 !== null || this.hasUpdated) && r7.call(this, t6)), t6;
         }});
       }
       return e5(n5, s6, {get() {
@@ -29907,9 +29940,9 @@ window.addEventListener("message", (e) => {
     return value;
   }
   function cached(getter) {
-    const set3 = false;
+    const set2 = false;
     return {get value() {
-      if (!set3) {
+      if (!set2) {
         const value = getter();
         Object.defineProperty(this, "value", {value});
         return value;
@@ -30048,8 +30081,8 @@ window.addEventListener("message", (e) => {
     return keyCount;
   }
   var getParsedType = (data) => {
-    const t7 = typeof data;
-    switch (t7) {
+    const t6 = typeof data;
+    switch (t6) {
       case "undefined":
         return "undefined";
       case "string":
@@ -30088,7 +30121,7 @@ window.addEventListener("message", (e) => {
         }
         return "object";
       default:
-        throw new Error(`Unknown data type: ${t7}`);
+        throw new Error(`Unknown data type: ${t6}`);
     }
   };
   var propertyKeyTypes = new Set(["string", "number", "symbol"]);
@@ -31605,11 +31638,11 @@ window.addEventListener("message", (e) => {
     const unrecognized = [];
     const keySet = def.keySet;
     const _catchall = def.catchall._zod;
-    const t7 = _catchall.def.type;
+    const t6 = _catchall.def.type;
     for (const key of Object.keys(input)) {
       if (keySet.has(key))
         continue;
-      if (t7 === "never") {
+      if (t6 === "never") {
         unrecognized.push(key);
         continue;
       }
@@ -32582,8 +32615,8 @@ window.addEventListener("message", (e) => {
       return Sizable[origin] ?? null;
     }
     const parsedType2 = (data) => {
-      const t7 = typeof data;
-      switch (t7) {
+      const t6 = typeof data;
+      switch (t6) {
         case "number": {
           return Number.isNaN(data) ? "NaN" : "number";
         }
@@ -32599,7 +32632,7 @@ window.addEventListener("message", (e) => {
           }
         }
       }
-      return t7;
+      return t6;
     };
     const Nouns = {regex: "\u0645\u062F\u062E\u0644", email: "\u0628\u0631\u064A\u062F \u0625\u0644\u0643\u062A\u0631\u0648\u0646\u064A", url: "\u0631\u0627\u0628\u0637", emoji: "\u0625\u064A\u0645\u0648\u062C\u064A", uuid: "UUID", uuidv4: "UUIDv4", uuidv6: "UUIDv6", nanoid: "nanoid", guid: "GUID", cuid: "cuid", cuid2: "cuid2", ulid: "ULID", xid: "XID", ksuid: "KSUID", datetime: "\u062A\u0627\u0631\u064A\u062E \u0648\u0648\u0642\u062A \u0628\u0645\u0639\u064A\u0627\u0631 ISO", date: "\u062A\u0627\u0631\u064A\u062E \u0628\u0645\u0639\u064A\u0627\u0631 ISO", time: "\u0648\u0642\u062A \u0628\u0645\u0639\u064A\u0627\u0631 ISO", duration: "\u0645\u062F\u0629 \u0628\u0645\u0639\u064A\u0627\u0631 ISO", ipv4: "\u0639\u0646\u0648\u0627\u0646 IPv4", ipv6: "\u0639\u0646\u0648\u0627\u0646 IPv6", cidrv4: "\u0645\u062F\u0649 \u0639\u0646\u0627\u0648\u064A\u0646 \u0628\u0635\u064A\u063A\u0629 IPv4", cidrv6: "\u0645\u062F\u0649 \u0639\u0646\u0627\u0648\u064A\u0646 \u0628\u0635\u064A\u063A\u0629 IPv6", base64: "\u0646\u064E\u0635 \u0628\u062A\u0631\u0645\u064A\u0632 base64-encoded", base64url: "\u0646\u064E\u0635 \u0628\u062A\u0631\u0645\u064A\u0632 base64url-encoded", json_string: "\u0646\u064E\u0635 \u0639\u0644\u0649 \u0647\u064A\u0626\u0629 JSON", e164: "\u0631\u0642\u0645 \u0647\u0627\u062A\u0641 \u0628\u0645\u0639\u064A\u0627\u0631 E.164", jwt: "JWT", template_literal: "\u0645\u062F\u062E\u0644"};
     return (issue2) => {
@@ -32661,8 +32694,8 @@ window.addEventListener("message", (e) => {
       return Sizable[origin] ?? null;
     }
     const parsedType2 = (data) => {
-      const t7 = typeof data;
-      switch (t7) {
+      const t6 = typeof data;
+      switch (t6) {
         case "number": {
           return Number.isNaN(data) ? "NaN" : "number";
         }
@@ -32678,7 +32711,7 @@ window.addEventListener("message", (e) => {
           }
         }
       }
-      return t7;
+      return t6;
     };
     const Nouns = {regex: "input", email: "email address", url: "URL", emoji: "emoji", uuid: "UUID", uuidv4: "UUIDv4", uuidv6: "UUIDv6", nanoid: "nanoid", guid: "GUID", cuid: "cuid", cuid2: "cuid2", ulid: "ULID", xid: "XID", ksuid: "KSUID", datetime: "ISO datetime", date: "ISO date", time: "ISO time", duration: "ISO duration", ipv4: "IPv4 address", ipv6: "IPv6 address", cidrv4: "IPv4 range", cidrv6: "IPv6 range", base64: "base64-encoded string", base64url: "base64url-encoded string", json_string: "JSON string", e164: "E.164 number", jwt: "JWT", template_literal: "input"};
     return (issue2) => {
@@ -32754,8 +32787,8 @@ window.addEventListener("message", (e) => {
       return Sizable[origin] ?? null;
     }
     const parsedType2 = (data) => {
-      const t7 = typeof data;
-      switch (t7) {
+      const t6 = typeof data;
+      switch (t6) {
         case "number": {
           return Number.isNaN(data) ? "NaN" : "\u043B\u0456\u043A";
         }
@@ -32771,7 +32804,7 @@ window.addEventListener("message", (e) => {
           }
         }
       }
-      return t7;
+      return t6;
     };
     const Nouns = {regex: "\u0443\u0432\u043E\u0434", email: "email \u0430\u0434\u0440\u0430\u0441", url: "URL", emoji: "\u044D\u043C\u043E\u0434\u0437\u0456", uuid: "UUID", uuidv4: "UUIDv4", uuidv6: "UUIDv6", nanoid: "nanoid", guid: "GUID", cuid: "cuid", cuid2: "cuid2", ulid: "ULID", xid: "XID", ksuid: "KSUID", datetime: "ISO \u0434\u0430\u0442\u0430 \u0456 \u0447\u0430\u0441", date: "ISO \u0434\u0430\u0442\u0430", time: "ISO \u0447\u0430\u0441", duration: "ISO \u043F\u0440\u0430\u0446\u044F\u0433\u043B\u0430\u0441\u0446\u044C", ipv4: "IPv4 \u0430\u0434\u0440\u0430\u0441", ipv6: "IPv6 \u0430\u0434\u0440\u0430\u0441", cidrv4: "IPv4 \u0434\u044B\u044F\u043F\u0430\u0437\u043E\u043D", cidrv6: "IPv6 \u0434\u044B\u044F\u043F\u0430\u0437\u043E\u043D", base64: "\u0440\u0430\u0434\u043E\u043A \u0443 \u0444\u0430\u0440\u043C\u0430\u0446\u0435 base64", base64url: "\u0440\u0430\u0434\u043E\u043A \u0443 \u0444\u0430\u0440\u043C\u0430\u0446\u0435 base64url", json_string: "JSON \u0440\u0430\u0434\u043E\u043A", e164: "\u043D\u0443\u043C\u0430\u0440 E.164", jwt: "JWT", template_literal: "\u0443\u0432\u043E\u0434"};
     return (issue2) => {
@@ -32838,8 +32871,8 @@ window.addEventListener("message", (e) => {
       return Sizable[origin] ?? null;
     }
     const parsedType2 = (data) => {
-      const t7 = typeof data;
-      switch (t7) {
+      const t6 = typeof data;
+      switch (t6) {
         case "number": {
           return Number.isNaN(data) ? "NaN" : "number";
         }
@@ -32855,7 +32888,7 @@ window.addEventListener("message", (e) => {
           }
         }
       }
-      return t7;
+      return t6;
     };
     const Nouns = {regex: "entrada", email: "adre\xE7a electr\xF2nica", url: "URL", emoji: "emoji", uuid: "UUID", uuidv4: "UUIDv4", uuidv6: "UUIDv6", nanoid: "nanoid", guid: "GUID", cuid: "cuid", cuid2: "cuid2", ulid: "ULID", xid: "XID", ksuid: "KSUID", datetime: "data i hora ISO", date: "data ISO", time: "hora ISO", duration: "durada ISO", ipv4: "adre\xE7a IPv4", ipv6: "adre\xE7a IPv6", cidrv4: "rang IPv4", cidrv6: "rang IPv6", base64: "cadena codificada en base64", base64url: "cadena codificada en base64url", json_string: "cadena JSON", e164: "n\xFAmero E.164", jwt: "JWT", template_literal: "entrada"};
     return (issue2) => {
@@ -32918,8 +32951,8 @@ window.addEventListener("message", (e) => {
       return Sizable[origin] ?? null;
     }
     const parsedType2 = (data) => {
-      const t7 = typeof data;
-      switch (t7) {
+      const t6 = typeof data;
+      switch (t6) {
         case "number": {
           return Number.isNaN(data) ? "NaN" : "\u010D\xEDslo";
         }
@@ -32953,7 +32986,7 @@ window.addEventListener("message", (e) => {
           }
         }
       }
-      return t7;
+      return t6;
     };
     const Nouns = {regex: "regul\xE1rn\xED v\xFDraz", email: "e-mailov\xE1 adresa", url: "URL", emoji: "emoji", uuid: "UUID", uuidv4: "UUIDv4", uuidv6: "UUIDv6", nanoid: "nanoid", guid: "GUID", cuid: "cuid", cuid2: "cuid2", ulid: "ULID", xid: "XID", ksuid: "KSUID", datetime: "datum a \u010Das ve form\xE1tu ISO", date: "datum ve form\xE1tu ISO", time: "\u010Das ve form\xE1tu ISO", duration: "doba trv\xE1n\xED ISO", ipv4: "IPv4 adresa", ipv6: "IPv6 adresa", cidrv4: "rozsah IPv4", cidrv6: "rozsah IPv6", base64: "\u0159et\u011Bzec zak\xF3dovan\xFD ve form\xE1tu base64", base64url: "\u0159et\u011Bzec zak\xF3dovan\xFD ve form\xE1tu base64url", json_string: "\u0159et\u011Bzec ve form\xE1tu JSON", e164: "\u010D\xEDslo E.164", jwt: "JWT", template_literal: "vstup"};
     return (issue2) => {
@@ -33020,8 +33053,8 @@ window.addEventListener("message", (e) => {
       return TypeNames[type] ?? type;
     }
     const parsedType2 = (data) => {
-      const t7 = typeof data;
-      switch (t7) {
+      const t6 = typeof data;
+      switch (t6) {
         case "number": {
           return Number.isNaN(data) ? "NaN" : "tal";
         }
@@ -33038,7 +33071,7 @@ window.addEventListener("message", (e) => {
           return "objekt";
         }
       }
-      return t7;
+      return t6;
     };
     const Nouns = {regex: "input", email: "e-mailadresse", url: "URL", emoji: "emoji", uuid: "UUID", uuidv4: "UUIDv4", uuidv6: "UUIDv6", nanoid: "nanoid", guid: "GUID", cuid: "cuid", cuid2: "cuid2", ulid: "ULID", xid: "XID", ksuid: "KSUID", datetime: "ISO dato- og klokkesl\xE6t", date: "ISO-dato", time: "ISO-klokkesl\xE6t", duration: "ISO-varighed", ipv4: "IPv4-omr\xE5de", ipv6: "IPv6-omr\xE5de", cidrv4: "IPv4-spektrum", cidrv6: "IPv6-spektrum", base64: "base64-kodet streng", base64url: "base64url-kodet streng", json_string: "JSON-streng", e164: "E.164-nummer", jwt: "JWT", template_literal: "input"};
     return (issue2) => {
@@ -33102,8 +33135,8 @@ window.addEventListener("message", (e) => {
       return Sizable[origin] ?? null;
     }
     const parsedType2 = (data) => {
-      const t7 = typeof data;
-      switch (t7) {
+      const t6 = typeof data;
+      switch (t6) {
         case "number": {
           return Number.isNaN(data) ? "NaN" : "Zahl";
         }
@@ -33119,7 +33152,7 @@ window.addEventListener("message", (e) => {
           }
         }
       }
-      return t7;
+      return t6;
     };
     const Nouns = {regex: "Eingabe", email: "E-Mail-Adresse", url: "URL", emoji: "Emoji", uuid: "UUID", uuidv4: "UUIDv4", uuidv6: "UUIDv6", nanoid: "nanoid", guid: "GUID", cuid: "cuid", cuid2: "cuid2", ulid: "ULID", xid: "XID", ksuid: "KSUID", datetime: "ISO-Datum und -Uhrzeit", date: "ISO-Datum", time: "ISO-Uhrzeit", duration: "ISO-Dauer", ipv4: "IPv4-Adresse", ipv6: "IPv6-Adresse", cidrv4: "IPv4-Bereich", cidrv6: "IPv6-Bereich", base64: "Base64-codierter String", base64url: "Base64-URL-codierter String", json_string: "JSON-String", e164: "E.164-Nummer", jwt: "JWT", template_literal: "Eingabe"};
     return (issue2) => {
@@ -33176,8 +33209,8 @@ window.addEventListener("message", (e) => {
     return {localeError: error$B()};
   }
   var parsedType$5 = (data) => {
-    const t7 = typeof data;
-    switch (t7) {
+    const t6 = typeof data;
+    switch (t6) {
       case "number": {
         return Number.isNaN(data) ? "NaN" : "number";
       }
@@ -33193,7 +33226,7 @@ window.addEventListener("message", (e) => {
         }
       }
     }
-    return t7;
+    return t6;
   };
   var error$A = () => {
     const Sizable = {string: {unit: "characters", verb: "to have"}, file: {unit: "bytes", verb: "to have"}, array: {unit: "items", verb: "to have"}, set: {unit: "items", verb: "to have"}};
@@ -33256,8 +33289,8 @@ window.addEventListener("message", (e) => {
     return {localeError: error$A()};
   }
   var parsedType$4 = (data) => {
-    const t7 = typeof data;
-    switch (t7) {
+    const t6 = typeof data;
+    switch (t6) {
       case "number": {
         return Number.isNaN(data) ? "NaN" : "nombro";
       }
@@ -33273,7 +33306,7 @@ window.addEventListener("message", (e) => {
         }
       }
     }
-    return t7;
+    return t6;
   };
   var error$z = () => {
     const Sizable = {string: {unit: "karaktrojn", verb: "havi"}, file: {unit: "bajtojn", verb: "havi"}, array: {unit: "elementojn", verb: "havi"}, set: {unit: "elementojn", verb: "havi"}};
@@ -33344,8 +33377,8 @@ window.addEventListener("message", (e) => {
       return TypeNames[type] ?? type;
     }
     const parsedType2 = (data) => {
-      const t7 = typeof data;
-      switch (t7) {
+      const t6 = typeof data;
+      switch (t6) {
         case "number": {
           return Number.isNaN(data) ? "NaN" : "number";
         }
@@ -33362,7 +33395,7 @@ window.addEventListener("message", (e) => {
           return "object";
         }
       }
-      return t7;
+      return t6;
     };
     const Nouns = {regex: "entrada", email: "direcci\xF3n de correo electr\xF3nico", url: "URL", emoji: "emoji", uuid: "UUID", uuidv4: "UUIDv4", uuidv6: "UUIDv6", nanoid: "nanoid", guid: "GUID", cuid: "cuid", cuid2: "cuid2", ulid: "ULID", xid: "XID", ksuid: "KSUID", datetime: "fecha y hora ISO", date: "fecha ISO", time: "hora ISO", duration: "duraci\xF3n ISO", ipv4: "direcci\xF3n IPv4", ipv6: "direcci\xF3n IPv6", cidrv4: "rango IPv4", cidrv6: "rango IPv6", base64: "cadena codificada en base64", base64url: "URL codificada en base64", json_string: "cadena JSON", e164: "n\xFAmero E.164", jwt: "JWT", template_literal: "entrada"};
     return (issue2) => {
@@ -33426,8 +33459,8 @@ window.addEventListener("message", (e) => {
       return Sizable[origin] ?? null;
     }
     const parsedType2 = (data) => {
-      const t7 = typeof data;
-      switch (t7) {
+      const t6 = typeof data;
+      switch (t6) {
         case "number": {
           return Number.isNaN(data) ? "NaN" : "\u0639\u062F\u062F";
         }
@@ -33443,7 +33476,7 @@ window.addEventListener("message", (e) => {
           }
         }
       }
-      return t7;
+      return t6;
     };
     const Nouns = {regex: "\u0648\u0631\u0648\u062F\u06CC", email: "\u0622\u062F\u0631\u0633 \u0627\u06CC\u0645\u06CC\u0644", url: "URL", emoji: "\u0627\u06CC\u0645\u0648\u062C\u06CC", uuid: "UUID", uuidv4: "UUIDv4", uuidv6: "UUIDv6", nanoid: "nanoid", guid: "GUID", cuid: "cuid", cuid2: "cuid2", ulid: "ULID", xid: "XID", ksuid: "KSUID", datetime: "\u062A\u0627\u0631\u06CC\u062E \u0648 \u0632\u0645\u0627\u0646 \u0627\u06CC\u0632\u0648", date: "\u062A\u0627\u0631\u06CC\u062E \u0627\u06CC\u0632\u0648", time: "\u0632\u0645\u0627\u0646 \u0627\u06CC\u0632\u0648", duration: "\u0645\u062F\u062A \u0632\u0645\u0627\u0646 \u0627\u06CC\u0632\u0648", ipv4: "IPv4 \u0622\u062F\u0631\u0633", ipv6: "IPv6 \u0622\u062F\u0631\u0633", cidrv4: "IPv4 \u062F\u0627\u0645\u0646\u0647", cidrv6: "IPv6 \u062F\u0627\u0645\u0646\u0647", base64: "base64-encoded \u0631\u0634\u062A\u0647", base64url: "base64url-encoded \u0631\u0634\u062A\u0647", json_string: "JSON \u0631\u0634\u062A\u0647", e164: "E.164 \u0639\u062F\u062F", jwt: "JWT", template_literal: "\u0648\u0631\u0648\u062F\u06CC"};
     return (issue2) => {
@@ -33511,8 +33544,8 @@ window.addEventListener("message", (e) => {
       return Sizable[origin] ?? null;
     }
     const parsedType2 = (data) => {
-      const t7 = typeof data;
-      switch (t7) {
+      const t6 = typeof data;
+      switch (t6) {
         case "number": {
           return Number.isNaN(data) ? "NaN" : "number";
         }
@@ -33528,7 +33561,7 @@ window.addEventListener("message", (e) => {
           }
         }
       }
-      return t7;
+      return t6;
     };
     const Nouns = {regex: "s\xE4\xE4nn\xF6llinen lauseke", email: "s\xE4hk\xF6postiosoite", url: "URL-osoite", emoji: "emoji", uuid: "UUID", uuidv4: "UUIDv4", uuidv6: "UUIDv6", nanoid: "nanoid", guid: "GUID", cuid: "cuid", cuid2: "cuid2", ulid: "ULID", xid: "XID", ksuid: "KSUID", datetime: "ISO-aikaleima", date: "ISO-p\xE4iv\xE4m\xE4\xE4r\xE4", time: "ISO-aika", duration: "ISO-kesto", ipv4: "IPv4-osoite", ipv6: "IPv6-osoite", cidrv4: "IPv4-alue", cidrv6: "IPv6-alue", base64: "base64-koodattu merkkijono", base64url: "base64url-koodattu merkkijono", json_string: "JSON-merkkijono", e164: "E.164-luku", jwt: "JWT", template_literal: "templaattimerkkijono"};
     return (issue2) => {
@@ -33592,8 +33625,8 @@ window.addEventListener("message", (e) => {
       return Sizable[origin] ?? null;
     }
     const parsedType2 = (data) => {
-      const t7 = typeof data;
-      switch (t7) {
+      const t6 = typeof data;
+      switch (t6) {
         case "number": {
           return Number.isNaN(data) ? "NaN" : "nombre";
         }
@@ -33609,7 +33642,7 @@ window.addEventListener("message", (e) => {
           }
         }
       }
-      return t7;
+      return t6;
     };
     const Nouns = {regex: "entr\xE9e", email: "adresse e-mail", url: "URL", emoji: "emoji", uuid: "UUID", uuidv4: "UUIDv4", uuidv6: "UUIDv6", nanoid: "nanoid", guid: "GUID", cuid: "cuid", cuid2: "cuid2", ulid: "ULID", xid: "XID", ksuid: "KSUID", datetime: "date et heure ISO", date: "date ISO", time: "heure ISO", duration: "dur\xE9e ISO", ipv4: "adresse IPv4", ipv6: "adresse IPv6", cidrv4: "plage IPv4", cidrv6: "plage IPv6", base64: "cha\xEEne encod\xE9e en base64", base64url: "cha\xEEne encod\xE9e en base64url", json_string: "cha\xEEne JSON", e164: "num\xE9ro E.164", jwt: "JWT", template_literal: "entr\xE9e"};
     return (issue2) => {
@@ -33671,8 +33704,8 @@ window.addEventListener("message", (e) => {
       return Sizable[origin] ?? null;
     }
     const parsedType2 = (data) => {
-      const t7 = typeof data;
-      switch (t7) {
+      const t6 = typeof data;
+      switch (t6) {
         case "number": {
           return Number.isNaN(data) ? "NaN" : "number";
         }
@@ -33688,7 +33721,7 @@ window.addEventListener("message", (e) => {
           }
         }
       }
-      return t7;
+      return t6;
     };
     const Nouns = {regex: "entr\xE9e", email: "adresse courriel", url: "URL", emoji: "emoji", uuid: "UUID", uuidv4: "UUIDv4", uuidv6: "UUIDv6", nanoid: "nanoid", guid: "GUID", cuid: "cuid", cuid2: "cuid2", ulid: "ULID", xid: "XID", ksuid: "KSUID", datetime: "date-heure ISO", date: "date ISO", time: "heure ISO", duration: "dur\xE9e ISO", ipv4: "adresse IPv4", ipv6: "adresse IPv6", cidrv4: "plage IPv4", cidrv6: "plage IPv6", base64: "cha\xEEne encod\xE9e en base64", base64url: "cha\xEEne encod\xE9e en base64url", json_string: "cha\xEEne JSON", e164: "num\xE9ro E.164", jwt: "JWT", template_literal: "entr\xE9e"};
     return (issue2) => {
@@ -33751,8 +33784,8 @@ window.addEventListener("message", (e) => {
       return Sizable[origin] ?? null;
     }
     const parsedType2 = (data) => {
-      const t7 = typeof data;
-      switch (t7) {
+      const t6 = typeof data;
+      switch (t6) {
         case "number": {
           return Number.isNaN(data) ? "NaN" : "number";
         }
@@ -33768,7 +33801,7 @@ window.addEventListener("message", (e) => {
           }
         }
       }
-      return t7;
+      return t6;
     };
     const Nouns = {regex: "\u05E7\u05DC\u05D8", email: "\u05DB\u05EA\u05D5\u05D1\u05EA \u05D0\u05D9\u05DE\u05D9\u05D9\u05DC", url: "\u05DB\u05EA\u05D5\u05D1\u05EA \u05E8\u05E9\u05EA", emoji: "\u05D0\u05D9\u05DE\u05D5\u05D2'\u05D9", uuid: "UUID", uuidv4: "UUIDv4", uuidv6: "UUIDv6", nanoid: "nanoid", guid: "GUID", cuid: "cuid", cuid2: "cuid2", ulid: "ULID", xid: "XID", ksuid: "KSUID", datetime: "\u05EA\u05D0\u05E8\u05D9\u05DA \u05D5\u05D6\u05DE\u05DF ISO", date: "\u05EA\u05D0\u05E8\u05D9\u05DA ISO", time: "\u05D6\u05DE\u05DF ISO", duration: "\u05DE\u05E9\u05DA \u05D6\u05DE\u05DF ISO", ipv4: "\u05DB\u05EA\u05D5\u05D1\u05EA IPv4", ipv6: "\u05DB\u05EA\u05D5\u05D1\u05EA IPv6", cidrv4: "\u05D8\u05D5\u05D5\u05D7 IPv4", cidrv6: "\u05D8\u05D5\u05D5\u05D7 IPv6", base64: "\u05DE\u05D7\u05E8\u05D5\u05D6\u05EA \u05D1\u05D1\u05E1\u05D9\u05E1 64", base64url: "\u05DE\u05D7\u05E8\u05D5\u05D6\u05EA \u05D1\u05D1\u05E1\u05D9\u05E1 64 \u05DC\u05DB\u05EA\u05D5\u05D1\u05D5\u05EA \u05E8\u05E9\u05EA", json_string: "\u05DE\u05D7\u05E8\u05D5\u05D6\u05EA JSON", e164: "\u05DE\u05E1\u05E4\u05E8 E.164", jwt: "JWT", template_literal: "\u05E7\u05DC\u05D8"};
     return (issue2) => {
@@ -33830,8 +33863,8 @@ window.addEventListener("message", (e) => {
       return Sizable[origin] ?? null;
     }
     const parsedType2 = (data) => {
-      const t7 = typeof data;
-      switch (t7) {
+      const t6 = typeof data;
+      switch (t6) {
         case "number": {
           return Number.isNaN(data) ? "NaN" : "sz\xE1m";
         }
@@ -33847,7 +33880,7 @@ window.addEventListener("message", (e) => {
           }
         }
       }
-      return t7;
+      return t6;
     };
     const Nouns = {regex: "bemenet", email: "email c\xEDm", url: "URL", emoji: "emoji", uuid: "UUID", uuidv4: "UUIDv4", uuidv6: "UUIDv6", nanoid: "nanoid", guid: "GUID", cuid: "cuid", cuid2: "cuid2", ulid: "ULID", xid: "XID", ksuid: "KSUID", datetime: "ISO id\u0151b\xE9lyeg", date: "ISO d\xE1tum", time: "ISO id\u0151", duration: "ISO id\u0151intervallum", ipv4: "IPv4 c\xEDm", ipv6: "IPv6 c\xEDm", cidrv4: "IPv4 tartom\xE1ny", cidrv6: "IPv6 tartom\xE1ny", base64: "base64-k\xF3dolt string", base64url: "base64url-k\xF3dolt string", json_string: "JSON string", e164: "E.164 sz\xE1m", jwt: "JWT", template_literal: "bemenet"};
     return (issue2) => {
@@ -33909,8 +33942,8 @@ window.addEventListener("message", (e) => {
       return Sizable[origin] ?? null;
     }
     const parsedType2 = (data) => {
-      const t7 = typeof data;
-      switch (t7) {
+      const t6 = typeof data;
+      switch (t6) {
         case "number": {
           return Number.isNaN(data) ? "NaN" : "number";
         }
@@ -33926,7 +33959,7 @@ window.addEventListener("message", (e) => {
           }
         }
       }
-      return t7;
+      return t6;
     };
     const Nouns = {regex: "input", email: "alamat email", url: "URL", emoji: "emoji", uuid: "UUID", uuidv4: "UUIDv4", uuidv6: "UUIDv6", nanoid: "nanoid", guid: "GUID", cuid: "cuid", cuid2: "cuid2", ulid: "ULID", xid: "XID", ksuid: "KSUID", datetime: "tanggal dan waktu format ISO", date: "tanggal format ISO", time: "jam format ISO", duration: "durasi format ISO", ipv4: "alamat IPv4", ipv6: "alamat IPv6", cidrv4: "rentang alamat IPv4", cidrv6: "rentang alamat IPv6", base64: "string dengan enkode base64", base64url: "string dengan enkode base64url", json_string: "string JSON", e164: "angka E.164", jwt: "JWT", template_literal: "input"};
     return (issue2) => {
@@ -33983,8 +34016,8 @@ window.addEventListener("message", (e) => {
     return {localeError: error$r()};
   }
   var parsedType$3 = (data) => {
-    const t7 = typeof data;
-    switch (t7) {
+    const t6 = typeof data;
+    switch (t6) {
       case "number": {
         return Number.isNaN(data) ? "NaN" : "n\xFAmer";
       }
@@ -34000,7 +34033,7 @@ window.addEventListener("message", (e) => {
         }
       }
     }
-    return t7;
+    return t6;
   };
   var error$q = () => {
     const Sizable = {string: {unit: "stafi", verb: "a\xF0 hafa"}, file: {unit: "b\xE6ti", verb: "a\xF0 hafa"}, array: {unit: "hluti", verb: "a\xF0 hafa"}, set: {unit: "hluti", verb: "a\xF0 hafa"}};
@@ -34068,8 +34101,8 @@ window.addEventListener("message", (e) => {
       return Sizable[origin] ?? null;
     }
     const parsedType2 = (data) => {
-      const t7 = typeof data;
-      switch (t7) {
+      const t6 = typeof data;
+      switch (t6) {
         case "number": {
           return Number.isNaN(data) ? "NaN" : "numero";
         }
@@ -34085,7 +34118,7 @@ window.addEventListener("message", (e) => {
           }
         }
       }
-      return t7;
+      return t6;
     };
     const Nouns = {regex: "input", email: "indirizzo email", url: "URL", emoji: "emoji", uuid: "UUID", uuidv4: "UUIDv4", uuidv6: "UUIDv6", nanoid: "nanoid", guid: "GUID", cuid: "cuid", cuid2: "cuid2", ulid: "ULID", xid: "XID", ksuid: "KSUID", datetime: "data e ora ISO", date: "data ISO", time: "ora ISO", duration: "durata ISO", ipv4: "indirizzo IPv4", ipv6: "indirizzo IPv6", cidrv4: "intervallo IPv4", cidrv6: "intervallo IPv6", base64: "stringa codificata in base64", base64url: "URL codificata in base64", json_string: "stringa JSON", e164: "numero E.164", jwt: "JWT", template_literal: "input"};
     return (issue2) => {
@@ -34147,8 +34180,8 @@ window.addEventListener("message", (e) => {
       return Sizable[origin] ?? null;
     }
     const parsedType2 = (data) => {
-      const t7 = typeof data;
-      switch (t7) {
+      const t6 = typeof data;
+      switch (t6) {
         case "number": {
           return Number.isNaN(data) ? "NaN" : "\u6570\u5024";
         }
@@ -34164,7 +34197,7 @@ window.addEventListener("message", (e) => {
           }
         }
       }
-      return t7;
+      return t6;
     };
     const Nouns = {regex: "\u5165\u529B\u5024", email: "\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9", url: "URL", emoji: "\u7D75\u6587\u5B57", uuid: "UUID", uuidv4: "UUIDv4", uuidv6: "UUIDv6", nanoid: "nanoid", guid: "GUID", cuid: "cuid", cuid2: "cuid2", ulid: "ULID", xid: "XID", ksuid: "KSUID", datetime: "ISO\u65E5\u6642", date: "ISO\u65E5\u4ED8", time: "ISO\u6642\u523B", duration: "ISO\u671F\u9593", ipv4: "IPv4\u30A2\u30C9\u30EC\u30B9", ipv6: "IPv6\u30A2\u30C9\u30EC\u30B9", cidrv4: "IPv4\u7BC4\u56F2", cidrv6: "IPv6\u7BC4\u56F2", base64: "base64\u30A8\u30F3\u30B3\u30FC\u30C9\u6587\u5B57\u5217", base64url: "base64url\u30A8\u30F3\u30B3\u30FC\u30C9\u6587\u5B57\u5217", json_string: "JSON\u6587\u5B57\u5217", e164: "E.164\u756A\u53F7", jwt: "JWT", template_literal: "\u5165\u529B\u5024"};
     return (issue2) => {
@@ -34220,8 +34253,8 @@ window.addEventListener("message", (e) => {
     return {localeError: error$o()};
   }
   var parsedType$2 = (data) => {
-    const t7 = typeof data;
-    switch (t7) {
+    const t6 = typeof data;
+    switch (t6) {
       case "number": {
         return Number.isNaN(data) ? "NaN" : "\u10E0\u10D8\u10EA\u10EE\u10D5\u10D8";
       }
@@ -34238,7 +34271,7 @@ window.addEventListener("message", (e) => {
       }
     }
     const typeMap = {string: "\u10E1\u10E2\u10E0\u10D8\u10DC\u10D2\u10D8", boolean: "\u10D1\u10E3\u10DA\u10D4\u10D0\u10DC\u10D8", undefined: "undefined", bigint: "bigint", symbol: "symbol", function: "\u10E4\u10E3\u10DC\u10E5\u10EA\u10D8\u10D0"};
-    return typeMap[t7] ?? t7;
+    return typeMap[t6] ?? t6;
   };
   var error$n = () => {
     const Sizable = {string: {unit: "\u10E1\u10D8\u10DB\u10D1\u10DD\u10DA\u10DD", verb: "\u10E3\u10DC\u10D3\u10D0 \u10E8\u10D4\u10D8\u10EA\u10D0\u10D5\u10D3\u10D4\u10E1"}, file: {unit: "\u10D1\u10D0\u10D8\u10E2\u10D8", verb: "\u10E3\u10DC\u10D3\u10D0 \u10E8\u10D4\u10D8\u10EA\u10D0\u10D5\u10D3\u10D4\u10E1"}, array: {unit: "\u10D4\u10DA\u10D4\u10DB\u10D4\u10DC\u10E2\u10D8", verb: "\u10E3\u10DC\u10D3\u10D0 \u10E8\u10D4\u10D8\u10EA\u10D0\u10D5\u10D3\u10D4\u10E1"}, set: {unit: "\u10D4\u10DA\u10D4\u10DB\u10D4\u10DC\u10E2\u10D8", verb: "\u10E3\u10DC\u10D3\u10D0 \u10E8\u10D4\u10D8\u10EA\u10D0\u10D5\u10D3\u10D4\u10E1"}};
@@ -34306,8 +34339,8 @@ window.addEventListener("message", (e) => {
       return Sizable[origin] ?? null;
     }
     const parsedType2 = (data) => {
-      const t7 = typeof data;
-      switch (t7) {
+      const t6 = typeof data;
+      switch (t6) {
         case "number": {
           return Number.isNaN(data) ? "\u1798\u17B7\u1793\u1798\u17C2\u1793\u1787\u17B6\u179B\u17C1\u1781 (NaN)" : "\u179B\u17C1\u1781";
         }
@@ -34323,7 +34356,7 @@ window.addEventListener("message", (e) => {
           }
         }
       }
-      return t7;
+      return t6;
     };
     const Nouns = {regex: "\u1791\u17B7\u1793\u17D2\u1793\u1793\u17D0\u1799\u1794\u1789\u17D2\u1785\u17BC\u179B", email: "\u17A2\u17B6\u179F\u1799\u178A\u17D2\u178B\u17B6\u1793\u17A2\u17CA\u17B8\u1798\u17C2\u179B", url: "URL", emoji: "\u179F\u1789\u17D2\u1789\u17B6\u17A2\u17B6\u179A\u1798\u17D2\u1798\u178E\u17CD", uuid: "UUID", uuidv4: "UUIDv4", uuidv6: "UUIDv6", nanoid: "nanoid", guid: "GUID", cuid: "cuid", cuid2: "cuid2", ulid: "ULID", xid: "XID", ksuid: "KSUID", datetime: "\u1780\u17B6\u179B\u1794\u179A\u17B7\u1785\u17D2\u1786\u17C1\u1791 \u1793\u17B7\u1784\u1798\u17C9\u17C4\u1784 ISO", date: "\u1780\u17B6\u179B\u1794\u179A\u17B7\u1785\u17D2\u1786\u17C1\u1791 ISO", time: "\u1798\u17C9\u17C4\u1784 ISO", duration: "\u179A\u1799\u17C8\u1796\u17C1\u179B ISO", ipv4: "\u17A2\u17B6\u179F\u1799\u178A\u17D2\u178B\u17B6\u1793 IPv4", ipv6: "\u17A2\u17B6\u179F\u1799\u178A\u17D2\u178B\u17B6\u1793 IPv6", cidrv4: "\u178A\u17C2\u1793\u17A2\u17B6\u179F\u1799\u178A\u17D2\u178B\u17B6\u1793 IPv4", cidrv6: "\u178A\u17C2\u1793\u17A2\u17B6\u179F\u1799\u178A\u17D2\u178B\u17B6\u1793 IPv6", base64: "\u1781\u17D2\u179F\u17C2\u17A2\u1780\u17D2\u179F\u179A\u17A2\u17CA\u17B7\u1780\u17BC\u178A base64", base64url: "\u1781\u17D2\u179F\u17C2\u17A2\u1780\u17D2\u179F\u179A\u17A2\u17CA\u17B7\u1780\u17BC\u178A base64url", json_string: "\u1781\u17D2\u179F\u17C2\u17A2\u1780\u17D2\u179F\u179A JSON", e164: "\u179B\u17C1\u1781 E.164", jwt: "JWT", template_literal: "\u1791\u17B7\u1793\u17D2\u1793\u1793\u17D0\u1799\u1794\u1789\u17D2\u1785\u17BC\u179B"};
     return (issue2) => {
@@ -34389,8 +34422,8 @@ window.addEventListener("message", (e) => {
       return Sizable[origin] ?? null;
     }
     const parsedType2 = (data) => {
-      const t7 = typeof data;
-      switch (t7) {
+      const t6 = typeof data;
+      switch (t6) {
         case "number": {
           return Number.isNaN(data) ? "NaN" : "number";
         }
@@ -34406,7 +34439,7 @@ window.addEventListener("message", (e) => {
           }
         }
       }
-      return t7;
+      return t6;
     };
     const Nouns = {regex: "\uC785\uB825", email: "\uC774\uBA54\uC77C \uC8FC\uC18C", url: "URL", emoji: "\uC774\uBAA8\uC9C0", uuid: "UUID", uuidv4: "UUIDv4", uuidv6: "UUIDv6", nanoid: "nanoid", guid: "GUID", cuid: "cuid", cuid2: "cuid2", ulid: "ULID", xid: "XID", ksuid: "KSUID", datetime: "ISO \uB0A0\uC9DC\uC2DC\uAC04", date: "ISO \uB0A0\uC9DC", time: "ISO \uC2DC\uAC04", duration: "ISO \uAE30\uAC04", ipv4: "IPv4 \uC8FC\uC18C", ipv6: "IPv6 \uC8FC\uC18C", cidrv4: "IPv4 \uBC94\uC704", cidrv6: "IPv6 \uBC94\uC704", base64: "base64 \uC778\uCF54\uB529 \uBB38\uC790\uC5F4", base64url: "base64url \uC778\uCF54\uB529 \uBB38\uC790\uC5F4", json_string: "JSON \uBB38\uC790\uC5F4", e164: "E.164 \uBC88\uD638", jwt: "JWT", template_literal: "\uC785\uB825"};
     return (issue2) => {
@@ -34468,11 +34501,11 @@ window.addEventListener("message", (e) => {
     return {localeError: error$l()};
   }
   var parsedType$1 = (data) => {
-    const t7 = typeof data;
-    return parsedTypeFromType(t7, data);
+    const t6 = typeof data;
+    return parsedTypeFromType(t6, data);
   };
-  var parsedTypeFromType = (t7, data = void 0) => {
-    switch (t7) {
+  var parsedTypeFromType = (t6, data = void 0) => {
+    switch (t6) {
       case "number": {
         return Number.isNaN(data) ? "NaN" : "skai\u010Dius";
       }
@@ -34511,7 +34544,7 @@ window.addEventListener("message", (e) => {
         return "nulin\u0117 reik\u0161m\u0117";
       }
     }
-    return t7;
+    return t6;
   };
   var capitalizeFirstCharacter = (text) => text.charAt(0).toUpperCase() + text.slice(1);
   function getUnitTypeFromNumber(number2) {
@@ -34596,8 +34629,8 @@ window.addEventListener("message", (e) => {
       return Sizable[origin] ?? null;
     }
     const parsedType2 = (data) => {
-      const t7 = typeof data;
-      switch (t7) {
+      const t6 = typeof data;
+      switch (t6) {
         case "number": {
           return Number.isNaN(data) ? "NaN" : "\u0431\u0440\u043E\u0458";
         }
@@ -34613,7 +34646,7 @@ window.addEventListener("message", (e) => {
           }
         }
       }
-      return t7;
+      return t6;
     };
     const Nouns = {regex: "\u0432\u043D\u0435\u0441", email: "\u0430\u0434\u0440\u0435\u0441\u0430 \u043D\u0430 \u0435-\u043F\u043E\u0448\u0442\u0430", url: "URL", emoji: "\u0435\u043C\u043E\u045F\u0438", uuid: "UUID", uuidv4: "UUIDv4", uuidv6: "UUIDv6", nanoid: "nanoid", guid: "GUID", cuid: "cuid", cuid2: "cuid2", ulid: "ULID", xid: "XID", ksuid: "KSUID", datetime: "ISO \u0434\u0430\u0442\u0443\u043C \u0438 \u0432\u0440\u0435\u043C\u0435", date: "ISO \u0434\u0430\u0442\u0443\u043C", time: "ISO \u0432\u0440\u0435\u043C\u0435", duration: "ISO \u0432\u0440\u0435\u043C\u0435\u0442\u0440\u0430\u0435\u045A\u0435", ipv4: "IPv4 \u0430\u0434\u0440\u0435\u0441\u0430", ipv6: "IPv6 \u0430\u0434\u0440\u0435\u0441\u0430", cidrv4: "IPv4 \u043E\u043F\u0441\u0435\u0433", cidrv6: "IPv6 \u043E\u043F\u0441\u0435\u0433", base64: "base64-\u0435\u043D\u043A\u043E\u0434\u0438\u0440\u0430\u043D\u0430 \u043D\u0438\u0437\u0430", base64url: "base64url-\u0435\u043D\u043A\u043E\u0434\u0438\u0440\u0430\u043D\u0430 \u043D\u0438\u0437\u0430", json_string: "JSON \u043D\u0438\u0437\u0430", e164: "E.164 \u0431\u0440\u043E\u0458", jwt: "JWT", template_literal: "\u0432\u043D\u0435\u0441"};
     return (issue2) => {
@@ -34676,8 +34709,8 @@ window.addEventListener("message", (e) => {
       return Sizable[origin] ?? null;
     }
     const parsedType2 = (data) => {
-      const t7 = typeof data;
-      switch (t7) {
+      const t6 = typeof data;
+      switch (t6) {
         case "number": {
           return Number.isNaN(data) ? "NaN" : "nombor";
         }
@@ -34693,7 +34726,7 @@ window.addEventListener("message", (e) => {
           }
         }
       }
-      return t7;
+      return t6;
     };
     const Nouns = {regex: "input", email: "alamat e-mel", url: "URL", emoji: "emoji", uuid: "UUID", uuidv4: "UUIDv4", uuidv6: "UUIDv6", nanoid: "nanoid", guid: "GUID", cuid: "cuid", cuid2: "cuid2", ulid: "ULID", xid: "XID", ksuid: "KSUID", datetime: "tarikh masa ISO", date: "tarikh ISO", time: "masa ISO", duration: "tempoh ISO", ipv4: "alamat IPv4", ipv6: "alamat IPv6", cidrv4: "julat IPv4", cidrv6: "julat IPv6", base64: "string dikodkan base64", base64url: "string dikodkan base64url", json_string: "string JSON", e164: "nombor E.164", jwt: "JWT", template_literal: "input"};
     return (issue2) => {
@@ -34755,8 +34788,8 @@ window.addEventListener("message", (e) => {
       return Sizable[origin] ?? null;
     }
     const parsedType2 = (data) => {
-      const t7 = typeof data;
-      switch (t7) {
+      const t6 = typeof data;
+      switch (t6) {
         case "number": {
           return Number.isNaN(data) ? "NaN" : "getal";
         }
@@ -34772,7 +34805,7 @@ window.addEventListener("message", (e) => {
           }
         }
       }
-      return t7;
+      return t6;
     };
     const Nouns = {regex: "invoer", email: "emailadres", url: "URL", emoji: "emoji", uuid: "UUID", uuidv4: "UUIDv4", uuidv6: "UUIDv6", nanoid: "nanoid", guid: "GUID", cuid: "cuid", cuid2: "cuid2", ulid: "ULID", xid: "XID", ksuid: "KSUID", datetime: "ISO datum en tijd", date: "ISO datum", time: "ISO tijd", duration: "ISO duur", ipv4: "IPv4-adres", ipv6: "IPv6-adres", cidrv4: "IPv4-bereik", cidrv6: "IPv6-bereik", base64: "base64-gecodeerde tekst", base64url: "base64 URL-gecodeerde tekst", json_string: "JSON string", e164: "E.164-nummer", jwt: "JWT", template_literal: "invoer"};
     return (issue2) => {
@@ -34835,8 +34868,8 @@ window.addEventListener("message", (e) => {
       return Sizable[origin] ?? null;
     }
     const parsedType2 = (data) => {
-      const t7 = typeof data;
-      switch (t7) {
+      const t6 = typeof data;
+      switch (t6) {
         case "number": {
           return Number.isNaN(data) ? "NaN" : "tall";
         }
@@ -34852,7 +34885,7 @@ window.addEventListener("message", (e) => {
           }
         }
       }
-      return t7;
+      return t6;
     };
     const Nouns = {regex: "input", email: "e-postadresse", url: "URL", emoji: "emoji", uuid: "UUID", uuidv4: "UUIDv4", uuidv6: "UUIDv6", nanoid: "nanoid", guid: "GUID", cuid: "cuid", cuid2: "cuid2", ulid: "ULID", xid: "XID", ksuid: "KSUID", datetime: "ISO dato- og klokkeslett", date: "ISO-dato", time: "ISO-klokkeslett", duration: "ISO-varighet", ipv4: "IPv4-omr\xE5de", ipv6: "IPv6-omr\xE5de", cidrv4: "IPv4-spekter", cidrv6: "IPv6-spekter", base64: "base64-enkodet streng", base64url: "base64url-enkodet streng", json_string: "JSON-streng", e164: "E.164-nummer", jwt: "JWT", template_literal: "input"};
     return (issue2) => {
@@ -34914,8 +34947,8 @@ window.addEventListener("message", (e) => {
       return Sizable[origin] ?? null;
     }
     const parsedType2 = (data) => {
-      const t7 = typeof data;
-      switch (t7) {
+      const t6 = typeof data;
+      switch (t6) {
         case "number": {
           return Number.isNaN(data) ? "NaN" : "numara";
         }
@@ -34931,7 +34964,7 @@ window.addEventListener("message", (e) => {
           }
         }
       }
-      return t7;
+      return t6;
     };
     const Nouns = {regex: "giren", email: "epostag\xE2h", url: "URL", emoji: "emoji", uuid: "UUID", uuidv4: "UUIDv4", uuidv6: "UUIDv6", nanoid: "nanoid", guid: "GUID", cuid: "cuid", cuid2: "cuid2", ulid: "ULID", xid: "XID", ksuid: "KSUID", datetime: "ISO heng\xE2m\u0131", date: "ISO tarihi", time: "ISO zaman\u0131", duration: "ISO m\xFCddeti", ipv4: "IPv4 ni\u015F\xE2n\u0131", ipv6: "IPv6 ni\u015F\xE2n\u0131", cidrv4: "IPv4 menzili", cidrv6: "IPv6 menzili", base64: "base64-\u015Fifreli metin", base64url: "base64url-\u015Fifreli metin", json_string: "JSON metin", e164: "E.164 say\u0131s\u0131", jwt: "JWT", template_literal: "giren"};
     return (issue2) => {
@@ -34993,8 +35026,8 @@ window.addEventListener("message", (e) => {
       return Sizable[origin] ?? null;
     }
     const parsedType2 = (data) => {
-      const t7 = typeof data;
-      switch (t7) {
+      const t6 = typeof data;
+      switch (t6) {
         case "number": {
           return Number.isNaN(data) ? "NaN" : "\u0639\u062F\u062F";
         }
@@ -35010,7 +35043,7 @@ window.addEventListener("message", (e) => {
           }
         }
       }
-      return t7;
+      return t6;
     };
     const Nouns = {regex: "\u0648\u0631\u0648\u062F\u064A", email: "\u0628\u0631\u06CC\u069A\u0646\u0627\u0644\u06CC\u06A9", url: "\u06CC\u0648 \u0622\u0631 \u0627\u0644", emoji: "\u0627\u06CC\u0645\u0648\u062C\u064A", uuid: "UUID", uuidv4: "UUIDv4", uuidv6: "UUIDv6", nanoid: "nanoid", guid: "GUID", cuid: "cuid", cuid2: "cuid2", ulid: "ULID", xid: "XID", ksuid: "KSUID", datetime: "\u0646\u06CC\u067C\u0647 \u0627\u0648 \u0648\u062E\u062A", date: "\u0646\u06D0\u067C\u0647", time: "\u0648\u062E\u062A", duration: "\u0645\u0648\u062F\u0647", ipv4: "\u062F IPv4 \u067E\u062A\u0647", ipv6: "\u062F IPv6 \u067E\u062A\u0647", cidrv4: "\u062F IPv4 \u0633\u0627\u062D\u0647", cidrv6: "\u062F IPv6 \u0633\u0627\u062D\u0647", base64: "base64-encoded \u0645\u062A\u0646", base64url: "base64url-encoded \u0645\u062A\u0646", json_string: "JSON \u0645\u062A\u0646", e164: "\u062F E.164 \u0634\u0645\u06D0\u0631\u0647", jwt: "JWT", template_literal: "\u0648\u0631\u0648\u062F\u064A"};
     return (issue2) => {
@@ -35078,8 +35111,8 @@ window.addEventListener("message", (e) => {
       return Sizable[origin] ?? null;
     }
     const parsedType2 = (data) => {
-      const t7 = typeof data;
-      switch (t7) {
+      const t6 = typeof data;
+      switch (t6) {
         case "number": {
           return Number.isNaN(data) ? "NaN" : "liczba";
         }
@@ -35095,7 +35128,7 @@ window.addEventListener("message", (e) => {
           }
         }
       }
-      return t7;
+      return t6;
     };
     const Nouns = {regex: "wyra\u017Cenie", email: "adres email", url: "URL", emoji: "emoji", uuid: "UUID", uuidv4: "UUIDv4", uuidv6: "UUIDv6", nanoid: "nanoid", guid: "GUID", cuid: "cuid", cuid2: "cuid2", ulid: "ULID", xid: "XID", ksuid: "KSUID", datetime: "data i godzina w formacie ISO", date: "data w formacie ISO", time: "godzina w formacie ISO", duration: "czas trwania ISO", ipv4: "adres IPv4", ipv6: "adres IPv6", cidrv4: "zakres IPv4", cidrv6: "zakres IPv6", base64: "ci\u0105g znak\xF3w zakodowany w formacie base64", base64url: "ci\u0105g znak\xF3w zakodowany w formacie base64url", json_string: "ci\u0105g znak\xF3w w formacie JSON", e164: "liczba E.164", jwt: "JWT", template_literal: "wej\u015Bcie"};
     return (issue2) => {
@@ -35158,8 +35191,8 @@ window.addEventListener("message", (e) => {
       return Sizable[origin] ?? null;
     }
     const parsedType2 = (data) => {
-      const t7 = typeof data;
-      switch (t7) {
+      const t6 = typeof data;
+      switch (t6) {
         case "number": {
           return Number.isNaN(data) ? "NaN" : "n\xFAmero";
         }
@@ -35175,7 +35208,7 @@ window.addEventListener("message", (e) => {
           }
         }
       }
-      return t7;
+      return t6;
     };
     const Nouns = {regex: "padr\xE3o", email: "endere\xE7o de e-mail", url: "URL", emoji: "emoji", uuid: "UUID", uuidv4: "UUIDv4", uuidv6: "UUIDv6", nanoid: "nanoid", guid: "GUID", cuid: "cuid", cuid2: "cuid2", ulid: "ULID", xid: "XID", ksuid: "KSUID", datetime: "data e hora ISO", date: "data ISO", time: "hora ISO", duration: "dura\xE7\xE3o ISO", ipv4: "endere\xE7o IPv4", ipv6: "endere\xE7o IPv6", cidrv4: "faixa de IPv4", cidrv6: "faixa de IPv6", base64: "texto codificado em base64", base64url: "URL codificada em base64", json_string: "texto JSON", e164: "n\xFAmero E.164", jwt: "JWT", template_literal: "entrada"};
     return (issue2) => {
@@ -35252,8 +35285,8 @@ window.addEventListener("message", (e) => {
       return Sizable[origin] ?? null;
     }
     const parsedType2 = (data) => {
-      const t7 = typeof data;
-      switch (t7) {
+      const t6 = typeof data;
+      switch (t6) {
         case "number": {
           return Number.isNaN(data) ? "NaN" : "\u0447\u0438\u0441\u043B\u043E";
         }
@@ -35269,7 +35302,7 @@ window.addEventListener("message", (e) => {
           }
         }
       }
-      return t7;
+      return t6;
     };
     const Nouns = {regex: "\u0432\u0432\u043E\u0434", email: "email \u0430\u0434\u0440\u0435\u0441", url: "URL", emoji: "\u044D\u043C\u043E\u0434\u0437\u0438", uuid: "UUID", uuidv4: "UUIDv4", uuidv6: "UUIDv6", nanoid: "nanoid", guid: "GUID", cuid: "cuid", cuid2: "cuid2", ulid: "ULID", xid: "XID", ksuid: "KSUID", datetime: "ISO \u0434\u0430\u0442\u0430 \u0438 \u0432\u0440\u0435\u043C\u044F", date: "ISO \u0434\u0430\u0442\u0430", time: "ISO \u0432\u0440\u0435\u043C\u044F", duration: "ISO \u0434\u043B\u0438\u0442\u0435\u043B\u044C\u043D\u043E\u0441\u0442\u044C", ipv4: "IPv4 \u0430\u0434\u0440\u0435\u0441", ipv6: "IPv6 \u0430\u0434\u0440\u0435\u0441", cidrv4: "IPv4 \u0434\u0438\u0430\u043F\u0430\u0437\u043E\u043D", cidrv6: "IPv6 \u0434\u0438\u0430\u043F\u0430\u0437\u043E\u043D", base64: "\u0441\u0442\u0440\u043E\u043A\u0430 \u0432 \u0444\u043E\u0440\u043C\u0430\u0442\u0435 base64", base64url: "\u0441\u0442\u0440\u043E\u043A\u0430 \u0432 \u0444\u043E\u0440\u043C\u0430\u0442\u0435 base64url", json_string: "JSON \u0441\u0442\u0440\u043E\u043A\u0430", e164: "\u043D\u043E\u043C\u0435\u0440 E.164", jwt: "JWT", template_literal: "\u0432\u0432\u043E\u0434"};
     return (issue2) => {
@@ -35336,8 +35369,8 @@ window.addEventListener("message", (e) => {
       return Sizable[origin] ?? null;
     }
     const parsedType2 = (data) => {
-      const t7 = typeof data;
-      switch (t7) {
+      const t6 = typeof data;
+      switch (t6) {
         case "number": {
           return Number.isNaN(data) ? "NaN" : "\u0161tevilo";
         }
@@ -35353,7 +35386,7 @@ window.addEventListener("message", (e) => {
           }
         }
       }
-      return t7;
+      return t6;
     };
     const Nouns = {regex: "vnos", email: "e-po\u0161tni naslov", url: "URL", emoji: "emoji", uuid: "UUID", uuidv4: "UUIDv4", uuidv6: "UUIDv6", nanoid: "nanoid", guid: "GUID", cuid: "cuid", cuid2: "cuid2", ulid: "ULID", xid: "XID", ksuid: "KSUID", datetime: "ISO datum in \u010Das", date: "ISO datum", time: "ISO \u010Das", duration: "ISO trajanje", ipv4: "IPv4 naslov", ipv6: "IPv6 naslov", cidrv4: "obseg IPv4", cidrv6: "obseg IPv6", base64: "base64 kodiran niz", base64url: "base64url kodiran niz", json_string: "JSON niz", e164: "E.164 \u0161tevilka", jwt: "JWT", template_literal: "vnos"};
     return (issue2) => {
@@ -35416,8 +35449,8 @@ window.addEventListener("message", (e) => {
       return Sizable[origin] ?? null;
     }
     const parsedType2 = (data) => {
-      const t7 = typeof data;
-      switch (t7) {
+      const t6 = typeof data;
+      switch (t6) {
         case "number": {
           return Number.isNaN(data) ? "NaN" : "antal";
         }
@@ -35433,7 +35466,7 @@ window.addEventListener("message", (e) => {
           }
         }
       }
-      return t7;
+      return t6;
     };
     const Nouns = {regex: "regulj\xE4rt uttryck", email: "e-postadress", url: "URL", emoji: "emoji", uuid: "UUID", uuidv4: "UUIDv4", uuidv6: "UUIDv6", nanoid: "nanoid", guid: "GUID", cuid: "cuid", cuid2: "cuid2", ulid: "ULID", xid: "XID", ksuid: "KSUID", datetime: "ISO-datum och tid", date: "ISO-datum", time: "ISO-tid", duration: "ISO-varaktighet", ipv4: "IPv4-intervall", ipv6: "IPv6-intervall", cidrv4: "IPv4-spektrum", cidrv6: "IPv6-spektrum", base64: "base64-kodad str\xE4ng", base64url: "base64url-kodad str\xE4ng", json_string: "JSON-str\xE4ng", e164: "E.164-nummer", jwt: "JWT", template_literal: "mall-literal"};
     return (issue2) => {
@@ -35497,8 +35530,8 @@ window.addEventListener("message", (e) => {
       return Sizable[origin] ?? null;
     }
     const parsedType2 = (data) => {
-      const t7 = typeof data;
-      switch (t7) {
+      const t6 = typeof data;
+      switch (t6) {
         case "number": {
           return Number.isNaN(data) ? "\u0B8E\u0BA3\u0BCD \u0B85\u0BB2\u0BCD\u0BB2\u0BBE\u0BA4\u0BA4\u0BC1" : "\u0B8E\u0BA3\u0BCD";
         }
@@ -35514,7 +35547,7 @@ window.addEventListener("message", (e) => {
           }
         }
       }
-      return t7;
+      return t6;
     };
     const Nouns = {regex: "\u0B89\u0BB3\u0BCD\u0BB3\u0BC0\u0B9F\u0BC1", email: "\u0BAE\u0BBF\u0BA9\u0BCD\u0BA9\u0B9E\u0BCD\u0B9A\u0BB2\u0BCD \u0BAE\u0BC1\u0B95\u0BB5\u0BB0\u0BBF", url: "URL", emoji: "emoji", uuid: "UUID", uuidv4: "UUIDv4", uuidv6: "UUIDv6", nanoid: "nanoid", guid: "GUID", cuid: "cuid", cuid2: "cuid2", ulid: "ULID", xid: "XID", ksuid: "KSUID", datetime: "ISO \u0BA4\u0BC7\u0BA4\u0BBF \u0BA8\u0BC7\u0BB0\u0BAE\u0BCD", date: "ISO \u0BA4\u0BC7\u0BA4\u0BBF", time: "ISO \u0BA8\u0BC7\u0BB0\u0BAE\u0BCD", duration: "ISO \u0B95\u0BBE\u0BB2 \u0B85\u0BB3\u0BB5\u0BC1", ipv4: "IPv4 \u0BAE\u0BC1\u0B95\u0BB5\u0BB0\u0BBF", ipv6: "IPv6 \u0BAE\u0BC1\u0B95\u0BB5\u0BB0\u0BBF", cidrv4: "IPv4 \u0BB5\u0BB0\u0BAE\u0BCD\u0BAA\u0BC1", cidrv6: "IPv6 \u0BB5\u0BB0\u0BAE\u0BCD\u0BAA\u0BC1", base64: "base64-encoded \u0B9A\u0BB0\u0BAE\u0BCD", base64url: "base64url-encoded \u0B9A\u0BB0\u0BAE\u0BCD", json_string: "JSON \u0B9A\u0BB0\u0BAE\u0BCD", e164: "E.164 \u0B8E\u0BA3\u0BCD", jwt: "JWT", template_literal: "input"};
     return (issue2) => {
@@ -35577,8 +35610,8 @@ window.addEventListener("message", (e) => {
       return Sizable[origin] ?? null;
     }
     const parsedType2 = (data) => {
-      const t7 = typeof data;
-      switch (t7) {
+      const t6 = typeof data;
+      switch (t6) {
         case "number": {
           return Number.isNaN(data) ? "\u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E15\u0E31\u0E27\u0E40\u0E25\u0E02 (NaN)" : "\u0E15\u0E31\u0E27\u0E40\u0E25\u0E02";
         }
@@ -35594,7 +35627,7 @@ window.addEventListener("message", (e) => {
           }
         }
       }
-      return t7;
+      return t6;
     };
     const Nouns = {regex: "\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E17\u0E35\u0E48\u0E1B\u0E49\u0E2D\u0E19", email: "\u0E17\u0E35\u0E48\u0E2D\u0E22\u0E39\u0E48\u0E2D\u0E35\u0E40\u0E21\u0E25", url: "URL", emoji: "\u0E2D\u0E34\u0E42\u0E21\u0E08\u0E34", uuid: "UUID", uuidv4: "UUIDv4", uuidv6: "UUIDv6", nanoid: "nanoid", guid: "GUID", cuid: "cuid", cuid2: "cuid2", ulid: "ULID", xid: "XID", ksuid: "KSUID", datetime: "\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48\u0E40\u0E27\u0E25\u0E32\u0E41\u0E1A\u0E1A ISO", date: "\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48\u0E41\u0E1A\u0E1A ISO", time: "\u0E40\u0E27\u0E25\u0E32\u0E41\u0E1A\u0E1A ISO", duration: "\u0E0A\u0E48\u0E27\u0E07\u0E40\u0E27\u0E25\u0E32\u0E41\u0E1A\u0E1A ISO", ipv4: "\u0E17\u0E35\u0E48\u0E2D\u0E22\u0E39\u0E48 IPv4", ipv6: "\u0E17\u0E35\u0E48\u0E2D\u0E22\u0E39\u0E48 IPv6", cidrv4: "\u0E0A\u0E48\u0E27\u0E07 IP \u0E41\u0E1A\u0E1A IPv4", cidrv6: "\u0E0A\u0E48\u0E27\u0E07 IP \u0E41\u0E1A\u0E1A IPv6", base64: "\u0E02\u0E49\u0E2D\u0E04\u0E27\u0E32\u0E21\u0E41\u0E1A\u0E1A Base64", base64url: "\u0E02\u0E49\u0E2D\u0E04\u0E27\u0E32\u0E21\u0E41\u0E1A\u0E1A Base64 \u0E2A\u0E33\u0E2B\u0E23\u0E31\u0E1A URL", json_string: "\u0E02\u0E49\u0E2D\u0E04\u0E27\u0E32\u0E21\u0E41\u0E1A\u0E1A JSON", e164: "\u0E40\u0E1A\u0E2D\u0E23\u0E4C\u0E42\u0E17\u0E23\u0E28\u0E31\u0E1E\u0E17\u0E4C\u0E23\u0E30\u0E2B\u0E27\u0E48\u0E32\u0E07\u0E1B\u0E23\u0E30\u0E40\u0E17\u0E28 (E.164)", jwt: "\u0E42\u0E17\u0E40\u0E04\u0E19 JWT", template_literal: "\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E17\u0E35\u0E48\u0E1B\u0E49\u0E2D\u0E19"};
     return (issue2) => {
@@ -35652,8 +35685,8 @@ window.addEventListener("message", (e) => {
     return {localeError: error$7()};
   }
   var parsedType = (data) => {
-    const t7 = typeof data;
-    switch (t7) {
+    const t6 = typeof data;
+    switch (t6) {
       case "number": {
         return Number.isNaN(data) ? "NaN" : "number";
       }
@@ -35669,7 +35702,7 @@ window.addEventListener("message", (e) => {
         }
       }
     }
-    return t7;
+    return t6;
   };
   var error$6 = () => {
     const Sizable = {string: {unit: "karakter", verb: "olmal\u0131"}, file: {unit: "bayt", verb: "olmal\u0131"}, array: {unit: "\xF6\u011Fe", verb: "olmal\u0131"}, set: {unit: "\xF6\u011Fe", verb: "olmal\u0131"}};
@@ -35735,8 +35768,8 @@ window.addEventListener("message", (e) => {
       return Sizable[origin] ?? null;
     }
     const parsedType2 = (data) => {
-      const t7 = typeof data;
-      switch (t7) {
+      const t6 = typeof data;
+      switch (t6) {
         case "number": {
           return Number.isNaN(data) ? "NaN" : "\u0447\u0438\u0441\u043B\u043E";
         }
@@ -35752,7 +35785,7 @@ window.addEventListener("message", (e) => {
           }
         }
       }
-      return t7;
+      return t6;
     };
     const Nouns = {regex: "\u0432\u0445\u0456\u0434\u043D\u0456 \u0434\u0430\u043D\u0456", email: "\u0430\u0434\u0440\u0435\u0441\u0430 \u0435\u043B\u0435\u043A\u0442\u0440\u043E\u043D\u043D\u043E\u0457 \u043F\u043E\u0448\u0442\u0438", url: "URL", emoji: "\u0435\u043C\u043E\u0434\u0437\u0456", uuid: "UUID", uuidv4: "UUIDv4", uuidv6: "UUIDv6", nanoid: "nanoid", guid: "GUID", cuid: "cuid", cuid2: "cuid2", ulid: "ULID", xid: "XID", ksuid: "KSUID", datetime: "\u0434\u0430\u0442\u0430 \u0442\u0430 \u0447\u0430\u0441 ISO", date: "\u0434\u0430\u0442\u0430 ISO", time: "\u0447\u0430\u0441 ISO", duration: "\u0442\u0440\u0438\u0432\u0430\u043B\u0456\u0441\u0442\u044C ISO", ipv4: "\u0430\u0434\u0440\u0435\u0441\u0430 IPv4", ipv6: "\u0430\u0434\u0440\u0435\u0441\u0430 IPv6", cidrv4: "\u0434\u0456\u0430\u043F\u0430\u0437\u043E\u043D IPv4", cidrv6: "\u0434\u0456\u0430\u043F\u0430\u0437\u043E\u043D IPv6", base64: "\u0440\u044F\u0434\u043E\u043A \u0443 \u043A\u043E\u0434\u0443\u0432\u0430\u043D\u043D\u0456 base64", base64url: "\u0440\u044F\u0434\u043E\u043A \u0443 \u043A\u043E\u0434\u0443\u0432\u0430\u043D\u043D\u0456 base64url", json_string: "\u0440\u044F\u0434\u043E\u043A JSON", e164: "\u043D\u043E\u043C\u0435\u0440 E.164", jwt: "JWT", template_literal: "\u0432\u0445\u0456\u0434\u043D\u0456 \u0434\u0430\u043D\u0456"};
     return (issue2) => {
@@ -35817,8 +35850,8 @@ window.addEventListener("message", (e) => {
       return Sizable[origin] ?? null;
     }
     const parsedType2 = (data) => {
-      const t7 = typeof data;
-      switch (t7) {
+      const t6 = typeof data;
+      switch (t6) {
         case "number": {
           return Number.isNaN(data) ? "NaN" : "\u0646\u0645\u0628\u0631";
         }
@@ -35834,7 +35867,7 @@ window.addEventListener("message", (e) => {
           }
         }
       }
-      return t7;
+      return t6;
     };
     const Nouns = {regex: "\u0627\u0646 \u067E\u0679", email: "\u0627\u06CC \u0645\u06CC\u0644 \u0627\u06CC\u0688\u0631\u06CC\u0633", url: "\u06CC\u0648 \u0622\u0631 \u0627\u06CC\u0644", emoji: "\u0627\u06CC\u0645\u0648\u062C\u06CC", uuid: "\u06CC\u0648 \u06CC\u0648 \u0622\u0626\u06CC \u0688\u06CC", uuidv4: "\u06CC\u0648 \u06CC\u0648 \u0622\u0626\u06CC \u0688\u06CC \u0648\u06CC 4", uuidv6: "\u06CC\u0648 \u06CC\u0648 \u0622\u0626\u06CC \u0688\u06CC \u0648\u06CC 6", nanoid: "\u0646\u06CC\u0646\u0648 \u0622\u0626\u06CC \u0688\u06CC", guid: "\u062C\u06CC \u06CC\u0648 \u0622\u0626\u06CC \u0688\u06CC", cuid: "\u0633\u06CC \u06CC\u0648 \u0622\u0626\u06CC \u0688\u06CC", cuid2: "\u0633\u06CC \u06CC\u0648 \u0622\u0626\u06CC \u0688\u06CC 2", ulid: "\u06CC\u0648 \u0627\u06CC\u0644 \u0622\u0626\u06CC \u0688\u06CC", xid: "\u0627\u06CC\u06A9\u0633 \u0622\u0626\u06CC \u0688\u06CC", ksuid: "\u06A9\u06D2 \u0627\u06CC\u0633 \u06CC\u0648 \u0622\u0626\u06CC \u0688\u06CC", datetime: "\u0622\u0626\u06CC \u0627\u06CC\u0633 \u0627\u0648 \u0688\u06CC\u0679 \u0679\u0627\u0626\u0645", date: "\u0622\u0626\u06CC \u0627\u06CC\u0633 \u0627\u0648 \u062A\u0627\u0631\u06CC\u062E", time: "\u0622\u0626\u06CC \u0627\u06CC\u0633 \u0627\u0648 \u0648\u0642\u062A", duration: "\u0622\u0626\u06CC \u0627\u06CC\u0633 \u0627\u0648 \u0645\u062F\u062A", ipv4: "\u0622\u0626\u06CC \u067E\u06CC \u0648\u06CC 4 \u0627\u06CC\u0688\u0631\u06CC\u0633", ipv6: "\u0622\u0626\u06CC \u067E\u06CC \u0648\u06CC 6 \u0627\u06CC\u0688\u0631\u06CC\u0633", cidrv4: "\u0622\u0626\u06CC \u067E\u06CC \u0648\u06CC 4 \u0631\u06CC\u0646\u062C", cidrv6: "\u0622\u0626\u06CC \u067E\u06CC \u0648\u06CC 6 \u0631\u06CC\u0646\u062C", base64: "\u0628\u06CC\u0633 64 \u0627\u0646 \u06A9\u0648\u0688\u0688 \u0633\u0679\u0631\u0646\u06AF", base64url: "\u0628\u06CC\u0633 64 \u06CC\u0648 \u0622\u0631 \u0627\u06CC\u0644 \u0627\u0646 \u06A9\u0648\u0688\u0688 \u0633\u0679\u0631\u0646\u06AF", json_string: "\u062C\u06D2 \u0627\u06CC\u0633 \u0627\u0648 \u0627\u06CC\u0646 \u0633\u0679\u0631\u0646\u06AF", e164: "\u0627\u06CC 164 \u0646\u0645\u0628\u0631", jwt: "\u062C\u06D2 \u0688\u0628\u0644\u06CC\u0648 \u0679\u06CC", template_literal: "\u0627\u0646 \u067E\u0679"};
     return (issue2) => {
@@ -35897,8 +35930,8 @@ window.addEventListener("message", (e) => {
       return Sizable[origin] ?? null;
     }
     const parsedType2 = (data) => {
-      const t7 = typeof data;
-      switch (t7) {
+      const t6 = typeof data;
+      switch (t6) {
         case "number": {
           return Number.isNaN(data) ? "NaN" : "s\u1ED1";
         }
@@ -35914,7 +35947,7 @@ window.addEventListener("message", (e) => {
           }
         }
       }
-      return t7;
+      return t6;
     };
     const Nouns = {regex: "\u0111\u1EA7u v\xE0o", email: "\u0111\u1ECBa ch\u1EC9 email", url: "URL", emoji: "emoji", uuid: "UUID", uuidv4: "UUIDv4", uuidv6: "UUIDv6", nanoid: "nanoid", guid: "GUID", cuid: "cuid", cuid2: "cuid2", ulid: "ULID", xid: "XID", ksuid: "KSUID", datetime: "ng\xE0y gi\u1EDD ISO", date: "ng\xE0y ISO", time: "gi\u1EDD ISO", duration: "kho\u1EA3ng th\u1EDDi gian ISO", ipv4: "\u0111\u1ECBa ch\u1EC9 IPv4", ipv6: "\u0111\u1ECBa ch\u1EC9 IPv6", cidrv4: "d\u1EA3i IPv4", cidrv6: "d\u1EA3i IPv6", base64: "chu\u1ED7i m\xE3 h\xF3a base64", base64url: "chu\u1ED7i m\xE3 h\xF3a base64url", json_string: "chu\u1ED7i JSON", e164: "s\u1ED1 E.164", jwt: "JWT", template_literal: "\u0111\u1EA7u v\xE0o"};
     return (issue2) => {
@@ -35976,8 +36009,8 @@ window.addEventListener("message", (e) => {
       return Sizable[origin] ?? null;
     }
     const parsedType2 = (data) => {
-      const t7 = typeof data;
-      switch (t7) {
+      const t6 = typeof data;
+      switch (t6) {
         case "number": {
           return Number.isNaN(data) ? "\u975E\u6570\u5B57(NaN)" : "\u6570\u5B57";
         }
@@ -35993,7 +36026,7 @@ window.addEventListener("message", (e) => {
           }
         }
       }
-      return t7;
+      return t6;
     };
     const Nouns = {regex: "\u8F93\u5165", email: "\u7535\u5B50\u90AE\u4EF6", url: "URL", emoji: "\u8868\u60C5\u7B26\u53F7", uuid: "UUID", uuidv4: "UUIDv4", uuidv6: "UUIDv6", nanoid: "nanoid", guid: "GUID", cuid: "cuid", cuid2: "cuid2", ulid: "ULID", xid: "XID", ksuid: "KSUID", datetime: "ISO\u65E5\u671F\u65F6\u95F4", date: "ISO\u65E5\u671F", time: "ISO\u65F6\u95F4", duration: "ISO\u65F6\u957F", ipv4: "IPv4\u5730\u5740", ipv6: "IPv6\u5730\u5740", cidrv4: "IPv4\u7F51\u6BB5", cidrv6: "IPv6\u7F51\u6BB5", base64: "base64\u7F16\u7801\u5B57\u7B26\u4E32", base64url: "base64url\u7F16\u7801\u5B57\u7B26\u4E32", json_string: "JSON\u5B57\u7B26\u4E32", e164: "E.164\u53F7\u7801", jwt: "JWT", template_literal: "\u8F93\u5165"};
     return (issue2) => {
@@ -36055,8 +36088,8 @@ window.addEventListener("message", (e) => {
       return Sizable[origin] ?? null;
     }
     const parsedType2 = (data) => {
-      const t7 = typeof data;
-      switch (t7) {
+      const t6 = typeof data;
+      switch (t6) {
         case "number": {
           return Number.isNaN(data) ? "NaN" : "number";
         }
@@ -36072,7 +36105,7 @@ window.addEventListener("message", (e) => {
           }
         }
       }
-      return t7;
+      return t6;
     };
     const Nouns = {regex: "\u8F38\u5165", email: "\u90F5\u4EF6\u5730\u5740", url: "URL", emoji: "emoji", uuid: "UUID", uuidv4: "UUIDv4", uuidv6: "UUIDv6", nanoid: "nanoid", guid: "GUID", cuid: "cuid", cuid2: "cuid2", ulid: "ULID", xid: "XID", ksuid: "KSUID", datetime: "ISO \u65E5\u671F\u6642\u9593", date: "ISO \u65E5\u671F", time: "ISO \u6642\u9593", duration: "ISO \u671F\u9593", ipv4: "IPv4 \u4F4D\u5740", ipv6: "IPv6 \u4F4D\u5740", cidrv4: "IPv4 \u7BC4\u570D", cidrv6: "IPv6 \u7BC4\u570D", base64: "base64 \u7DE8\u78BC\u5B57\u4E32", base64url: "base64url \u7DE8\u78BC\u5B57\u4E32", json_string: "JSON \u5B57\u4E32", e164: "E.164 \u6578\u503C", jwt: "JWT", template_literal: "\u8F38\u5165"};
     return (issue2) => {
@@ -36135,8 +36168,8 @@ window.addEventListener("message", (e) => {
       return Sizable[origin] ?? null;
     }
     const parsedType2 = (data) => {
-      const t7 = typeof data;
-      switch (t7) {
+      const t6 = typeof data;
+      switch (t6) {
         case "number": {
           return Number.isNaN(data) ? "NaN" : "n\u1ECD\u0301mb\xE0";
         }
@@ -36152,7 +36185,7 @@ window.addEventListener("message", (e) => {
           }
         }
       }
-      return t7;
+      return t6;
     };
     const Nouns = {regex: "\u1EB9\u0300r\u1ECD \xECb\xE1w\u1ECDl\xE9", email: "\xE0d\xEDr\u1EB9\u0301s\xEC \xECm\u1EB9\u0301l\xEC", url: "URL", emoji: "emoji", uuid: "UUID", uuidv4: "UUIDv4", uuidv6: "UUIDv6", nanoid: "nanoid", guid: "GUID", cuid: "cuid", cuid2: "cuid2", ulid: "ULID", xid: "XID", ksuid: "KSUID", datetime: "\xE0k\xF3k\xF2 ISO", date: "\u1ECDj\u1ECD\u0301 ISO", time: "\xE0k\xF3k\xF2 ISO", duration: "\xE0k\xF3k\xF2 t\xF3 p\xE9 ISO", ipv4: "\xE0d\xEDr\u1EB9\u0301s\xEC IPv4", ipv6: "\xE0d\xEDr\u1EB9\u0301s\xEC IPv6", cidrv4: "\xE0gb\xE8gb\xE8 IPv4", cidrv6: "\xE0gb\xE8gb\xE8 IPv6", base64: "\u1ECD\u0300r\u1ECD\u0300 t\xED a k\u1ECD\u0301 n\xED base64", base64url: "\u1ECD\u0300r\u1ECD\u0300 base64url", json_string: "\u1ECD\u0300r\u1ECD\u0300 JSON", e164: "n\u1ECD\u0301mb\xE0 E.164", jwt: "JWT", template_literal: "\u1EB9\u0300r\u1ECD \xECb\xE1w\u1ECDl\xE9"};
     return (issue2) => {
@@ -40976,46 +41009,33 @@ ${currentContent}`;
       this.setupFocusAwareness();
     }
     applyDiagnosticsToEditor(diagnostics, force = false) {
-      vscodeLogWarn(`\u{1F3AF} applyDiagnosticsToEditor called: ${diagnostics.length} diagnostics, force=${force}`);
-      vscodeLogWarn(`   isApplyingDiagnostics=${this.isApplyingDiagnostics}`);
       if (this.isApplyingDiagnostics) {
-        vscodeLogWarn(`   \u{1F512} BLOCKED: Already applying diagnostics, skipping duplicate call (force=${force})`);
         return;
       }
       const newHash = this.generateDiagnosticsHashForArray(diagnostics);
       const currentHash = this.generateDiagnosticsHash();
       const visualElementsExist = this.verifyDiagnosticElementsExist();
-      vscodeLogWarn(`   newHash=${newHash.substring(0, 8)}..., currentHash=${currentHash.substring(0, 8)}...`);
-      vscodeLogWarn(`   visualElementsExist=${visualElementsExist}, diagnosticsApplied=${this.diagnosticsApplied}`);
       if (!force && newHash === currentHash && this.diagnosticsApplied && visualElementsExist) {
-        vscodeLogWarn(`   \u23ED\uFE0F SKIP: diagnostics unchanged and visible`);
         return;
       }
       const isSafe = this.isSafeToUpdateDiagnostics();
-      vscodeLogWarn(`   isSafeToUpdateDiagnostics=${isSafe}`);
       if (!force && !isSafe) {
-        vscodeLogWarn(`   \u23F0 DEFER: user typing, scheduling for later`);
         this.diagnostics = diagnostics;
         this.pendingDiagnosticUpdate = true;
         return;
       }
-      vscodeLogWarn(`   \u2705 PROCEEDING with application (force=${force})`);
       if (force) {
-        vscodeLogWarn(`   \u{1F512} Locking diagnostic state to prevent race conditions`);
         this.diagnosticsApplied = true;
         this.lastDiagnosticsHash = newHash;
         this.isApplyingDiagnostics = true;
       }
       requestAnimationFrame(() => {
-        vscodeLogWarn(`   \u{1F3AC} Animation frame executing, starting application`);
         const hashChanged = newHash !== currentHash;
         if (hashChanged) {
-          vscodeLogWarn(`   \u{1F9F9} Clearing styles (hash changed)`);
           this.clearDiagnosticStyles();
           this.tokenSpanCache.clear();
           this.tokenDiagnostics.clear();
         } else if (!visualElementsExist) {
-          vscodeLogWarn(`   \u{1F9F9} Clearing tracking (elements missing)`);
           this.tokenSpanCache.clear();
           this.tokenDiagnostics.clear();
         }
@@ -41027,7 +41047,6 @@ ${currentContent}`;
         }
         setTimeout(() => {
           this.isApplyingDiagnostics = false;
-          vscodeLogWarn(`   \u{1F513} Application lock released (diagnosticsApplied remains ${this.diagnosticsApplied})`);
         }, 100);
       });
     }
@@ -41175,13 +41194,9 @@ ${currentContent}`;
         return;
       }
       const cursorElement = this.getCursorContainerElement();
-      if (cursorElement) {
-        vscodeLogWarn(`   \u{1F446} clearDiagnosticStyles: Preserving diagnostics in cursor element during clear`);
-      }
       const diagnosticElements = editor.querySelectorAll('[class*="vscode-diagnostic-"]');
       diagnosticElements.forEach((span, index2) => {
         if (cursorElement && (span === cursorElement || this.isDescendantOf(span, cursorElement) || this.isDescendantOf(cursorElement, span))) {
-          vscodeLogWarn(`   \u23ED\uFE0F  clearDiagnosticStyles: Skipping element in cursor line (index ${index2})`);
           this.hasSkippedDiagnostics = true;
           this.pendingDiagnosticUpdate = true;
           return;
@@ -41241,7 +41256,6 @@ ${currentContent}`;
         this.diagnosticsApplied = false;
         this.hasSkippedDiagnostics = true;
         this.pendingDiagnosticUpdate = true;
-        vscodeLogWarn(`   \u{1F9F9} Cleared ${diagnosticSpans.length} diagnostic span(s) from element (marked diagnosticsApplied=false)`);
       }
     }
     cleanupQuickFixUI() {
@@ -41253,22 +41267,13 @@ ${currentContent}`;
       this.clearDiagnosticStyles();
       const bodyOverlays = document.body.querySelectorAll('[data-diagnostic-ui="true"]');
       bodyOverlays.forEach((element) => {
-        const elementInfo = {
-          tag: element.tagName,
-          classes: element.className,
-          id: element.id || "no-id",
-          textContent: element.textContent?.substring(0, 50) || "no-text",
-          attributes: Array.from(element.attributes).map((attr) => `${attr.name}="${attr.value}"`).join(" ")
-        };
         element.remove();
       });
     }
     applyDiagnosticStyles() {
       if (this.diagnostics.length === 0) {
-        vscodeLogWarn(`   \u26A0\uFE0F  applyDiagnosticStyles: No diagnostics to apply`);
         return;
       }
-      vscodeLogWarn(`   \u{1F3A8} applyDiagnosticStyles: Starting with ${this.diagnostics.length} diagnostics`);
       let editor = document.querySelector(".vditor-ir .vditor-reset");
       if (!editor) {
         editor = document.querySelector(".vditor-wysiwyg .vditor-reset");
@@ -41277,19 +41282,11 @@ ${currentContent}`;
         editor = document.querySelector(".vditor-sv .vditor-reset");
       }
       if (!editor) {
-        vscodeLogWarn(`   \u274C applyDiagnosticStyles: Could not find Vditor editor element`);
         return;
       }
-      vscodeLogWarn(`   \u2705 applyDiagnosticStyles: Found editor element`);
       const cursorElement = this.getCursorContainerElement();
-      if (cursorElement) {
-        vscodeLogWarn(`   \u{1F446} applyDiagnosticStyles: Excluding cursor element (will track skipped diagnostics)`);
-      } else {
-        vscodeLogWarn(`   \u270D\uFE0F  applyDiagnosticStyles: No cursor element found - applying to all elements`);
-      }
       this.applySinglePassDiagnostics(editor, cursorElement);
       const spansCreated = editor.querySelectorAll(".vscode-diagnostic-span").length;
-      vscodeLogWarn(`   \u{1F4CA} applyDiagnosticStyles: Created ${spansCreated} diagnostic spans in DOM`);
     }
     getCursorContainerElement() {
       const selection = window.getSelection();
@@ -41364,301 +41361,14 @@ ${currentContent}`;
     applySinglePassDiagnostics(editor, cursorElement) {
       const sortedDiagnostics = this.prepareSortedDiagnostics();
       if (sortedDiagnostics.length === 0) {
-        vscodeLogWarn(`   \u26A0\uFE0F  applySinglePass: No sorted diagnostics available`);
         return;
       }
-      vscodeLogWarn(`   \u{1F4CB} applySinglePass: Processing ${sortedDiagnostics.length} sorted diagnostics`);
       const blockElements = this.getMarkdownBlockElements(editor);
-      vscodeLogWarn(`   \u{1F4E6} applySinglePass: Found ${blockElements.length} block elements in editor`);
       const safeElements = cursorElement ? blockElements.filter((item) => item.element !== cursorElement && !this.isDescendantOf(item.element, cursorElement) && !this.isDescendantOf(cursorElement, item.element)) : blockElements;
       if (cursorElement && safeElements.length < blockElements.length) {
-        vscodeLogWarn(`   \u{1F6AB} applySinglePass: Filtered to ${safeElements.length} safe elements (${blockElements.length - safeElements.length} excluded for cursor)`);
         this.hasSkippedDiagnostics = true;
-        vscodeLogWarn(`   \u23ED\uFE0F  Marked diagnostics as skipped - will re-apply when cursor moves or typing stops`);
       }
       this.matchDiagnosticsToElements(safeElements, sortedDiagnostics);
-    }
-    applyDiagnosticWithPrecision(editor, diagnostic) {
-      const message = diagnostic.message?.toLowerCase() || "";
-      const source = diagnostic.source || "";
-      if (message.includes("broken") && message.includes("link") || message.includes("unable to resolve") || source === "markdown-link-check") {
-        return this.handleBrokenLinkDiagnostic(editor, diagnostic, message);
-      }
-      if (message.includes("alt") && (message.includes("missing") || message.includes("empty")) || message.includes("image should have") || source.includes("alt")) {
-        return this.handleImageAltDiagnosticPrecise(editor, diagnostic);
-      }
-      if (source === "markdownlint" && message.includes("md012")) {
-        return false;
-      }
-      if (source === "markdownlint" && message.includes("md041")) {
-        return this.handleMD041Diagnostic(editor, diagnostic);
-      }
-      if (diagnostic.range && diagnostic.lineText) {
-        return this.handlePreciseTextDiagnostic(editor, diagnostic);
-      }
-      if (this.isHighConfidenceDiagnostic(diagnostic)) {
-        return this.handleGenericDiagnostic(editor, diagnostic);
-      }
-      return false;
-    }
-    handlePreciseTextDiagnostic(editor, diagnostic) {
-      const range = diagnostic.range;
-      const lineText = diagnostic.lineText || "";
-      if (!range || !lineText.trim()) {
-        return false;
-      }
-      const startChar = range.start?.character || 0;
-      const endChar = range.end?.character || startChar + 1;
-      const problemText = lineText.substring(startChar, endChar);
-      if (!problemText.trim()) {
-        return false;
-      }
-      const result = this.findAndWrapExactText(editor, problemText, diagnostic);
-      return result;
-    }
-    findAndWrapExactText(editor, targetText, diagnostic) {
-      const lineKey = `${diagnostic.range?.start?.line ?? "na"}`;
-      const tokenKey = `${lineKey}|${targetText}`;
-      const lineNumber = diagnostic.range?.start?.line;
-      const lineElement = this.findElementForLine(editor, lineNumber, diagnostic.lineText);
-      if (!lineElement) {
-        return this.fallbackToGlobalSearch(editor, targetText, diagnostic, tokenKey);
-      }
-      return this.searchWithinElement(lineElement, targetText, diagnostic, tokenKey);
-    }
-    findElementForLine(editor, lineNumber, lineText) {
-      if (lineNumber === void 0) {
-        return null;
-      }
-      const lineElements = editor.querySelectorAll(`[data-line="${lineNumber}"]`);
-      if (lineElements.length > 0) {
-        return lineElements[0];
-      }
-      const allElements = this.getAllPossibleLineElements(editor);
-      if (allElements.length > 0) {
-        for (let i6 = 0; i6 < Math.min(5, allElements.length); i6++) {
-          const el = allElements[i6];
-        }
-      }
-      const exactMatches = [];
-      const fuzzyMatches = [];
-      allElements.forEach((element, index2) => {
-        let elementText = element.textContent || "";
-        if (element.dataset && element.dataset.marker) {
-          elementText = `${element.dataset.marker} ${elementText}`;
-        }
-        let elementMd = "";
-        try {
-          if (this.vditor && typeof this.vditor.html2md === "function") {
-            elementMd = this.vditor.html2md(element.outerHTML || "");
-          }
-        } catch (e7) {
-          elementMd = elementText;
-        }
-        if (elementText.trim() === lineText.trim() || elementMd.trim() === lineText.trim()) {
-          const confidence = this.calculateMatchConfidence(element, lineText, index2, lineNumber);
-          exactMatches.push({element, index: index2, confidence});
-        } else if (elementText.includes(lineText.trim()) || lineText.trim().includes(elementText.trim()) || elementMd.includes(lineText.trim()) || lineText.trim().includes(elementMd.trim())) {
-          if (this.fuzzyLineMatch(elementText, lineText) || this.fuzzyLineMatch(elementMd, lineText)) {
-            const confidence = this.calculateMatchConfidence(element, lineText, index2, lineNumber);
-            fuzzyMatches.push({element, index: index2, confidence});
-          }
-        }
-      });
-      const bestMatch = this.selectBestMatch(exactMatches, fuzzyMatches, lineNumber);
-      if (bestMatch) {
-        return bestMatch.element;
-      }
-      const vditorElements = Array.from(editor.querySelectorAll(".vditor-ir__node, .vditor-ir__marker"));
-      let vditorMatches = 0;
-      for (const element of vditorElements) {
-        const elementText = element.textContent || "";
-        if (elementText.includes(lineText.trim())) {
-          vditorMatches++;
-          if (this.fuzzyLineMatch(elementText, lineText)) {
-            return element;
-          }
-        }
-      }
-      const listItems = Array.from(editor.querySelectorAll("li, p, h1, h2, h3, h4, h5, h6"));
-      let listMatches = 0;
-      for (const element of listItems) {
-        const elementText = element.textContent || "";
-        if (elementText.includes(lineText.trim())) {
-          listMatches++;
-          if (lineText.match(/^\d+\./) && elementText.includes(lineText.replace(/^\d+\.\s*/, ""))) {
-            return element;
-          }
-          if (this.fuzzyLineMatch(elementText, lineText)) {
-            return element;
-          }
-        }
-      }
-      const blockElements = this.getBlockElements(editor);
-      if (blockElements.length > 0) {
-        for (let i6 = 0; i6 < Math.min(3, blockElements.length); i6++) {
-          const el = blockElements[i6];
-        }
-      }
-      if (lineNumber > 0 && lineNumber <= blockElements.length * 2) {
-        const approximateIndex = Math.min(Math.floor(lineNumber / 3), blockElements.length - 1);
-        const approximateElement = blockElements[approximateIndex];
-        return approximateElement;
-      }
-      return null;
-    }
-    getAllPossibleLineElements(editor) {
-      const elements = [];
-      const selectors = [
-        "p",
-        "h1",
-        "h2",
-        "h3",
-        "h4",
-        "h5",
-        "h6",
-        "li",
-        "div",
-        "blockquote",
-        "pre",
-        "span.vditor-ir__node",
-        ".vditor-ir__node",
-        ".vditor-ir__marker"
-      ];
-      selectors.forEach((selector) => {
-        const found = Array.from(editor.querySelectorAll(selector));
-        found.forEach((el) => {
-          if (el instanceof HTMLElement && el.textContent && el.textContent.trim()) {
-            elements.push(el);
-          }
-        });
-      });
-      for (let i6 = 0; i6 < Math.min(10, editor.children.length); i6++) {
-        const child = editor.children[i6];
-      }
-      return elements;
-    }
-    fuzzyLineMatch(elementText, lineText) {
-      const elementWords = elementText.toLowerCase().split(/\s+/).filter((w3) => w3.length > 2);
-      const lineWords = lineText.toLowerCase().split(/\s+/).filter((w3) => w3.length > 2);
-      if (lineWords.length === 0)
-        return false;
-      const matchingWords = lineWords.filter((word) => elementWords.some((ew) => ew.includes(word) || word.includes(ew)));
-      const matchRatio = matchingWords.length / lineWords.length;
-      return matchRatio >= 0.7;
-    }
-    calculateMatchConfidence(element, lineText, elementIndex, targetLineNumber) {
-      let confidence = 0;
-      const elementText = element.textContent || "";
-      if (elementText.trim() === lineText.trim()) {
-        confidence += 50;
-      } else if (this.fuzzyLineMatch(elementText, lineText)) {
-        confidence += 30;
-      } else if (elementText.includes(lineText.trim()) || lineText.trim().includes(elementText.trim())) {
-        confidence += 20;
-      }
-      if (targetLineNumber !== void 0) {
-        const totalMarkdownLines = this.vditor ? this.vditor.getValue().split("\n").length : 100;
-        const totalElements = 100;
-        const expectedPositionRatio = Math.min(1, targetLineNumber / totalMarkdownLines);
-        const actualPositionRatio = elementIndex / totalElements;
-        const positionDifference = Math.abs(expectedPositionRatio - actualPositionRatio);
-        const positionConfidence = Math.max(0, 30 * (1 - positionDifference * 2));
-        confidence += positionConfidence;
-      }
-      if (element.tagName.match(/^H[1-6]$/)) {
-        confidence += 10;
-      } else if (element.tagName === "P") {
-        confidence += 8;
-      } else if (element.tagName === "LI") {
-        confidence += 6;
-      }
-      const lengthDifference = Math.abs(elementText.length - lineText.length);
-      if (lengthDifference < 10) {
-        confidence += 10;
-      } else if (lengthDifference < 50) {
-        confidence += 5;
-      }
-      return confidence;
-    }
-    selectBestMatch(exactMatches, fuzzyMatches, targetLineNumber) {
-      const allMatches = [...exactMatches, ...fuzzyMatches].sort((a5, b4) => b4.confidence - a5.confidence);
-      if (allMatches.length === 0) {
-        return null;
-      }
-      if (allMatches.length > 1 && targetLineNumber !== void 0) {
-        const topMatches = allMatches.filter((match2) => match2.confidence >= allMatches[0].confidence - 10);
-        if (topMatches.length > 1) {
-          const totalElements = Math.max(...allMatches.map((m4) => m4.index)) + 1;
-          const expectedPosition = targetLineNumber / 100;
-          return topMatches.reduce((best, current) => {
-            const currentPosition = current.index / totalElements;
-            const bestPosition = best.index / totalElements;
-            const currentDistance = Math.abs(currentPosition - expectedPosition);
-            const bestDistance = Math.abs(bestPosition - expectedPosition);
-            return currentDistance < bestDistance ? current : best;
-          });
-        }
-      }
-      return allMatches[0];
-    }
-    searchWithinElement(element, targetText, diagnostic, tokenKey) {
-      const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null);
-      let textNode;
-      let attemptCount = 0;
-      while (textNode = walker.nextNode()) {
-        const content = textNode.textContent || "";
-        attemptCount++;
-        if (content.trim().length === 0)
-          continue;
-        const strategies = [
-          {name: "exact", index: content.indexOf(targetText)},
-          {
-            name: "case-insensitive",
-            index: content.toLowerCase().indexOf(targetText.toLowerCase())
-          },
-          {name: "trimmed", index: content.trim().indexOf(targetText.trim())},
-          {
-            name: "word-boundary",
-            index: this.findWordBoundaryMatch(content, targetText)
-          }
-        ];
-        for (const strategy of strategies) {
-          if (strategy.index !== -1) {
-            const success2 = this.wrapTextWithDiagnostic(textNode, strategy.index, strategy.index + targetText.length, diagnostic);
-            if (success2) {
-              return true;
-            }
-          }
-        }
-      }
-      return false;
-    }
-    fallbackToGlobalSearch(editor, targetText, diagnostic, tokenKey) {
-      const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT, null);
-      let textNode;
-      let attemptCount = 0;
-      while (textNode = walker.nextNode()) {
-        const content = textNode.textContent || "";
-        attemptCount++;
-        if (content.indexOf(targetText) !== -1) {
-          const success2 = this.wrapTextWithDiagnostic(textNode, content.indexOf(targetText), content.indexOf(targetText) + targetText.length, diagnostic);
-          if (success2) {
-            return true;
-          }
-        }
-      }
-      return false;
-    }
-    findWordBoundaryMatch(content, targetText) {
-      try {
-        const escapedTarget = targetText.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        const regex = new RegExp(`\\b${escapedTarget}\\b`, "i");
-        const match2 = content.match(regex);
-        return match2 ? content.indexOf(match2[0]) : -1;
-      } catch (error2) {
-        return content.indexOf(targetText);
-      }
     }
     isHighConfidenceDiagnostic(diagnostic) {
       const message = diagnostic.message?.toLowerCase() || "";
@@ -41701,371 +41411,6 @@ ${currentContent}`;
         return true;
       }
       return true;
-    }
-    handleMD041Diagnostic(editor, diagnostic) {
-      const firstElement = editor.querySelector("p, div, h1, h2, h3, h4, h5, h6, blockquote, ul, ol, pre");
-      if (firstElement) {
-        this.applyDiagnosticStyleToElement(firstElement, diagnostic);
-        return true;
-      }
-      return false;
-      let successCount = 0;
-      const failedDiagnostics = [];
-      this.diagnostics.forEach((diagnostic2, index2) => {
-        const success2 = this.applyDiagnosticByContentMatch(editor, diagnostic2);
-        if (success2) {
-          successCount++;
-        } else {
-          failedDiagnostics.push({
-            index: index2 + 1,
-            message: diagnostic2.message,
-            source: diagnostic2.source,
-            line: diagnostic2.range?.start?.line
-          });
-        }
-      });
-      if (failedDiagnostics.length > 0) {
-      }
-    }
-    applyDiagnosticByContentMatch(editor, diagnostic) {
-      const message = diagnostic.message || "";
-      const matchedText = diagnostic.matchedText || "";
-      const source = diagnostic.source || "";
-      let handled = false;
-      if (message.includes("Potentially broken link:")) {
-        handled = this.handleBrokenLinkDiagnostic(editor, diagnostic, message);
-      } else if (message.includes("Image missing alt text")) {
-        handled = this.handleImageAltDiagnostic(editor, diagnostic);
-      } else if (message.includes("Multiple consecutive blank lines") || source === "markdownlint" && message.includes("MD012")) {
-        handled = false;
-      } else if (source === "markdownlint" || diagnostic.range) {
-        handled = this.handleGenericDiagnostic(editor, diagnostic);
-      } else if (matchedText) {
-        handled = this.findExactTextMatch(editor, matchedText, diagnostic);
-      }
-      if (!handled) {
-      }
-      return handled;
-    }
-    handleBrokenLinkDiagnostic(editor, diagnostic, message) {
-      const urlMatch = message.match(/Potentially broken link: (.+)/);
-      const brokenUrl = urlMatch ? urlMatch[1] : "";
-      if (brokenUrl) {
-        const links = editor.querySelectorAll("a");
-        let found = false;
-        links.forEach((link, index2) => {
-          const href = link.getAttribute("href") || "";
-          const isExactMatch = href === brokenUrl;
-          const isPartialMatch = href.includes(brokenUrl) || brokenUrl.includes(href);
-          const isNormalizedMatch = this.normalizeUrl(href) === this.normalizeUrl(brokenUrl);
-          if (isExactMatch || isPartialMatch || isNormalizedMatch) {
-            this.applyDiagnosticStyleToElement(link, diagnostic);
-            found = true;
-          }
-        });
-        if (found)
-          return true;
-        const textFound = this.findExactTextMatch(editor, brokenUrl, diagnostic);
-        if (textFound)
-          return true;
-      }
-      return false;
-    }
-    handleImageAltDiagnostic(editor, diagnostic) {
-      const images = editor.querySelectorAll("img");
-      let found = false;
-      images.forEach((img, index2) => {
-        const alt = img.getAttribute("alt") || "";
-        if (!alt.trim()) {
-          this.applyDiagnosticStyleToElement(img, diagnostic);
-          found = true;
-        }
-      });
-      return found;
-    }
-    handleImageAltDiagnosticPrecise(editor, diagnostic) {
-      const lineNumber = diagnostic.range?.start?.line;
-      const lineText = diagnostic.lineText;
-      const vditorImageNodes = editor.querySelectorAll('.vditor-ir__node[data-type="img"]');
-      vditorImageNodes.forEach((node, i6) => {
-      });
-      for (let i6 = 0; i6 < vditorImageNodes.length; i6++) {
-        const imageNode = vditorImageNodes[i6];
-        const img = imageNode.querySelector("img");
-        const imgSrc = img?.getAttribute("src") || "";
-        const imgAlt = img?.getAttribute("alt") || "";
-        const pathSpans = imageNode.querySelectorAll(".vditor-ir__marker ~ span");
-        const allText = imageNode.textContent || "";
-        if (lineText) {
-          const imgPathMatch = lineText.match(/!\[([^\]]*)\]\(([^)]+)\)/);
-          if (imgPathMatch) {
-            const expectedAltText = imgPathMatch[1];
-            const expectedPath = imgPathMatch[2];
-            let isMatch = false;
-            if (imgSrc && (imgSrc === expectedPath || imgSrc.includes(expectedPath) || expectedPath.includes(imgSrc.split("/").pop() || ""))) {
-              isMatch = true;
-            }
-            if (!isMatch && allText.includes(expectedPath)) {
-              isMatch = true;
-            }
-            if (!isMatch) {
-              const expectedFilename = expectedPath.split("/").pop() || "";
-              const imgFilename = imgSrc.split("/").pop() || "";
-              if (expectedFilename && (allText.includes(expectedFilename) || imgFilename === expectedFilename)) {
-                isMatch = true;
-              }
-            }
-            if (isMatch && (!expectedAltText.trim() || imgAlt === expectedAltText)) {
-              this.applyDiagnosticStyleToVditorNode(imageNode, diagnostic);
-              return true;
-            }
-          }
-        } else {
-          if (img && !imgAlt.trim()) {
-            this.applyDiagnosticStyleToVditorNode(imageNode, diagnostic);
-            return true;
-          }
-        }
-      }
-      const images = editor.querySelectorAll("img");
-      for (let i6 = 0; i6 < images.length; i6++) {
-        const img = images[i6];
-        const src = img.getAttribute("src") || "";
-        const alt = img.getAttribute("alt") || "";
-        if (lineText) {
-          const imgPathMatch = lineText.match(/!\[([^\]]*)\]\(([^)]+)\)/);
-          if (imgPathMatch) {
-            const expectedPath = imgPathMatch[2];
-            const expectedAlt = imgPathMatch[1];
-            let isMatch = false;
-            if (src === expectedPath || src.includes(expectedPath) || expectedPath.includes(src.split("/").pop() || "")) {
-              isMatch = true;
-            }
-            if (isMatch && (!alt.trim() || alt === expectedAlt)) {
-              this.applyDiagnosticStyleToElement(img, diagnostic);
-              return true;
-            }
-          }
-        } else if (!alt.trim()) {
-          this.applyDiagnosticStyleToElement(img, diagnostic);
-          return true;
-        }
-      }
-      return false;
-    }
-    applyDiagnosticStyleToVditorNode(vditorNode, diagnostic) {
-      const severity = this.getDiagnosticSeverityString(diagnostic.severity);
-      const cssClass = `vscode-diagnostic-${severity}`;
-      vditorNode.classList.add(cssClass);
-      vditorNode.setAttribute("data-diagnostic-message", diagnostic.message || "");
-      vditorNode.setAttribute("data-diagnostic-source", diagnostic.source || "");
-      const img = vditorNode.querySelector("img");
-      if (img) {
-        img.classList.add(cssClass);
-        img.setAttribute("data-diagnostic-message", diagnostic.message || "");
-        img.setAttribute("data-diagnostic-source", diagnostic.source || "");
-        this.addHoverableTooltip(img, diagnostic);
-        this.addIntegratedQuickFixLightbulb(img, diagnostic);
-      }
-    }
-    handleMD012Diagnostic(editor, diagnostic) {
-      const lineNumber = diagnostic.range?.start?.line;
-      if (lineNumber === void 0) {
-        return false;
-      }
-      const vditorContent = this.vditor ? this.vditor.getValue() : "";
-      const lines = vditorContent.split("\n");
-      let consecutiveBlankLines = 0;
-      let blankLineStart = -1;
-      for (let i6 = 0; i6 < lines.length; i6++) {
-        if (lines[i6].trim() === "") {
-          if (consecutiveBlankLines === 0) {
-            blankLineStart = i6;
-          }
-          consecutiveBlankLines++;
-        } else {
-          if (consecutiveBlankLines >= 2) {
-            if (Math.abs(blankLineStart - lineNumber) <= 2 || Math.abs(i6 - 1 - lineNumber) <= 2) {
-              return this.findElementsForBlankLineArea(editor, blankLineStart, i6 - 1, diagnostic);
-            }
-          }
-          consecutiveBlankLines = 0;
-          blankLineStart = -1;
-        }
-      }
-      const allElements = editor.querySelectorAll("p, div, br");
-      const targetElements = [];
-      let consecutiveEmptyCount = 0;
-      let lastEmptyElement = null;
-      allElements.forEach((element) => {
-        const el = element;
-        const isEmpty = this.isEmptyElement(el);
-        if (isEmpty) {
-          consecutiveEmptyCount++;
-          if (consecutiveEmptyCount >= 2) {
-            if (lastEmptyElement) {
-              targetElements.push(lastEmptyElement);
-            }
-            targetElements.push(el);
-          }
-          lastEmptyElement = el;
-        } else {
-          consecutiveEmptyCount = 0;
-          lastEmptyElement = null;
-        }
-      });
-      if (targetElements.length > 0) {
-        targetElements.forEach((element) => {
-          this.applyDiagnosticStyleToElement(element, diagnostic);
-        });
-        return true;
-      }
-      const brElements = editor.querySelectorAll("br");
-      let consecutiveBrs = [];
-      for (let i6 = 0; i6 < brElements.length - 1; i6++) {
-        const br1 = brElements[i6];
-        const br2 = brElements[i6 + 1];
-        if (this.areElementsConsecutive(br1, br2)) {
-          if (consecutiveBrs.length === 0) {
-            consecutiveBrs.push(br1);
-          }
-          consecutiveBrs.push(br2);
-        } else {
-          if (consecutiveBrs.length >= 2) {
-            consecutiveBrs.forEach((br) => {
-              this.applyDiagnosticStyleToElement(br, diagnostic);
-            });
-            return true;
-          }
-          consecutiveBrs = [];
-        }
-      }
-      if (consecutiveBrs.length >= 2) {
-        consecutiveBrs.forEach((br) => {
-          this.applyDiagnosticStyleToElement(br, diagnostic);
-        });
-        return true;
-      }
-      return this.findElementByLineMapping(editor, diagnostic);
-    }
-    findElementsForBlankLineArea(editor, startLine, endLine, diagnostic) {
-      const blockElements = editor.querySelectorAll("p, div, br, .vditor-ir__node");
-      if (blockElements.length === 0) {
-        return false;
-      }
-      const targetIndex = Math.floor(blockElements.length * (startLine / (this.vditor ? this.vditor.getValue().split("\n").length : 100)));
-      const element = blockElements[Math.min(targetIndex, blockElements.length - 1)];
-      if (!element) {
-        return false;
-      }
-      this.applyDiagnosticStyleToElement(element, diagnostic);
-      return true;
-    }
-    isEmptyElement(element) {
-      const tagName = element.tagName.toLowerCase();
-      if (tagName === "br")
-        return true;
-      if (tagName === "p" || tagName === "div") {
-        const text = element.textContent?.trim() || "";
-        if (text === "") {
-          const brCount = element.querySelectorAll("br").length;
-          const childCount = element.children.length;
-          return childCount === 0 || childCount === brCount;
-        }
-      }
-      return false;
-    }
-    areElementsConsecutive(el1, el2) {
-      let sibling = el1.nextSibling;
-      let stepsToFind = 0;
-      const maxSteps = 3;
-      while (sibling && stepsToFind < maxSteps) {
-        if (sibling === el2)
-          return true;
-        sibling = sibling.nextSibling;
-        stepsToFind++;
-      }
-      return false;
-    }
-    handleGenericDiagnostic(editor, diagnostic) {
-      const message = diagnostic.message || "";
-      const range = diagnostic.range;
-      const source = diagnostic.source || "unknown";
-      const lineText = diagnostic.lineText || "";
-      if (range && typeof range.start?.line === "number") {
-        const found = this.findElementByLineMapping(editor, diagnostic);
-        if (found) {
-          return true;
-        }
-      }
-      if (lineText && lineText.trim()) {
-        const found = this.findElementByTextContent(editor, lineText.trim(), diagnostic);
-        if (found) {
-          return true;
-        }
-      }
-      if (this.handleSpecificPatterns(editor, diagnostic)) {
-        return true;
-      }
-      this.applyDiagnosticStyleToElement(editor, diagnostic);
-      return true;
-    }
-    findElementByLineMapping(editor, diagnostic) {
-      const lineNumber = diagnostic.range.start.line;
-      const lineText = diagnostic.lineText || "";
-      const blockElements = this.getBlockElements(editor);
-      if (lineNumber < blockElements.length) {
-        const targetElement = blockElements[lineNumber];
-        if (this.elementsMatch(targetElement, lineText, diagnostic)) {
-          this.applyDiagnosticStyleToElement(targetElement, diagnostic);
-          return true;
-        }
-      }
-      for (let i6 = 0; i6 < blockElements.length; i6++) {
-        if (this.elementsMatch(blockElements[i6], lineText, diagnostic)) {
-          this.applyDiagnosticStyleToElement(blockElements[i6], diagnostic);
-          return true;
-        }
-      }
-      return false;
-    }
-    getBlockElements(editor) {
-      const blockSelectors = [
-        "p",
-        "h1",
-        "h2",
-        "h3",
-        "h4",
-        "h5",
-        "h6",
-        "div",
-        "blockquote",
-        "pre",
-        "ul",
-        "ol",
-        "li",
-        "table",
-        "tr",
-        "td",
-        "th"
-      ];
-      const elements = [];
-      Array.from(editor.children).forEach((child) => {
-        if (child instanceof HTMLElement) {
-          elements.push(child);
-        }
-      });
-      if (elements.length === 0) {
-        blockSelectors.forEach((selector) => {
-          const found = editor.querySelectorAll(selector);
-          found.forEach((el) => {
-            if (el instanceof HTMLElement && !elements.includes(el)) {
-              elements.push(el);
-            }
-          });
-        });
-      }
-      return elements;
     }
     getSelectedBlockElements() {
       const selection = window.getSelection();
@@ -42163,114 +41508,6 @@ ${currentContent}`;
       ];
       return quickFixSources.some((s6) => source.includes(s6)) || quickFixPatterns.some((p3) => message.includes(p3));
     }
-    elementsMatch(element, lineText, diagnostic) {
-      if (!lineText.trim())
-        return false;
-      const elementText = element.textContent || "";
-      const elementTextTrimmed = elementText.trim();
-      const lineTextTrimmed = lineText.trim();
-      if (elementTextTrimmed === lineTextTrimmed) {
-        return true;
-      }
-      if (elementTextTrimmed.includes(lineTextTrimmed)) {
-        return true;
-      }
-      if (lineTextTrimmed.includes(elementTextTrimmed) && elementTextTrimmed.length > 3) {
-        return true;
-      }
-      if (diagnostic.message?.includes("First line") && diagnostic.message?.includes("heading")) {
-        const parent = element.parentElement;
-        if (parent) {
-          const siblings = Array.from(parent.children);
-          const significantElements = siblings.filter((el) => el.textContent?.trim().length > 0);
-          if (significantElements[0] === element) {
-            return true;
-          }
-        }
-      }
-      return false;
-    }
-    findElementByTextContent(editor, searchText, diagnostic) {
-      const walker = document.createTreeWalker(editor, NodeFilter.SHOW_ELEMENT, {
-        acceptNode: (node2) => {
-          return node2 instanceof HTMLElement && node2.textContent?.trim().includes(searchText.trim()) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
-        }
-      });
-      let node;
-      let found = false;
-      while ((node = walker.nextNode()) !== null) {
-        if (node instanceof HTMLElement) {
-          this.applyDiagnosticStyleToElement(node, diagnostic);
-          found = true;
-          break;
-        }
-      }
-      return found;
-    }
-    handleSpecificPatterns(editor, diagnostic) {
-      const message = diagnostic.message || "";
-      if (message.includes("MD041") || message.includes("First line") && message.includes("heading")) {
-        const firstChild = editor.firstElementChild;
-        if (firstChild instanceof HTMLElement) {
-          this.applyDiagnosticStyleToElement(firstChild, diagnostic);
-          return true;
-        }
-      }
-      if (message.includes("MD047") || message.includes("newline")) {
-        const lastChild = editor.lastElementChild;
-        if (lastChild instanceof HTMLElement) {
-          this.applyDiagnosticStyleToElement(lastChild, diagnostic);
-          return true;
-        }
-      }
-      const patterns = this.extractPatternsFromMessage(message);
-      for (const pattern of patterns) {
-        const found = this.findElementByTextContent(editor, pattern, diagnostic);
-        if (found)
-          return true;
-      }
-      return false;
-    }
-    extractPatternsFromMessage(message) {
-      const patterns = [];
-      const quotedText = message.match(/'([^']*)'/g);
-      if (quotedText) {
-        patterns.push(...quotedText.map((q2) => q2.slice(1, -1)));
-      }
-      const backtickText = message.match(/`([^`]*)`/g);
-      if (backtickText) {
-        patterns.push(...backtickText.map((b4) => b4.slice(1, -1)));
-      }
-      return patterns;
-    }
-    findExactTextMatch(editor, searchText, diagnostic) {
-      const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT, null);
-      let node;
-      let found = false;
-      while ((node = walker.nextNode()) !== null) {
-        const text = node.textContent || "";
-        if (text.includes(searchText)) {
-          const parent = node.parentElement;
-          if (parent) {
-            this.applyDiagnosticStyleToElement(parent, diagnostic);
-            found = true;
-          }
-        }
-      }
-      if (!found) {
-      }
-      return found;
-    }
-    applyDiagnosticStyleToElement(element, diagnostic) {
-      const severity = this.getDiagnosticSeverityString(diagnostic.severity);
-      const cssClass = `vscode-diagnostic-${severity}`;
-      element.classList.add(cssClass);
-      const message = diagnostic.message || "Diagnostic issue";
-      element.setAttribute("data-diagnostic-message", message);
-      element.setAttribute("data-diagnostic-source", diagnostic.source || "");
-      this.addHoverableTooltip(element, diagnostic);
-      this.addIntegratedQuickFixLightbulb(element, diagnostic);
-    }
     triggerQuickFix(diagnostic) {
       if (window.vscode) {
         window.vscode.postMessage({
@@ -42278,45 +41515,21 @@ ${currentContent}`;
         });
       }
     }
-    getDiagnosticSeverityString(severity) {
-      switch (severity) {
-        case 1:
-          return "error";
-        case 2:
-          return "warning";
-        case 3:
-          return "information";
-        case 4:
-          return "hint";
-        default:
-          return "information";
-      }
-    }
-    normalizeUrl(url2) {
-      return url2?.trim().toLowerCase() || "";
-    }
     updateDiagnostics(diagnostics, context, forceApply = false) {
-      vscodeLogWarn(`\u{1F50D} updateDiagnostics called: ${diagnostics.length} diagnostics, forceApply=${forceApply}`);
       const normalizedDiagnostics = diagnostics.map((diag) => this.normalizeDiagnostic(diag, context));
       const newDiagnosticsHash = this.generateDiagnosticsHashForArray(normalizedDiagnostics);
       const diagnosticsActuallyChanged = newDiagnosticsHash !== this.lastDiagnosticsHash;
-      vscodeLogWarn(`   diagnosticsActuallyChanged=${diagnosticsActuallyChanged}, diagnosticsApplied=${this.diagnosticsApplied}`);
       const visualElementsExist = this.verifyDiagnosticElementsExist();
-      vscodeLogWarn(`   visualElementsExist=${visualElementsExist}`);
       if (forceApply || diagnosticsActuallyChanged || !this.diagnosticsApplied || !visualElementsExist) {
         this.diagnostics = normalizedDiagnostics;
         const isSafe = this.isSafeToUpdateDiagnostics();
-        vscodeLogWarn(`   isSafeToUpdateDiagnostics=${isSafe}, will apply=${forceApply || isSafe}`);
         if (forceApply || isSafe) {
-          vscodeLogWarn(`   \u2705 Calling applyDiagnosticsToEditor with force=${forceApply}`);
           this.applyDiagnosticsToEditor(normalizedDiagnostics, forceApply);
         } else {
-          vscodeLogWarn(`   \u23F0 Scheduling for later`);
           this.pendingDiagnosticUpdate = true;
           this.scheduleUpdate();
         }
       } else {
-        vscodeLogWarn(`   \u23ED\uFE0F Skipping - diagnostics unchanged and applied`);
         this.diagnostics = normalizedDiagnostics;
       }
     }
@@ -42622,89 +41835,6 @@ ${currentContent}`;
         }
       }
     }
-    tryMatchDiagnosticToElement(element, diagnostic, lineText, positionDifference) {
-      const elementText = element.textContent || "";
-      const range = diagnostic.range;
-      const lineNumber = range?.start?.line;
-      const startChar = range?.start?.character || 0;
-      const endChar = range?.end?.character || startChar + 1;
-      const targetText = lineText.substring(startChar, endChar);
-      if (!targetText.trim()) {
-        return {matched: false, confidence: 0, matchType: "no-target-text"};
-      }
-      if (this.hasOverlappingDiagnostic(element, startChar, endChar, lineNumber, diagnostic)) {
-        return {matched: false, confidence: 0, matchType: "overlap-conflict"};
-      }
-      let confidence = 0;
-      let matchType = "none";
-      const targetIndex = elementText.indexOf(targetText);
-      if (targetIndex !== -1) {
-        confidence = 95;
-        matchType = "exact-target-match";
-      } else {
-        const targetIndexCI = elementText.toLowerCase().indexOf(targetText.toLowerCase());
-        if (targetIndexCI !== -1) {
-          confidence = 90;
-          matchType = "case-insensitive-target";
-        }
-      }
-      if (confidence === 0) {
-        if (!lineText.includes(targetText)) {
-          return {
-            matched: false,
-            confidence: 0,
-            matchType: "target-not-in-line"
-          };
-        }
-        if (elementText.trim() === lineText.trim()) {
-          if (elementText.includes(targetText)) {
-            confidence = 85;
-            matchType = "full-line-exact";
-          }
-        } else if (elementText.includes(lineText.trim()) && elementText.includes(targetText)) {
-          confidence = 75;
-          matchType = "full-line-contains";
-        } else if (elementText.includes(targetText) && this.fuzzyLineMatch(elementText, lineText)) {
-          confidence = 65;
-          matchType = "full-line-fuzzy-with-target";
-        }
-      }
-      if (confidence === 0 && this.vditor && typeof this.vditor.html2md === "function") {
-        try {
-          const elementMd = this.vditor.html2md(element.outerHTML || "");
-          const targetInMd = elementMd.indexOf(targetText);
-          if (targetInMd !== -1) {
-            confidence = 80;
-            matchType = "html2md-target-match";
-          } else if (elementMd.trim() === lineText.trim() && lineText.includes(targetText)) {
-            confidence = 70;
-            matchType = "html2md-line-match";
-          }
-        } catch (e7) {
-        }
-      }
-      const positionBonus = Math.max(0, 15 * (1 - positionDifference * 2));
-      confidence += positionBonus;
-      if (element.tagName.match(/^H[1-6]$/)) {
-        confidence += 10;
-      } else if (element.tagName === "P") {
-        confidence += 8;
-      } else if (element.tagName === "LI") {
-        confidence += 6;
-      }
-      const matched = confidence >= 70;
-      if (matched) {
-        return {
-          matched,
-          confidence,
-          matchType,
-          targetText,
-          charRange: {start: startChar, end: endChar}
-        };
-      } else {
-        return {matched: false, confidence, matchType};
-      }
-    }
     applyDiagnosticToMatchedElement(element, diagnostic, matchResult) {
       const range = diagnostic.range;
       const lineText = diagnostic.lineText || "";
@@ -42802,11 +41932,6 @@ ${currentContent}`;
         currentPosition = nodeEnd;
       }
       return false;
-    }
-    addDiagnosticStylingToElement(element, diagnostic) {
-      const severityClass = this.getSeverityClass(diagnostic.severity || 1);
-      element.classList.add(severityClass);
-      this.addHoverableTooltip(element, diagnostic);
     }
     hasOverlappingDiagnostic(element, startChar, endChar, lineNumber, diagnostic) {
       if (!this.appliedDiagnostics.has(element)) {
@@ -43074,7 +42199,6 @@ ${currentContent}`;
         return;
       }
       if (hasSelection && selectedElements.length > 0) {
-        vscodeLogWarn(`   \u2702\uFE0F Clearing diagnostics for ${selectedElements.length} selected elements`);
         selectedElements.forEach((el) => {
           this.clearDiagnosticsFromElement(el);
         });
@@ -43083,11 +42207,9 @@ ${currentContent}`;
           const lastElement = selectedElements[selectedElements.length - 1];
           if (firstElement.previousElementSibling) {
             this.clearDiagnosticsFromElement(firstElement.previousElementSibling);
-            vscodeLogWarn(`   \u2702\uFE0F Cleared diagnostics on line before selection`);
           }
           if (lastElement.nextElementSibling) {
             this.clearDiagnosticsFromElement(lastElement.nextElementSibling);
-            vscodeLogWarn(`   \u2702\uFE0F Cleared diagnostics on line after selection`);
           }
         } else {
           const selection = window.getSelection();
@@ -43096,11 +42218,9 @@ ${currentContent}`;
             const elementText = selectedElements[0].textContent || "";
             if (range.startOffset === 0 && selectedElements[0].previousElementSibling) {
               this.clearDiagnosticsFromElement(selectedElements[0].previousElementSibling);
-              vscodeLogWarn(`   \u2702\uFE0F Cleared diagnostics on previous line (selection at beginning)`);
             }
             if (range.endOffset === elementText.length && selectedElements[0].nextElementSibling) {
               this.clearDiagnosticsFromElement(selectedElements[0].nextElementSibling);
-              vscodeLogWarn(`   \u2702\uFE0F Cleared diagnostics on next line (selection at end)`);
             }
           }
         }
@@ -43108,11 +42228,9 @@ ${currentContent}`;
         this.clearDiagnosticsFromElement(cursorElement);
         if (key === "Backspace" && this.isCursorAtBeginningOfLine() && cursorElement.previousElementSibling) {
           this.clearDiagnosticsFromElement(cursorElement.previousElementSibling);
-          vscodeLogWarn(`   \u2702\uFE0F Cleared diagnostics on previous line (Backspace at beginning)`);
         }
         if (key === "Delete" && this.isCursorAtEndOfLine() && cursorElement.nextElementSibling) {
           this.clearDiagnosticsFromElement(cursorElement.nextElementSibling);
-          vscodeLogWarn(`   \u2702\uFE0F Cleared diagnostics on next line (Delete at end)`);
         }
       }
       this.hasSkippedDiagnostics = true;
@@ -43143,7 +42261,6 @@ ${currentContent}`;
         this.currentCursorElement = currentCursor;
         if (this.previousCursorElement && this.previousCursorElement !== currentCursor) {
           if (this.hasSkippedDiagnostics) {
-            vscodeLogWarn(`   \u{1F504} Cursor moved away - re-applying all diagnostics`);
             setTimeout(() => {
               this.applyDiagnosticsToEditor(this.diagnostics, true);
               this.hasSkippedDiagnostics = false;
@@ -43205,7 +42322,6 @@ ${currentContent}`;
       }
       this.pendingDiagnosticUpdate = false;
       if (this.hasSkippedDiagnostics) {
-        vscodeLogWarn(`   \u23F1\uFE0F  User stopped typing - will re-apply skipped diagnostics`);
         this.hasSkippedDiagnostics = false;
       }
       this.applyDiagnosticsToEditor(this.diagnostics);
@@ -44014,6 +43130,11 @@ console.log('Hello, World!');
   };
 
   // src/diff-visualizer.ts
+  var DEBOUNCE_INPUT_REAPPLY_MS = 500;
+  var THROTTLE_SCROLL_SYNC_MS = 50;
+  var DEBOUNCE_SCROLL_FINAL_MS = 100;
+  var DELAY_DIAGNOSTICS_REAPPLY_MS = 50;
+  var DELAY_VDITOR_RENDER_MS = 1e3;
   var DiffVisualizer = class {
     constructor() {
       this.diffInfo = null;
@@ -44024,6 +43145,10 @@ console.log('Hello, World!');
       this.scrollDebounceTimeout = null;
       this.lastScrollSyncTime = 0;
       this.initialized = false;
+      this.appliedDecorations = new Map();
+      this.lastDiffHash = "";
+      this.isApplyingDiff = false;
+      this.inputDebounceTimeout = null;
     }
     initialize() {
       if (this.initialized) {
@@ -44031,6 +43156,7 @@ console.log('Hello, World!');
       }
       this.setupMessageListener();
       this.setupScrollSync();
+      this.setupInputListener();
       this.initialized = true;
     }
     setupMessageListener() {
@@ -44052,12 +43178,59 @@ console.log('Hello, World!');
           if (message.diffInfo.reapplyDiagnostics && window.diagnosticVisualizer) {
             setTimeout(() => {
               window.diagnosticVisualizer.addSimpleDiagnostics(true);
-            }, 50);
+            }, DELAY_DIAGNOSTICS_REAPPLY_MS);
           }
         } else if (message.type === "diff-view-cleared") {
           this.clearDiffVisualizations();
         } else if (message.type === "diff-scroll-sync") {
           this.applyScrollFromOther(message.scrollPercentage);
+        }
+      });
+    }
+    setupInputListener() {
+      document.addEventListener("input", (e7) => {
+        if (!this.isInDiffView || !this.diffInfo) {
+          return;
+        }
+        if (this.inputDebounceTimeout) {
+          clearTimeout(this.inputDebounceTimeout);
+        }
+        this.inputDebounceTimeout = window.setTimeout(() => {
+          this.reapplyDecorationsAfterInput();
+        }, DEBOUNCE_INPUT_REAPPLY_MS);
+      }, {passive: true});
+    }
+    reapplyDecorationsAfterInput() {
+      if (!this.diffInfo || this.isApplyingDiff) {
+        return;
+      }
+      const contentElement = document.querySelector(".vditor-ir > pre.vditor-reset") || document.querySelector("pre.vditor-reset");
+      if (!contentElement) {
+        return;
+      }
+      const lineToDom = new Map();
+      const topLevelElements = Array.from(contentElement.children);
+      topLevelElements.forEach((el, index2) => {
+        lineToDom.set(index2, el);
+      });
+      this.diffInfo.changes.forEach((change) => {
+        if (change.side !== this.diffInfo.role && change.side !== "both") {
+          return;
+        }
+        if (change.type === "spacer") {
+          return;
+        }
+        const targetElement = lineToDom.get(change.lineNumber);
+        if (!targetElement) {
+          return;
+        }
+        if (!targetElement.hasAttribute("data-diff-type")) {
+          const color = this.getChangeColor(change.type);
+          targetElement.style.backgroundColor = color.bg;
+          targetElement.style.borderLeft = `3px solid ${color.border}`;
+          targetElement.style.paddingLeft = "4px";
+          targetElement.title = this.getChangeTooltip(change);
+          this.recordAppliedDecoration(targetElement, change.type, change.lineNumber);
         }
       });
     }
@@ -44068,25 +43241,34 @@ console.log('Hello, World!');
         }
         return;
       }
-      if (window.markdownEditorLog) {
-        window.markdownEditorLog(`[DIFF-VIZ] \u{1F3A8} Starting diff visualization for ${this.diffInfo.role} side with ${this.diffInfo.changes.length} changes`);
+      if (this.isApplyingDiff) {
+        return;
       }
+      const newHash = this.generateDiffHash();
+      const decorationsExist = this.verifyDiffDecorationsExist();
+      if (newHash === this.lastDiffHash && decorationsExist) {
+        return;
+      }
+      this.isApplyingDiff = true;
+      if (newHash !== this.lastDiffHash) {
+        this.clearStaleDecorations();
+      }
+      this.lastDiffHash = newHash;
       this.addDiffHeader();
       setTimeout(() => {
-        if (window.markdownEditorLog) {
-          window.markdownEditorLog(`[DIFF-VIZ] \u{1F58C}\uFE0F  Applying line decorations...`);
+        try {
+          this.applyLineDecorations();
+          this.setupScrollSyncListeners();
+          this.addScrollbarDiffIndicators();
+        } finally {
+          this.isApplyingDiff = false;
         }
-        this.applyLineDecorations();
-        if (window.markdownEditorLog) {
-          window.markdownEditorLog(`[DIFF-VIZ] \u2705 Diff visualization complete`);
-        }
-        this.setupScrollSyncListeners();
-        this.addScrollbarDiffIndicators();
-      }, 1e3);
+      }, DELAY_VDITOR_RENDER_MS);
     }
     clearDiffVisualizations() {
       this.diffInfo = null;
       this.isInDiffView = false;
+      this.lastDiffHash = "";
       const existingHeader = document.querySelector(".diff-view-header");
       if (existingHeader) {
         existingHeader.remove();
@@ -44097,21 +43279,21 @@ console.log('Hello, World!');
       }
       const spacers = document.querySelectorAll(".diff-spacer-block");
       spacers.forEach((spacer) => spacer.remove());
-      const contentElement = document.querySelector(".vditor-ir > pre.vditor-reset") || document.querySelector("pre.vditor-reset");
-      if (contentElement) {
-        const allElements = contentElement.querySelectorAll('[style*="background"]');
-        let clearedCount = 0;
-        allElements.forEach((el) => {
-          const element = el;
-          if (element.style.borderLeft && element.style.borderLeft.includes("3px solid")) {
-            element.style.backgroundColor = "";
-            element.style.borderLeft = "";
-            element.style.paddingLeft = "";
-            element.title = "";
-            clearedCount++;
-          }
-        });
+      for (const [element, info] of this.appliedDecorations.entries()) {
+        if (document.body.contains(element)) {
+          element.style.backgroundColor = "";
+          element.style.borderLeft = "";
+          element.style.paddingLeft = "";
+          element.style.paddingBottom = "";
+          element.title = "";
+          element.removeAttribute("data-diff-type");
+          element.removeAttribute("data-diff-line");
+          element.removeAttribute("data-decoration-id");
+          element.removeAttribute("data-diff-spacer");
+          element.removeAttribute("contenteditable");
+        }
       }
+      this.appliedDecorations.clear();
     }
     clearSpacerBlocks() {
       const spacers = document.querySelectorAll(".diff-spacer-block");
@@ -44201,7 +43383,6 @@ console.log('Hello, World!');
       topLevelElements.forEach((el, index2) => {
         lineToDom.set(index2, el);
       });
-      vscodeLogWarn(`[DIFF-VIZ] \u{1F3A8} Processing ${this.diffInfo.changes.length} changes for ${this.diffInfo.role} side`);
       this.diffInfo.changes.forEach((change, index2) => {
         if (change.side !== this.diffInfo.role && change.side !== "both") {
           return;
@@ -44211,13 +43392,19 @@ console.log('Hello, World!');
           this.insertSpacerElement(contentElement, change, lineToDom);
           return;
         }
+        if (!targetElement) {
+          return;
+        }
+        if (this.isDecorationAlreadyApplied(targetElement, change.type, change.lineNumber)) {
+          return;
+        }
         const color = this.getChangeColor(change.type);
         targetElement.style.backgroundColor = color.bg;
         targetElement.style.borderLeft = `3px solid ${color.border}`;
         targetElement.style.paddingLeft = "4px";
         targetElement.title = this.getChangeTooltip(change);
+        this.recordAppliedDecoration(targetElement, change.type, change.lineNumber);
         this.matchElementHeight(targetElement, change);
-        vscodeLogWarn(`[DIFF-VIZ] \u2705 Applied ${change.type} to line ${change.lineNumber}: "${targetElement.textContent?.trim().substring(0, 20)}"`);
       });
     }
     insertSpacerElement(contentElement, change, lineToDom) {
@@ -44225,12 +43412,14 @@ console.log('Hello, World!');
       tempContainer.innerHTML = change.content;
       const spacer = tempContainer.firstElementChild;
       if (!spacer) {
-        vscodeLogWarn(`[DIFF-VIZ] \u26A0\uFE0F  Failed to create spacer from content: ${change.content.substring(0, 50)}`);
         return;
       }
       spacer.classList.add("diff-spacer-block");
       spacer.setAttribute("data-line-number", change.lineNumber.toString());
+      spacer.setAttribute("data-diff-spacer", "true");
+      spacer.setAttribute("contenteditable", "false");
       this.applySpacerStyle(spacer, change);
+      this.recordAppliedDecoration(spacer, "spacer", change.lineNumber);
       if (change.lineNumber === 0) {
         if (contentElement.firstChild) {
           contentElement.insertBefore(spacer, contentElement.firstChild);
@@ -44260,7 +43449,6 @@ console.log('Hello, World!');
         lineToDom.set(lineNum + 1, element);
       }
       lineToDom.set(change.lineNumber, spacer);
-      vscodeLogWarn(`[DIFF-VIZ] \u{1F4CD} Inserted spacer at line ${change.lineNumber}, shifted ${linesToShift.length} lines down`);
     }
     async matchElementHeight(element, change) {
       let oppositeContent;
@@ -44328,7 +43516,6 @@ console.log('Hello, World!');
       if (oppositeHeight > currentHeight) {
         const heightDiff = oppositeHeight - currentHeight;
         element.style.paddingBottom = `${heightDiff}px`;
-        vscodeLogWarn(`[DIFF-VIZ] \u{1F4CF} Matched height for line ${change.lineNumber}: current=${currentHeight}px, opposite=${oppositeHeight}px, added padding=${heightDiff}px`);
       }
     }
     applySpacerStyle(element, change) {
@@ -44339,7 +43526,10 @@ console.log('Hello, World!');
       element.style.opacity = "0.4";
       element.style.position = "relative";
       element.style.minHeight = "24px";
-      element.title = "This line does not exist in this version";
+      element.style.pointerEvents = "none";
+      element.style.userSelect = "none";
+      element.style.cursor = "not-allowed";
+      element.title = "\u{1F512} This line does not exist in this version (read-only)";
     }
     getChangeColor(type) {
       switch (type) {
@@ -44425,19 +43615,17 @@ console.log('Hello, World!');
       }
       const now = Date.now();
       const timeSinceLastSync = now - this.lastScrollSyncTime;
-      const THROTTLE_MS = 50;
-      if (timeSinceLastSync >= THROTTLE_MS) {
+      if (timeSinceLastSync >= THROTTLE_SCROLL_SYNC_MS) {
         this.sendScrollSyncMessage(scrollPercentage);
         this.lastScrollSyncTime = now;
       }
       if (this.scrollDebounceTimeout) {
         clearTimeout(this.scrollDebounceTimeout);
       }
-      const DEBOUNCE_MS = 100;
       this.scrollDebounceTimeout = window.setTimeout(() => {
         this.sendScrollSyncMessage(scrollPercentage);
         this.lastScrollSyncTime = Date.now();
-      }, DEBOUNCE_MS);
+      }, DEBOUNCE_SCROLL_FINAL_MS);
     }
     sendScrollSyncMessage(scrollPercentage) {
       const vscode2 = window.vscode;
@@ -44447,7 +43635,6 @@ console.log('Hello, World!');
           scrollPercentage,
           role: this.diffInfo?.role
         });
-      } else {
       }
     }
     applyScrollFromOther(scrollPercentage) {
@@ -44472,7 +43659,7 @@ console.log('Hello, World!');
       }
       this.scrollTimeout = window.setTimeout(() => {
         this.isScrolling = false;
-      }, 100);
+      }, DEBOUNCE_SCROLL_FINAL_MS);
     }
     toggleScrollSync() {
       this.scrollSyncEnabled = !this.scrollSyncEnabled;
@@ -44482,6 +43669,72 @@ console.log('Hello, World!');
     }
     getDiffInfo() {
       return this.diffInfo;
+    }
+    generateDiffHash() {
+      if (!this.diffInfo) {
+        return "";
+      }
+      const hashData = {
+        role: this.diffInfo.role,
+        changesCount: this.diffInfo.changes.length,
+        changes: this.diffInfo.changes.map((c5) => ({
+          type: c5.type,
+          lineNumber: c5.lineNumber,
+          contentHash: c5.content.substring(0, 50)
+        }))
+      };
+      return JSON.stringify(hashData);
+    }
+    verifyDiffDecorationsExist() {
+      if (this.appliedDecorations.size === 0) {
+        return false;
+      }
+      let foundCount = 0;
+      for (const [element, info] of this.appliedDecorations.entries()) {
+        if (document.body.contains(element) && element.hasAttribute("data-diff-type")) {
+          foundCount++;
+        }
+      }
+      return foundCount >= this.appliedDecorations.size * 0.5;
+    }
+    isDecorationAlreadyApplied(element, type, lineNumber) {
+      const existing = this.appliedDecorations.get(element);
+      if (existing && existing.type === type && existing.lineNumber === lineNumber && document.body.contains(element)) {
+        const hasAttributes = element.hasAttribute("data-diff-type") && element.getAttribute("data-diff-type") === type;
+        return hasAttributes;
+      }
+      return false;
+    }
+    recordAppliedDecoration(element, type, lineNumber) {
+      const decorationId = `${type}-${lineNumber}-${Date.now()}`;
+      this.appliedDecorations.set(element, {
+        type,
+        lineNumber,
+        decorationId
+      });
+      element.setAttribute("data-diff-type", type);
+      element.setAttribute("data-diff-line", lineNumber.toString());
+      element.setAttribute("data-decoration-id", decorationId);
+    }
+    clearStaleDecorations() {
+      if (!this.diffInfo || this.appliedDecorations.size === 0) {
+        return;
+      }
+      const validLines = new Set();
+      this.diffInfo.changes.forEach((change) => {
+        if (change.side === this.diffInfo.role || change.side === "both") {
+          validLines.add(change.lineNumber);
+        }
+      });
+      const toRemove = [];
+      for (const [element, info] of this.appliedDecorations.entries()) {
+        if (!validLines.has(info.lineNumber) || !document.body.contains(element)) {
+          toRemove.push(element);
+        }
+      }
+      toRemove.forEach((element) => {
+        this.appliedDecorations.delete(element);
+      });
     }
     addScrollbarDiffIndicators() {
       if (!this.diffInfo) {
@@ -44493,12 +43746,10 @@ console.log('Hello, World!');
       }
       const contentElement = document.querySelector(".vditor-ir > pre.vditor-reset") || document.querySelector("pre.vditor-reset");
       if (!contentElement) {
-        vscodeLogWarn("[DIFF-VIZ] Cannot add scrollbar indicators - content element not found");
         return;
       }
       const contentContainer = document.querySelector(".vditor-ir") || document.querySelector(".vditor-wysiwyg") || document.querySelector(".vditor-sv");
       if (!contentContainer) {
-        vscodeLogWarn("[DIFF-VIZ] Cannot add scrollbar indicators - content container not found");
         return;
       }
       const totalHeight = contentElement.scrollHeight;
@@ -46381,17 +45632,9 @@ console.log('Hello, World!');
   var wikiLinkAutocomplete = null;
   var wikiLinkHandler = null;
   var imageURIConverter = null;
-  var cachedCleanHtml = null;
   var justReceivedExternalChange = false;
   var isReadOnly = false;
-  function cacheCleanIRHtml() {
-    cachedCleanHtml = vditor.getHTML();
-    if (window.markdownEditorLog) {
-      window.markdownEditorLog(`[CACHE] Cached clean HTML (${cachedCleanHtml.length} chars)`);
-    }
-  }
   function processAfterRender() {
-    cacheCleanIRHtml();
     if (wikiLinkHandler) {
       wikiLinkHandler.processWikiLinksInEditor();
     }
@@ -47598,7 +46841,6 @@ console.log('Hello, World!');
           }
         }
         const rawContent = vditor.getValue();
-        cacheCleanIRHtml();
         vscode.postMessage({command: "edit", content: rawContent});
         if (shouldResetValue) {
           vditor.setValue(rawContent);
@@ -47679,14 +46921,12 @@ console.log('Hello, World!');
           }
         } else {
           justReceivedExternalChange = true;
-          vscodeLog3("\u{1F504} External change detected, setting justReceivedExternalChange=true");
           vditor.setValue(msg.content);
           if (diagnosticVisualizer) {
             diagnosticVisualizer.handleExternalChange();
           }
           processAfterRender();
           setTimeout(() => {
-            vscodeLog3("\u{1F504} Clearing justReceivedExternalChange flag");
             justReceivedExternalChange = false;
           }, 500);
         }
@@ -47728,7 +46968,6 @@ console.log('Hello, World!');
         }
         if (diagnosticVisualizer) {
           const shouldForceApply = justReceivedExternalChange;
-          vscodeLog3(`\u{1F4CA} Received ${msg.diagnostics.length} diagnostics, forceApply=${shouldForceApply}`);
           diagnosticVisualizer.updateDiagnostics(msg.diagnostics, {
             documentText: msg.documentText,
             documentLines: msg.documentLines
@@ -47920,42 +47159,11 @@ console.log('Hello, World!');
           window.markdownEditorLog(`[WEBVIEW] Received requestIRHtml with requestId: ${msg.requestId}`);
         }
         try {
-          if (cachedCleanHtml) {
-            if (window.markdownEditorLog) {
-              window.markdownEditorLog(`[WEBVIEW] Using cached HTML (${cachedCleanHtml.length} chars) for requestId: ${msg.requestId}`);
-            }
-            vscode.postMessage({
-              command: "irHtmlResponse",
-              html: cachedCleanHtml,
-              requestId: msg.requestId
-            });
-          } else {
-            const irElement = document.querySelector(".vditor-ir pre.vditor-reset");
-            if (window.markdownEditorLog) {
-              window.markdownEditorLog(`[WEBVIEW] IR element found: ${!!irElement}, no cache available`);
-            }
-            if (irElement) {
-              const cleanHtml = irElement.innerHTML;
-              if (window.markdownEditorLog) {
-                window.markdownEditorLog(`[WEBVIEW] Sending current HTML (${cleanHtml.length} chars) for requestId: ${msg.requestId}`);
-              }
-              vscode.postMessage({
-                command: "irHtmlResponse",
-                html: cleanHtml,
-                requestId: msg.requestId
-              });
-            } else {
-              if (window.markdownEditorLog) {
-                window.markdownEditorLog(`[WEBVIEW] IR element not found, sending error for requestId: ${msg.requestId}`);
-              }
-              vscode.postMessage({
-                command: "irHtmlResponse",
-                html: null,
-                requestId: msg.requestId,
-                error: "IR element not found"
-              });
-            }
-          }
+          vscode.postMessage({
+            command: "irHtmlResponse",
+            html: vditor.getHTML(),
+            requestId: msg.requestId
+          });
         } catch (error2) {
           if (window.markdownEditorLog) {
             window.markdownEditorLog(`[WEBVIEW] Error processing requestIRHtml: ${error2}`);
