@@ -8,7 +8,7 @@ handoffs:
     prompt: Implement the proposed plan with changes as outlined in the PRD Implementation Planner Chat Mode.
     send: true
   - label: Save Plan Document
-    agent: agent
+    agent: Code
     prompt: The implementation plan has been completed. Please create a PLAN.md document in the appropriate location in the repository, following the standard plan template and including all relevant sections.
     send: true
 ---
