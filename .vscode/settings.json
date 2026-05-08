@@ -1,0 +1,29 @@
+{
+    "editor.insertSpaces": false,
+    "cSpell.words": [
+        "kanban",
+        "Predictionary",
+        "Vditor"
+    ],
+    "workbench.colorCustomizations": {
+        "activityBar.activeBackground": "#5d4f5f",
+        "activityBar.background": "#5d4f5f",
+        "activityBar.foreground": "#e7e7e7",
+        "activityBar.inactiveForeground": "#e7e7e799",
+        "activityBarBadge.background": "#181608",
+        "activityBarBadge.foreground": "#e7e7e7",
+        "commandCenter.border": "#e7e7e799",
+        "sash.hoverBorder": "#5d4f5f",
+        "statusBar.background": "#423843",
+        "statusBar.foreground": "#e7e7e7",
+        "statusBarItem.hoverBackground": "#5d4f5f",
+        "statusBarItem.remoteBackground": "#423843",
+        "statusBarItem.remoteForeground": "#e7e7e7",
+        "titleBar.activeBackground": "#423843",
+        "titleBar.activeForeground": "#e7e7e7",
+        "titleBar.inactiveBackground": "#42384399",
+        "titleBar.inactiveForeground": "#e7e7e799"
+    },
+    "peacock.remoteColor": "#423843",
+    "git-worktree-menu.worktreeDir": "/var/www/vscode-markdown-editor/.worktrees"
+}

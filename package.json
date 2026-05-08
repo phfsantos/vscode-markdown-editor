@@ -1,0 +1,614 @@
+{
+  "name": "markdown-editor",
+  "displayName": "Markdown Editor",
+  "icon": "media/logo.png",
+  "description": "Full-featured WYSIWYG markdown editor with Obsidian-style wiki-links, graph view, backlinks, tags, and knowledge management.",
+  "version": "0.4.14",
+  "publisher": "phfsantos",
+  "private": true,
+  "engines": {
+    "vscode": "^1.47.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Other"
+  ],
+  "keywords": [
+    "markdown",
+    "editor",
+    "wysiwyg",
+    "obsidian",
+    "wiki-links",
+    "backlinks",
+    "graph-view",
+    "knowledge-management",
+    "note-taking",
+    "zettelkasten",
+    "tags",
+    "daily-notes",
+    "typora",
+    "markdown-preview",
+    "pkm"
+  ],
+  "activationEvents": [
+    "onWebviewPanel:markdown-editor",
+    "onLanguage:markdown",
+    "onView:markdown-sidebar-status",
+    "onView:markdown-sidebar-graph",
+    "onLanguage:chatagent",
+    "onLanguage:skill",
+    "onLanguage:prompt",
+    "onCommand:markdown-editor.copyAiContext",
+    "onCommand:markdown-editor.insertAiContext",
+    "onCommand:markdown-editor.insertAiTemplate",
+    "onCommand:markdown-editor.openAiChat",
+    "onCommand:markdown-editor.validateAiMarkdown"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/phfsantos/vscode-markdown-editor.git"
+  },
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "markdown-tools",
+          "title": "Markdown Tools",
+          "icon": "media/sidebar-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "markdown-tools": [
+        {
+          "icon": "media/sidebar-icon.svg",
+          "id": "markdown-sidebar-status",
+          "name": "Status"
+        },
+        {
+          "icon": "media/sidebar-icon.svg",
+          "id": "markdown-sidebar-quick-notes",
+          "name": "Quick Notes"
+        },
+        {
+          "icon": "media/sidebar-icon.svg",
+          "id": "markdown-sidebar-tags",
+          "name": "Tags",
+          "visibility": "collapsed"
+        },
+        {
+          "icon": "media/sidebar-icon.svg",
+          "id": "markdown-sidebar-embeds",
+          "name": "Embeds",
+          "visibility": "collapsed"
+        },
+        {
+          "icon": "media/sidebar-icon.svg",
+          "id": "markdown-sidebar-outgoing-links",
+          "name": "Outgoing Links",
+          "visibility": "collapsed"
+        },
+        {
+          "icon": "media/sidebar-icon.svg",
+          "id": "markdown-sidebar-backlinks",
+          "name": "Backlinks",
+          "visibility": "collapsed"
+        },
+        {
+          "icon": "media/sidebar-icon.svg",
+          "id": "markdown-sidebar-related-files",
+          "name": "Related Files",
+          "visibility": "collapsed"
+        },
+        {
+          "icon": "media/sidebar-icon.svg",
+          "id": "markdown-sidebar-graph",
+          "name": "Mini Graph",
+          "type": "webview"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "markdown-editor.openEditor",
+        "title": "Open with markdown editor",
+        "icon": "$(markdown)",
+        "category": "markdown-editor"
+      },
+      {
+        "command": "markdown-editor.setAsDefaultEditor",
+        "title": "Set as Default Markdown Editor",
+        "icon": "$(check)",
+        "category": "markdown-editor"
+      },
+      {
+        "command": "markdown-editor.showHeadingStats",
+        "title": "Show Heading Statistics",
+        "icon": "$(graph)",
+        "category": "markdown-editor"
+      },
+      {
+        "command": "markdown-editor.addAltText",
+        "title": "Add Alt Text to Image",
+        "icon": "$(pencil)",
+        "category": "markdown-editor"
+      },
+      {
+        "command": "markdown-editor.formatTable",
+        "title": "Format Table",
+        "icon": "$(table)",
+        "category": "markdown-editor"
+      },
+      {
+        "command": "markdown-editor.insertTOC",
+        "title": "Insert Table of Contents",
+        "icon": "$(list-unordered)",
+        "category": "markdown-editor"
+      },
+      {
+        "command": "markdown-editor.validateDocument",
+        "title": "Validate Document Structure",
+        "icon": "$(check)",
+        "category": "markdown-editor"
+      },
+      {
+        "command": "markdown-editor.openGraphView",
+        "title": "Open Link Graph View",
+        "icon": "$(graph)",
+        "category": "markdown-editor"
+      },
+      {
+        "command": "markdown-editor.quickOpenNote",
+        "title": "Quick Open Note (Fuzzy)",
+        "icon": "$(search)",
+        "category": "markdown-editor"
+      },
+      {
+        "command": "markdown-editor.openDailyNote",
+        "title": "Open Daily Note",
+        "icon": "$(calendar)",
+        "category": "markdown-editor"
+      },
+      {
+        "command": "markdown-editor.rebuildCache",
+        "title": "Rebuild Relationship Cache",
+        "icon": "$(sync)",
+        "category": "markdown-editor"
+      },
+      {
+        "command": "markdown-editor.refreshSidebar",
+        "title": "Refresh Sidebar",
+        "icon": "$(refresh)",
+        "category": "markdown-editor"
+      },
+      {
+        "command": "markdown-editor.createNoteFromTemplate",
+        "title": "Create Note From Template",
+        "icon": "$(new-file)",
+        "category": "markdown-editor"
+      },
+      {
+        "command": "markdown-editor.previewEmbed",
+        "title": "Preview Embed",
+        "icon": "$(eye)",
+        "category": "markdown-editor"
+      },
+      {
+        "command": "markdown-editor.filterByTag",
+        "title": "Filter by Tag",
+        "icon": "$(tag)",
+        "category": "markdown-editor"
+      },
+      {
+        "command": "markdown-editor.copyAiContext",
+        "title": "AI: Copy Context Package",
+        "icon": "$(copy)",
+        "category": "markdown-editor"
+      },
+      {
+        "command": "markdown-editor.insertAiContext",
+        "title": "AI: Insert Context Package",
+        "icon": "$(add)",
+        "category": "markdown-editor"
+      },
+      {
+        "command": "markdown-editor.insertAiTemplate",
+        "title": "AI: Insert Markdown Template",
+        "icon": "$(new-file)",
+        "category": "markdown-editor"
+      },
+      {
+        "command": "markdown-editor.openAiChat",
+        "title": "AI: Open Chat Workflow",
+        "icon": "$(comment-discussion)",
+        "category": "markdown-editor"
+      },
+      {
+        "command": "markdown-editor.validateAiMarkdown",
+        "title": "AI: Validate Markdown Structure",
+        "icon": "$(check)",
+        "category": "markdown-editor"
+      },
+      {
+        "command": "markdown-editor.toggleInlineSuggestions",
+        "title": "AI: Toggle Auto-Complete Suggestions",
+        "icon": "$(sparkle)",
+        "category": "markdown-editor"
+      }
+    ],
+    "customEditors": [
+      {
+        "viewType": "markdown-editor",
+        "displayName": "Markdown Editor",
+        "selector": [
+          {
+            "filenamePattern": "*.{md,markdown,mdown,mkdn,mkd,rmd,qmd}"
+          }
+        ],
+        "priority": "default"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "when": "editorLangId == markdown",
+          "command": "markdown-editor.openEditor",
+          "group": "markdown-editor"
+        },
+        {
+          "command": "markdown-editor.copyAiContext",
+          "when": "editorLangId == markdown && resourceFilename =~ /(?:\\.agent\\.md$|\\.prompt\\.md$|^SKILL\\.md$)/i",
+          "group": "markdown-editor-ai@1"
+        },
+        {
+          "command": "markdown-editor.insertAiContext",
+          "when": "editorLangId == markdown && resourceFilename =~ /(?:\\.agent\\.md$|\\.prompt\\.md$|^SKILL\\.md$)/i",
+          "group": "markdown-editor-ai@2"
+        },
+        {
+          "command": "markdown-editor.insertAiTemplate",
+          "when": "editorLangId == markdown && resourceFilename =~ /(?:\\.agent\\.md$|\\.prompt\\.md$|^SKILL\\.md$)/i",
+          "group": "markdown-editor-ai@3"
+        },
+        {
+          "command": "markdown-editor.openAiChat",
+          "when": "editorLangId == markdown && resourceFilename =~ /(?:\\.agent\\.md$|\\.prompt\\.md$|^SKILL\\.md$)/i",
+          "group": "markdown-editor-ai@4"
+        },
+        {
+          "command": "markdown-editor.validateAiMarkdown",
+          "when": "editorLangId == markdown && resourceFilename =~ /(?:\\.agent\\.md$|\\.prompt\\.md$|^SKILL\\.md$)/i",
+          "group": "markdown-editor-ai@5"
+        }
+      ],
+      "explorer/context": [
+        {
+          "when": "resourceLangId == markdown",
+          "command": "markdown-editor.openEditor",
+          "group": "navigation"
+        },
+        {
+          "command": "markdown-editor.copyAiContext",
+          "when": "resourceFilename =~ /(?:\\.agent\\.md$|\\.prompt\\.md$|^SKILL\\.md$)/i",
+          "group": "navigation@1"
+        },
+        {
+          "command": "markdown-editor.openAiChat",
+          "when": "resourceFilename =~ /(?:\\.agent\\.md$|\\.prompt\\.md$|^SKILL\\.md$)/i",
+          "group": "navigation@2"
+        },
+        {
+          "command": "markdown-editor.validateAiMarkdown",
+          "when": "resourceFilename =~ /(?:\\.agent\\.md$|\\.prompt\\.md$|^SKILL\\.md$)/i",
+          "group": "navigation@3"
+        }
+      ],
+      "editor/title": [
+        {
+          "when": "resourceLangId == markdown",
+          "command": "markdown-editor.openEditor",
+          "group": "1_open"
+        },
+        {
+          "command": "markdown-editor.openAiChat",
+          "when": "editorLangId == markdown && resourceFilename =~ /(?:\\.agent\\.md$|\\.prompt\\.md$|^SKILL\\.md$)/i",
+          "group": "navigation@2"
+        },
+        {
+          "command": "markdown-editor.copyAiContext",
+          "when": "editorLangId == markdown && resourceFilename =~ /(?:\\.agent\\.md$|\\.prompt\\.md$|^SKILL\\.md$)/i",
+          "group": "navigation@3"
+        },
+        {
+          "command": "markdown-editor.validateAiMarkdown",
+          "when": "editorLangId == markdown && resourceFilename =~ /(?:\\.agent\\.md$|\\.prompt\\.md$|^SKILL\\.md$)/i",
+          "group": "navigation@4"
+        }
+      ],
+      "view/title": [
+        {
+          "when": "view == markdown-sidebar-status",
+          "command": "markdown-editor.refreshSidebar",
+          "group": "navigation"
+        },
+        {
+          "when": "view == markdown-sidebar-status",
+          "command": "markdown-editor.rebuildCache",
+          "group": "navigation@1"
+        },
+        {
+          "when": "view == markdown-sidebar-status",
+          "command": "markdown-editor.toggleInlineSuggestions",
+          "group": "navigation@2"
+        },
+        {
+          "when": "view == markdown-sidebar-graph",
+          "command": "markdown-editor.openGraphView",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "when": "view == markdown-sidebar-status && viewItem == defaultEditorWarning",
+          "command": "markdown-editor.setAsDefaultEditor",
+          "group": "inline"
+        },
+        {
+          "when": "view == markdown-sidebar-status && viewItem == cacheStatus",
+          "command": "markdown-editor.rebuildCache",
+          "group": "inline"
+        },
+        {
+          "when": "view == markdown-sidebar-status && viewItem == refreshSidebar",
+          "command": "markdown-editor.refreshSidebar",
+          "group": "inline"
+        },
+        {
+          "when": "view == markdown-sidebar-status && viewItem == inlineSuggestionToggle",
+          "command": "markdown-editor.toggleInlineSuggestions",
+          "group": "inline"
+        },
+        {
+          "when": "view == markdown-sidebar-quick-notes && viewItem == quickNoteTemplate",
+          "command": "markdown-editor.createNoteFromTemplate",
+          "group": "inline"
+        },
+        {
+          "when": "view == markdown-sidebar-tags && viewItem == tagItem",
+          "command": "markdown-editor.filterByTag",
+          "group": "inline"
+        },
+        {
+          "when": "view == markdown-sidebar-embeds && viewItem == embedResolved",
+          "command": "markdown-editor.previewEmbed",
+          "group": "inline"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "markdown-editor.copyAiContext",
+          "when": "editorLangId == markdown && resourceFilename =~ /(?:\\.agent\\.md$|\\.prompt\\.md$|^SKILL\\.md$)/i"
+        },
+        {
+          "command": "markdown-editor.insertAiContext",
+          "when": "editorLangId == markdown && resourceFilename =~ /(?:\\.agent\\.md$|\\.prompt\\.md$|^SKILL\\.md$)/i"
+        },
+        {
+          "command": "markdown-editor.insertAiTemplate",
+          "when": "editorLangId == markdown && resourceFilename =~ /(?:\\.agent\\.md$|\\.prompt\\.md$|^SKILL\\.md$)/i"
+        },
+        {
+          "command": "markdown-editor.openAiChat",
+          "when": "editorLangId == markdown && resourceFilename =~ /(?:\\.agent\\.md$|\\.prompt\\.md$|^SKILL\\.md$)/i"
+        },
+        {
+          "command": "markdown-editor.validateAiMarkdown",
+          "when": "editorLangId == markdown && resourceFilename =~ /(?:\\.agent\\.md$|\\.prompt\\.md$|^SKILL\\.md$)/i"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "markdown-editor",
+      "properties": {
+        "markdown-editor.imageSaveFolder": {
+          "type": "string",
+          "default": "assets",
+          "description": "Save images to which folder when upload in markdown, default relative to the markdown file, you can set to project root via `${projectRoot}/assets`."
+        },
+        "markdown-editor.useVscodeThemeColor": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use vscode theme's background color as the markdown editor's background color."
+        },
+        "markdown-editor.customCss": {
+          "type": "string",
+          "default": ""
+        },
+        "markdown-editor.enableDiagnostics": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable inline error detection and diagnostics for markdown files"
+        },
+        "markdown-editor.enableCodeLens": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show CodeLens information for headings, images, and tables"
+        },
+        "markdown-editor.enableDecorations": {
+          "type": "boolean",
+          "default": true,
+          "description": "Apply native text decorations to markdown elements"
+        },
+        "markdown-editor.performanceMode": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "performance",
+            "compatibility"
+          ],
+          "default": "auto",
+          "description": "Performance optimization level"
+        },
+        "markdown-editor.dailyNotesFolder": {
+          "type": "string",
+          "default": "daily",
+          "description": "Folder where daily notes are created (relative to workspace root)"
+        },
+        "markdown-editor.previewEmbedSizeLimit": {
+          "type": "number",
+          "default": 5242880,
+          "description": "Maximum size in bytes for generic embeds to be embedded inline (default 5 MB)"
+        },
+        "markdown-editor.previewEmbedImageLimit": {
+          "type": "number",
+          "default": 8388608,
+          "description": "Maximum size in bytes for image embeds to be embedded inline (default 8 MB)"
+        },
+        "markdown-editor.previewEmbedTextLimit": {
+          "type": "number",
+          "default": 204800,
+          "description": "Maximum size in bytes for text embeds to be embedded inline (default 200 KB)"
+        },
+        "markdown-editor.enableTagSupport": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable parsing and display of #tags in the sidebar"
+        },
+        "markdown-editor.enableDebugLogging": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable debug logging to console (for development and troubleshooting)"
+        },
+        "markdown-editor.calendar.outlookClientId": {
+          "type": "string",
+          "default": "",
+          "description": "(Optional) Override the default Azure AD client ID for Outlook Calendar. Leave empty to use the built-in app."
+        },
+        "markdown-editor.calendar.googleClientId": {
+          "type": "string",
+          "default": "",
+          "description": "(Optional) Override the default Google OAuth client ID for Google Calendar. Leave empty to use the built-in app."
+        },
+        "markdown-editor.calendar.googleClientSecret": {
+          "type": "string",
+          "default": "",
+          "description": "(Optional) Client secret for Google OAuth. Only needed if using a 'Web application' type OAuth client. Desktop application clients don't need this."
+        },
+        "markdown-editor.ai.enable": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "description": "Enable AI markdown workflows for .agent.md, .prompt.md, and SKILL.md files in the custom editor."
+        },
+        "markdown-editor.ai.enableAffordances": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "description": "Show AI markdown badges, actions, and fallback guidance inside the custom markdown editor."
+        },
+        "markdown-editor.ai.enableChatInterop": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "description": "Allow AI markdown workflows to open supported chat surfaces after copying structured context to the clipboard."
+        },
+        "markdown-editor.ai.enableInlineSuggestions": {
+          "type": "boolean",
+          "default": false,
+          "scope": "window",
+          "description": "Opt in to AI auto-complete suggestions in both the custom markdown editor and VS Code inline completions."
+        },
+        "markdown-editor.ai.provider": {
+          "type": "string",
+          "default": "copilotChat",
+          "scope": "resource",
+          "enum": [
+            "copilotChat",
+            "none"
+          ],
+          "enumDescriptions": [
+            "Use GitHub Copilot Chat when its public chat commands are available, with clipboard-based fallback handoff.",
+            "Disable automatic chat-provider integration and keep AI markdown workflows in manual fallback mode."
+          ],
+          "description": "Select which AI provider mode the markdown editor should target for AI markdown workflows."
+        },
+        "markdown-editor.ai.modelName": {
+          "type": "string",
+          "default": "auto",
+          "scope": "resource",
+          "enum": [
+            "auto",
+            "copilot-fast",
+            "gtp-4o-mini",
+            "gtp-4o",
+            "gpt-4.1",
+            "oswe-vscode-prime"
+          ],
+          "enumDescriptions": [
+            "Automatically select the best available model based on system configuration and availability.",
+            "Use Copilot Fast model for inline suggestions (fastest response times).",
+            "Use GTP-4o-mini model for cost-effective suggestions with good quality.",
+            "Use GTP-4o model for highest quality suggestions.",
+            "Use GPT-4.1 model for premium quality suggestions.",
+            "Use OSWE VSCode Prime model (custom optimized model)."
+          ],
+          "description": "Select the AI model to use for inline code and prose completions. 'auto' will automatically select the best available model based on system configuration."
+        },
+        "markdown-editor.ai.maxContextItems": {
+          "type": "number",
+          "default": 5,
+          "scope": "resource",
+          "minimum": 1,
+          "maximum": 25,
+          "description": "Maximum number of backlinks, outgoing links, related files, and graph items to include in generated AI context packages."
+        },
+        "markdown-editor.ai.maxContextChars": {
+          "type": "number",
+          "default": 6000,
+          "scope": "resource",
+          "minimum": 500,
+          "maximum": 50000,
+          "description": "Maximum number of characters to include in generated AI context packages before truncation is applied."
+        }
+      }
+    },
+    "keybindings": [
+      {
+        "key": "ctrl+shift+alt+m",
+        "command": "markdown-editor.openEditor",
+        "mac": "cmd+shift+alt+m",
+        "when": "editorTextFocus && editorLangId == markdown"
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "node esbuild.js",
+    "build:extension": "node esbuild.js --production",
+    "watch:extension": "node esbuild.js --watch",
+    "check-types": "tsc --noEmit -p ./ --skipLibCheck",
+    "watch:types": "tsc --noEmit --watch -p ./ --skipLibCheck",
+    "compile-tests": "tsc -p ./ --outDir out",
+    "package": "yarn foy build",
+    "vscode:prepublish": "yarn package",
+    "watch": "yarn foy watch",
+    "start": "yarn foy watch",
+    "pub": "yarn package && npm version patch && git push origin master --tags && vsce package && vsce publish",
+    "test": "echo 0",
+    "test:unit": "yarn compile-tests && node ./test/run-all.js"
+  },
+  "devDependencies": {
+    "@types/node": "^12.20.55",
+    "@types/vscode": "^1.47.0",
+    "cheerio": "^1.2.0",
+    "dotenv": "^17.4.2",
+    "esbuild": "0.27.4",
+    "foy": "^0.2.5",
+    "ts-node": "^9.1.1",
+    "typescript": "5.3.3"
+  },
+  "dependencies": {
+    "@vscode/codicons": "^0.0.41",
+    "mime-types": "^2.1.35"
+  }
+}

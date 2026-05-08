@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+  <!-- Markdown Tools Icon: Balanced MD with vertical tools -->
+
+  <g transform="translate(-4.5 1) scale(1.4)">
+    <!-- M (tightened for additional breathing room) -->
+    <g transform="translate(5 -2) scale(0.6)">
+      <path
+        d="M 0.3 4 L 0.3 20 L 2.6 20 L 2.6 9.5 L 5.8 14.1 L 9 9.5 L 9 20 L 11.3 20 L 11.3 4 L 5.8 12.5 Z"
+        fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round" />
+    </g>
+    <!-- Down arrow (compact) -->
+     <g transform="translate(-2 -1.3) scale(1)">
+       <path d="M 18 1.9 L 18 7.9 L 16.7 7.9 L 18.4 11.2 L 20.1 7.9 L 18.8 7.9 L 18.8 1.9 Z"
+         fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round" />
+     </g>
+  </g>
+
+  <!-- Tools label -->
+  <text x="1" y="23" font-family="'Segoe UI', sans-serif" font-weight="800" font-size="10" letter-spacing="0.25" fill="currentColor">+++</text>
+</svg>

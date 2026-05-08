@@ -1,0 +1,1308 @@
+/* @import url('vditor/dist/index.css');
+@import url('jquery-confirm/css/jquery-confirm.css'); */
+
+/* Comprehensive reset for full window coverage */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+#app {
+  height: 100vh;
+  width: 100vw;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+/* Ensure Vditor takes full space */
+.vditor {
+  height: 100vh !important;
+  width: 100vw !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Ensure Vditor content areas fill space */
+.vditor-content {
+  height: calc(100vh - 40px) !important; /* Account for toolbar */
+  width: 100% !important;
+  overflow: auto !important;
+}
+
+.vditor-ir,
+.vditor-wysiwyg,
+.vditor-sv {
+  height: 100% !important;
+  width: 100% !important;
+}
+
+.vditor-ir .vditor-reset,
+.vditor-wysiwyg .vditor-reset,
+.vditor-sv .vditor-reset {
+  min-height: 100% !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 16px 32px 16px 32px !important;
+  box-sizing: border-box !important;
+}
+
+/* Fix any container that might limit size */
+.vditor-reset {
+  max-width: none !important;
+  width: 100% !important;
+}
+
+/* Vditor Context Menu Styling - Ensure visibility and proper styling */
+.vditor-menu, 
+.vditor-contextmenu,
+.vditor-context-menu {
+  position: fixed !important;
+  z-index: 999999 !important;
+  background: var(--vscode-menu-background, #2d2d30) !important;
+  border: 1px solid var(--vscode-menu-border, #464647) !important;
+  border-radius: 4px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+  min-width: 160px !important;
+  max-width: 300px !important;
+  padding: 4px 0 !important;
+  font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif) !important;
+  font-size: 13px !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  
+  /* Prevent menu from going off-screen */
+  max-height: calc(100vh - 20px) !important;
+  overflow-y: auto !important;
+  
+  /* Ensure menu stays within viewport bounds */
+  /* Vditor sets top/left dynamically, but we add bounds */
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+}
+
+.vditor-menu .vditor-menu__item,
+.vditor-contextmenu .vditor-menu__item,
+.vditor-context-menu .vditor-menu__item {
+  display: flex !important;
+  align-items: center !important;
+  padding: 6px 16px !important;
+  color: var(--vscode-menu-foreground, #cccccc) !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  line-height: 1.4 !important;
+}
+
+.vditor-menu .vditor-menu__item:hover,
+.vditor-contextmenu .vditor-menu__item:hover,
+.vditor-context-menu .vditor-menu__item:hover {
+  background: var(--vscode-menu-selectionBackground, #094771) !important;
+  color: var(--vscode-menu-selectionForeground, #ffffff) !important;
+}
+
+.vditor-menu .vditor-menu__item--separator,
+.vditor-contextmenu .vditor-menu__item--separator,
+.vditor-context-menu .vditor-menu__item--separator {
+  height: 1px !important;
+  background: var(--vscode-menu-separatorBackground, #464647) !important;
+  margin: 4px 0 !important;
+  padding: 0 !important;
+}
+body[data-use-vscode-theme-color="1"] .vditor {
+  --panel-background-color: var(--vscode-editor-background);
+  --toolbar-background-color: var(--vscode-editor-background);
+  --textarea-background-color: var(--vscode-editor-background);
+}
+
+/* Make toolbar background slightly darker than editor content */
+.vditor-toolbar {
+  background-color: var(--toolbar-background-color) !important;
+  filter: brightness(0.72) !important;
+  position: relative;
+}
+
+/* Ensure toolbar icons remain visible on hover in both light and dark themes */
+.vditor-toolbar button {
+  position: relative;
+  z-index: 1;
+}
+
+.vditor-toolbar button:hover {
+  background-color: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31)) !important;
+}
+
+.vditor-toolbar button svg,
+.vditor-toolbar button .vditor-icon {
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+
+.vditor-toolbar button:hover svg,
+.vditor-toolbar button:hover .vditor-icon {
+  opacity: 1;
+}
+
+/* Enforce VS Code theme colors for content */
+.vditor .vditor-reset {
+  font-family: var(--vscode-editor-font-family) !important;
+  color: var(--vscode-editor-foreground) !important;
+  background-color: var(--vscode-editor-background) !important;
+}
+
+/* Ensure all text elements inherit VS Code colors */
+.vditor-ir .vditor-reset,
+.vditor-wysiwyg .vditor-reset,
+.vditor-sv .vditor-reset {
+  color: var(--vscode-editor-foreground) !important;
+  background-color: var(--vscode-editor-background) !important;
+}
+
+/* Headings should respect VS Code theme */
+.vditor-reset h1,
+.vditor-reset h2,
+.vditor-reset h3,
+.vditor-reset h4,
+.vditor-reset h5,
+.vditor-reset h6 {
+  color: var(--vscode-editor-foreground) !important;
+}
+
+/* Links should use VS Code link color */
+.vditor-reset a {
+  color: var(--vscode-textLink-foreground, #3794ff) !important;
+}
+
+.vditor-reset a:hover {
+  color: var(--vscode-textLink-activeForeground, #4daafc) !important;
+}
+
+/* Emphasis and strong */
+.vditor-reset em,
+.vditor-reset i {
+  color: var(--vscode-editor-foreground) !important;
+}
+
+.vditor-reset strong,
+.vditor-reset b {
+  color: var(--vscode-editor-foreground) !important;
+}
+
+/* Blockquotes */
+.vditor-reset blockquote {
+  color: var(--vscode-editor-foreground) !important;
+  border-left-color: var(--vscode-textBlockQuote-border, #007acc) !important;
+  background-color: var(--vscode-textBlockQuote-background, rgba(127, 127, 127, 0.1)) !important;
+}
+
+/* Lists */
+.vditor-reset ul,
+.vditor-reset ol,
+.vditor-reset li {
+  color: var(--vscode-editor-foreground) !important;
+}
+
+/* Paragraph and general text */
+.vditor-reset p,
+.vditor-reset span,
+.vditor-reset div {
+  color: inherit !important;
+}
+/* fix code block color in dark mode */
+.vditor--dark .vditor-reset code:not(.hljs):not(.highlight-chroma) {
+  background-color: rgba(66,133,244,.1);
+}
+/* fix outline toolbar padding */
+.vditor-toolbar.vditor-toolbar--pin {
+  padding-left: 35px!important;
+}
+
+/* Re-enable toolbar (was previously hidden) */
+.vditor-toolbar {
+  display: flex !important;
+}
+
+/* Find and Replace Widget Styling */
+.vditor-find-widget {
+  position: fixed !important;
+  top: 40px;
+  right: 20px;
+  z-index: 1000;
+  background: var(--vscode-editor-background, #1e1e1e);
+  border: 1px solid var(--vscode-panel-border, #2d2d30);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  min-width: 320px;
+  max-width: 400px;
+  font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif);
+  font-size: 13px;
+  display: none;
+  backdrop-filter: blur(8px);
+}
+
+.vditor-find-widget__container {
+  padding: 8px;
+}
+
+.vditor-find-widget__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.vditor-find-widget__row:last-child {
+  margin-bottom: 0;
+}
+
+.vditor-find-widget__input-group {
+  flex: 1;
+  position: relative;
+}
+
+.vditor-find-widget__input {
+  width: 100%;
+  height: 28px;
+  padding: 4px 8px;
+  padding-right: 80px; /* Space for match count */
+  background: var(--vscode-input-background, #3c3c3c);
+  border: 1px solid var(--vscode-input-border, #3c3c3c);
+  border-radius: 4px;
+  color: var(--vscode-input-foreground, #cccccc);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.vditor-find-widget__input:focus {
+  border-color: var(--vscode-focusBorder, #0078d4);
+  box-shadow: 0 0 0 1px var(--vscode-focusBorder, #0078d4);
+}
+
+.vditor-find-widget__input::placeholder {
+  color: var(--vscode-input-placeholderForeground, #767676);
+}
+
+.vditor-find-widget__match-count {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground, #999999);
+  background: var(--vscode-badge-background, #4d4d4d);
+  padding: 2px 6px;
+  border-radius: 10px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.vditor-find-widget__match-count--none {
+  color: var(--vscode-errorForeground, #f48771);
+  background: transparent;
+}
+
+.vditor-find-widget__match-count--searching {
+  color: var(--vscode-foreground, #cccccc);
+  background: transparent;
+  font-style: italic;
+  opacity: 0.8;
+}
+
+.vditor-find-widget__buttons {
+  display: flex;
+  gap: 2px;
+}
+
+.vditor-find-widget__button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--vscode-icon-foreground, #cccccc);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.vditor-find-widget__button:hover {
+  background: var(--vscode-toolbar-hoverBackground, #2a2a2a);
+  border-color: var(--vscode-toolbar-hoverOutline, #454545);
+}
+
+.vditor-find-widget__button:active {
+  background: var(--vscode-toolbar-activeBackground, #1e1e1e);
+}
+
+.vditor-find-widget__button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.vditor-find-widget__replace-row {
+  display: none;
+}
+
+.vditor-find-widget--replace-mode .vditor-find-widget__replace-row {
+  display: flex;
+}
+
+.vditor-find-widget__options-row {
+  justify-content: flex-start;
+  border-top: 1px solid var(--vscode-panel-border, #2d2d30);
+  padding-top: 8px;
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+
+.vditor-find-widget__options {
+  display: flex;
+  gap: 4px;
+}
+
+.vditor-find-widget__option {
+  height: 24px;
+  padding: 0 8px;
+  background: transparent;
+  border: 1px solid var(--vscode-button-border, #2d2d30);
+  border-radius: 4px;
+  color: var(--vscode-button-foreground, #cccccc);
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.vditor-find-widget__option:hover {
+  background: var(--vscode-button-hoverBackground, #2a2a2a);
+  border-color: var(--vscode-button-hoverBorder, #454545);
+}
+
+.vditor-find-widget__option--active {
+  background: var(--vscode-button-background, #0e639c);
+  border-color: var(--vscode-button-background, #0e639c);
+  color: var(--vscode-button-foreground, #ffffff);
+}
+
+.vditor-find-widget__option svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Find Highlight Styling */
+.vditor-find-highlight {
+  background-color: var(--vscode-editor-findMatchBackground, rgba(234, 92, 0, 0.33));
+  border: 1px solid var(--vscode-editor-findMatchBorder, rgba(234, 92, 0, 0.8));
+  border-radius: 2px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition: all 0.2s ease;
+}
+
+.vditor-find-highlight--current {
+  background-color: var(--vscode-editor-findMatchHighlightBackground, rgba(234, 92, 0, 0.6));
+  border-color: var(--vscode-editor-findMatchHighlightBorder, rgba(234, 92, 0, 1));
+  box-shadow: 0 0 0 1px var(--vscode-editor-findMatchHighlightBorder, rgba(234, 92, 0, 1));
+}
+
+.vditor-find-replaced {
+  background-color: var(--vscode-diffEditor-insertedTextBackground, rgba(155, 185, 85, 0.2));
+  border: 1px solid var(--vscode-diffEditor-insertedTextBorder, rgba(155, 185, 85, 0.8));
+  border-radius: 2px;
+  animation: vditor-find-replaced-flash 1s ease-out;
+  transition: all 0.3s ease;
+}
+
+@keyframes vditor-find-replaced-flash {
+  0% {
+    background-color: var(--vscode-diffEditor-insertedTextBackground, rgba(155, 185, 85, 0.6));
+    transform: scale(1.02);
+  }
+  50% {
+    background-color: var(--vscode-diffEditor-insertedTextBackground, rgba(155, 185, 85, 0.8));
+  }
+  100% {
+    background-color: var(--vscode-diffEditor-insertedTextBackground, rgba(155, 185, 85, 0.2));
+    transform: scale(1);
+  }
+}
+
+/* Animation for smooth transitions */
+.vditor-find-widget {
+  animation: vditor-find-widget-slide-in 0.2s ease-out;
+}
+
+@keyframes vditor-find-widget-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Dark theme adjustments */
+.vditor--dark .vditor-find-widget {
+  background: var(--vscode-editor-background, #1e1e1e);
+  border-color: var(--vscode-panel-border, #2d2d30);
+}
+
+.vditor--dark .vditor-find-widget__input {
+  background: var(--vscode-input-background, #3c3c3c);
+  border-color: var(--vscode-input-border, #3c3c3c);
+  color: var(--vscode-input-foreground, #cccccc);
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .vditor-find-widget {
+    left: 10px;
+    right: 10px;
+    min-width: auto;
+    max-width: none;
+  }
+}
+.vditor-ir pre.vditor-reset {
+  position: relative;
+}
+.vditor-panel {
+  transform: translate(-25px, 0);
+  max-width: 21px;
+  max-height: 21px;
+  overflow: hidden;
+  transition: width 0.2s ease-in-out;
+}
+.vditor-panel::after {
+  content: '...';
+  width: 21px;
+  height: 21px;
+  position: absolute;
+  left: 0;
+  top: 0;
+  background-color: white;
+  color: black;
+  text-align: center;
+  font-family: none;
+}
+.vditor-panel:hover,
+.vditor-panel_hover {
+  opacity: 0.86;
+  max-width: none;
+  max-height: none;
+  overflow: visible;
+}
+
+.vditor-panel:hover:after,
+.vditor-panel_hover:after {
+  display: none;
+}
+
+.vditor-reset {
+  padding-left: 35px !important;
+}
+.jconfirm {
+  color: black;
+}
+.jconfirm-buttons button {
+  text-transform: none!important;
+}
+
+/* Dialog element base styles matching VS Code theme */
+dialog {
+  background: var(--vscode-editor-background, #1e1e1e);
+  color: var(--vscode-editor-foreground, #cccccc);
+  border: 1px solid var(--vscode-panel-border, #2d2d30);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  padding: 0;
+  max-width: 90vw;
+  max-height: 90vh;
+  font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif);
+  font-size: 13px;
+}
+
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+}
+
+dialog header {
+  padding: 12px 16px;
+  background: var(--vscode-titleBar-activeBackground, #3c3c3c);
+  color: var(--vscode-titleBar-activeForeground, #cccccc);
+  border-bottom: 1px solid var(--vscode-panel-border, #2d2d30);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+dialog header h2,
+dialog header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+dialog .dialog-content {
+  padding: 16px;
+  overflow-y: auto;
+  max-height: calc(90vh - 120px);
+}
+
+dialog footer {
+  padding: 12px 16px;
+  background: var(--vscode-editor-background, #1e1e1e);
+  border-top: 1px solid var(--vscode-panel-border, #2d2d30);
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+dialog button {
+  padding: 6px 14px;
+  background: var(--vscode-button-background, #0e639c);
+  color: var(--vscode-button-foreground, #ffffff);
+  border: 1px solid transparent;
+  border-radius: 2px;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+dialog button:hover {
+  background: var(--vscode-button-hoverBackground, #1177bb);
+}
+
+dialog button:active {
+  background: var(--vscode-button-activeBackground, #0d5a8f);
+}
+
+dialog button.secondary {
+  background: var(--vscode-button-secondaryBackground, #3a3d41);
+  color: var(--vscode-button-secondaryForeground, #cccccc);
+}
+
+dialog button.secondary:hover {
+  background: var(--vscode-button-secondaryHoverBackground, #45494e);
+}
+
+dialog input[type="text"],
+dialog input[type="number"],
+dialog input[type="email"],
+dialog input[type="password"],
+dialog textarea,
+dialog select {
+  width: 100%;
+  padding: 6px 8px;
+  background: var(--vscode-input-background, #3c3c3c);
+  color: var(--vscode-input-foreground, #cccccc);
+  border: 1px solid var(--vscode-input-border, #3c3c3c);
+  border-radius: 2px;
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+dialog input:focus,
+dialog textarea:focus,
+dialog select:focus {
+  border-color: var(--vscode-focusBorder, #0078d4);
+  box-shadow: 0 0 0 1px var(--vscode-focusBorder, #0078d4);
+}
+
+dialog label {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--vscode-foreground, #cccccc);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Kanban-board custom element shadow DOM dialog styling */
+/* Target dialogs within kanban-board shadow root using ::part if exposed */
+kanban-board::part(dialog) {
+  background: var(--vscode-editor-background, #1e1e1e);
+  color: var(--vscode-editor-foreground, #cccccc);
+  border: 1px solid var(--vscode-panel-border, #2d2d30);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif);
+}
+
+kanban-board::part(dialog-form) {
+  background: var(--vscode-editor-background, #1e1e1e);
+  color: var(--vscode-editor-foreground, #cccccc);
+}
+
+kanban-board::part(dialog-title) {
+  color: var(--vscode-titleBar-activeForeground, #cccccc);
+  font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif);
+  font-weight: 600;
+  border-bottom-color: var(--vscode-panel-border, #2d2d30);
+}
+
+kanban-board::part(dialog-description) {
+  color: var(--vscode-descriptionForeground, #999999);
+  font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif);
+}
+
+kanban-board::part(dialog-buttons) {
+  background: var(--vscode-editor-background, #1e1e1e);
+  border-top-color: var(--vscode-panel-border, #2d2d30);
+}
+
+kanban-board::part(dialog-cancel-button) {
+  background: var(--vscode-button-secondaryBackground, #3a3d41);
+  color: var(--vscode-button-secondaryForeground, #cccccc);
+  border: 1px solid transparent;
+  font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif);
+}
+
+kanban-board::part(dialog-cancel-button):hover {
+  background: var(--vscode-button-secondaryHoverBackground, #45494e);
+}
+
+kanban-board::part(dialog-confirm-button) {
+  background: var(--vscode-button-background, #0e639c);
+  color: var(--vscode-button-foreground, #ffffff);
+  border: 1px solid transparent;
+  font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif);
+}
+
+kanban-board::part(dialog-confirm-button):hover {
+  background: var(--vscode-button-hoverBackground, #1177bb);
+}
+
+kanban-board::part(dialog-confirm-button):active {
+  background: var(--vscode-button-activeBackground, #0d5a8f);
+}
+
+/* Kanban-board dialog backdrop styling */
+kanban-board::part(dialog)::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+}
+
+/* VS Code-style diagnostic error indicators - inline positioning */
+.vscode-diagnostic-error {
+  position: relative;
+}
+
+/* Special styling for images with diagnostics */
+img.vscode-diagnostic-error,
+img.vscode-diagnostic-warning,
+img.vscode-diagnostic-info {
+  border: 2px solid;
+  border-radius: 4px;
+  outline: none;
+}
+
+img.vscode-diagnostic-error {
+  border-color: var(--vscode-editorError-foreground, #f14c4c);
+  box-shadow: 0 0 4px rgba(241, 76, 76, 0.5);
+}
+
+img.vscode-diagnostic-warning {
+  border-color: var(--vscode-editorWarning-foreground, #ffcc00);
+  box-shadow: 0 0 4px rgba(255, 204, 0, 0.5);
+}
+
+img.vscode-diagnostic-info {
+  border-color: var(--vscode-editorInfo-foreground, #3794ff);
+  box-shadow: 0 0 4px rgba(55, 148, 255, 0.5);
+}
+
+/* New unified diagnostic span styling with integrated lightbulb support */
+.vscode-diagnostic-span {
+  position: relative;
+  text-decoration: underline;
+  text-decoration-style: wavy;
+  text-decoration-skip-ink: none;
+  cursor: pointer;
+}
+
+.vscode-diagnostic-span.vscode-diagnostic-error {
+  text-decoration-color: var(--vscode-editorError-foreground, #f14c4c);
+}
+
+.vscode-diagnostic-span.vscode-diagnostic-warning {
+  text-decoration-color: var(--vscode-editorWarning-foreground, #ffcc00);
+}
+
+.vscode-diagnostic-span.vscode-diagnostic-info {
+  text-decoration-color: var(--vscode-editorInfo-foreground, #3794ff);
+}
+
+/* Enhanced styling for single character diagnostics */
+.vscode-diagnostic-span[data-single-char="true"] {
+  display: inline-block;
+  min-width: 8px;
+  padding: 1px 2px;
+  border-radius: 2px;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.vscode-diagnostic-span[data-single-char="true"].vscode-diagnostic-error {
+  background-color: rgba(241, 76, 76, 0.2);
+}
+
+.vscode-diagnostic-span[data-single-char="true"].vscode-diagnostic-warning {
+  background-color: rgba(255, 204, 0, 0.2);
+}
+
+.vscode-diagnostic-span[data-single-char="true"].vscode-diagnostic-info {
+  background-color: rgba(55, 148, 255, 0.2);
+}
+
+span[data-has-lightbulb="true"] {
+  position: relative;
+  cursor: pointer;
+}
+
+/* Integrated lightbulb CSS - shows on hover over diagnostic spans */
+.vscode-diagnostic-span[data-has-lightbulb="true"]::after {
+  content: '💡';
+  display: var(--lightbulb-display, none);
+  position: absolute;
+  top: 0;
+  right: -18px;
+  background: transparent;
+  padding: 2px;
+  font-size: 12px;
+  line-height: 1;
+  z-index: 1000;
+  pointer-events: auto;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  color: initial;
+}
+
+.vscode-diagnostic-span[data-has-lightbulb="true"]:hover::after {
+  display: inline-block !important;
+}
+
+.vscode-diagnostic-span[data-has-lightbulb="true"]:hover {
+  --lightbulb-display: inline-block;
+}
+
+/* Embed preview icon - shows on hover over embed elements */
+.vditor-ir__preview[data-has-embed-preview="true"]::after {
+  content: '👁️';
+  display: var(--embed-preview-display, none);
+  position: absolute;
+  top: 50%;
+  right: 2px;
+  transform: translateY(-50%);
+  background: transparent;
+  padding: 2px;
+  font-size: 14px;
+  line-height: 1;
+  z-index: 1000;
+  pointer-events: auto;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.vditor-ir__preview[data-has-embed-preview="true"]:hover::after {
+  display: inline-block !important;
+}
+
+.vditor-ir__preview[data-has-embed-preview="true"]:hover {
+  --embed-preview-display: inline-block;
+}
+
+/* ============================================
+   Wiki-Link IR Rendering Styles
+   ============================================ */
+
+/* Wiki-link IR container */
+.vditor-ir__node[data-type="wiki-link"] {
+  display: inline;
+  position: relative;
+}
+
+/* Hide markers by default (preview mode) for both wiki-links and embeds */
+.vditor-ir__node[data-type="wiki-link"] > .vditor-ir__marker,
+.vditor-ir__node[data-type="embed-link"] > .vditor-ir__marker {
+  display: none;
+}
+
+/* Show markers when expanding (vditor-ir__node--expand class) */
+.vditor-ir__node[data-type="wiki-link"].vditor-ir__node--expand > .vditor-ir__marker,
+.vditor-ir__node[data-type="embed-link"].vditor-ir__node--expand > .vditor-ir__marker {
+  display: inline;
+  color: var(--vscode-editorBracketMatch-border, #888);
+  user-select: none;
+}
+
+/* Ephemeral eye icon for embed previews - appears on hover, NOT saved to document */
+.vditor-ir__preview[data-has-embed-preview="true"] {
+  position: relative;
+  cursor: pointer;
+  --embed-eye-display: none;
+}
+
+.vditor-ir__preview[data-has-embed-preview="true"]:hover {
+  --embed-eye-display: inline;
+}
+
+.vditor-ir__preview[data-has-embed-preview="true"]::after {
+  content: '👁️';
+  display: var(--embed-eye-display);
+  position: absolute;
+  right: -24px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* Embed preview overlay styling */
+#vscode-embed-preview-overlay {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 20000;
+  max-width: 40vw;
+  max-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--vscode-editorWidget-background, rgba(37, 37, 38, 0.95));
+  border: 1px solid var(--vscode-editorWidget-border, #454545);
+  border-radius: 6px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  color: var(--vscode-editorWidget-foreground, #cccccc);
+  font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-size: 13px;
+}
+
+/* Header with icon buttons */
+#vscode-embed-preview-overlay .embed-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--vscode-editorWidget-border, #454545);
+  flex-shrink: 0;
+}
+
+#vscode-embed-preview-overlay .embed-title {
+  flex: 1;
+  font-weight: 600;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0;
+}
+
+#vscode-embed-preview-overlay .embed-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+/* Icon buttons at top - match sidebar styling */
+#vscode-embed-preview-overlay .icon-btn {
+  background: none;
+  border: none;
+  color: var(--vscode-foreground);
+  cursor: pointer;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+  transition: opacity 0.2s, background-color 0.2s;
+  border-radius: 3px;
+  position: relative;
+  font-size: 16px;
+  width: 28px;
+  height: 28px;
+}
+
+#vscode-embed-preview-overlay .icon-btn:hover {
+  opacity: 1;
+  background-color: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
+}
+
+/* Tooltip for icon buttons */
+#vscode-embed-preview-overlay .icon-btn::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: -28px;
+  right: 0;
+  background: var(--vscode-editorHoverWidget-background, #252526);
+  color: var(--vscode-editorHoverWidget-foreground, #cccccc);
+  border: 1px solid var(--vscode-editorHoverWidget-border, #454545);
+  padding: 4px 8px;
+  border-radius: 3px;
+  font-size: 11px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+  z-index: 1;
+}
+
+#vscode-embed-preview-overlay .icon-btn:hover::after {
+  opacity: 1;
+}
+
+/* Scrollable content area */
+#vscode-embed-preview-overlay .embed-content {
+  overflow: auto;
+  padding: 12px;
+  flex: 1;
+  min-height: 0;
+}
+
+#vscode-embed-preview-overlay pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: var(--vscode-textCodeBlock-background, rgba(0, 0, 0, 0.2));
+  padding: 8px;
+  border-radius: 4px;
+  margin: 8px 0;
+  font-family: var(--vscode-editor-font-family, 'Courier New', monospace);
+  font-size: 12px;
+}
+
+#vscode-embed-preview-overlay img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  margin: 8px 0;
+}
+
+#vscode-embed-preview-overlay a {
+  color: var(--vscode-textLink-foreground, #4080d0);
+  text-decoration: none;
+}
+
+#vscode-embed-preview-overlay a:hover {
+  text-decoration: underline;
+}
+
+/* Quick fix button styling for other contexts */
+.vscode-quickfix-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 14px;
+  background-color: var(--vscode-button-background, #0e639c);
+  color: var(--vscode-button-foreground, #ffffff);
+  border: 1px solid var(--vscode-button-border, transparent);
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-weight: 400;
+  transition: background-color 0.15s ease;
+  text-decoration: none;
+  outline: none;
+  line-height: 1.4;
+}
+
+.vscode-quickfix-button:hover {
+  background-color: var(--vscode-button-hoverBackground, #1177bb);
+}
+
+.vscode-quickfix-button:active {
+  background-color: var(--vscode-button-hoverBackground, #1177bb);
+  opacity: 0.9;
+}
+
+.vscode-quickfix-button:focus {
+  outline: 1px solid var(--vscode-focusBorder, #007fd4);
+  outline-offset: 2px;
+}
+
+/* Wiki-link and embed-link preview: show display text by default with link styling */
+.vditor-ir__node[data-type="wiki-link"] > .vditor-ir__preview,
+.vditor-ir__node[data-type="wiki-link"] .vditor-ir__preview,
+.vditor-ir__node[data-type="embed-link"] > .vditor-ir__preview,
+.vditor-ir__node[data-type="embed-link"] .vditor-ir__preview {
+  display: inline;
+  color: var(--vscode-textLink-foreground, #4080d0);
+  cursor: pointer;
+  text-decoration: underline;
+  transition: color 0.2s ease;
+}
+.vditor-ir__node[data-type="wiki-link"] > .vditor-ir__preview:hover,
+.vditor-ir__node[data-type="wiki-link"] .vditor-ir__preview:hover,
+.vditor-ir__node[data-type="embed-link"] > .vditor-ir__preview:hover,
+.vditor-ir__node[data-type="embed-link"] .vditor-ir__preview:hover {
+  color: var(--vscode-textLink-activeForeground, #6ca8ff);
+}
+
+/* When editing (expand mode), show raw link content and change styling */
+.vditor-ir__node[data-type="wiki-link"].vditor-ir__node--expand > .vditor-ir__preview {
+  color: var(--vscode-editor-foreground);
+  text-decoration: none;
+  cursor: text;
+}
+
+/* Swap content: show raw link content when editing */
+.vditor-ir__node[data-type="wiki-link"].vditor-ir__node--expand > .vditor-ir__preview::before {
+  content: attr(data-link-content);
+}
+
+.vditor-ir__node[data-type="wiki-link"].vditor-ir__node--expand > .vditor-ir__preview {
+  font-size: 0; /* Hide actual text content */
+}
+
+.vditor-ir__node[data-type="wiki-link"].vditor-ir__node--expand > .vditor-ir__preview::before {
+  font-size: initial; /* Show ::before content */
+}
+
+/* ============================================
+   Dashboard Widget Styles
+   ============================================ */
+
+/* Dashboard wrapper */
+.dashboard-wrapper {
+  position: relative;
+  margin: 8px 0;
+}
+
+/* Dashboard toolbar */
+.dashboard-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--vscode-editor-background, #1e1e1e);
+  border: 1px solid var(--vscode-panel-border, #454545);
+  border-radius: 8px 8px 0 0;
+}
+
+/* Dashboard toolbar buttons */
+.dashboard-toolbar button {
+  padding: 4px 12px;
+  border: 1px solid var(--vscode-button-border, transparent);
+  background: var(--vscode-button-secondaryBackground, #3a3d41);
+  color: var(--vscode-button-secondaryForeground, #cccccc);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: background 0.2s;
+}
+
+.dashboard-toolbar button:hover {
+  background: var(--vscode-button-secondaryHoverBackground, #45494e);
+}
+
+.dashboard-toolbar button.dashboard-edit-toggle.active {
+  background: var(--vscode-button-background, #0e639c);
+  color: var(--vscode-button-foreground, #ffffff);
+}
+
+/* Dashboard container */
+.dashboard-container {
+  display: grid;
+  padding: 16px;
+  border-radius: 0 0 8px 8px;
+  background: var(--vscode-editor-background, #1e1e1e);
+  border: 1px solid var(--vscode-panel-border, #454545);
+  border-top: none;
+  min-height: 200px;
+}
+
+/* Dashboard title */
+.dashboard-title {
+  grid-column: 1 / -1;
+  font-size: 1.5em;
+  font-weight: 600;
+  color: var(--vscode-foreground, #cccccc);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--vscode-panel-border, #454545);
+  margin-bottom: 8px;
+}
+
+/* Widget wrapper */
+.dashboard-widget-wrapper {
+  min-height: 150px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  position: relative;
+}
+
+/* Widget wrapper in edit mode */
+.dashboard-widget-wrapper.edit-mode {
+  border: 2px dashed var(--vscode-textLink-foreground, #3794ff);
+  border-radius: 12px;
+  padding: 4px;
+  box-sizing: border-box;
+  cursor: grab;
+}
+
+.dashboard-widget-wrapper.edit-mode:active {
+  cursor: grabbing;
+}
+
+/* Remove button - hidden by default in normal mode */
+.widget-remove-btn {
+  position: absolute;
+  top: -10px;
+  right: calc(50% - 35px);
+  width: 70px;
+  height: 24px;
+  border: 2px solid var(--vscode-editor-background, #1e1e1e);
+  background: var(--vscode-textLink-foreground, #3794ff);
+  color: white;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: bold;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s, background 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Show button on wrapper hover (edit mode) */
+.dashboard-widget-wrapper.edit-mode:hover .widget-remove-btn {
+  display: flex;
+  opacity: 1;
+}
+
+/* Remove button hover effect */
+.widget-remove-btn:hover {
+  background: var(--vscode-errorForeground, #f48771) !important;
+  transform: scale(1.1);
+  opacity: 1 !important;
+}
+
+/* Empty state */
+.dashboard-empty-state {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  color: var(--vscode-descriptionForeground, #888888);
+  text-align: center;
+}
+
+/* Settings and Add Widget panels */
+.dashboard-settings-panel,
+.dashboard-add-widget-panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--vscode-editor-background, #1e1e1e);
+  border: 1px solid var(--vscode-panel-border, #454545);
+  border-radius: 8px;
+  padding: 20px;
+  z-index: 10000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.dashboard-settings-panel {
+  min-width: 300px;
+}
+
+.dashboard-add-widget-panel {
+  min-width: 400px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+/* Widget option button in add panel */
+.widget-option {
+  padding: 12px;
+  text-align: left;
+  background: var(--vscode-button-secondaryBackground, #3a3d41);
+  border: 1px solid var(--vscode-panel-border, #454545);
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--vscode-foreground, #cccccc);
+  transition: background 0.2s;
+}
+
+.widget-option:hover {
+  background: var(--vscode-list-hoverBackground, #2a2d2e);
+}
+
+/* Widget error display */
+.widget-error {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  border: 1px dashed var(--vscode-errorForeground, #f48771);
+  border-radius: 4px;
+  background: var(--vscode-inputValidation-errorBackground, rgba(244, 135, 113, 0.1));
+  color: var(--vscode-errorForeground, #f48771);
+  font-family: var(--vscode-font-family);
+  font-size: 0.9em;
+  text-align: center;
+}
+
+/* Dashboard error */
+.dashboard-error {
+  padding: 16px;
+  border: 2px solid var(--vscode-errorForeground, #f48771);
+  border-radius: 4px;
+  background: var(--vscode-inputValidation-errorBackground, rgba(244, 135, 113, 0.1));
+  color: var(--vscode-errorForeground, #f48771);
+  font-family: var(--vscode-font-family);
+  margin: 8px 0;
+}

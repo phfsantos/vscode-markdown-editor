@@ -1,0 +1,218 @@
+body {
+  margin: 0;
+  padding: 0;
+  color: var(--vscode-foreground);
+  background: var(--vscode-editor-background);
+  font-family: var(--vscode-font-family);
+}
+
+.hidden {
+  display: none !important;
+}
+
+#app {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) 1fr;
+  min-height: 100vh;
+  height: 100vh;
+  background-color: var(--vscode-sideBar-background);
+}
+
+.controls {
+  box-sizing: border-box;
+  padding: 10px;
+  border-right: 1px solid var(--vscode-panel-border);
+  background: var(--vscode-sideBar-background);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.control-group {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.control-group-checkbox label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.control-group-slider {
+  width: 100%;
+}
+
+.control-group-slider label {
+  min-width: 86px;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.control-group-slider .slider-value {
+  width: 56px;
+  text-align: right;
+  color: var(--vscode-descriptionForeground);
+  font-size: 12px;
+}
+
+.control-group input[type='range'] {
+  flex: 1 1 auto;
+}
+
+.slider-value,
+#stats {
+  color: var(--vscode-descriptionForeground);
+  font-size: 12px;
+}
+
+#graph-container {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  margin: 20px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: var(--vscode-editor-background);
+  height: calc(100% - 40px);
+}
+
+#graph {
+  width: 100%;
+  height: 100vh;
+  display: block;
+}
+
+.loading-overlay,
+.status-message {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  right: 16px;
+  z-index: 2;
+  border-radius: 8px;
+  padding: 12px 16px;
+  background: color-mix(in srgb, var(--vscode-editorWidget-background) 92%, transparent);
+  border: 1px solid var(--vscode-panel-border);
+  backdrop-filter: blur(6px);
+}
+
+.loading-overlay {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.loading-overlay p {
+  margin: 0;
+}
+
+.status-message {
+  top: auto;
+  bottom: 16px;
+}
+
+.status-message.error {
+  color: var(--vscode-errorForeground);
+  border-color: var(--vscode-errorForeground);
+}
+
+.status-message.info {
+  color: var(--vscode-descriptionForeground);
+}
+
+.loading-spinner {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--vscode-panel-border);
+  border-top-color: var(--vscode-progressBar-background);
+  animation: graph-spin 0.8s linear infinite;
+}
+
+@keyframes graph-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.legend {
+  position: absolute;
+  right: 25px;
+  bottom: 25px;
+  z-index: 1;
+  min-width: 180px;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 10px;
+  padding: 12px;
+  background: color-mix(in srgb, var(--vscode-editorWidget-background) 94%, transparent);
+}
+
+.legend h4 {
+  margin: 0 0 8px;
+  font-size: 12px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--vscode-descriptionForeground);
+  font-size: 11px;
+  padding: 0 0 4px 0;
+}
+
+.node-group {
+  cursor: pointer;
+}
+
+.node-focus {
+  fill: var(--vscode-textLink-foreground);
+  stroke: var(--vscode-textLink-activeForeground);
+  stroke-width: 2px;
+}
+
+.node-regular {
+  fill: var(--vscode-button-secondaryBackground);
+  stroke: var(--vscode-button-border, var(--vscode-panel-border));
+  stroke-width: 1.5px;
+}
+
+.node-label {
+  fill: var(--vscode-foreground);
+  font-size: 11px;
+  pointer-events: none;
+  user-select: none;
+}
+
+.edge-link {
+  stroke: var(--vscode-descriptionForeground);
+  stroke-opacity: 0.5;
+  stroke-width: 1.6;
+}
+
+.edge-backlink {
+  stroke: var(--vscode-descriptionForeground);
+  stroke-opacity: 0.6;
+  stroke-width: 1.6;
+  stroke-dasharray: 5 3;
+}
+
+@media (max-width: 900px) {
+  #app {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+    background-color: var(--vscode-sideBar-background);
+  }
+
+  .controls {
+    border-right: 0;
+    border-bottom: 1px solid var(--vscode-panel-border);
+  }
+
+  #graph, #graph-container {
+    min-height: 60vh;
+  }
+}

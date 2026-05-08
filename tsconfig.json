@@ -1,0 +1,16 @@
+{
+	"compilerOptions": {
+		"module": "commonjs",
+		"types": ["node", "vscode"],
+		"target": "es2019",
+		"lib": ["ES2019"],
+		"outDir": "out",
+		"sourceMap": true,
+		"strict": true,
+		"rootDir": "src",
+		"resolveJsonModule": true,
+		"esModuleInterop": true,
+		"skipLibCheck": true
+	},
+	"exclude": ["node_modules", ".vscode-test", "packages/media", "packages/widgets", "out", "Foyfile.ts"]
+}
