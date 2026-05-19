@@ -40,6 +40,7 @@ import { initializeWidgetSystem } from "./widget-integration";
 import { fixTableIr } from "./fix-table-ir";
 import { initializeLineNumbers } from "./line-number-renderer";
 import { inlineSuggestionController } from "./inline-suggestion-ui";
+import { initToolSelector, applySelectedTools } from "./tool-selector";
 
 // Global instances
 let diagnosticVisualizer: DiagnosticVisualizer | null = null;
@@ -684,7 +685,7 @@ function enhanceManualMenuForSubmenus(menuRoot: HTMLElement) {
         el.style.cursor = sub.disabled ? "default" : "pointer";
         el.style.color = sub.disabled
           ? "var(--vscode-disabledForeground, #666)"
-          : "var(--vscode-menu-foreground, #ccc)";
+          : "var(--vscode-menu-foreground, #cccccc)";
         el.style.fontSize = "13px";
         if (sub.disabled) {
           el.style.opacity = "0.5";
@@ -1561,11 +1562,15 @@ function initVditor(msg) {
           { separator: true },
           {
             label: "Format Document",
-            click: () => vscode.postMessage({ command: "formatDocument" }),
+            click: () => {
+              vscode.postMessage({ command: "formatDocument" });
+            },
           },
           {
             label: "Show Problems",
-            click: () => vscode.postMessage({ command: "showProblems" }),
+            click: () => {
+              vscode.postMessage({ command: "showProblems" });
+            },
           },
           {
             label: "Find",
@@ -1731,6 +1736,13 @@ function initVditor(msg) {
 
       // Process wiki-links and diagnostics after render completes
       processAfterRender();
+
+      // Initialize tool selector for .agent.md files
+      try {
+        // initToolSelector();
+      } catch (error) {
+        vscodeLog(`❌ Failed to initialize tool selector: ${error}`);
+      }
 
       // Set keyboard focus on editor when it's ready so user can start typing immediately
       setTimeout(() => {
@@ -2420,6 +2432,10 @@ window.addEventListener("message", (e) => {
       if (window.vditor && msg.widgetBlock) {
         window.vditor.insertValue(msg.widgetBlock);
       }
+      break;
+    }
+    case "nativeToolSelectorResult": {
+      applySelectedTools(msg.selectedTools ?? []);
       break;
     }
     case "inlineSuggestionEligibility": {

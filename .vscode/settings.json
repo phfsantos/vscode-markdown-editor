@@ -25,5 +25,8 @@
         "titleBar.inactiveForeground": "#e7e7e799"
     },
     "peacock.remoteColor": "#423843",
-    "git-worktree-menu.worktreeDir": "/var/www/vscode-markdown-editor/.worktrees"
+    "git-worktree-menu.worktreeDir": "/var/www/vscode-markdown-editor/.worktrees",
+    "terminal.integrated.env.osx": {
+        "PATH": "/Users/pedrosantos/.nvm/versions/node/v22.22.3/bin:${env:PATH}"
+    }
 }

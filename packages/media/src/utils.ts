@@ -149,6 +149,7 @@ const REGEX_SPACER_BLOCK_BY_CLASS = /<(?:div|p|span|section|article)[^>]*\bclass
 const REGEX_SPACER_BLOCK_BY_ATTR = /<[^>]*\bdata-diff-spacer="true"[^>]*>[\s\S]*?<\/[^>]+>/g;
 const REGEX_LINE_NUMBER_GUTTER = /<div[^>]*\bdata-vditor-line-number-gutter="true"[^>]*>[\s\S]*?<\/div>/g;
 const REGEX_INLINE_SUGGESTION_MARKER = /<span[^>]*\bdata-inline-suggestion-marker="true"[^>]*>[\s\S]*?<\/span>/g;
+const REGEX_TOOL_SELECTOR_WIDGET = /<span[^>]*\bdata-tool-selector-widget="true"[^>]*>[\s\S]*?<\/span>/g;
 const REGEX_DATA_DIFF_TYPE = /\s+data-diff-type="[^"]*"/g;
 const REGEX_DATA_DIFF_LINE = /\s+data-diff-line="[^"]*"/g;
 const REGEX_DATA_DECORATION_ID = /\s+data-decoration-id="[^"]*"/g;
@@ -205,6 +206,12 @@ export function cleanContentForSave(content: string): string {
   while (prevCleaned !== cleaned) {
     prevCleaned = cleaned;
     cleaned = cleaned.replace(REGEX_INLINE_SUGGESTION_MARKER, "");
+  }
+
+  prevCleaned = "";
+  while (prevCleaned !== cleaned) {
+    prevCleaned = cleaned;
+    cleaned = cleaned.replace(REGEX_TOOL_SELECTOR_WIDGET, "");
   }
 
   // CRITICAL: Remove entire diff spacer blocks (prevents them from being compared)
