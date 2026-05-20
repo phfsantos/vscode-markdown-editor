@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>markdown editor — diff left (original)</title>
+  <link rel="stylesheet" href="../out/media/main.css" />
+</head>
+
+<body>
+  <div id="app"></div>
+  <script async="false" src="../out/media/dist/js/icons/ant.js"></script>
+  <script async="false" src="../out/media/dist/js/icons/material.js"></script>
+  <script async="false" src="../out/media/dist/js/i18n/en_US.js"></script>
+  <script async="false" src="../out/media/main.js"></script>
+  <script async="false">
+    // Shared diff change set across left.html and right.html.
+    // Hand-computed for the simple test corpus below by running
+    // src/diff/MarkdownDiffViewSupport.ts:alignChangesWithSpacers on:
+    //   LCS matches L0=R0, L1=R1, L4=R2, L6=R6
+    //   deletions on left: L2, L3; modification at L5/R3; additions on right: R4, R5
+    const DIFF_CHANGES = [
+      {
+        type: 'deleted',
+        lineNumber: 2,
+        content: '<p>This paragraph will be deleted from the modified version.</p>',
+        side: 'left',
+        leftLine: 2,
+        rightLine: -1,
+      },
+      {
+        type: 'spacer',
+        lineNumber: 2,
+        content: '<p>This paragraph will be deleted from the modified version.</p>',
+        side: 'right',
+        leftLine: 2,
+        rightLine: -1,
+      },
+      {
+        type: 'deleted',
+        lineNumber: 3,
+        content: '<p>Another paragraph that gets removed.</p>',
+        side: 'left',
+        leftLine: 3,
+        rightLine: -1,
+      },
+      {
+        type: 'spacer',
+        lineNumber: 3,
+        content: '<p>Another paragraph that gets removed.</p>',
+        side: 'right',
+        leftLine: 3,
+        rightLine: -1,
+      },
+      {
+        type: 'modified',
+        lineNumber: 5,
+        content: '<p><img alt="Modified Image" src="https://placehold.co/300x150/c74e39/FFFFFF?text=Modified" /></p>',
+        oldContent: '<p><img alt="Original Image" src="https://placehold.co/300x150/0000FF/FFFFFF?text=Original" /></p>',
+        side: 'both',
+        leftLine: 5,
+        rightLine: 3,
+      },
+      {
+        type: 'spacer',
+        lineNumber: 6,
+        content: '<p>A newly added paragraph that demonstrates an addition.</p>',
+        side: 'left',
+        leftLine: -1,
+        rightLine: 4,
+      },
+      {
+        type: 'added',
+        lineNumber: 6,
+        content: '<p>A newly added paragraph that demonstrates an addition.</p>',
+        side: 'right',
+        leftLine: -1,
+        rightLine: 4,
+      },
+      {
+        type: 'spacer',
+        lineNumber: 7,
+        content: '<p>A second newly added paragraph with a bit more text.</p>',
+        side: 'left',
+        leftLine: -1,
+        rightLine: 5,
+      },
+      {
+        type: 'added',
+        lineNumber: 7,
+        content: '<p>A second newly added paragraph with a bit more text.</p>',
+        side: 'right',
+        leftLine: -1,
+        rightLine: 5,
+      },
+    ];
+
+    const LEFT_CONTENT = `# Diff View Test
+
+This paragraph is identical in both versions.
+
+This paragraph will be deleted from the modified version.
+
+Another paragraph that gets removed.
+
+Both versions still share this third paragraph.
+
+![Original Image](https://placehold.co/300x150/0000FF/FFFFFF?text=Original)
+
+Same closing paragraph.`;
+
+    // Stats for the LEFT role, derived the same way as
+    // src/diff/roleSpecificStats.ts:calculateRoleSpecificDiffStats.
+    const LEFT_STATS = { added: 0, deleted: 2, modified: 1, spacers: 2 };
+
+    // 1. Boot Vditor with the original content.
+    setTimeout(() => {
+      window.postMessage(
+        {
+          command: 'update',
+          content: LEFT_CONTENT,
+          theme: 'dark',
+          type: 'init',
+        },
+        '*'
+      );
+    }, 2000);
+
+    // 2. After Vditor has rendered, push the diff payload (mirrors the
+    //    diff-view-detected envelope built in src/app/EditorPanel.ts).
+    setTimeout(() => {
+      window.postMessage(
+        {
+          type: 'diff-view-detected',
+          diffInfo: {
+            role: 'left',
+            otherUri: 'inmemory://right.md',
+            instanceId: 'diff-test-left',
+            changes: DIFF_CHANGES,
+            stats: LEFT_STATS,
+            isHtmlBased: true,
+            clearExistingSpacers: true,
+          },
+        },
+        '*'
+      );
+    }, 5000);
+  </script>
+</body>
+
+</html>

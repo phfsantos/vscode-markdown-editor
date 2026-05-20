@@ -467,30 +467,30 @@ function buildVSCodeContextMenu(event?: MouseEvent) {
   items.push(
     {
       label: "Quick Fix...",
-      click: () => vscode.postMessage({ command: "triggerQuickFix" }),
+      click: () => vscode?.postMessage({ command: "triggerQuickFix" }),
       disabled: !diagAvailable,
     },
     {
       label: "Format Document",
-      click: () => vscode.postMessage({ command: "formatDocument" }),
+      click: () => vscode?.postMessage({ command: "formatDocument" }),
     },
     {
       label: "Format Selection",
-      click: () => vscode.postMessage({ command: "formatSelection" }),
+      click: () => vscode?.postMessage({ command: "formatSelection" }),
       disabled: !selection.hasSelection,
     },
     {
       label: "Show Problems",
-      click: () => vscode.postMessage({ command: "showProblems" }),
+      click: () => vscode?.postMessage({ command: "showProblems" }),
     }
   );
   items.push({ separator: true });
   // Navigation / search group
   items.push(
-    { label: "Find", click: () => vscode.postMessage({ command: "find" }) },
+    { label: "Find", click: () => vscode?.postMessage({ command: "find" }) },
     {
       label: "Find & Replace",
-      click: () => vscode.postMessage({ command: "findAndReplace" }),
+      click: () => vscode?.postMessage({ command: "findAndReplace" }),
     }
   );
   items.push({ separator: true });
@@ -500,21 +500,21 @@ function buildVSCodeContextMenu(event?: MouseEvent) {
     submenu: [
       {
         label: "Link",
-        click: () => vscode.postMessage({ command: "insertLink" }),
+        click: () => vscode?.postMessage({ command: "insertLink" }),
       },
       {
         label: "Image",
-        click: () => vscode.postMessage({ command: "insertImage" }),
+        click: () => vscode?.postMessage({ command: "insertImage" }),
       },
       {
         label: "Table",
-        click: () => vscode.postMessage({ command: "insertTable" }),
+        click: () => vscode?.postMessage({ command: "insertTable" }),
       },
       { separator: true },
       {
         label: "Kanban Board",
         click: () =>
-          vscode.postMessage({
+          vscode?.postMessage({
             command: "requestInsertRenderer",
             rendererType: "kanban-board",
           }),
@@ -522,7 +522,7 @@ function buildVSCodeContextMenu(event?: MouseEvent) {
       {
         label: "Interactive Table",
         click: () =>
-          vscode.postMessage({
+          vscode?.postMessage({
             command: "requestInsertRenderer",
             rendererType: "table",
           }),
@@ -630,11 +630,11 @@ widgets:
   items.push(
     {
       label: "Command Palette...",
-      click: () => vscode.postMessage({ command: "showCommandPalette" }),
+      click: () => vscode?.postMessage({ command: "showCommandPalette" }),
     },
     {
       label: "Toggle Word Wrap",
-      click: () => vscode.postMessage({ command: "toggleWordWrap" }),
+      click: () => vscode?.postMessage({ command: "toggleWordWrap" }),
     }
   );
   return items;
@@ -820,7 +820,7 @@ async function performClipboardAction(kind: "cut" | "copy" | "paste") {
         }
 
         // Fallback: ask extension if Clipboard API failed
-        vscode.postMessage({ command: "clipboardReadRequest" });
+        vscode?.postMessage({ command: "clipboardReadRequest" });
       } finally {
         // Reset flag after a short delay to allow event to be suppressed
         setTimeout(() => {
@@ -865,16 +865,16 @@ async function performClipboardAction(kind: "cut" | "copy" | "paste") {
       }
 
       // Fallback: extension messaging
-      vscode.postMessage({ command: "clipboardWriteRequest", kind, text });
+      vscode?.postMessage({ command: "clipboardWriteRequest", kind, text });
     }
   } catch (err) {
     vscodeLog(`❌ Clipboard action ${kind} failed: ${err}`);
     if (kind === "paste") {
-      vscode.postMessage({ command: "clipboardReadRequest" });
+      vscode?.postMessage({ command: "clipboardReadRequest" });
     } else {
       const sel = window.getSelection();
       const text = sel ? sel.toString() : "";
-      vscode.postMessage({ command: "clipboardWriteRequest", kind, text });
+      vscode?.postMessage({ command: "clipboardWriteRequest", kind, text });
     }
   }
 }
@@ -1039,7 +1039,7 @@ document.addEventListener("keydown", (e: KeyboardEvent) => {
 
 // VS Code logging function
 function vscodeLog(message: string) {
-  vscode.postMessage({
+  vscode?.postMessage({
     command: "log",
     message: message,
   });
@@ -1563,44 +1563,44 @@ function initVditor(msg) {
           {
             label: "Format Document",
             click: () => {
-              vscode.postMessage({ command: "formatDocument" });
+              vscode?.postMessage({ command: "formatDocument" });
             },
           },
           {
             label: "Show Problems",
             click: () => {
-              vscode.postMessage({ command: "showProblems" });
+              vscode?.postMessage({ command: "showProblems" });
             },
           },
           {
             label: "Find",
-            click: () => vscode.postMessage({ command: "find" }),
+            click: () => vscode?.postMessage({ command: "find" }),
           },
           {
             label: "Find && Replace",
-            click: () => vscode.postMessage({ command: "findAndReplace" }),
+            click: () => vscode?.postMessage({ command: "findAndReplace" }),
           },
           { separator: true },
           {
             label: "Insert Link",
-            click: () => vscode.postMessage({ command: "insertLink" }),
+            click: () => vscode?.postMessage({ command: "insertLink" }),
           },
           {
             label: "Insert Image",
-            click: () => vscode.postMessage({ command: "insertImage" }),
+            click: () => vscode?.postMessage({ command: "insertImage" }),
           },
           {
             label: "Insert Table",
-            click: () => vscode.postMessage({ command: "insertTable" }),
+            click: () => vscode?.postMessage({ command: "insertTable" }),
           },
           { separator: true },
           {
             label: "Command Palette...",
-            click: () => vscode.postMessage({ command: "showCommandPalette" }),
+            click: () => vscode?.postMessage({ command: "showCommandPalette" }),
           },
           {
             label: "Toggle Word Wrap",
-            click: () => vscode.postMessage({ command: "toggleWordWrap" }),
+            click: () => vscode?.postMessage({ command: "toggleWordWrap" }),
           },
         ];
       }
@@ -1678,13 +1678,13 @@ function initVditor(msg) {
             {
               label: "Format Document",
               click: () => {
-                vscode.postMessage({ command: "formatDocument" });
+                vscode?.postMessage({ command: "formatDocument" });
               },
             },
             {
               label: "Show Problems",
               click: () => {
-                vscode.postMessage({ command: "showProblems" });
+                vscode?.postMessage({ command: "showProblems" });
               },
             },
           ];
@@ -2092,7 +2092,7 @@ function initVditor(msg) {
 
       // Notify extension that Vditor has initialized/reloaded so sidebar can update
       try {
-        vscode.postMessage({
+        vscode?.postMessage({
           command: "vditorReady",
         });
       } catch (error) {
@@ -2137,7 +2137,7 @@ function initVditor(msg) {
           const beforeCursor = textContent.substring(0, range.startOffset);
           const lines = beforeCursor.split("\n");
 
-          vscode.postMessage({
+          vscode?.postMessage({
             command: "cursorPosition",
             line: lines.length - 1,
             character: lines[lines.length - 1].length,
@@ -2152,7 +2152,7 @@ function initVditor(msg) {
       inlineSuggestionController.handleEditorInput({ content: rawContent });
 
       // Send cleaned content to VS Code
-      vscode.postMessage({ command: "edit", content: rawContent });
+      vscode?.postMessage({ command: "edit", content: rawContent });
 
       // Re-set the editor content to trigger re-rendering of custom blocks
       if (shouldResetValue) {
@@ -2194,7 +2194,7 @@ function initVditor(msg) {
             };
           })
         );
-        vscode.postMessage({
+        vscode?.postMessage({
           command: "upload",
           files: fileInfos,
         });
@@ -2299,6 +2299,8 @@ window.addEventListener("message", (e) => {
           justReceivedExternalChange = false;
         }, 500);
       }
+
+      vscode?.postMessage({ command: "ready" });
       break;
     }
     case "uploaded": {
@@ -2400,7 +2402,7 @@ window.addEventListener("message", (e) => {
       // Handle insert kanban board command from VS Code
       if (window.vditor) {
         // Request a new kanban board with file creation
-        vscode.postMessage({
+        vscode?.postMessage({
           command: "requestInsertRenderer",
           rendererType: "kanban-board",
         });
@@ -2411,7 +2413,7 @@ window.addEventListener("message", (e) => {
       // Handle insert interactive table command from VS Code
       if (window.vditor) {
         // Request a new interactive table with file creation
-        vscode.postMessage({
+        vscode?.postMessage({
           command: "requestInsertRenderer",
           rendererType: "table",
         });
@@ -2570,7 +2572,7 @@ window.addEventListener("message", (e) => {
           openBtn.setAttribute("aria-label", "Open File");
           openBtn.addEventListener("click", () => {
             try {
-              vscode.postMessage({ command: "openFile", path: embed.path });
+              vscode?.postMessage({ command: "openFile", path: embed.path });
             } catch (err) {
               vscodeLog(`❌ open button postMessage failed: ${err}`);
             }
@@ -2662,7 +2664,7 @@ window.addEventListener("message", (e) => {
       }
 
       try {
-          vscode.postMessage({
+          vscode?.postMessage({
             command: "irHtmlResponse",
             html: vditor.getHTML(), // still use vditor.getHTML() to ensure consistency
             requestId: msg.requestId,
@@ -2674,7 +2676,7 @@ window.addEventListener("message", (e) => {
           );
         }
 
-        vscode.postMessage({
+        vscode?.postMessage({
           command: "irHtmlResponse",
           html: null,
           requestId: msg.requestId,
@@ -2695,7 +2697,7 @@ window.addEventListener("message", (e) => {
             msg.documentFilename
           );
 
-          vscode.postMessage({
+          vscode?.postMessage({
             command: "renderedMarkdownHtmlResponse",
             html,
             requestId: msg.requestId,
@@ -2707,7 +2709,7 @@ window.addEventListener("message", (e) => {
             );
           }
 
-          vscode.postMessage({
+          vscode?.postMessage({
             command: "renderedMarkdownHtmlResponse",
             html: null,
             requestId: msg.requestId,
@@ -2770,7 +2772,7 @@ window.addEventListener("message", (e) => {
           // CRITICAL: Sync the updated content back to VS Code AND trigger re-render
           if (window.vditor) {
             const rawContent = vditor.getValue();
-            vscode.postMessage({ command: "edit", content: rawContent });
+            vscode?.postMessage({ command: "edit", content: rawContent });
 
             // Force Vditor to re-render the updated code block
             // This ensures the renderer re-initializes with the correct board ID and file
@@ -2792,7 +2794,7 @@ window.addEventListener("message", (e) => {
 window.addEventListener('calendar-request', ((event: CustomEvent) => {
   // Widget is requesting calendar events
   const { provider, date, requestId } = event.detail || {};
-  vscode.postMessage({
+  vscode?.postMessage({
     command: 'calendar-request',
     provider: provider || 'all',
     date: date || new Date().toISOString().split('T')[0],
@@ -2803,7 +2805,7 @@ window.addEventListener('calendar-request', ((event: CustomEvent) => {
 window.addEventListener('calendar-auth', ((event: CustomEvent) => {
   // Widget is requesting calendar authentication
   const { provider, requestId } = event.detail || {};
-  vscode.postMessage({
+  vscode?.postMessage({
     command: 'calendar-auth',
     provider: provider || 'outlook', // Default to Outlook as it's better supported
     requestId,
@@ -2813,7 +2815,7 @@ window.addEventListener('calendar-auth', ((event: CustomEvent) => {
 window.addEventListener('calendar-signout', ((event: CustomEvent) => {
   // Widget is requesting to sign out from a calendar provider
   const { provider, requestId } = event.detail || {};
-  vscode.postMessage({
+  vscode?.postMessage({
     command: 'calendar-signout',
     provider,
     requestId,
@@ -2827,7 +2829,7 @@ window.addEventListener('calendar-event-action', ((event: CustomEvent) => {
   // Handle video meeting actions
   if (action === 'join' && eventData?.link) {
     // Open meeting link in browser
-    vscode.postMessage({
+    vscode?.postMessage({
       command: 'open-link',
       href: eventData.link,
     });
@@ -2836,5 +2838,3 @@ window.addEventListener('calendar-event-action', ((event: CustomEvent) => {
 
 fixLinkClick();
 fixCut();
-
-vscode.postMessage({ command: "ready" });

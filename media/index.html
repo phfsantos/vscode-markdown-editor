@@ -18,12 +18,18 @@
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/jquery-confirm@3.3.4/css/jquery-confirm.css"
     /> -->
-    <link rel="stylesheet" href="./out/media/main.css" />
+    <link rel="stylesheet" href="../out/media/main.css" />
   </head>
   <body>
     <div id="app"></div>
-    <script src="./out/media/main.js"></script>
-    <script>
+    
+    <script async="false" src="../out/media/dist/js/icons/ant.js"></script>
+    <script async="false" src="../out/media/dist/js/icons/material.js"></script>
+    <script async="false" src="../out/media/dist/js/i18n/en_US.js"></script>
+    <script async="false" src="../out/media/main.js"></script>
+    <script async="false">
+      console.log('window.VditorI18n', window.VditorI18n);
+      setTimeout(() => {
       window.postMessage(
         {
           command: 'update',
@@ -40,18 +46,7 @@
         },
         '*'
       )
-      let timer = setTimeout(() => {
-        vditor.vditor.ir.element.addEventListener('keydown', (e) =>
-          console.log('vkd', e)
-        )
-        let ev = new KeyboardEvent('keydown', {
-          key: '=',
-          code: 'Equal',
-          keyCode: 187,
-          metaKey: true,
-        })
-        vditor.vditor.ir.element.dispatchEvent(ev)
-      }, 3000)
+      }, 2000);
     </script>
   </body>
 </html>
