@@ -61,6 +61,45 @@ export function getLineNumberLayout(lineCount: number): {
   return { gutterWidth, paddingLeft };
 }
 
+export interface LineNumberPositionInput {
+  rect: { top: number; height: number };
+  fallbackLineHeight: number;
+}
+
+export interface LineNumberPosition {
+  top: number;
+  height: number;
+}
+
+/**
+ * Compute absolute gutter positions for a sequence of measured line elements.
+ *
+ * Each item's `top` is the measured viewport offset translated into root-relative
+ * scroll coordinates, but clamped to never sit above the previous item's bottom.
+ * This guarantees that when a source line wraps to multiple visual rows
+ * (rect.height > line-height), the next line's number cannot land inside the
+ * wrap continuation — which was the observed "26 next to change." drift.
+ */
+export function computeLineNumberPositions(
+  inputs: LineNumberPositionInput[],
+  rootRectTop: number,
+  scrollTop: number,
+): LineNumberPosition[] {
+  const positions: LineNumberPosition[] = [];
+  let previousBottom = 0;
+
+  for (const { rect, fallbackLineHeight } of inputs) {
+    const measuredTop = Math.max(0, rect.top - rootRectTop + scrollTop);
+    const height = Math.max(rect.height, fallbackLineHeight);
+    const top = Math.max(measuredTop, previousBottom);
+
+    positions.push({ top, height });
+    previousBottom = top + height;
+  }
+
+  return positions;
+}
+
 export function getSelectedLineNumber(
   selection: SelectionLike | null | undefined,
   root: LineAnchorElement | null,
@@ -371,6 +410,16 @@ class VditorLineNumberRenderer {
 
     const rootRect = root.getBoundingClientRect();
 
+    const positionInputs: LineNumberPositionInput[] = lineElements.map((element) => ({
+      rect: element.getBoundingClientRect(),
+      fallbackLineHeight: this.getFallbackLineHeight(element),
+    }));
+    const positions = computeLineNumberPositions(
+      positionInputs,
+      rootRect.top,
+      root.scrollTop,
+    );
+
     lineElements.forEach((element, index) => {
       this.lineMap.set(index, element);
       element.setAttribute(ANCHOR_ATTRIBUTE, "true");
@@ -385,10 +434,7 @@ class VditorLineNumberRenderer {
       lineNumber.setAttribute("contenteditable", "false");
       lineNumber.textContent = String(index + 1);
 
-      const rect = element.getBoundingClientRect();
-      const top = Math.max(0, rect.top - rootRect.top + root.scrollTop);
-      const height = Math.max(rect.height, this.getFallbackLineHeight(element));
-
+      const { top, height } = positions[index];
       lineNumber.style.top = `${top}px`;
       lineNumber.style.height = `${height}px`;
       this.lineNumberMap.set(index, lineNumber);

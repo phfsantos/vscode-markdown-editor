@@ -24,6 +24,7 @@ import { SingleAlarmWidget } from './SingleAlarmWidget';
 import { StopwatchWidget } from './StopwatchWidget';
 import { ButtonWidget } from './ButtonWidget';
 import { MacroBoardWidget } from './MacroBoardWidget';
+import { DevCommandsWidget } from './DevCommandsWidget';
 
 /**
  * Register all core widgets
@@ -263,6 +264,19 @@ export function registerCoreWidgets() {
       component: MacroBoardWidget,
       tagName: 'macro-board-widget',
       displayName: 'Macro Board'
+    }
+  });
+
+  // Dev Commands Widget
+  registry.register({
+    type: 'dev-commands',
+    displayName: 'Dev Commands',
+    description: 'Developer commands panel with 2x2, 4x4, or 6x6 grid of VS Code command tiles',
+    category: 'productivity',
+    reactComponent: {
+      component: DevCommandsWidget,
+      tagName: 'dev-commands-widget',
+      displayName: 'Dev Commands'
     }
   });
 }

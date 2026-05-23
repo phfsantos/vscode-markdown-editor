@@ -20,6 +20,7 @@ const tests = [
   'html-line-parser.test.js',
   'html-diff-support.test.js',
   'line-number-renderer.test.js',
+  'line-number-wrap-positions.test.js',
   'clean-content-for-save.test.js',
   'toolbar-open-text-editor.test.js',
   'widget-integration.test.js',

@@ -1,4 +1,5 @@
 import { vscodeLogWarn, vscodeLogError } from "./webview-logger";
+import { getRenderedLineElements, type DomLikeElement } from "./diff-line-dom-mapper";
 
 /**
  * Handles VS Code diagnostic visualization in Vditor editor
@@ -816,17 +817,29 @@ export class DiagnosticVisualizer {
     editor: HTMLElement,
     cursorElement?: Element | null
   ): void {
-    // Step 1: Sort diagnostics by line number for efficient processing
     const sortedDiagnostics = this.prepareSortedDiagnostics();
     if (sortedDiagnostics.length === 0) {
       return;
     }
 
-    // Step 2: Get all block elements that could represent markdown lines
-    const blockElements = this.getMarkdownBlockElements(editor);
+    // PRIMARY: route each diagnostic to its source line's rendered element using
+    // the same line→DOM mapping that drives the line-number gutter and diff view.
+    // This prevents same-word collisions: 10 spelling errors on 10 lines all land
+    // on their own line instead of stacking on the first occurrence found by text search.
+    const lineToElement = this.buildLineAnchorMap(editor, cursorElement);
+    const unmatched = this.applyDiagnosticsByLineAnchor(
+      lineToElement,
+      sortedDiagnostics
+    );
 
-    // Step 3: Filter out the cursor element to avoid disrupting user's typing
-    // Also track which diagnostics would apply to cursor element for later application
+    if (unmatched.length === 0) {
+      return;
+    }
+
+    // FALLBACK: when a diagnostic's source line has no rendered anchor (e.g. inside
+    // a code block or a multi-source-line paragraph), fall through to content-based
+    // matching across all block elements.
+    const blockElements = this.getMarkdownBlockElements(editor);
     const safeElements = cursorElement
       ? blockElements.filter(
           (item) =>
@@ -837,12 +850,129 @@ export class DiagnosticVisualizer {
       : blockElements;
 
     if (cursorElement && safeElements.length < blockElements.length) {
-      // Mark that we skipped some diagnostics due to cursor position
       this.hasSkippedDiagnostics = true;
     }
 
-    // Step 4: Single pass through safe DOM elements, matching with sorted diagnostics
-    this.matchDiagnosticsToElements(safeElements, sortedDiagnostics);
+    this.matchDiagnosticsToElements(safeElements, unmatched);
+  }
+
+  /**
+   * Build an authoritative source-line → rendered-element map using the same
+   * traversal as the line-number renderer and diff visualizer. Cursor element
+   * is excluded so typing isn't disrupted.
+   */
+  private buildLineAnchorMap(
+    editor: HTMLElement,
+    cursorElement?: Element | null
+  ): Map<number, HTMLElement> {
+    const map = new Map<number, HTMLElement>();
+    let lineElements: HTMLElement[];
+    try {
+      lineElements = getRenderedLineElements(
+        editor as unknown as DomLikeElement
+      ) as HTMLElement[];
+    } catch {
+      return map;
+    }
+
+    lineElements.forEach((element, index) => {
+      if (
+        cursorElement &&
+        (element === cursorElement ||
+          this.isDescendantOf(element, cursorElement) ||
+          this.isDescendantOf(cursorElement, element))
+      ) {
+        this.hasSkippedDiagnostics = true;
+        return;
+      }
+      map.set(index, element);
+    });
+
+    return map;
+  }
+
+  /**
+   * Apply diagnostics by direct line-anchor lookup. Returns diagnostics that
+   * could not be routed (line index missing from the map) so the caller can
+   * fall back to fuzzy matching.
+   */
+  private applyDiagnosticsByLineAnchor(
+    lineToElement: Map<number, HTMLElement>,
+    sortedDiagnostics: Array<{
+      diagnostic: any;
+      lineNumber: number;
+      lineText: string;
+    }>
+  ): Array<{ diagnostic: any; lineNumber: number; lineText: string }> {
+    const unmatched: Array<{
+      diagnostic: any;
+      lineNumber: number;
+      lineText: string;
+    }> = [];
+
+    for (const entry of sortedDiagnostics) {
+      const { diagnostic, lineNumber, lineText } = entry;
+      const targetElement = lineToElement.get(lineNumber);
+
+      if (!targetElement) {
+        unmatched.push(entry);
+        continue;
+      }
+
+      const range = diagnostic.range;
+      const startChar = range?.start?.character ?? 0;
+      const endChar = range?.end?.character ?? startChar + 1;
+      const targetText = lineText.substring(startChar, endChar);
+
+      if (!targetText.trim()) {
+        continue;
+      }
+
+      if (
+        this.isDiagnosticAlreadyApplied(
+          diagnostic,
+          lineNumber,
+          startChar,
+          endChar
+        )
+      ) {
+        continue;
+      }
+
+      if (
+        this.hasOverlappingDiagnostic(
+          targetElement,
+          startChar,
+          endChar,
+          lineNumber,
+          diagnostic
+        )
+      ) {
+        continue;
+      }
+
+      const matchResult = {
+        matched: true,
+        confidence: 1000,
+        matchType: "line-anchor-match",
+        targetText,
+        charRange: { start: startChar, end: endChar },
+      };
+
+      const applied = this.applyDiagnosticToMatchedElement(
+        targetElement,
+        diagnostic,
+        matchResult
+      );
+
+      // If the target text isn't present in the resolved element (e.g. rendered
+      // markdown stripped a marker), fall back to fuzzy matching for this one.
+      if (!applied) {
+        unmatched.push(entry);
+      }
+    }
+
+    return unmatched;
   }
 
   /**

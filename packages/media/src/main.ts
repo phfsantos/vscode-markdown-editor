@@ -362,6 +362,34 @@ function insertWidgetDirect(widgetType: string) {
       data: {
         executionCounts: {}
       }
+    },
+    'dev-commands': {
+      config: {
+        type: 'dev-commands',
+        title: 'Dev Commands',
+        gridSize: '4x4',
+        commands: [
+          { id: 'explorer', label: 'Explorer', icon: 'explorer', command: 'workbench.view.explorer' },
+          { id: 'search', label: 'Search', icon: 'search', command: 'workbench.view.search' },
+          { id: 'source-control', label: 'Source Control', icon: 'source-control', command: 'workbench.view.scm' },
+          { id: 'extensions', label: 'Extensions', icon: 'extensions', command: 'workbench.view.extensions' },
+          { id: 'problems', label: 'Problems', icon: 'problems', command: 'workbench.actions.view.problems' },
+          { id: 'output', label: 'Output', icon: 'output', command: 'workbench.action.output.toggleOutput' },
+          { id: 'git', label: 'Git', icon: 'git', command: 'git.openChange' },
+          { id: 'terminal', label: 'Terminal', icon: 'terminal', command: 'workbench.action.terminal.toggleTerminal' },
+          { id: 'run', label: 'Run', icon: 'run', command: 'workbench.action.debug.run' },
+          { id: 'debug', label: 'Debug', icon: 'debug', command: 'workbench.action.debug.start' },
+          { id: 'tasks', label: 'Tasks', icon: 'tasks', command: 'workbench.action.tasks.runTask' },
+          { id: 'palette', label: 'Palette', icon: 'palette', command: 'workbench.action.showCommands' },
+          { id: 'quick-open', label: 'Quick Open', icon: 'search', command: 'workbench.action.quickOpen' },
+          { id: 'sidebar', label: 'Sidebar', icon: 'sidebar', command: 'workbench.action.toggleSidebarVisibility' },
+          { id: 'theme', label: 'Theme', icon: 'theme', command: 'workbench.action.selectTheme' },
+          { id: 'save-all', label: 'Save All', icon: 'save', command: 'workbench.action.files.saveAll' }
+        ]
+      },
+      data: {
+        executionCounts: {}
+      }
     }
   };
 
@@ -622,6 +650,10 @@ widgets:
       {
         label: "🎛️ Macro Board Widget",
         click: () => insertWidgetDirect("macro-board"),
+      },
+      {
+        label: "⌨️ Dev Commands Widget",
+        click: () => insertWidgetDirect("dev-commands"),
       },
     ],
   });
@@ -2299,8 +2331,6 @@ window.addEventListener("message", (e) => {
           justReceivedExternalChange = false;
         }, 500);
       }
-
-      vscode?.postMessage({ command: "ready" });
       break;
     }
     case "uploaded": {
@@ -2836,5 +2866,9 @@ window.addEventListener('calendar-event-action', ((event: CustomEvent) => {
   }
 }) as EventListener);
 
-fixLinkClick();
-fixCut();
+// when window is loaded
+window.addEventListener('load', () => {
+  vscode?.postMessage({ command: "ready" });
+  fixLinkClick();
+  fixCut();
+});

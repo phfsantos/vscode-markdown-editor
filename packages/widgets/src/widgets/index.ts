@@ -35,6 +35,8 @@ export { ButtonWidget } from './ButtonWidget';
 export type { ButtonWidgetConfig, ButtonWidgetData, ButtonActionType, ButtonVariant } from './ButtonWidget';
 export { MacroBoardWidget } from './MacroBoardWidget';
 export type { MacroBoardWidgetConfig, MacroBoardWidgetData, MacroBoardButton } from './MacroBoardWidget';
+export { DevCommandsWidget } from './DevCommandsWidget';
+export type { DevCommandsWidgetConfig, DevCommandsWidgetData, DevCommand, DevCommandsGridSize } from './DevCommandsWidget';
 
 // Registration
 export { registerCoreWidgets } from './registerWidgets';
