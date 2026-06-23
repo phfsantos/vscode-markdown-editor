@@ -22,6 +22,7 @@ const tests = [
   'line-number-renderer.test.js',
   'line-number-wrap-positions.test.js',
   'clean-content-for-save.test.js',
+  'clipboard-selection.test.js',
   'toolbar-open-text-editor.test.js',
   'widget-integration.test.js',
   'widget-commands.test.js',

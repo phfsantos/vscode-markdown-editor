@@ -1,3 +1,5 @@
+import { getMarkdownClipboardText } from './clipboard-selection';
+
 /**
  * VS Code Integration Manager for Vditor webview
  * Handles context menus, clipboard operations, and cursor management
@@ -239,15 +241,17 @@ export class VSCodeWebviewIntegrator {
     try {
       const selection = this.getSelectedText();
       if (selection) {
+        const clipboardText = this.getClipboardMarkdown(selection);
+
         // Use modern Clipboard API
         if (navigator.clipboard && navigator.clipboard.writeText) {
-          await navigator.clipboard.writeText(selection);
-          this.vscodeLog(`✅ Copy successful via Clipboard API (${selection.length} chars)`);
+          await navigator.clipboard.writeText(clipboardText);
+          this.vscodeLog(`✅ Copy successful via Clipboard API (${clipboardText.length} chars)`);
         } else {
           // Fallback to VS Code clipboard
-          const success = await this.writeToVSCodeClipboard(selection);
+          const success = await this.writeToVSCodeClipboard(clipboardText);
           if (success) {
-            this.vscodeLog(`✅ Copy successful via VS Code (${selection.length} chars)`);
+            this.vscodeLog(`✅ Copy successful via VS Code (${clipboardText.length} chars)`);
           }
         }
       }
@@ -303,17 +307,19 @@ export class VSCodeWebviewIntegrator {
     try {
       const selection = this.getSelectedText();
       if (selection) {
+        const clipboardText = this.getClipboardMarkdown(selection);
+
         // Use modern Clipboard API
         if (navigator.clipboard && navigator.clipboard.writeText) {
-          await navigator.clipboard.writeText(selection);
+          await navigator.clipboard.writeText(clipboardText);
           this.deleteSelectedText();
-          this.vscodeLog(`✅ Cut successful via Clipboard API (${selection.length} chars)`);
+          this.vscodeLog(`✅ Cut successful via Clipboard API (${clipboardText.length} chars)`);
         } else {
           // Fallback to VS Code clipboard
-          const success = await this.writeToVSCodeClipboard(selection);
+          const success = await this.writeToVSCodeClipboard(clipboardText);
           if (success) {
             this.deleteSelectedText();
-            this.vscodeLog(`✅ Cut successful via VS Code (${selection.length} chars)`);
+            this.vscodeLog(`✅ Cut successful via VS Code (${clipboardText.length} chars)`);
           }
         }
       }
@@ -575,13 +581,42 @@ export class VSCodeWebviewIntegrator {
     return selection ? selection.toString() : '';
   }
 
+  private getClipboardMarkdown(fallbackText: string): string {
+    const selection = window.getSelection();
+    return getMarkdownClipboardText({
+      fallbackText,
+      fallbackRoot: this.getEditorElement(),
+      selection,
+      vditor: this.vditor,
+    });
+  }
+
   private insertTextAtCursor(text: string): void {
     this.vscodeLog(`[paste-debug] 🟣 insertTextAtCursor() called with ${text.length} chars`);
     this.vscodeLog(`[paste-debug] 🟣 vditor available: ${!!this.vditor}, insertValue available: ${!!this.vditor?.insertValue}`);
-    
+
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      if (!range.collapsed) {
+        range.deleteContents();
+        range.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+    }
+
+    if (this.vditor && this.vditor.insertMD) {
+      this.vscodeLog(`[paste-debug] 🟣 Calling vditor.insertMD()`);
+      this.vditor.insertMD(text);
+      this.vscodeLog(`[paste-debug] 🟣 vditor.insertMD() completed`);
+      return;
+    }
+
     if (this.vditor && this.vditor.insertValue) {
       this.vscodeLog(`[paste-debug] 🟣 Calling vditor.insertValue()`);
       this.vditor.insertValue(text);
+      this.vditor.vditor?.ir?.element?.dispatchEvent(new InputEvent('input', { bubbles: true, data: text }));
       this.vscodeLog(`[paste-debug] 🟣 vditor.insertValue() completed`);
     } else {
       this.vscodeLog(`[paste-debug] ⚠️ Cannot insert text - vditor or insertValue not available`);
@@ -591,7 +626,12 @@ export class VSCodeWebviewIntegrator {
   private deleteSelectedText(): void {
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
-      selection.deleteFromDocument();
+      const range = selection.getRangeAt(0);
+      if (!range.collapsed) {
+        range.deleteContents();
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
     }
   }
 

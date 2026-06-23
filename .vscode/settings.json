@@ -28,5 +28,15 @@
     "git-worktree-menu.worktreeDir": "/var/www/vscode-markdown-editor/.worktrees",
     "terminal.integrated.env.osx": {
         "PATH": "/Users/pedrosantos/.nvm/versions/node/v22.22.3/bin:${env:PATH}"
+    },
+    "chat.tools.terminal.autoApprove": {
+        "/^node test/clipboard-selection\\.test\\.js$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^yarn compile-tests && node \\./test/run-all\\.js && yarn compile$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
     }
 }

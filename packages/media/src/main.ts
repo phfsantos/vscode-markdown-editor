@@ -11,6 +11,7 @@ import {
 
 import { merge } from "lodash";
 import Vditor from "vditor";
+const { getMarkdownClipboardText } = require("./clipboard-selection");
 import { format } from "date-fns";
 // Import Predictionary v1.6.0 - ES6 module with proper exports
 import Predictionary from "predictionary/src/index.mjs";
@@ -833,17 +834,24 @@ async function performClipboardAction(kind: "cut" | "copy" | "paste") {
             window.vditor &&
             typeof window.vditor.insertValue === "function"
           ) {
-            // Delete any selected text before inserting
             const sel = window.getSelection();
             if (sel && sel.rangeCount > 0) {
               const range = sel.getRangeAt(0);
               if (!range.collapsed) {
                 try {
                   range.deleteContents();
+                  range.collapse(true);
+                  sel.removeAllRanges();
+                  sel.addRange(range);
                 } catch (errDel) {
                   vscodeLog(`❌ Delete selection before paste failed: ${errDel}`);
                 }
               }
+            }
+
+            if (typeof window.vditor.insertMD === "function") {
+              window.vditor.insertMD(text);
+              return; // SUCCESS - STOP HERE
             }
 
             window.vditor.insertValue(text);
@@ -869,10 +877,17 @@ async function performClipboardAction(kind: "cut" | "copy" | "paste") {
         return;
       }
 
+      const clipboardText = getMarkdownClipboardText({
+        fallbackText: text,
+        fallbackRoot: window.vditor?.vditor?.ir?.element || document.body,
+        selection: sel,
+        vditor: window.vditor,
+      });
+
       // Modern Clipboard API approach
       if (navigator.clipboard && navigator.clipboard.writeText) {
         try {
-          await navigator.clipboard.writeText(text);
+          await navigator.clipboard.writeText(clipboardText);
 
           // If cut, delete the selection
           if (kind === "cut") {
@@ -881,6 +896,10 @@ async function performClipboardAction(kind: "cut" | "copy" | "paste") {
             if (activeRange) {
               try {
                 activeRange.deleteContents();
+                if (sel) {
+                  sel.removeAllRanges();
+                  sel.addRange(activeRange);
+                }
                 // Trigger Vditor content change
                 window.vditor?.vditor?.ir?.element?.dispatchEvent(
                   new InputEvent("input", { bubbles: true })
@@ -897,7 +916,7 @@ async function performClipboardAction(kind: "cut" | "copy" | "paste") {
       }
 
       // Fallback: extension messaging
-      vscode?.postMessage({ command: "clipboardWriteRequest", kind, text });
+      vscode?.postMessage({ command: "clipboardWriteRequest", kind, text: clipboardText });
     }
   } catch (err) {
     vscodeLog(`❌ Clipboard action ${kind} failed: ${err}`);
