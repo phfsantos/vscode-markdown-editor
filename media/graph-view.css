@@ -1,0 +1,309 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  color: var(--vscode-foreground);
+  background-color: var(--vscode-editor-background);
+  overflow: hidden;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* Controls */
+.controls {
+  display: flex;
+  gap: 20px;
+  padding: 12px 16px;
+  background: var(--vscode-sideBar-background);
+  border-bottom: 1px solid var(--vscode-sideBar-border);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.control-group-slider {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.control-group label {
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+  user-select: none;
+}
+
+.slider-value {
+  font-size: 12px;
+  color: var(--vscode-foreground);
+  font-weight: 600;
+  min-width: 40px;
+  text-align: left;
+}
+
+.control-group input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.control-group input[type="range"] {
+  width: 120px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--vscode-sideBar-border);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+.control-group input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--vscode-focusBorder);
+  cursor: pointer;
+}
+
+.control-group input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--vscode-focusBorder);
+  cursor: pointer;
+  border: none;
+}
+
+.control-group input[type="range"]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.control-group input[type="range"]:disabled::-webkit-slider-thumb {
+  cursor: not-allowed;
+}
+
+.control-group input[type="range"]:disabled::-moz-range-thumb {
+  cursor: not-allowed;
+}
+
+#stats {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  margin-left: auto;
+}
+
+/* Graph Container */
+#graph-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: var(--vscode-editor-background);
+  min-height: 400px;
+}
+
+#graph {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Loading Overlay */
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--vscode-sideBar-border);
+  border-top-color: var(--vscode-focusBorder);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-overlay p {
+  font-size: 14px;
+  color: var(--vscode-foreground);
+}
+
+/* Graph Elements */
+.edge-link {
+  stroke: var(--vscode-descriptionForeground);
+  stroke-width: 1.5;
+  opacity: 0.6;
+  fill: none;
+}
+
+.edge-backlink {
+  stroke: var(--vscode-descriptionForeground);
+  stroke-width: 1.5;
+  stroke-dasharray: 4, 2;
+  opacity: 0.4;
+  fill: none;
+}
+
+.node-focus circle {
+  fill: var(--vscode-focusBorder);
+  stroke: var(--vscode-focusBorder);
+  stroke-width: 2;
+  transition: r 0.2s ease;
+}
+
+.node-regular circle {
+  fill: var(--vscode-button-background);
+  stroke: var(--vscode-button-foreground);
+  stroke-width: 1.5;
+  transition: r 0.2s ease;
+}
+
+.node-label {
+  fill: var(--vscode-foreground);
+  font-size: 11px;
+  pointer-events: none;
+  user-select: none;
+}
+
+.graph-node:hover circle {
+  stroke-width: 3;
+}
+
+/* Zoom Controls */
+.graph-zoom-controls {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--vscode-sideBar-background);
+  border: 1px solid var(--vscode-sideBar-border);
+  border-radius: 4px;
+  padding: 4px;
+  z-index: 100;
+}
+
+.graph-zoom-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  color: var(--vscode-foreground);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  transition: background-color 0.15s ease;
+}
+
+.graph-zoom-btn:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.graph-zoom-btn:active {
+  background: var(--vscode-list-activeSelectionBackground);
+}
+
+.graph-zoom-level {
+  min-width: 45px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  padding: 0 4px;
+  user-select: none;
+}
+
+/* Legend */
+.legend {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  background: var(--vscode-sideBar-background);
+  border: 1px solid var(--vscode-sideBar-border);
+  border-radius: 4px;
+  padding: 12px;
+  max-width: 200px;
+}
+
+.legend h4 {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--vscode-foreground);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.legend-item:last-child {
+  margin-bottom: 0;
+}
+
+.legend-item svg {
+  flex-shrink: 0;
+}
+
+.legend-item .node-focus {
+  fill: var(--vscode-focusBorder);
+  stroke: var(--vscode-focusBorder);
+  stroke-width: 2;
+}
+
+.legend-item .node-regular {
+  fill: var(--vscode-button-background);
+  stroke: var(--vscode-button-foreground);
+  stroke-width: 1.5;
+}
+
+.legend-item .edge-link {
+  stroke: var(--vscode-descriptionForeground);
+  stroke-width: 2;
+  opacity: 0.6;
+}
+
+.legend-item .edge-backlink {
+  stroke: var(--vscode-descriptionForeground);
+  stroke-width: 2;
+  stroke-dasharray: 3, 2;
+  opacity: 0.4;
+}

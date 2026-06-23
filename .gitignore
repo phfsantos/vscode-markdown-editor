@@ -60,3 +60,6 @@ typings/
 lib
 *.vsix
 out
+.projectmind
+.worktrees/
+sidebar-dist/
