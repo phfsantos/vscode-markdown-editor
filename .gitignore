@@ -69,3 +69,4 @@ lib
 # Build output
 dist
 out
+sidebar-dist/
