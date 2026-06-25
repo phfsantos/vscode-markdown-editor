@@ -34,3 +34,5 @@ Foyfile.ts
 logs/
 plans/
 .env
+**/.env
+.worktrees/
