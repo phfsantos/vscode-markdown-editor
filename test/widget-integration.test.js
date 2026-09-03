@@ -4,7 +4,8 @@
  * Tests for widget block parsing and configuration extraction
  */
 
-const assert = require('assert');
+import assert from 'assert';
+import { test } from 'vitest';
 
 // Copy of parseWidgetBlocks from widget-integration.ts for testing
 function parseWidgetBlocks(markdown) {
@@ -257,22 +258,12 @@ function testWidgetEmptyConfig() {
   console.log('✅ testWidgetEmptyConfig passed');
 }
 
-// Run all tests
-try {
-  console.log('\n🧪 Widget Integration Tests\n');
-  
-  testParseSimpleWidget();
-  testParseWidgetWithData();
-  testParseWidgetWithNestedConfig();
-  testParseWidgetWithArrayConfig();
-  testParseMultipleWidgets();
-  testParseWidgetWithComplexData();
-  testHandleInvalidJson();
-  testNoWidgets();
-  testWidgetEmptyConfig();
-  
-  console.log('\n✨ All widget integration tests passed!\n');
-} catch (e) {
-  console.error('\n❌ Widget integration tests failed:', e.message);
-  throw e;
-}
+test('parse simple widget', testParseSimpleWidget);
+test('parse widget with data', testParseWidgetWithData);
+test('parse widget with nested config', testParseWidgetWithNestedConfig);
+test('parse widget with array config', testParseWidgetWithArrayConfig);
+test('parse multiple widgets', testParseMultipleWidgets);
+test('parse widget with complex data', testParseWidgetWithComplexData);
+test('handle invalid json', testHandleInvalidJson);
+test('no widgets', testNoWidgets);
+test('widget empty config', testWidgetEmptyConfig);

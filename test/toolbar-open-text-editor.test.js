@@ -1,24 +1,14 @@
-const assert = require('assert');
-const fs = require('fs');
-const path = require('path');
+import assert from 'assert';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { test } from 'vitest';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const toolbarPath = path.join(__dirname, '..', 'packages', 'media', 'src', 'toolbar.ts');
-const editorPanelPath = path.join(__dirname, '..', 'src', 'app', 'EditorPanel.ts');
+const handlersPath = path.join(__dirname, '..', 'src', 'app', 'EditorMessageHandlers.ts');
 const toolbarSource = fs.readFileSync(toolbarPath, 'utf8');
-const editorPanelSource = fs.readFileSync(editorPanelPath, 'utf8');
-
-function test(description, fn) {
-  try {
-    fn();
-    console.log(`✓ ${description}`);
-  } catch (error) {
-    console.error(`✗ ${description}`);
-    console.error(`  ${error.message}`);
-    process.exitCode = 1;
-  }
-}
-
-console.log('\n=== Running toolbar open text editor tests ===\n');
+const handlersSource = fs.readFileSync(handlersPath, 'utf8');
 
 test('adds an open text editor toolbar item', () => {
   assert(toolbarSource.includes('name: "open-text-editor"'), 'Expected open-text-editor toolbar item');
@@ -36,10 +26,11 @@ test('posts the reopen command from the toolbar item', () => {
 });
 
 test('reopens the active editor with VS Code\'s built-in text editor command', () => {
-  const handlerSection = editorPanelSource.slice(
-    editorPanelSource.indexOf('private async handleOpenWithTextEditor(): Promise<void> {'),
-    editorPanelSource.indexOf('private async handleKanbanSaveData')
-  );
+  const handlerStart = handlersSource.indexOf('public async handleOpenWithTextEditor(): Promise<void> {');
+  assert(handlerStart !== -1, 'Expected EditorMessageHandlers to define handleOpenWithTextEditor');
+  const handlerEnd = handlersSource.indexOf('public async handleResolveWikiLink');
+  assert(handlerEnd > handlerStart, 'Expected another handler to follow handleOpenWithTextEditor');
+  const handlerSection = handlersSource.slice(handlerStart, handlerEnd);
 
   assert(
     handlerSection.includes('"workbench.action.reopenTextEditor"'),
@@ -50,9 +41,3 @@ test('reopens the active editor with VS Code\'s built-in text editor command', (
     'Did not expect EditorPanel to use vscode.openWith for text editor reopen'
   );
 });
-
-if (process.exitCode) {
-  process.exit(process.exitCode);
-}
-
-console.log('\n=== Toolbar open text editor tests passed ===\n');

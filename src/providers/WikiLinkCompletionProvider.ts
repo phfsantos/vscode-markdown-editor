@@ -159,9 +159,6 @@ export class WikiLinkCompletionProvider implements vscode.CompletionItemProvider
       vscode.CompletionItemKind.File
     );
 
-    // Calculate relative path for the link
-    const relativePath = this.getRelativePath(currentFile.fsPath, item.filePath);
-    
     // Insert text is the filename (or relative path if needed)
     const linkText = path.basename(item.filePath, '.md');
     completionItem.insertText = `${linkText}]]`;

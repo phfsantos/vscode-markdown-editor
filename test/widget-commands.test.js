@@ -4,7 +4,8 @@
  * Tests for widget command generation and template logic
  */
 
-const assert = require('assert');
+import assert from 'assert';
+import { test } from 'vitest';
 
 // Widget templates (copy from WidgetCommandProvider)
 const templates = [
@@ -270,20 +271,10 @@ function testRoundTripParsing() {
   console.log('✅ testRoundTripParsing passed');
 }
 
-// Run all tests
-try {
-  console.log('\n🧪 Widget Command Provider Tests\n');
-  
-  testGenerateChartWidget();
-  testGenerateTableWidget();
-  testGenerateKanbanWidget();
-  testGenerateMacroBoardWidget();
-  testTemplateProperties();
-  testCommandNames();
-  testRoundTripParsing();
-  
-  console.log('\n✨ All widget command provider tests passed!\n');
-} catch (e) {
-  console.error('\n❌ Widget command provider tests failed:', e.message);
-  throw e;
-}
+test('generate chart widget', testGenerateChartWidget);
+test('generate table widget', testGenerateTableWidget);
+test('generate kanban widget', testGenerateKanbanWidget);
+test('generate macro board widget', testGenerateMacroBoardWidget);
+test('template properties', testTemplateProperties);
+test('command names', testCommandNames);
+test('round trip parsing', testRoundTripParsing);

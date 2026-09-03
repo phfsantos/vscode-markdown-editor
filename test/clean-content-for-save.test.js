@@ -59,43 +59,11 @@ function cleanContentForSave(content) {
   return cleaned;
 }
 
-// Test framework functions
-const tests = [];
-let testsPassed = 0;
-let testsFailed = 0;
-
-function test(description, fn) {
-  tests.push({ description, fn });
-}
+import { test } from 'vitest';
 
 function assertEquals(actual, expected, message) {
   if (actual !== expected) {
     throw new Error(`${message || 'Assertion failed'}\nExpected: ${JSON.stringify(expected)}\nActual: ${JSON.stringify(actual)}`);
-  }
-}
-
-function runTests() {
-  console.log('\n=== Running cleanContentForSave Tests ===\n');
-  
-  tests.forEach(({ description, fn }) => {
-    try {
-      fn();
-      testsPassed++;
-      console.log(`✓ ${description}`);
-    } catch (error) {
-      testsFailed++;
-      console.error(`✗ ${description}`);
-      console.error(`  ${error.message}`);
-    }
-  });
-  
-  console.log(`\n=== Test Results ===`);
-  console.log(`Passed: ${testsPassed}`);
-  console.log(`Failed: ${testsFailed}`);
-  console.log(`Total: ${tests.length}`);
-  
-  if (testsFailed > 0) {
-    process.exit(1);
   }
 }
 
@@ -433,5 +401,3 @@ test('handles deeply nested decorations', () => {
   assertEquals(cleanContentForSave(input), expected);
 });
 
-// Run all tests
-runTests();

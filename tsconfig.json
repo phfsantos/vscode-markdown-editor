@@ -12,5 +12,14 @@
 		"esModuleInterop": true,
 		"skipLibCheck": true
 	},
-	"exclude": ["node_modules", ".vscode-test", "packages/media", "packages/widgets", "out", "Foyfile.ts"]
+	"exclude": [
+		"node_modules",
+		".vscode-test",
+		"packages/media",
+		"packages/widgets",
+		"out",
+		"Foyfile.ts",
+		"vitest.config.ts",
+		"test"
+	]
 }

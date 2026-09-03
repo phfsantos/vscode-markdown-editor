@@ -1,4 +1,5 @@
-const assert = require('assert');
+import assert from 'assert';
+import { test } from 'vitest';
 
 /**
  * Tests for Embed handling - size limits and mime type detection
@@ -70,12 +71,6 @@ function testMimeTypeDetection() {
   console.log('✅ testMimeTypeDetection passed');
 }
 
-try {
-  testEmbedPatternMatching();
-  testSizeLimitLogic();
-  testMimeTypeDetection();
-  console.log('✅ All Embed handler tests passed');
-} catch (e) {
-  console.error('❌ Embed handler tests failed:', e);
-  throw e;
-}
+test('embed pattern matching', testEmbedPatternMatching);
+test('size limit logic', testSizeLimitLogic);
+test('mime type detection', testMimeTypeDetection);

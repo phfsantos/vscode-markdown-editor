@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { normalizeModelName, PREFERRED_MODEL_ORDER } from './modelNameNormalizer';
 
 export interface InlineSuggestionRequest {
   document: vscode.TextDocument;
@@ -34,7 +35,9 @@ export class InlineSuggestionService {
     let model; // Default to auto (will resolve to first available)
     
     // Get user-configured model name from settings
-    const modelName = vscode.workspace.getConfiguration('markdown-editor').get<string>('ai.modelName', 'auto');
+    const modelName = normalizeModelName(
+      vscode.workspace.getConfiguration('markdown-editor').get<string>('ai.modelName', 'auto')
+    );
     
     if (modelName !== 'auto') {
       // User explicitly selected a specific model
@@ -49,10 +52,7 @@ export class InlineSuggestionService {
       // Auto mode: select best available model based on availability and performance
       const models = await lmApi.selectChatModels({ vendor: 'copilot' });
       
-      // Priority order for auto-selection (fastest response times)
-      const preferredOrder = ['copilot-fast', 'gtp-4o-mini', 'gtp-4o', 'gpt-4.1', 'oswe-vscode-prime'];
-      
-      model = models.find(m => preferredOrder.includes(m.id)) || models[0];
+      model = models.find(m => PREFERRED_MODEL_ORDER.includes(m.id)) || models[0];
     }
 
     if (!model) {

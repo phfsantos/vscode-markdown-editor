@@ -1,8 +1,9 @@
 {
   "name": "@markdown-editor/media",
   "version": "0.0.0",
-  "private": "true",
+  "private": true,
   "scripts": {
+    "type-check": "tsc --noEmit -p .",
     "start": "yarn esbuild ./src/main.ts --bundle --watch --sourcemap --outfile=../../out/media/main.js",
     "build": "rm -rf ../../out/media; yarn esbuild ./src/main.ts --bundle --minify --sourcemap --outfile=../../out/media/main.js && mkdir -p ../../out/media/dist/js && mkdir -p ../../out/media/dist/css && cp -r ./node_modules/vditor/dist/js ../../out/media/dist/ && cp -r ./node_modules/vditor/dist/css ../../out/media/dist/"
   },

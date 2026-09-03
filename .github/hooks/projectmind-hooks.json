@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "hooks": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "osx": "./.projectmind/hooks/session-start.sh",
+        "linux": "./.projectmind/hooks/session-start.sh",
+        "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File .projectmind\\hooks\\session-start.ps1",
+        "timeout": 30
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "type": "command",
+        "osx": "./.projectmind/hooks/prompt-submitted.sh",
+        "linux": "./.projectmind/hooks/prompt-submitted.sh",
+        "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File .projectmind\\hooks\\prompt-submitted.ps1",
+        "timeout": 10
+      }
+    ],
+    "PreToolUse": [
+      {
+        "type": "command",
+        "osx": "./.projectmind/hooks/pre-tool-use.sh",
+        "linux": "./.projectmind/hooks/pre-tool-use.sh",
+        "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File .projectmind\\hooks\\pre-tool-use.ps1",
+        "timeout": 15
+      }
+    ],
+    "PostToolUse": [
+      {
+        "type": "command",
+        "osx": "./.projectmind/hooks/post-tool-use.sh",
+        "linux": "./.projectmind/hooks/post-tool-use.sh",
+        "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File .projectmind\\hooks\\post-tool-use.ps1",
+        "timeout": 15
+      }
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "osx": "./.projectmind/hooks/session-end.sh",
+        "linux": "./.projectmind/hooks/session-end.sh",
+        "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File .projectmind\\hooks\\session-end.ps1",
+        "timeout": 30
+      },
+      {
+        "type": "command",
+        "osx": "./.projectmind/hooks/delivery-gate.sh",
+        "linux": "./.projectmind/hooks/delivery-gate.sh",
+        "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File .projectmind\\hooks\\delivery-gate.ps1",
+        "timeout": 15
+      }
+    ],
+    "PreCompact": [
+      {
+        "type": "command",
+        "osx": "./.projectmind/hooks/pre-compact.sh",
+        "linux": "./.projectmind/hooks/pre-compact.sh",
+        "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File .projectmind\\hooks\\pre-compact.ps1",
+        "timeout": 15
+      }
+    ]
+  }
+}

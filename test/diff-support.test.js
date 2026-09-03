@@ -3,7 +3,8 @@
  * Verifies that the LCS-based diff correctly detects added, deleted, and modified lines
  */
 
-const assert = require('assert');
+import assert from 'assert';
+import { test } from 'vitest';
 
 /**
  * Simplified implementation of the diff algorithm for testing
@@ -237,19 +238,9 @@ function testMixedChanges() {
   console.log('✅ testMixedChanges passed');
 }
 
-// Run all tests
-try {
-  console.log('Running Diff Algorithm Tests...\n');
-  testModifiedLineDetection();
-  testMultipleModifications();
-  testPureAdditions();
-  testPureDeletions();
-  testEmptyDiff();
-  testMixedChanges();
-  console.log('\n✅ All diff algorithm tests passed!');
-  process.exit(0);
-} catch (error) {
-  console.error('\n❌ Test failed:', error.message);
-  console.error(error.stack);
-  process.exit(1);
-}
+test('modified line detection', testModifiedLineDetection);
+test('multiple modifications', testMultipleModifications);
+test('pure additions', testPureAdditions);
+test('pure deletions', testPureDeletions);
+test('empty diff', testEmptyDiff);
+test('mixed changes', testMixedChanges);

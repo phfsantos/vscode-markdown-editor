@@ -1,7 +1,7 @@
-const assert = require('assert');
-require('ts-node/register/transpile-only');
+import assert from 'assert';
+import { test } from 'vitest';
 
-const { getRenderedLineElements, buildRenderedLineMap } = require('../packages/media/src/diff-line-dom-mapper.ts');
+import { getRenderedLineElements, buildRenderedLineMap } from '../packages/media/src/diff-line-dom-mapper';
 
 class FakeTextNode {
   constructor(text) {
@@ -163,15 +163,9 @@ function testSkipsInjectedLineNumberElements() {
   console.log('✅ testSkipsInjectedLineNumberElements passed');
 }
 
-try {
-  testCollectsNestedListItemsAsDisplayLines();
-  testParagraphCountsAsRenderedLineWhenInlineChildOwnsText();
-  testSkipsParentBlockWhenNestedBlockExists();
-  testTreatsCodeBlockContainerAsSingleRenderedLine();
-  testBuildRenderedLineMapUsesDeepestEligibleOrder();
-  testSkipsInjectedLineNumberElements();
-  console.log('✅ All diff line DOM mapper tests passed');
-} catch (error) {
-  console.error('❌ diff line DOM mapper tests failed');
-  throw error;
-}
+test('collects nested list items as display lines', testCollectsNestedListItemsAsDisplayLines);
+test('paragraph counts as rendered line when inline child owns text', testParagraphCountsAsRenderedLineWhenInlineChildOwnsText);
+test('skips parent block when nested block exists', testSkipsParentBlockWhenNestedBlockExists);
+test('treats code block container as single rendered line', testTreatsCodeBlockContainerAsSingleRenderedLine);
+test('buildRenderedLineMap uses deepest eligible order', testBuildRenderedLineMapUsesDeepestEligibleOrder);
+test('skips injected line number elements', testSkipsInjectedLineNumberElements);

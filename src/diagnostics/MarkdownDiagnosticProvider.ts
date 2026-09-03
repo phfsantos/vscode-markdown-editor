@@ -103,7 +103,8 @@ export class MarkdownDiagnosticProvider {
         if (path.startsWith('http') || path.startsWith('//')) return true;
         
         try {
-            const basePath = vscode.Uri.joinPath(documentUri, '..', path);
+            // Resolve relative to the document to validate the path is well-formed.
+            vscode.Uri.joinPath(documentUri, '..', path);
             // You could add actual file existence check here
             return true;
         } catch {

@@ -1,5 +1,6 @@
-const assert = require('assert');
-const path = require('path');
+import assert from 'assert';
+import path from 'path';
+import { test } from 'vitest';
 
 /**
  * Tests for LinkResolver - wiki-link resolution
@@ -111,13 +112,7 @@ function testMissingTargetResolutionStrategy() {
   console.log('✅ testMissingTargetResolutionStrategy passed');
 }
 
-try {
-  testWikiLinkParsing();
-  testFilenameSanitization();
-  testEdgeCases();
-  testMissingTargetResolutionStrategy();
-  console.log('✅ All LinkResolver tests passed');
-} catch (e) {
-  console.error('❌ LinkResolver tests failed:', e);
-  throw e;
-}
+test('wiki link parsing', testWikiLinkParsing);
+test('filename sanitization', testFilenameSanitization);
+test('edge cases', testEdgeCases);
+test('missing target resolution strategy', testMissingTargetResolutionStrategy);

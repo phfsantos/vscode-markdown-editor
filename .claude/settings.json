@@ -1,0 +1,81 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -n \"$CLAUDE_PROJECT_DIR\" ]; then bash \"$CLAUDE_PROJECT_DIR/.projectmind/hooks/session-start.sh\"; fi",
+            "windows": "if ($env:CLAUDE_PROJECT_DIR) { & (Join-Path $env:CLAUDE_PROJECT_DIR '.projectmind/hooks/session-start.ps1') }"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -n \"$CLAUDE_PROJECT_DIR\" ]; then bash \"$CLAUDE_PROJECT_DIR/.projectmind/hooks/prompt-submitted.sh\"; fi",
+            "windows": "if ($env:CLAUDE_PROJECT_DIR) { & (Join-Path $env:CLAUDE_PROJECT_DIR '.projectmind/hooks/prompt-submitted.ps1') }"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -n \"$CLAUDE_PROJECT_DIR\" ]; then bash \"$CLAUDE_PROJECT_DIR/.projectmind/hooks/pre-tool-use.sh\"; fi",
+            "windows": "if ($env:CLAUDE_PROJECT_DIR) { & (Join-Path $env:CLAUDE_PROJECT_DIR '.projectmind/hooks/pre-tool-use.ps1') }"
+          }
+        ],
+        "matcher": "*"
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -n \"$CLAUDE_PROJECT_DIR\" ]; then bash \"$CLAUDE_PROJECT_DIR/.projectmind/hooks/post-tool-use.sh\"; fi",
+            "windows": "if ($env:CLAUDE_PROJECT_DIR) { & (Join-Path $env:CLAUDE_PROJECT_DIR '.projectmind/hooks/post-tool-use.ps1') }"
+          }
+        ],
+        "matcher": "*"
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -n \"$CLAUDE_PROJECT_DIR\" ]; then bash \"$CLAUDE_PROJECT_DIR/.projectmind/hooks/session-end.sh\"; fi",
+            "windows": "if ($env:CLAUDE_PROJECT_DIR) { & (Join-Path $env:CLAUDE_PROJECT_DIR '.projectmind/hooks/session-end.ps1') }"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -n \"$CLAUDE_PROJECT_DIR\" ]; then bash \"$CLAUDE_PROJECT_DIR/.projectmind/hooks/delivery-gate.sh\"; fi",
+            "windows": "if ($env:CLAUDE_PROJECT_DIR) { & (Join-Path $env:CLAUDE_PROJECT_DIR '.projectmind/hooks/delivery-gate.ps1') }"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -n \"$CLAUDE_PROJECT_DIR\" ]; then bash \"$CLAUDE_PROJECT_DIR/.projectmind/hooks/pre-compact.sh\"; fi",
+            "windows": "if ($env:CLAUDE_PROJECT_DIR) { & (Join-Path $env:CLAUDE_PROJECT_DIR '.projectmind/hooks/pre-compact.ps1') }"
+          }
+        ]
+      }
+    ]
+  }
+}

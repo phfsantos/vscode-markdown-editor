@@ -331,6 +331,7 @@ export class MarkdownDiffViewSupport {
    * Finds the other editor in the diff pair by matching instance ID (primary) or URI (fallback)
    */
   public handleScrollSync(sourceInstanceId: string | undefined, sourceUri: vscode.Uri, targetUri: vscode.Uri, scrollPercentage: number, retryCount: number = 0): void {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires -- lazy require breaks the circular import with EditorPanel
     const EditorPanel = require('../app/EditorPanel').EditorPanel;
 
     if (EditorPanel.editors && EditorPanel.editors.length > 0) {

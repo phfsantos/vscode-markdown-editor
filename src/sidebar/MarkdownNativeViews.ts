@@ -12,7 +12,9 @@ function basename(filePath: string): string {
   return parts[parts.length - 1] || filePath;
 }
 
-const sidebarContextValueCatalog = {
+// Reference catalog of the contextValues this view contributes (kept for
+// documentation; not read at runtime).
+const _sidebarContextValueCatalog = {
   currentFile: { contextValue: 'currentFile' },
   defaultEditorWarning: { contextValue: 'defaultEditorWarning' },
   inlineSuggestionToggle: { contextValue: 'inlineSuggestionToggle' },

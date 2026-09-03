@@ -1,7 +1,7 @@
-const assert = require('assert');
-require('ts-node/register/transpile-only');
+import assert from 'assert';
+import { test } from 'vitest';
 
-const { parseHTMLToLines } = require('../src/diff/HtmlLineParser.ts');
+import { parseHTMLToLines } from '../src/diff/HtmlLineParser';
 
 function testSkipsParentBlocksWhenNestedBlocksOwnRenderedLines() {
   const result = parseHTMLToLines('<blockquote>Quoted<ul><li>One</li><li>Two</li></ul></blockquote>');
@@ -128,20 +128,14 @@ function testToleratesMalformedHtml() {
   console.log('✅ testToleratesMalformedHtml passed');
 }
 
-try {
-  testSkipsParentBlocksWhenNestedBlocksOwnRenderedLines();
-  testUnwrapsTransparentDataBlockContainers();
-  testTreatsCodeBlockContainerAsSingleRenderedLine();
-  testEmitsListItemsAsRenderedLines();
-  testDetectsSingleMissingListItem();
-  testParagraphCountsAsLineWhenInlineChildOwnsText();
-  testNestedBlockPromotesLastRenderedBlockAsLine();
-  testPreservesCodeBlocksAndBlankLines();
-  testCoalescesInlineOnlyAndMixedContent();
-  testIgnoresStructuralContainersWithoutOwnText();
-  testToleratesMalformedHtml();
-  console.log('✅ All html line parser tests passed');
-} catch (error) {
-  console.error('❌ html line parser tests failed');
-  throw error;
-}
+test('skips parent blocks when nested blocks own rendered lines', testSkipsParentBlocksWhenNestedBlocksOwnRenderedLines);
+test('unwraps transparent data block containers', testUnwrapsTransparentDataBlockContainers);
+test('treats code block container as single rendered line', testTreatsCodeBlockContainerAsSingleRenderedLine);
+test('emits list items as rendered lines', testEmitsListItemsAsRenderedLines);
+test('detects single missing list item', testDetectsSingleMissingListItem);
+test('paragraph counts as line when inline child owns text', testParagraphCountsAsLineWhenInlineChildOwnsText);
+test('nested block promotes last rendered block as line', testNestedBlockPromotesLastRenderedBlockAsLine);
+test('preserves code blocks and blank lines', testPreservesCodeBlocksAndBlankLines);
+test('coalesces inline-only and mixed content', testCoalescesInlineOnlyAndMixedContent);
+test('ignores structural containers without own text', testIgnoresStructuralContainersWithoutOwnText);
+test('tolerates malformed html', testToleratesMalformedHtml);

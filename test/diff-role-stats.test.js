@@ -1,8 +1,9 @@
-const assert = require('assert');
+import assert from 'assert';
+import { test } from 'vitest';
 
-const {
+import {
   calculateRoleSpecificDiffStats,
-} = require('../out/diff/roleSpecificStats.js');
+} from '../src/diff/roleSpecificStats';
 
 function testCountsSpacersOnOriginalAsAdded() {
   const changes = [
@@ -40,11 +41,5 @@ function testCountsSpacersOnModifiedAsDeleted() {
   console.log('✅ testCountsSpacersOnModifiedAsDeleted passed');
 }
 
-try {
-  testCountsSpacersOnOriginalAsAdded();
-  testCountsSpacersOnModifiedAsDeleted();
-  console.log('✅ All diff role stats tests passed');
-} catch (error) {
-  console.error('❌ diff role stats tests failed');
-  throw error;
-}
+test('counts spacers on original as added', testCountsSpacersOnOriginalAsAdded);
+test('counts spacers on modified as deleted', testCountsSpacersOnModifiedAsDeleted);

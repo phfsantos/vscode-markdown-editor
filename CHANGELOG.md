@@ -5,13 +5,62 @@ All notable changes to the "Markdown Editor" extension will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.5.0] - Unreleased
 
 ### AI
 
 - AI auto-complete suggestions are now opt-in via `markdown-editor.ai.enableInlineSuggestions`.
 - The Markdown Tools Status view now exposes a one-click toggle for AI auto-complete suggestions.
 - README configuration docs now describe the inline suggestion opt-in flow.
+
+### Fixed
+
+- Corrected typo'd model ids in the `markdown-editor.ai.modelName` setting
+  (`gtp-4o-mini` → `gpt-4o-mini`, `gtp-4o` → `gpt-4o`). Previously saved typo
+  values are normalized automatically at read time.
+
+### Changed
+
+- Minimum supported VS Code version raised from 1.47 to **1.95** — required by
+  the Language Model API (`vscode.lm`, including `lm.tools`) that powers inline
+  AI suggestions and the chat-agent tool selector.
+- `yarn test` now runs the typecheck and the full unit-test suite (previously a
+  no-op), and the publish workflow fails if it fails.
+- Publish workflow fixed: the Open VSX step now runs before the Marketplace
+  step that reuses its packaged VSIX; CI upgraded to Node 20 and current
+  GitHub Actions.
+- Cleaned up stray duplicate files from the repository and excluded sourcemaps
+  and unused images from the packaged extension (VSIX 8.9 MB → 6.8 MB).
+
+## [0.4.15] - 2026-06-25
+
+### Changed
+
+- Refactored the webview entry layer: removed legacy `main.ts`, `preload.ts`,
+  `toolbar.ts`, `types.ts`, and `utils.ts` from the extension root in favor of
+  the `packages/media` implementation.
+- Added the Markdown Tools sidebar icon.
+- Clipboard markdown handling implemented with dedicated tests.
+
+## [0.4.8 – 0.4.14] - 2025-11 → 2026-05
+
+> Note: these versions were developed without individual release commits or
+> tags (history was consolidated in the "LLM Release" squash), so they are
+> documented here as one combined entry.
+
+### Added - AI & LLM Workflows
+
+- AI markdown workflows for `.agent.md`, `.prompt.md`, and `SKILL.md` files:
+  context packages (copy/insert), templates, validation, and chat handoff
+  (`markdown-editor.ai.*` commands and settings).
+- Inline AI auto-complete suggestions via the VS Code Language Model API, with
+  configurable model (`markdown-editor.ai.modelName`) and provider settings.
+- Tool selector modal for chat-agent frontmatter (`tools:` selection UI).
+- Diff view support inside the editor (chat-editing diff, role-specific stats,
+  line/DOM mapping).
+- Dev Commands widget and widget-system registration updates.
+- Calendar integrations (Google and Outlook OAuth) with events, month, and
+  detail widgets.
 
 ## [0.4.7] - 2025-11-03
 

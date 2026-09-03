@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
 
 /**
  * Simple tag manager that scans workspace markdown files for #tags
@@ -61,7 +60,7 @@ export class TagManager {
    * Pure helper to extract tags from text (exposed for testing)
    */
   public static extractTagsFromText(content: string): string[] {
-    const tagRegex = /(^|\s)#([a-zA-Z0-9_\-\/]+)\b/gm;
+    const tagRegex = /(^|\s)#([a-zA-Z0-9_/-]+)\b/gm;
     const tags: string[] = [];
     let m;
     while ((m = tagRegex.exec(content)) !== null) {

@@ -1,10 +1,11 @@
-const assert = require('assert');
+import assert from 'assert';
+import { test } from 'vitest';
 
-const {
+import {
   findChatEditingStateForDocument,
   CHAT_EDITING_TEXT_MODEL_SCHEME,
   CHAT_EDITING_SNAPSHOT_TEXT_MODEL_SCHEME,
-} = require('../out/app/chatEditingDiff.js');
+} from '../src/app/chatEditingDiff';
 
 function doc(scheme, path, fsPath = path) {
   return {
@@ -95,13 +96,7 @@ function testUsesComparablePaths() {
   console.log('✅ testUsesComparablePaths passed');
 }
 
-try {
-  testFindsMatchingChatEditingBaseline();
-  testMarksNoPendingEditsWhenBaselineMatchesLatestSnapshot();
-  testReturnsUndefinedWithoutBaseline();
-  testUsesComparablePaths();
-  console.log('✅ All chat editing diff tests passed');
-} catch (error) {
-  console.error('❌ chat editing diff tests failed');
-  throw error;
-}
+test('finds matching chat editing baseline', testFindsMatchingChatEditingBaseline);
+test('marks no pending edits when baseline matches latest snapshot', testMarksNoPendingEditsWhenBaselineMatchesLatestSnapshot);
+test('returns undefined without baseline', testReturnsUndefinedWithoutBaseline);
+test('uses comparable paths', testUsesComparablePaths);

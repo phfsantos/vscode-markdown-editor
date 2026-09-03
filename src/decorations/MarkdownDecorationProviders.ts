@@ -40,7 +40,6 @@ export class MarkdownCodeLensProvider implements vscode.CodeLensProvider {
             const imageMatch = line.match(/!\[([^\]]*)\]\(([^)]*)\)/);
             if (imageMatch) {
                 const altText = imageMatch[1];
-                const imagePath = imageMatch[2];
                 const hasAltText = altText && altText.trim() !== '';
                 
                 const range = new vscode.Range(index, 0, index, line.length);

@@ -1,9 +1,9 @@
-const assert = require('assert');
-require('ts-node/register/transpile-only');
+import assert from 'assert';
+import { test } from 'vitest';
 
-const {
+import {
   computeLineNumberPositions,
-} = require('../packages/media/src/line-number-renderer.ts');
+} from '../packages/media/src/line-number-renderer';
 
 function input(top, height, fallbackLineHeight = 20) {
   return { rect: { top, height }, fallbackLineHeight };
@@ -124,16 +124,10 @@ function testTopClampedToZero() {
   console.log('✅ testTopClampedToZero passed');
 }
 
-try {
-  testNormalSequenceIsPassedThrough();
-  testWrappedElementKeepsItsMeasuredHeight();
-  testNextLineNeverOverlapsPreviousWrappedLine();
-  testTwoConsecutiveWrappedLinesCascade();
-  testRootOffsetAndScrollTopAreApplied();
-  testFallbackLineHeightUsedWhenRectHeightTooSmall();
-  testTopClampedToZero();
-  console.log('✅ All line number wrap-position tests passed');
-} catch (error) {
-  console.error('❌ line number wrap-position tests failed');
-  throw error;
-}
+test('normal sequence is passed through', testNormalSequenceIsPassedThrough);
+test('wrapped element keeps its measured height', testWrappedElementKeepsItsMeasuredHeight);
+test('next line never overlaps previous wrapped line', testNextLineNeverOverlapsPreviousWrappedLine);
+test('two consecutive wrapped lines cascade', testTwoConsecutiveWrappedLinesCascade);
+test('root offset and scrollTop are applied', testRootOffsetAndScrollTopAreApplied);
+test('fallback line height used when rect height too small', testFallbackLineHeightUsedWhenRectHeightTooSmall);
+test('top clamped to zero', testTopClampedToZero);

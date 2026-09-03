@@ -1,7 +1,10 @@
-const assert = require('assert');
-const fs = require('fs');
-const path = require('path');
+import assert from 'assert';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { test } from 'vitest';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '..');
 const packageJson = JSON.parse(
   fs.readFileSync(path.join(rootDir, 'package.json'), 'utf8')
@@ -62,11 +65,20 @@ function testAiCommandsAndSettingsAreContributed() {
 }
 
 function testAiActivationEventsAndMenuPlacementsAreContributed() {
+  // Since VS Code 1.74, onCommand/onView activation events are auto-generated
+  // from contribution declarations; the manifest must not redeclare them, and
+  // the commands themselves must be contributed (checked in the previous test).
   const activationEvents = new Set(packageJson.activationEvents || []);
   for (const commandId of AI_COMMANDS) {
     assert.ok(
-      activationEvents.has(`onCommand:${commandId}`),
-      `Expected activation event for ${commandId}`
+      !activationEvents.has(`onCommand:${commandId}`),
+      `Redundant explicit activation event for ${commandId} (auto-generated since VS Code 1.74)`
+    );
+  }
+  for (const language of ['chatagent', 'skill', 'prompt']) {
+    assert.ok(
+      activationEvents.has(`onLanguage:${language}`),
+      `Expected onLanguage activation event for ${language}`
     );
   }
 
@@ -97,12 +109,16 @@ function testAiActivationEventsAndMenuPlacementsAreContributed() {
 }
 
 function testVsixIgnoreKeepsOnlyRuntimeAssets() {
+  // vsce negation patterns override ignore patterns regardless of order, so
+  // broad negations like !out/media/** would re-include sourcemaps. The
+  // un-ignores must stay type-specific (never matching *.map).
   const expectedPatterns = [
     'out/**',
-    '!out/media/**',
-    '!out/sidebar/**',
+    '!out/media/**/*.js',
+    '!out/media/**/*.css',
+    '!out/sidebar/**/*.js',
     '!out/widgets/index.js',
-    'out/**/*.map',
+    '*.map',
   ];
 
   for (const pattern of expectedPatterns) {
@@ -112,16 +128,19 @@ function testVsixIgnoreKeepsOnlyRuntimeAssets() {
     );
   }
 
+  const negationsMatchingMaps = vscodeIgnore
+    .split('\n')
+    .filter((line) => line.startsWith('!') && line.includes('*.map'));
+  assert.strictEqual(
+    negationsMatchingMaps.length,
+    0,
+    'Negation patterns must never re-include sourcemaps'
+  );
+
   console.log('✅ testVsixIgnoreKeepsOnlyRuntimeAssets passed');
 }
 
-try {
-  testExtensionEntryPointsUseBundle();
-  testAiCommandsAndSettingsAreContributed();
-  testAiActivationEventsAndMenuPlacementsAreContributed();
-  testVsixIgnoreKeepsOnlyRuntimeAssets();
-  console.log('✅ All package layout tests passed');
-} catch (error) {
-  console.error('❌ package layout tests failed');
-  throw error;
-}
+test('extension entry points use bundle', testExtensionEntryPointsUseBundle);
+test('AI commands and settings are contributed', testAiCommandsAndSettingsAreContributed);
+test('AI activation events and menu placements are contributed', testAiActivationEventsAndMenuPlacementsAreContributed);
+test('.vscodeignore keeps only runtime assets', testVsixIgnoreKeepsOnlyRuntimeAssets);

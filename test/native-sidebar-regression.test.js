@@ -1,6 +1,10 @@
-const fs = require('fs');
-const path = require('path');
-const assert = require('assert');
+import assert from 'assert';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { test as runTest } from 'vitest';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 function expectIncludes(source, expected) {
   assert.ok(source.includes(expected), `Expected string to include: ${expected}`);
@@ -9,19 +13,7 @@ function expectIncludes(source, expected) {
 const nativeViewsSource = fs.readFileSync(path.join(__dirname, '../src/sidebar/MarkdownNativeViews.ts'), 'utf-8');
 const graphViewPanelSource = fs.readFileSync(path.join(__dirname, '../src/app/GraphViewPanel.ts'), 'utf-8');
 const sidebarContextSource = fs.readFileSync(path.join(__dirname, '../src/sidebar/MarkdownSidebarContext.ts'), 'utf-8');
-const extensionSource = fs.readFileSync(path.join(__dirname, '../src/extension.ts'), 'utf-8');
 const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, '../package.json'), 'utf-8'));
-
-function runTest(name, testFn) {
-  try {
-    testFn();
-    process.stdout.write(`✔ ${name}\n`);
-  } catch (error) {
-    process.stderr.write(`✖ ${name}\n`);
-    process.stderr.write(`${error.stack}\n`);
-    process.exitCode = 1;
-  }
-}
 
 runTest('Sidebar view registration includes graph provider and commands', () => {
   expectIncludes(nativeViewsSource, "private static readonly stateKey = 'markdown-editor.sidebar.graph.options';");

@@ -1,14 +1,62 @@
-const assert = require('assert');
-require('ts-node/register/transpile-only');
-const Module = require('module');
-const fs = require('fs');
-const path = require('path');
+import assert from 'assert';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { test, vi } from 'vitest';
 
-const originalLoad = Module._load;
-const workflowServicePath = require.resolve('../src/services/AIMarkdownWorkflowService.ts');
-const detectorPath = require.resolve('../src/services/AIMarkdownDetector.ts');
+// 'vscode' resolves to test/mocks/vscode.ts via the vitest alias.
+import { __reset } from 'vscode';
+import * as detector from '../src/services/AIMarkdownDetector';
+import { AIMarkdownWorkflowService } from '../src/services/AIMarkdownWorkflowService';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const inlineSuggestionServiceSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'services', 'InlineSuggestionService.ts'), 'utf8');
 const inlineCompletionProviderSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'providers', 'MarkdownInlineCompletionProvider.ts'), 'utf8');
+
+// Mutable per-test state consumed lazily by the vi.mock factories below and
+// by the shared vscode mock (clipboard, commands, extensions, config).
+let currentState;
+
+vi.mock('../src/services/RelationshipAnalyzer', () => ({
+  RelationshipAnalyzer: class MockRelationshipAnalyzer {
+    static getInstance() {
+      return {
+        async getOutgoingLinks() {
+          return currentState.outgoingLinks;
+        },
+        async getBacklinks() {
+          return currentState.backlinks;
+        },
+        async getRelatedFiles() {
+          return currentState.relatedFiles;
+        },
+      };
+    }
+  },
+}));
+
+vi.mock('../src/services/LinkGraphGenerator', () => ({
+  LinkGraphGenerator: class MockLinkGraphGenerator {
+    static getInstance() {
+      return {
+        async generateSimplifiedGraph() {
+          return currentState.graphData;
+        },
+      };
+    }
+  },
+}));
+
+vi.mock('../src/utils/Logger', () => ({
+  logger: {
+    warn(...args) {
+      currentState.warns.push(args);
+    },
+    info() {},
+    debug() {},
+    error() {},
+  },
+}));
 
 function createDocument(filePath, text = '') {
   return {
@@ -21,144 +69,31 @@ function createDocument(filePath, text = '') {
 }
 
 function loadDetector() {
-  delete require.cache[detectorPath];
-  return require('../src/services/AIMarkdownDetector.ts');
+  return detector;
 }
 
 function loadWorkflowService(options = {}) {
-  const state = {
+  const state = __reset({
     config: options.config || {},
-    clipboardWrites: [],
-    executedCommands: [],
-    warns: [],
     availableCommands: options.availableCommands || [],
     installedExtensions: options.installedExtensions || [],
+    executeCommandError: options.executeCommandError || null,
+    relativePathBase: options.relativePathBase || '/workspace/',
+  });
+
+  Object.assign(state, {
     outgoingLinks: options.outgoingLinks || [],
     backlinks: options.backlinks || [],
     relatedFiles: options.relatedFiles || [],
     graphData: options.graphData || { nodes: [], edges: [] },
-    executeCommandError: options.executeCommandError || null,
-    relativePathBase: options.relativePathBase || '/workspace/',
+  });
+
+  currentState = state;
+
+  return {
+    service: AIMarkdownWorkflowService.getInstance(),
+    state,
   };
-
-  const vscodeMock = {
-    workspace: {
-      getConfiguration() {
-        return {
-          get(key, defaultValue) {
-            return Object.prototype.hasOwnProperty.call(state.config, key)
-              ? state.config[key]
-              : defaultValue;
-          },
-        };
-      },
-      asRelativePath(uri) {
-        if (uri.fsPath.startsWith(state.relativePathBase)) {
-          return uri.fsPath.slice(state.relativePathBase.length);
-        }
-
-        return uri.fsPath.replace(/^\/+/, '');
-      },
-    },
-    env: {
-      clipboard: {
-        async writeText(value) {
-          state.clipboardWrites.push(value);
-        },
-      },
-    },
-    commands: {
-      async getCommands() {
-        return state.availableCommands.slice();
-      },
-      async executeCommand(commandId) {
-        state.executedCommands.push(commandId);
-        if (state.executeCommandError) {
-          throw state.executeCommandError;
-        }
-      },
-    },
-    extensions: {
-      getExtension(id) {
-        return state.installedExtensions.includes(id) ? { id } : undefined;
-      },
-    },
-    window: {
-      createOutputChannel() {
-        return {
-          appendLine() {},
-          show() {},
-          dispose() {},
-        };
-      },
-    },
-  };
-
-  class MockRelationshipAnalyzer {
-    static getInstance() {
-      return {
-        async getOutgoingLinks() {
-          return state.outgoingLinks;
-        },
-        async getBacklinks() {
-          return state.backlinks;
-        },
-        async getRelatedFiles() {
-          return state.relatedFiles;
-        },
-      };
-    }
-  }
-
-  class MockLinkGraphGenerator {
-    static getInstance() {
-      return {
-        async generateSimplifiedGraph() {
-          return state.graphData;
-        },
-      };
-    }
-  }
-
-  Module._load = function patchedLoad(request, parent, isMain) {
-    if (request === 'vscode') {
-      return vscodeMock;
-    }
-
-    if (request === './RelationshipAnalyzer') {
-      return { RelationshipAnalyzer: MockRelationshipAnalyzer };
-    }
-
-    if (request === './LinkGraphGenerator') {
-      return { LinkGraphGenerator: MockLinkGraphGenerator };
-    }
-
-    if (request === '../utils/Logger') {
-      return {
-        logger: {
-          warn(...args) {
-            state.warns.push(args);
-          },
-          info() {},
-          debug() {},
-          error() {},
-        },
-      };
-    }
-
-    return originalLoad.call(this, request, parent, isMain);
-  };
-
-  try {
-    delete require.cache[workflowServicePath];
-    const { AIMarkdownWorkflowService } = require('../src/services/AIMarkdownWorkflowService.ts');
-    return {
-      service: AIMarkdownWorkflowService.getInstance(),
-      state,
-    };
-  } finally {
-    Module._load = originalLoad;
-  }
 }
 
 function testRecognizesSupportedAiMarkdownFileNames() {
@@ -172,8 +107,6 @@ function testRecognizesSupportedAiMarkdownFileNames() {
   assert.strictEqual(classifyAIMarkdownFileName('/workspace/skills/SKILL.md').kind, 'skill');
   assert.strictEqual(classifyAIMarkdownFileName('/workspace/skills/custom.skill.md').kind, 'none');
   assert.strictEqual(isAIMarkdownFileName('/workspace/notes/README.md'), false);
-
-  console.log('✅ testRecognizesSupportedAiMarkdownFileNames passed');
 }
 
 function testDescribeDocumentReportsReadyAvailability() {
@@ -198,8 +131,6 @@ function testDescribeDocumentReportsReadyAvailability() {
   assert.strictEqual(descriptor.hasPendingChatEdits, true);
   assert.strictEqual(descriptor.availability.status, 'ready');
   assert.match(descriptor.availability.detail, /manual paste/i);
-
-  console.log('✅ testDescribeDocumentReportsReadyAvailability passed');
 }
 
 function testDescribeDocumentReflectsAffordancesSetting() {
@@ -219,8 +150,6 @@ function testDescribeDocumentReflectsAffordancesSetting() {
   assert.strictEqual(descriptor.availability.enabled, true);
   assert.strictEqual(descriptor.availability.affordancesEnabled, false);
   assert.strictEqual(descriptor.availability.status, 'ready');
-
-  console.log('✅ testDescribeDocumentReflectsAffordancesSetting passed');
 }
 
 async function testBuildContextPackageIncludesStructuredContext() {
@@ -270,8 +199,6 @@ async function testBuildContextPackageIncludesStructuredContext() {
   assert.strictEqual(json.backlinks.length, 1);
   assert.strictEqual(json.outgoingLinks.length, 1);
   assert.strictEqual(json.relatedFiles.length, 1);
-
-  console.log('✅ testBuildContextPackageIncludesStructuredContext passed');
 }
 
 async function testCopyContextPackageWritesClipboard() {
@@ -283,8 +210,6 @@ async function testCopyContextPackageWritesClipboard() {
 
   assert.strictEqual(state.clipboardWrites.length, 1);
   assert.strictEqual(state.clipboardWrites[0], contextPackage.markdown);
-
-  console.log('✅ testCopyContextPackageWritesClipboard passed');
 }
 
 function testValidateDocumentAcceptsCompleteAgentTemplate() {
@@ -304,8 +229,6 @@ function testValidateDocumentAcceptsCompleteAgentTemplate() {
   assert.strictEqual(result.isValid, true);
   assert.deepStrictEqual(result.missingSections, []);
   assert.ok(result.presentSections.includes('Identity'));
-
-  console.log('✅ testValidateDocumentAcceptsCompleteAgentTemplate passed');
 }
 
 function testValidateDocumentReportsMissingPromptSections() {
@@ -324,8 +247,6 @@ function testValidateDocumentReportsMissingPromptSections() {
   assert.ok(result.missingSections.includes('Variables'));
   assert.ok(result.missingSections.includes('Constraints'));
   assert.ok(result.missingSections.includes('Expected Output'));
-
-  console.log('✅ testValidateDocumentReportsMissingPromptSections passed');
 }
 
 function testTemplateSnippetAddsFrontmatterForAiMarkdownFiles() {
@@ -339,8 +260,6 @@ function testTemplateSnippetAddsFrontmatterForAiMarkdownFiles() {
   assert.match(snippet, /title: New Prompt/);
   assert.match(snippet, /status: draft/);
   assert.match(snippet, /## Intent/);
-
-  console.log('✅ testTemplateSnippetAddsFrontmatterForAiMarkdownFiles passed');
 }
 
 function testKeepsNormalMarkdownStable() {
@@ -358,8 +277,6 @@ function testKeepsNormalMarkdownStable() {
   assert.match(snippet, /## Intent/);
   assert.doesNotMatch(snippet, /^---/);
   assert.doesNotMatch(snippet, /## Identity/);
-
-  console.log('✅ testKeepsNormalMarkdownStable passed');
 }
 
 async function testOpenChatWorkflowFallsBackWhenAiIsDisabled() {
@@ -379,8 +296,6 @@ async function testOpenChatWorkflowFallsBackWhenAiIsDisabled() {
   assert.match(result.message, /disabled/i);
   assert.strictEqual(state.executedCommands.length, 0);
   assert.strictEqual(state.clipboardWrites.length, 1);
-
-  console.log('✅ testOpenChatWorkflowFallsBackWhenAiIsDisabled passed');
 }
 
 async function testOpenChatWorkflowRespectsChatInteropSetting() {
@@ -400,8 +315,6 @@ async function testOpenChatWorkflowRespectsChatInteropSetting() {
   assert.strictEqual(result.openedChat, false);
   assert.match(result.message, /disabled in settings/i);
   assert.strictEqual(state.executedCommands.length, 0);
-
-  console.log('✅ testOpenChatWorkflowRespectsChatInteropSetting passed');
 }
 
 async function testOpenChatWorkflowUsesFirstAvailableChatCommand() {
@@ -421,8 +334,6 @@ async function testOpenChatWorkflowUsesFirstAvailableChatCommand() {
   assert.strictEqual(result.openedChat, true);
   assert.strictEqual(result.commandId, 'workbench.action.chat.open');
   assert.deepStrictEqual(state.executedCommands, ['workbench.action.chat.open']);
-
-  console.log('✅ testOpenChatWorkflowUsesFirstAvailableChatCommand passed');
 }
 
 async function testOpenChatWorkflowHandlesExecutionFailure() {
@@ -444,16 +355,12 @@ async function testOpenChatWorkflowHandlesExecutionFailure() {
   assert.match(result.message, /opening chat failed/i);
   assert.strictEqual(state.executedCommands.length, 1);
   assert.strictEqual(state.warns.length, 1);
-
-  console.log('✅ testOpenChatWorkflowHandlesExecutionFailure passed');
 }
 
 function testInlineSuggestionServiceUsesCopilotLmApi() {
   assert(inlineSuggestionServiceSource.includes("selectChatModels({ vendor: 'copilot' })"));
   assert(inlineSuggestionServiceSource.includes('LanguageModelChatMessage.User(prompt)'));
   assert(inlineSuggestionServiceSource.includes('Return only the immediate continuation text that should appear after the cursor.'));
-
-  console.log('✅ testInlineSuggestionServiceUsesCopilotLmApi passed');
 }
 
 function testInlineCompletionProviderRegistersSupportedLanguages() {
@@ -462,29 +369,20 @@ function testInlineCompletionProviderRegistersSupportedLanguages() {
   assert(inlineCompletionProviderSource.includes("'skill'"));
   assert(inlineCompletionProviderSource.includes("'prompt'"));
   assert(inlineCompletionProviderSource.includes('new vscode.InlineCompletionItem('));
-
-  console.log('✅ testInlineCompletionProviderRegistersSupportedLanguages passed');
 }
 
-async function run() {
-  testRecognizesSupportedAiMarkdownFileNames();
-  testDescribeDocumentReportsReadyAvailability();
-  testDescribeDocumentReflectsAffordancesSetting();
-  await testBuildContextPackageIncludesStructuredContext();
-  await testCopyContextPackageWritesClipboard();
-  testValidateDocumentAcceptsCompleteAgentTemplate();
-  testValidateDocumentReportsMissingPromptSections();
-  testTemplateSnippetAddsFrontmatterForAiMarkdownFiles();
-  testKeepsNormalMarkdownStable();
-  await testOpenChatWorkflowFallsBackWhenAiIsDisabled();
-  await testOpenChatWorkflowRespectsChatInteropSetting();
-  await testOpenChatWorkflowUsesFirstAvailableChatCommand();
-  await testOpenChatWorkflowHandlesExecutionFailure();
-  testInlineSuggestionServiceUsesCopilotLmApi();
-  testInlineCompletionProviderRegistersSupportedLanguages();
-}
-
-run().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+test('recognizes supported AI markdown file names', testRecognizesSupportedAiMarkdownFileNames);
+test('describeDocument reports ready availability', testDescribeDocumentReportsReadyAvailability);
+test('describeDocument reflects affordances setting', testDescribeDocumentReflectsAffordancesSetting);
+test('buildContextPackage includes structured context', testBuildContextPackageIncludesStructuredContext);
+test('copyContextPackage writes clipboard', testCopyContextPackageWritesClipboard);
+test('validateDocument accepts complete agent template', testValidateDocumentAcceptsCompleteAgentTemplate);
+test('validateDocument reports missing prompt sections', testValidateDocumentReportsMissingPromptSections);
+test('template snippet adds frontmatter for AI markdown files', testTemplateSnippetAddsFrontmatterForAiMarkdownFiles);
+test('keeps normal markdown stable', testKeepsNormalMarkdownStable);
+test('openChatWorkflow falls back when AI is disabled', testOpenChatWorkflowFallsBackWhenAiIsDisabled);
+test('openChatWorkflow respects chat interop setting', testOpenChatWorkflowRespectsChatInteropSetting);
+test('openChatWorkflow uses first available chat command', testOpenChatWorkflowUsesFirstAvailableChatCommand);
+test('openChatWorkflow handles execution failure', testOpenChatWorkflowHandlesExecutionFailure);
+test('InlineSuggestionService uses Copilot LM API', testInlineSuggestionServiceUsesCopilotLmApi);
+test('inline completion provider registers supported languages', testInlineCompletionProviderRegistersSupportedLanguages);

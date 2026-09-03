@@ -1,4 +1,5 @@
-const assert = require('assert');
+import assert from 'assert';
+import { test } from 'vitest';
 
 /**
  * Tests for RelationshipAnalyzer - link detection and parsing
@@ -142,14 +143,8 @@ function testStringBasedLineTracking() {
   console.log('✅ testStringBasedLineTracking passed');
 }
 
-try {
-  testMarkdownLinkParsing();
-  testWikiLinkParsing();
-  testLinkTypeDetection();
-  testBacklinkMatching();
-  testStringBasedLineTracking();
-  console.log('✅ All RelationshipAnalyzer tests passed');
-} catch (e) {
-  console.error('❌ RelationshipAnalyzer tests failed:', e);
-  throw e;
-}
+test('markdown link parsing', testMarkdownLinkParsing);
+test('wiki link parsing', testWikiLinkParsing);
+test('link type detection', testLinkTypeDetection);
+test('backlink matching', testBacklinkMatching);
+test('string based line tracking', testStringBasedLineTracking);

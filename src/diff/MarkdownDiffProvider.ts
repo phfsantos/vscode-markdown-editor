@@ -197,7 +197,7 @@ export class MarkdownDiffProvider {
     const tempUri = vscode.Uri.parse(
       `untitled:Clipboard-${Date.now()}.md`
     );
-    const tempDoc = await vscode.workspace.openTextDocument(tempUri);
+    await vscode.workspace.openTextDocument(tempUri);
     const edit = new vscode.WorkspaceEdit();
     edit.insert(tempUri, new vscode.Position(0, 0), clipboardText);
     await vscode.workspace.applyEdit(edit);
@@ -272,8 +272,7 @@ export class MarkdownDiffProvider {
       }
 
       const currentUri = currentEditor.document.uri;
-      const relativePath = vscode.workspace.asRelativePath(currentUri);
-      
+
       // Get HEAD version
       const headUri = currentUri.with({
         scheme: 'git',

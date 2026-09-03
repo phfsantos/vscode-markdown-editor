@@ -1,4 +1,5 @@
-const assert = require('assert');
+import assert from 'assert';
+import { test } from 'vitest';
 
 // Lightweight local implementation of the tag extractor for unit testing
 function extractTagsFromText(content) {
@@ -11,21 +12,11 @@ function extractTagsFromText(content) {
   return Array.from(new Set(tags));
 }
 
-function testExtractTags() {
+test('extractTagsFromText finds plain, nested, and numeric tags', () => {
   const text = `This is a test #todo and #meeting.\nAnother line with #todo and #project/subproject and #123tag.`;
   const tags = extractTagsFromText(text);
   assert(tags.includes('todo'));
   assert(tags.includes('meeting'));
   assert(tags.includes('project/subproject'));
   assert(tags.includes('123tag'));
-  console.log('TagManager.extractTagsFromText() passed');
-}
-
-// Export test function for test runner
-try {
-  testExtractTags();
-  console.log('All tests passed');
-} catch (e) {
-  console.error('Tests failed', e);
-  throw e;
-}
+});

@@ -70,3 +70,6 @@ lib
 dist
 out
 sidebar-dist/
+
+# Written by ProjectMind: this URL is machine-specific
+.codex/config.toml

@@ -3,11 +3,23 @@
   "displayName": "Markdown Editor",
   "icon": "media/logo.png",
   "description": "Full-featured WYSIWYG markdown editor with Obsidian-style wiki-links, graph view, backlinks, tags, and knowledge management.",
-  "version": "0.4.15",
+  "version": "0.5.0",
   "publisher": "phfsantos",
   "private": true,
+  "workspaces": {
+    "packages": [
+      "packages/*"
+    ],
+    "nohoist": [
+      "**/vditor",
+      "**/vditor/**",
+      "**/vite",
+      "**/vitest",
+      "**/@vitest/*"
+    ]
+  },
   "engines": {
-    "vscode": "^1.47.0"
+    "vscode": "^1.95.0"
   },
   "categories": [
     "Programming Languages",
@@ -33,16 +45,9 @@
   "activationEvents": [
     "onWebviewPanel:markdown-editor",
     "onLanguage:markdown",
-    "onView:markdown-sidebar-status",
-    "onView:markdown-sidebar-graph",
     "onLanguage:chatagent",
     "onLanguage:skill",
-    "onLanguage:prompt",
-    "onCommand:markdown-editor.copyAiContext",
-    "onCommand:markdown-editor.insertAiContext",
-    "onCommand:markdown-editor.insertAiTemplate",
-    "onCommand:markdown-editor.openAiChat",
-    "onCommand:markdown-editor.validateAiMarkdown"
+    "onLanguage:prompt"
   ],
   "repository": {
     "type": "git",
@@ -540,16 +545,16 @@
           "enum": [
             "auto",
             "copilot-fast",
-            "gtp-4o-mini",
-            "gtp-4o",
+            "gpt-4o-mini",
+            "gpt-4o",
             "gpt-4.1",
             "oswe-vscode-prime"
           ],
           "enumDescriptions": [
             "Automatically select the best available model based on system configuration and availability.",
             "Use Copilot Fast model for inline suggestions (fastest response times).",
-            "Use GTP-4o-mini model for cost-effective suggestions with good quality.",
-            "Use GTP-4o model for highest quality suggestions.",
+            "Use GPT-4o-mini model for cost-effective suggestions with good quality.",
+            "Use GPT-4o model for highest quality suggestions.",
             "Use GPT-4.1 model for premium quality suggestions.",
             "Use OSWE VSCode Prime model (custom optimized model)."
           ],
@@ -586,26 +591,32 @@
     "compile": "node esbuild.js",
     "build:extension": "node esbuild.js --production",
     "watch:extension": "node esbuild.js --watch",
-    "check-types": "tsc --noEmit -p ./ --skipLibCheck",
+    "check-types": "tsc --noEmit -p ./ --skipLibCheck && yarn --cwd packages/media type-check",
     "watch:types": "tsc --noEmit --watch -p ./ --skipLibCheck",
-    "compile-tests": "tsc -p ./ --outDir out",
     "package": "yarn foy build",
     "vscode:prepublish": "yarn package",
     "watch": "yarn foy watch",
     "start": "yarn foy watch",
     "pub": "yarn package && npm version patch && git push origin master --tags && vsce package && vsce publish",
-    "test": "echo 0",
-    "test:unit": "yarn compile-tests && node ./test/run-all.js"
+    "lint": "eslint src --ext .ts",
+    "test": "yarn check-types && yarn test:unit",
+    "test:unit": "vitest run --coverage",
+    "test:watch": "vitest"
   },
   "devDependencies": {
     "@types/node": "^12.20.55",
-    "@types/vscode": "^1.47.0",
+    "@types/vscode": "~1.95.0",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "@vitest/coverage-v8": "^4.1.10",
     "cheerio": "^1.2.0",
     "dotenv": "^17.4.2",
     "esbuild": "0.27.4",
+    "eslint": "^8.57.0",
     "foy": "^0.2.5",
     "ts-node": "^9.1.1",
-    "typescript": "5.3.3"
+    "typescript": "5.3.3",
+    "vitest": "^4.1.10"
   },
   "dependencies": {
     "@vscode/codicons": "^0.0.41",

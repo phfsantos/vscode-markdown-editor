@@ -10,7 +10,12 @@
  * 5. LineToDom map updates correctly when spacers are inserted
  */
 
-const assert = require('assert');
+import assert from 'assert';
+import { test } from 'vitest';
+
+// NOTE (vitest port): this legacy file asserts at module top level, so a
+// failing assertion surfaces as a suite-level error at import time. The
+// single test below marks the file green once the module loads cleanly.
 
 // ============================================================================
 // BACKEND TESTS: MarkdownDiffViewSupport Algorithm
@@ -348,20 +353,7 @@ assert.strictEqual(frontendTest_result.get(1).content, 'tested', 'Line 1 should 
 assert.strictEqual(frontendTest_result.get(2).content, 'SPACER', 'Line 2 should be SPACER');
 assert.strictEqual(frontendTest_result.get(3).content, 'testing', 'Line 3 should be testing');
 
-console.log('✅ Frontend lineToDom test passed');
-
-// ============================================================================
-// SUMMARY
-// ============================================================================
-
-console.log('\n' + '='.repeat(60));
-console.log('✅ ALL TESTS PASSED');
-console.log('='.repeat(60));
-console.log('\nVerified behaviors:');
-console.log('  ✅ Backend produces aligned changes with spacers');
-console.log('  ✅ Line numbers include offsets (no frontend calculation)');
-console.log('  ✅ Spacers are regular changes in the array');
-console.log('  ✅ Frontend lineToDom map updates correctly');
-console.log('  ✅ Simple addition/deletion/modification scenarios work');
-console.log('  ✅ Complex multi-change scenarios work');
-console.log('');
+test('diff algorithm with spacers (module-level assertions ran at import)', () => {
+  // All assertions above executed during module evaluation; reaching this
+  // test means every one of them passed.
+});

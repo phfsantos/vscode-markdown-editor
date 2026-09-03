@@ -167,7 +167,7 @@ class OAuthCallbackHandlerImpl implements vscode.UriHandler {
    * Cancel all pending auths
    */
   public cancelAll(): void {
-    for (const [state, pending] of this._pendingAuths) {
+    for (const pending of this._pendingAuths.values()) {
       clearTimeout(pending.timeout);
       pending.resolve(null);
     }

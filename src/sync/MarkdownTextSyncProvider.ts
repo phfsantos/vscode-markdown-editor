@@ -55,7 +55,6 @@ export class MarkdownTextSyncProvider {
      */
     public async createSyncDocument(originalUri: vscode.Uri, content: string): Promise<vscode.TextDocument> {
         // Create a temporary document that mirrors the webview content
-        const tempUri = originalUri.with({ scheme: 'markdown-editor-sync' });
         const document = await vscode.workspace.openTextDocument({
             content,
             language: 'markdown'

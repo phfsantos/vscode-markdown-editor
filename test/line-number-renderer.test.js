@@ -1,11 +1,11 @@
-const assert = require('assert');
-require('ts-node/register/transpile-only');
+import assert from 'assert';
+import { test } from 'vitest';
 
-const {
+import {
   getSelectedLineNumber,
   getLineNumberLayout,
   shouldUpdateActiveLine,
-} = require('../packages/media/src/line-number-renderer.ts');
+} from '../packages/media/src/line-number-renderer';
 
 class FakeElement {
   constructor(attrs = {}, children = []) {
@@ -139,19 +139,13 @@ function testShouldNotUpdateActiveLineWhenSelectionRemainsCleared() {
   console.log('✅ testShouldNotUpdateActiveLineWhenSelectionRemainsCleared passed');
 }
 
-try {
-  testReturnsLineNumberFromFocusedDescendant();
-  testReturnsLineNumberFromFocusNodeItself();
-  testFallsForwardWhenSelectionContainerIsRootAtChildBoundary();
-  testFallsBackwardWhenSelectionOffsetIsAfterLastChild();
-  testIgnoresAnchorsOutsideRoot();
-  testReturnsNullWithoutSelectionOrRoot();
-  testLineNumberLayoutScalesWithDigits();
-  testShouldUpdateActiveLineWhenLineNumberChanges();
-  testShouldUpdateActiveLineWhenElementChangesForSameLine();
-  testShouldNotUpdateActiveLineWhenSelectionRemainsCleared();
-  console.log('✅ All line number renderer tests passed');
-} catch (error) {
-  console.error('❌ line number renderer tests failed');
-  throw error;
-}
+test('returns line number from focused descendant', testReturnsLineNumberFromFocusedDescendant);
+test('returns line number from focus node itself', testReturnsLineNumberFromFocusNodeItself);
+test('falls forward when selection container is root at child boundary', testFallsForwardWhenSelectionContainerIsRootAtChildBoundary);
+test('falls backward when selection offset is after last child', testFallsBackwardWhenSelectionOffsetIsAfterLastChild);
+test('ignores anchors outside root', testIgnoresAnchorsOutsideRoot);
+test('returns null without selection or root', testReturnsNullWithoutSelectionOrRoot);
+test('line number layout scales with digits', testLineNumberLayoutScalesWithDigits);
+test('should update active line when line number changes', testShouldUpdateActiveLineWhenLineNumberChanges);
+test('should update active line when element changes for same line', testShouldUpdateActiveLineWhenElementChangesForSameLine);
+test('should not update active line when selection remains cleared', testShouldNotUpdateActiveLineWhenSelectionRemainsCleared);

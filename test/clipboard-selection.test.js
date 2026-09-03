@@ -1,8 +1,10 @@
-const assert = require('assert');
-const {
+import assert from 'assert';
+import { test } from 'vitest';
+
+import {
   getMarkdownClipboardText,
   replaceSelectionText,
-} = require('../packages/media/src/clipboard-selection.js');
+} from '../packages/media/src/clipboard-selection.js';
 
 function createVditor(convert) {
   return {
@@ -130,4 +132,4 @@ function run() {
   console.log('\n=== clipboard selection tests passed ===');
 }
 
-run();
+test('clipboard selection markdown conversion and paste replacement', run);

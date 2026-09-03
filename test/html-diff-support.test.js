@@ -1,54 +1,14 @@
-const assert = require('assert');
-require('ts-node/register/transpile-only');
+import assert from 'assert';
+import { beforeEach, test } from 'vitest';
 
-const Module = require('module');
-const originalLoad = Module._load;
+// 'vscode' resolves to test/mocks/vscode.ts via the vitest alias.
+import { __reset } from 'vscode';
+import { parseHTMLToLines } from '../src/diff/HtmlLineParser';
+import { MarkdownDiffViewSupport } from '../src/diff/MarkdownDiffViewSupport';
 
-Module._load = function patchedLoad(request, parent, isMain) {
-  if (request === 'vscode') {
-    return {
-      Uri: {
-        parse(value) {
-          return {
-            value,
-            toString() {
-              return value;
-            }
-          };
-        }
-      },
-      window: {
-        createOutputChannel() {
-          return {
-            appendLine() {},
-            show() {},
-            dispose() {}
-          };
-        }
-      },
-      workspace: {
-        getConfiguration() {
-          return {
-            get(_key, defaultValue) {
-              return defaultValue;
-            }
-          };
-        },
-        onDidChangeConfiguration() {
-          return { dispose() {} };
-        },
-        async openTextDocument() {
-          throw new Error('openTextDocument should not be used in html diff tests');
-        }
-      }
-    };
-  }
-
-  return originalLoad(request, parent, isMain);
-};
-
-const { parseHTMLToLines } = require('../src/diff/HtmlLineParser.ts');
-const { MarkdownDiffViewSupport } = require('../src/diff/MarkdownDiffViewSupport.ts');
+beforeEach(() => {
+  __reset();
+});
 
 function createSupport() {
   return new MarkdownDiffViewSupport({ subscriptions: [] });
@@ -201,17 +161,11 @@ function testHtmlDiffTreatsCodeBlockContainerAsSingleModifiedLine() {
   console.log('✅ testHtmlDiffTreatsCodeBlockContainerAsSingleModifiedLine passed');
 }
 
-try {
-  testParserLineNumberingIsSequential();
-  testParserRegressionAgainstNestedHtml();
-  testParserCountsParagraphWithInlineTextChild();
-  testParserTreatsCodeBlockContainerAsSingleLine();
-  testAlignedDiffTracksBlankAndInlineLines();
-  testHtmlDiffUsesListItemLevelMapping();
-  testHtmlDiffKeepsDeletedListItemsInOriginalPosition();
-  testHtmlDiffTreatsCodeBlockContainerAsSingleModifiedLine();
-  console.log('✅ All html diff support tests passed');
-} catch (error) {
-  console.error('❌ html diff support tests failed');
-  throw error;
-}
+test('parser line numbering is sequential', testParserLineNumberingIsSequential);
+test('parser regression against nested html', testParserRegressionAgainstNestedHtml);
+test('parser counts paragraph with inline text child', testParserCountsParagraphWithInlineTextChild);
+test('parser treats code block container as single line', testParserTreatsCodeBlockContainerAsSingleLine);
+test('aligned diff tracks blank and inline lines', testAlignedDiffTracksBlankAndInlineLines);
+test('html diff uses list item level mapping', testHtmlDiffUsesListItemLevelMapping);
+test('html diff keeps deleted list items in original position', testHtmlDiffKeepsDeletedListItemsInOriginalPosition);
+test('html diff treats code block container as single modified line', testHtmlDiffTreatsCodeBlockContainerAsSingleModifiedLine);

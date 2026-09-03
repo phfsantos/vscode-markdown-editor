@@ -1,25 +1,19 @@
-const assert = require('assert');
-const fs = require('fs');
-const path = require('path');
+import assert from 'assert';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { test } from 'vitest';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const bridgeSource = fs.readFileSync(path.join(__dirname, '..', 'packages', 'media', 'src', 'ai-markdown-bridge.ts'), 'utf8');
 const preloadSource = fs.readFileSync(path.join(__dirname, '..', 'packages', 'media', 'src', 'preload.ts'), 'utf8');
 const uiSource = fs.readFileSync(path.join(__dirname, '..', 'packages', 'media', 'src', 'ai-markdown-ui.ts'), 'utf8');
 const chatAnchorSource = fs.readFileSync(path.join(__dirname, '..', 'packages', 'media', 'src', 'chat-anchor-ui.ts'), 'utf8');
 const inlineSuggestionSource = fs.readFileSync(path.join(__dirname, '..', 'packages', 'media', 'src', 'inline-suggestion-ui.ts'), 'utf8');
 const editorPanelSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'app', 'EditorPanel.ts'), 'utf8');
+const aiHandlerSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'app', 'AiMessageHandler.ts'), 'utf8');
 const extensionSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'extension.ts'), 'utf8');
 const inlineCompletionProviderSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'providers', 'MarkdownInlineCompletionProvider.ts'), 'utf8');
-
-function test(name, fn) {
-  try {
-    fn();
-    console.log(`✅ ${name} passed`);
-  } catch (error) {
-    console.error(`❌ ${name} failed`);
-    throw error;
-  }
-}
 
 test('preload imports AI markdown bridge', () => {
   assert(preloadSource.includes('import "./ai-markdown-bridge";'));
@@ -103,13 +97,13 @@ test('extension registers inline completion provider for supported languages', (
   assert(inlineCompletionProviderSource.includes("ai.enableInlineSuggestions"));
 });
 
-test('EditorPanel handles requestAiAction and returns aiMarkdownActionResult', () => {
+test('EditorPanel routes requestAiAction to the AI handler which returns aiMarkdownActionResult', () => {
   assert(editorPanelSource.includes('case "requestAiAction":'));
-  assert(editorPanelSource.includes('private async handleAIMarkdownAction(message: any): Promise<void>'));
-  assert(editorPanelSource.includes('command: "aiMarkdownActionResult"'));
+  assert(aiHandlerSource.includes('public async handleAIMarkdownAction(message: any): Promise<void>'));
+  assert(aiHandlerSource.includes('command: "aiMarkdownActionResult"'));
 });
 
-test('EditorPanel routes each AI action to the expected side effect', () => {
+test('AI handler routes each AI action to the expected side effect', () => {
   for (const action of [
     'case "copyContext":',
     'case "insertContext":',
@@ -118,21 +112,19 @@ test('EditorPanel routes each AI action to the expected side effect', () => {
     'case "openGraph":',
     'case "validate":',
   ]) {
-    assert(editorPanelSource.includes(action), `Expected handler branch for ${action}`);
+    assert(aiHandlerSource.includes(action), `Expected handler branch for ${action}`);
   }
 
-  assert(editorPanelSource.includes('command: "insertTextAtCursor"'));
-  assert(editorPanelSource.includes('executeCommand("markdown-editor.openGraphView"'));
-  assert(editorPanelSource.includes('Unsupported AI markdown action'));
-  assert(editorPanelSource.includes('AI markdown action failed'));
+  assert(aiHandlerSource.includes('command: "insertTextAtCursor"'));
+  assert(aiHandlerSource.includes('executeCommand("markdown-editor.openGraphView"'));
+  assert(aiHandlerSource.includes('Unsupported AI markdown action'));
+  assert(aiHandlerSource.includes('AI markdown action failed'));
 });
 
-test('EditorPanel suppresses add-to-chat and inline suggestions in excluded contexts', () => {
-  assert(editorPanelSource.includes('private _canShowAddToChatButton(): boolean'));
-  assert(editorPanelSource.includes('return !this._isDiffView && !this._isAIMarkdownDocument();'));
-  assert(editorPanelSource.includes('private _canShowInlineSuggestions(): boolean'));
-  assert(editorPanelSource.includes('this._config.get<boolean>("ai.enableInlineSuggestions", false)'));
+test('AI handler suppresses add-to-chat and inline suggestions in excluded contexts', () => {
+  assert(aiHandlerSource.includes('public canShowAddToChatButton(): boolean'));
+  assert(aiHandlerSource.includes('return !this.host.isDiffView && !this.isAIMarkdownDocument();'));
+  assert(aiHandlerSource.includes('public canShowInlineSuggestions(): boolean'));
+  assert(aiHandlerSource.includes('this.host.config.get<boolean>("ai.enableInlineSuggestions", false)'));
   assert(editorPanelSource.includes('case "requestAddToChat":'));
 });
-
-console.log('✅ All AI markdown webview tests passed');
