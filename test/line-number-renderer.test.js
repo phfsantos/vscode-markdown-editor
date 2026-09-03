@@ -2,8 +2,14 @@ import assert from 'assert';
 import { test } from 'vitest';
 
 import {
+  cleanupLineNumberRoot,
+  findLineNumberRoot,
+  getLineNumberKeyboardTarget,
+  getLineNumberTabIndex,
+  getLineNumberStyles,
   getSelectedLineNumber,
   getLineNumberLayout,
+  navigateToLineElement,
   shouldUpdateActiveLine,
 } from '../packages/media/src/line-number-renderer';
 
@@ -139,6 +145,164 @@ function testShouldNotUpdateActiveLineWhenSelectionRemainsCleared() {
   console.log('✅ testShouldNotUpdateActiveLineWhenSelectionRemainsCleared passed');
 }
 
+function testNavigateToLineElementMovesCaretAndRevealsLine() {
+  const calls = [];
+  const root = {
+    focus(options) {
+      calls.push(['focus', options]);
+    },
+  };
+  const line = {
+    textContent: 'Target line',
+    scrollIntoView(options) {
+      calls.push(['scrollIntoView', options]);
+    },
+  };
+  const range = {
+    selectNodeContents(node) {
+      calls.push(['selectNodeContents', node]);
+    },
+    collapse(toStart) {
+      calls.push(['collapse', toStart]);
+    },
+  };
+  const selectionApi = {
+    removeAllRanges() {
+      calls.push(['removeAllRanges']);
+    },
+    addRange(nextRange) {
+      calls.push(['addRange', nextRange]);
+    },
+  };
+
+  navigateToLineElement(root, line, selectionApi, () => range);
+
+  assert.strictEqual(line.textContent, 'Target line', 'navigation must not mutate editor content');
+  assert.deepStrictEqual(calls, [
+    ['focus', { preventScroll: true }],
+    ['selectNodeContents', line],
+    ['collapse', true],
+    ['removeAllRanges'],
+    ['addRange', range],
+    ['scrollIntoView', { block: 'center', behavior: 'smooth' }],
+  ]);
+  console.log('✅ testNavigateToLineElementMovesCaretAndRevealsLine passed');
+}
+
+function testFindLineNumberRootCoversSupportedVditorModes() {
+  const irRoot = { mode: 'ir' };
+  const wysiwygRoot = { mode: 'wysiwyg' };
+  const sourceRoot = { mode: 'sv' };
+  const createScope = (activeModes) => {
+    const calls = [];
+    return {
+      calls,
+      querySelector(selector) {
+        calls.push(selector);
+        if (selector.includes(',')) {
+          const firstDocumentMatch = ['sv', 'wysiwyg', 'ir'].find((mode) => activeModes.includes(mode));
+          return firstDocumentMatch === 'sv'
+            ? sourceRoot
+            : firstDocumentMatch === 'wysiwyg'
+              ? wysiwygRoot
+              : irRoot;
+        }
+      const rootsBySelector = new Map([
+        ['.vditor-ir > .vditor-reset', activeModes.includes('ir') ? irRoot : null],
+        ['.vditor-wysiwyg > .vditor-reset', activeModes.includes('wysiwyg') ? wysiwygRoot : null],
+        ['.vditor-sv > .vditor-reset', activeModes.includes('sv') ? sourceRoot : null],
+      ]);
+        return rootsBySelector.get(selector) ?? null;
+      },
+    };
+  };
+
+  const allModes = createScope(['ir', 'wysiwyg', 'sv']);
+  assert.strictEqual(findLineNumberRoot(allModes), irRoot);
+  assert.deepStrictEqual(allModes.calls, ['.vditor-ir > .vditor-reset']);
+
+  const alternateModes = createScope(['wysiwyg', 'sv']);
+  assert.strictEqual(findLineNumberRoot(alternateModes), wysiwygRoot);
+  assert.deepStrictEqual(alternateModes.calls, [
+    '.vditor-ir > .vditor-reset',
+    '.vditor-wysiwyg > .vditor-reset',
+  ]);
+
+  const sourceMode = createScope(['sv']);
+  assert.strictEqual(findLineNumberRoot(sourceMode), sourceRoot);
+  console.log('✅ testFindLineNumberRootCoversSupportedVditorModes passed');
+}
+
+function testCleanupLineNumberRootRemovesInjectedState() {
+  const calls = [];
+  const gutter = { remove: () => calls.push(['removeGutter']) };
+  const anchor = {
+    removeAttribute(name) {
+      calls.push(['removeAnchorAttribute', name]);
+    },
+  };
+  const root = {
+    querySelector: () => gutter,
+    querySelectorAll: () => [anchor],
+    removeAttribute(name) {
+      calls.push(['removeRootAttribute', name]);
+    },
+    style: {
+      removeProperty(name) {
+        calls.push(['removeStyle', name]);
+      },
+    },
+  };
+
+  cleanupLineNumberRoot(root);
+
+  assert.deepStrictEqual(calls, [
+    ['removeGutter'],
+    ['removeAnchorAttribute', 'data-line-number-anchor'],
+    ['removeAnchorAttribute', 'data-source-line'],
+    ['removeAnchorAttribute', 'data-rendered-line-number'],
+    ['removeAnchorAttribute', 'data-line-target-depth'],
+    ['removeRootAttribute', 'data-has-line-numbers'],
+    ['removeStyle', '--vditor-line-number-gutter-width'],
+    ['removeStyle', '--vditor-line-number-padding-left'],
+  ]);
+  console.log('✅ testCleanupLineNumberRootRemovesInjectedState passed');
+}
+
+function testRovingLineNumbersExposeOneTabStop() {
+  assert.deepStrictEqual(
+    [0, 1, 2, 3].map((lineNumber) => getLineNumberTabIndex(lineNumber, 2, 4)),
+    [-1, -1, 0, -1],
+  );
+  assert.deepStrictEqual(
+    [0, 1, 2, 3].map((lineNumber) => getLineNumberTabIndex(lineNumber, null, 4)),
+    [0, -1, -1, -1],
+  );
+  console.log('✅ testRovingLineNumbersExposeOneTabStop passed');
+}
+
+function testKeyboardNavigationResolvesRovingTargets() {
+  assert.strictEqual(getLineNumberKeyboardTarget(2, 'ArrowUp', 5), 1);
+  assert.strictEqual(getLineNumberKeyboardTarget(2, 'ArrowDown', 5), 3);
+  assert.strictEqual(getLineNumberKeyboardTarget(2, 'Home', 5), 0);
+  assert.strictEqual(getLineNumberKeyboardTarget(2, 'End', 5), 4);
+  assert.strictEqual(getLineNumberKeyboardTarget(0, 'ArrowUp', 5), 0);
+  assert.strictEqual(getLineNumberKeyboardTarget(4, 'ArrowDown', 5), 4);
+  assert.strictEqual(getLineNumberKeyboardTarget(2, 'Enter', 5), null);
+  console.log('✅ testKeyboardNavigationResolvesRovingTargets passed');
+}
+
+function testLineNumberStylesUseAttributeFallbackAcrossModes() {
+  const styles = getLineNumberStyles();
+
+  assert.ok(styles.includes('[data-has-line-numbers="true"]'));
+  assert.ok(styles.includes('.vditor-ir'));
+  assert.ok(styles.includes('.vditor-wysiwyg'));
+  assert.ok(styles.includes('.vditor-sv'));
+  assert.ok(!styles.includes(':has('), 'core gutter styles must work without CSS :has() support');
+  console.log('✅ testLineNumberStylesUseAttributeFallbackAcrossModes passed');
+}
+
 test('returns line number from focused descendant', testReturnsLineNumberFromFocusedDescendant);
 test('returns line number from focus node itself', testReturnsLineNumberFromFocusNodeItself);
 test('falls forward when selection container is root at child boundary', testFallsForwardWhenSelectionContainerIsRootAtChildBoundary);
@@ -149,3 +313,9 @@ test('line number layout scales with digits', testLineNumberLayoutScalesWithDigi
 test('should update active line when line number changes', testShouldUpdateActiveLineWhenLineNumberChanges);
 test('should update active line when element changes for same line', testShouldUpdateActiveLineWhenElementChangesForSameLine);
 test('should not update active line when selection remains cleared', testShouldNotUpdateActiveLineWhenSelectionRemainsCleared);
+test('navigate to line element moves caret and reveals line', testNavigateToLineElementMovesCaretAndRevealsLine);
+test('find line number root covers supported Vditor modes', testFindLineNumberRootCoversSupportedVditorModes);
+test('cleanup line number root removes injected state', testCleanupLineNumberRootRemovesInjectedState);
+test('roving line numbers expose one tab stop', testRovingLineNumbersExposeOneTabStop);
+test('keyboard navigation resolves roving targets', testKeyboardNavigationResolvesRovingTargets);
+test('line number styles use attribute fallback across modes', testLineNumberStylesUseAttributeFallbackAcrossModes);

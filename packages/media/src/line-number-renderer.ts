@@ -1,6 +1,10 @@
 import { getRenderedLineElements, type DomLikeElement } from "./diff-line-dom-mapper";
 
-const ROOT_SELECTOR = ".vditor-ir > pre.vditor-reset";
+const ROOT_MODE_SELECTORS = [
+  ".vditor-ir > .vditor-reset",
+  ".vditor-wysiwyg > .vditor-reset",
+  ".vditor-sv > .vditor-reset",
+];
 const GUTTER_ATTRIBUTE = "data-vditor-line-number-gutter";
 const ITEM_ATTRIBUTE = "data-vditor-line-number";
 const ACTIVE_ITEM_ATTRIBUTE = "data-vditor-active-line-number";
@@ -38,6 +42,28 @@ interface SelectionLike {
     startContainer: LineAnchorNode;
     startOffset: number;
   };
+}
+
+interface MutableSelectionLike {
+  removeAllRanges(): void;
+  addRange(range: unknown): void;
+}
+
+interface MutableRangeLike {
+  selectNodeContents(node: unknown): void;
+  collapse(toStart: boolean): void;
+}
+
+interface NavigableRootLike {
+  focus(options?: { preventScroll?: boolean }): void;
+}
+
+interface NavigableLineLike {
+  scrollIntoView(options?: boolean | ScrollIntoViewOptions): void;
+}
+
+interface QuerySelectorLike {
+  querySelector(selector: string): unknown;
 }
 
 /**
@@ -154,6 +180,164 @@ export function shouldUpdateActiveLine(
   }
 
   return currentElement !== nextElement;
+}
+
+/** Move the editable caret to a rendered line and reveal it without changing content. */
+export function navigateToLineElement(
+  root: NavigableRootLike,
+  lineElement: NavigableLineLike,
+  selection: MutableSelectionLike | null,
+  createRange: () => MutableRangeLike,
+): void {
+  root.focus({ preventScroll: true });
+
+  if (selection) {
+    const range = createRange();
+    range.selectNodeContents(lineElement);
+    range.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
+
+  lineElement.scrollIntoView({ block: "center", behavior: "smooth" });
+}
+
+export function findLineNumberRoot(scope: QuerySelectorLike): unknown {
+  for (const selector of ROOT_MODE_SELECTORS) {
+    const root = scope.querySelector(selector);
+    if (root) {
+      return root;
+    }
+  }
+
+  return null;
+}
+
+export function getLineNumberTabIndex(
+  lineNumber: number,
+  activeLineNumber: number | null,
+  lineCount: number,
+): 0 | -1 {
+  if (lineCount <= 0) {
+    return -1;
+  }
+
+  const tabStopLine = activeLineNumber !== null && activeLineNumber < lineCount
+    ? activeLineNumber
+    : 0;
+  return lineNumber === tabStopLine ? 0 : -1;
+}
+
+export function getLineNumberKeyboardTarget(
+  currentLineNumber: number,
+  key: string,
+  lineCount: number,
+): number | null {
+  if (lineCount <= 0) {
+    return null;
+  }
+
+  switch (key) {
+    case "ArrowUp":
+      return Math.max(0, currentLineNumber - 1);
+    case "ArrowDown":
+      return Math.min(lineCount - 1, currentLineNumber + 1);
+    case "Home":
+      return 0;
+    case "End":
+      return lineCount - 1;
+    default:
+      return null;
+  }
+}
+
+function rootSelectors(suffix = ""): string {
+  return ROOT_MODE_SELECTORS.map((selector) => `${selector}${suffix}`).join(",\n      ");
+}
+
+/** Styles are generated from renderer-owned attributes so they work without CSS :has(). */
+export function getLineNumberStyles(): string {
+  const rootsWithLines = rootSelectors(`[${ROOT_STATE_ATTRIBUTE}="true"]`);
+  const gutters = rootSelectors(` > [${GUTTER_ATTRIBUTE}="true"]`);
+  const items = rootSelectors(` > [${GUTTER_ATTRIBUTE}="true"] > [${ITEM_ATTRIBUTE}="true"]`);
+  const activeItems = rootSelectors(
+    ` > [${GUTTER_ATTRIBUTE}="true"] > [${ITEM_ATTRIBUTE}="true"][${ACTIVE_ITEM_ATTRIBUTE}="true"]`,
+  );
+  const hoverItems = rootSelectors(
+    ` > [${GUTTER_ATTRIBUTE}="true"] > [${ITEM_ATTRIBUTE}="true"]:hover`,
+  );
+  const focusedItems = rootSelectors(
+    ` > [${GUTTER_ATTRIBUTE}="true"] > [${ITEM_ATTRIBUTE}="true"]:focus-visible`,
+  );
+  const anchors = rootSelectors(` [${ANCHOR_ATTRIBUTE}="true"]`);
+
+  return `
+      ${rootsWithLines} {
+        position: relative;
+        padding-left: var(${ROOT_PADDING_LEFT_CSS_VARIABLE}, ${MIN_ROOT_PADDING_LEFT_PX}px) !important;
+      }
+
+      ${gutters} {
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: var(${GUTTER_WIDTH_CSS_VARIABLE}, ${MIN_GUTTER_WIDTH_PX}px);
+        pointer-events: none;
+        user-select: none;
+        -webkit-user-select: none;
+        z-index: 0;
+      }
+
+      ${items} {
+        position: absolute;
+        left: 0;
+        width: 100%;
+        margin: 0;
+        border: 0;
+        background: transparent;
+        padding: 0 12px 0 10px;
+        display: flex;
+        align-items: flex-start;
+        justify-content: flex-end;
+        box-sizing: border-box;
+        color: var(--vscode-editorLineNumber-foreground, rgba(133, 133, 133, 0.9)) !important;
+        cursor: pointer;
+        font-family: var(--vscode-editor-font-family, var(--vscode-font-family, monospace));
+        font-size: 12px;
+        line-height: 1.4;
+        pointer-events: auto;
+        text-align: right;
+        white-space: nowrap;
+      }
+
+      ${activeItems},
+      ${hoverItems},
+      ${focusedItems} {
+        color: var(
+          --vscode-editorLineNumber-activeForeground,
+          var(--vscode-editorLineNumber-foreground, rgba(133, 133, 133, 0.9))
+        ) !important;
+      }
+
+      ${anchors} {
+        scroll-margin-top: 72px;
+      }
+  `;
+}
+
+/** Remove every renderer-owned marker and layout value from a retired editor root. */
+export function cleanupLineNumberRoot(root: HTMLElement): void {
+  root.querySelector(`:scope > [${GUTTER_ATTRIBUTE}="true"]`)?.remove();
+  root.querySelectorAll<HTMLElement>(`[${ANCHOR_ATTRIBUTE}="true"]`).forEach((element) => {
+    element.removeAttribute(ANCHOR_ATTRIBUTE);
+    element.removeAttribute(SOURCE_LINE_ATTRIBUTE);
+    element.removeAttribute(DISPLAY_LINE_ATTRIBUTE);
+    element.removeAttribute(DEPTH_ATTRIBUTE);
+  });
+  root.removeAttribute(ROOT_STATE_ATTRIBUTE);
+  root.style.removeProperty(GUTTER_WIDTH_CSS_VARIABLE);
+  root.style.removeProperty(ROOT_PADDING_LEFT_CSS_VARIABLE);
 }
 
 function getLineNumberFromNode(node: LineAnchorNode | null, root: LineAnchorElement): number | null {
@@ -377,7 +561,7 @@ class VditorLineNumberRenderer {
   }
 
   private render(): void {
-    const root = document.querySelector(ROOT_SELECTOR) as HTMLElement | null;
+    const root = findLineNumberRoot(document) as HTMLElement | null;
     if (!root) {
       this.teardownRoot();
       return;
@@ -405,8 +589,11 @@ class VditorLineNumberRenderer {
     const gutter = document.createElement("div");
     gutter.className = "vditor-line-number-gutter";
     gutter.setAttribute(GUTTER_ATTRIBUTE, "true");
-    gutter.setAttribute("aria-hidden", "true");
+    gutter.setAttribute("role", "navigation");
+    gutter.setAttribute("aria-label", "Line numbers");
     gutter.setAttribute("contenteditable", "false");
+    gutter.addEventListener("click", this.handleGutterClick);
+    gutter.addEventListener("keydown", this.handleGutterKeyDown);
 
     const rootRect = root.getBoundingClientRect();
 
@@ -427,11 +614,18 @@ class VditorLineNumberRenderer {
       element.setAttribute(DISPLAY_LINE_ATTRIBUTE, String(index + 1));
       element.setAttribute(DEPTH_ATTRIBUTE, String(this.getElementDepth(element, root)));
 
-      const lineNumber = document.createElement("span");
+      const lineNumber = document.createElement("button");
       lineNumber.className = "vditor-line-number";
+      lineNumber.type = "button";
       lineNumber.setAttribute(ITEM_ATTRIBUTE, "true");
       lineNumber.setAttribute(SOURCE_LINE_ATTRIBUTE, String(index));
+      lineNumber.setAttribute("aria-label", `Go to line ${index + 1}`);
       lineNumber.setAttribute("contenteditable", "false");
+      lineNumber.tabIndex = getLineNumberTabIndex(
+        index,
+        this.activeLineNumber,
+        lineElements.length,
+      );
       lineNumber.textContent = String(index + 1);
 
       const { top, height } = positions[index];
@@ -446,7 +640,60 @@ class VditorLineNumberRenderer {
     this.updateActiveLineNumber();
   }
 
+  private handleGutterClick = (event: MouseEvent): void => {
+    const target = event.target instanceof Element
+      ? event.target.closest<HTMLElement>(`[${ITEM_ATTRIBUTE}="true"]`)
+      : null;
+    const lineNumber = parseLineNumber(target?.getAttribute(SOURCE_LINE_ATTRIBUTE) ?? null);
+    const lineElement = lineNumber === null ? null : this.lineMap.get(lineNumber) ?? null;
+
+    if (!target || !lineElement || !this.currentRoot) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    navigateToLineElement(
+      this.currentRoot,
+      lineElement,
+      window.getSelection() as unknown as MutableSelectionLike | null,
+      () => document.createRange(),
+    );
+    this.setActiveLineNumber(lineNumber);
+  };
+
+  private handleGutterKeyDown = (event: KeyboardEvent): void => {
+    const target = event.target instanceof Element
+      ? event.target.closest<HTMLElement>(`[${ITEM_ATTRIBUTE}="true"]`)
+      : null;
+    const currentLineNumber = parseLineNumber(
+      target?.getAttribute(SOURCE_LINE_ATTRIBUTE) ?? null,
+    );
+    const nextLineNumber = currentLineNumber === null
+      ? null
+      : getLineNumberKeyboardTarget(currentLineNumber, event.key, this.lineNumberMap.size);
+    const nextElement = nextLineNumber === null
+      ? null
+      : this.lineNumberMap.get(nextLineNumber) ?? null;
+
+    if (!nextElement || nextLineNumber === null) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    this.setActiveLineNumber(nextLineNumber);
+    nextElement.focus({ preventScroll: true });
+    nextElement.scrollIntoView({ block: "nearest" });
+  };
+
   private observeRootResize(root: HTMLElement): void {
+    if (this.currentRoot && this.currentRoot !== root) {
+      cleanupLineNumberRoot(this.currentRoot);
+      this.resizeObserver?.unobserve(this.currentRoot);
+      this.currentRoot = null;
+    }
+
     if (typeof ResizeObserver === "undefined") {
       this.currentRoot = root;
       return;
@@ -454,10 +701,6 @@ class VditorLineNumberRenderer {
 
     if (!this.resizeObserver) {
       this.resizeObserver = new ResizeObserver(() => this.scheduleRender());
-    }
-
-    if (this.currentRoot && this.currentRoot !== root) {
-      this.resizeObserver.unobserve(this.currentRoot);
     }
 
     if (this.currentRoot !== root) {
@@ -480,10 +723,7 @@ class VditorLineNumberRenderer {
   private teardownRoot(): void {
     this.setActiveLineNumber(null);
     if (this.currentRoot) {
-      this.clearExistingMarkers(this.currentRoot);
-      this.currentRoot.removeAttribute(ROOT_STATE_ATTRIBUTE);
-      this.currentRoot.style.removeProperty(GUTTER_WIDTH_CSS_VARIABLE);
-      this.currentRoot.style.removeProperty(ROOT_PADDING_LEFT_CSS_VARIABLE);
+      cleanupLineNumberRoot(this.currentRoot);
       if (this.resizeObserver) {
         this.resizeObserver.unobserve(this.currentRoot);
       }
@@ -524,6 +764,17 @@ class VditorLineNumberRenderer {
     this.activeLineElement = nextLineElement;
 
     nextLineElement?.setAttribute(ACTIVE_ITEM_ATTRIBUTE, "true");
+    this.updateLineNumberTabStops();
+  }
+
+  private updateLineNumberTabStops(): void {
+    this.lineNumberMap.forEach((element, lineNumber) => {
+      element.tabIndex = getLineNumberTabIndex(
+        lineNumber,
+        this.activeLineNumber,
+        this.lineNumberMap.size,
+      );
+    });
   }
 
   private getFallbackLineHeight(element: HTMLElement): number {
@@ -548,59 +799,7 @@ class VditorLineNumberRenderer {
 
     const style = document.createElement("style");
     style.id = STYLE_ID;
-    style.textContent = `
-      .vditor-ir > pre.vditor-reset:has(> [${GUTTER_ATTRIBUTE}="true"]) {
-        position: relative;
-        padding-left: var(${ROOT_PADDING_LEFT_CSS_VARIABLE}, ${MIN_ROOT_PADDING_LEFT_PX}px) !important;
-      }
-
-      .vditor-ir > pre.vditor-reset:has(> [${GUTTER_ATTRIBUTE}="true"]) > [${GUTTER_ATTRIBUTE}="true"] {
-        position: absolute;
-        top: 0;
-        left: 0;
-        bottom: 0;
-        width: var(${GUTTER_WIDTH_CSS_VARIABLE}, ${MIN_GUTTER_WIDTH_PX}px);
-        pointer-events: none;
-        user-select: none;
-        -webkit-user-select: none;
-        z-index: 0;
-      }
-
-      .vditor-ir > pre.vditor-reset > [${GUTTER_ATTRIBUTE}="true"] > [${ITEM_ATTRIBUTE}="true"] {
-        position: absolute;
-        left: 0;
-        width: 100%;
-        padding-right: 12px;
-        padding-left: 10px;
-        display: flex;
-        align-items: flex-start;
-        justify-content: flex-end;
-        box-sizing: border-box;
-        color: var(--vscode-editorLineNumber-foreground, rgba(133, 133, 133, 0.9)) !important;
-        font-family: var(--vscode-editor-font-family, var(--vscode-font-family, monospace));
-        font-size: 12px;
-        line-height: 1.4;
-        text-align: right;
-        white-space: nowrap;
-      }
-
-      .vditor-ir > pre.vditor-reset > [${GUTTER_ATTRIBUTE}="true"] > [${ITEM_ATTRIBUTE}="true"][${ACTIVE_ITEM_ATTRIBUTE}="true"] {
-        color: var(
-          --vscode-editorLineNumber-activeForeground,
-          var(--vscode-editorLineNumber-foreground, rgba(133, 133, 133, 0.9))
-        ) !important;
-      }
-
-      .vditor-ir > pre.vditor-reset [${ANCHOR_ATTRIBUTE}="true"] {
-        scroll-margin-top: 72px;
-      }
-
-      .vditor-ir > pre.vditor-reset :is(blockquote, div, ul, ol, dl, table, thead, tbody, tfoot, tr, li, td, th):has(
-        > :is(p, h1, h2, h3, h4, h5, h6, blockquote, pre, ul, ol, dl, table, thead, tbody, tfoot, tr, li, td, th, div)[${ANCHOR_ATTRIBUTE}="true"]
-      ):not([${ANCHOR_ATTRIBUTE}="true"]) {
-        --vditor-line-number-parent-block: 1;
-      }
-    `;
+    style.textContent = getLineNumberStyles();
 
     document.head.appendChild(style);
   }

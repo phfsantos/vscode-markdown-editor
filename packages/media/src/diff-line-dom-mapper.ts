@@ -95,6 +95,7 @@ function collectRenderedLineElements<T extends DomLikeElement>(nodes: DomLikeNod
 function shouldSkipMeasurementElement(node: DomLikeElement): boolean {
   return Boolean(
     node.hasAttribute?.('data-temp-measurement') ||
+    node.hasAttribute?.('data-diff-spacer') ||
     node.hasAttribute?.('data-vditor-line-number-gutter') ||
     node.hasAttribute?.('data-vditor-line-number')
   );
