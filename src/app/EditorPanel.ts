@@ -11,7 +11,11 @@ import { CalendarMessageHandler } from "./CalendarMessageHandler";
 import { DiffViewController } from "./DiffViewController";
 import { AiMessageHandler } from "./AiMessageHandler";
 import { EditorMessageHandlers } from "./EditorMessageHandlers";
-import { detectExternalChange } from "./documentChangeClassifier";
+import {
+  createDocumentSyncController,
+  type DocumentSyncController,
+} from "./DocumentSyncController";
+import { createDocumentWriteOriginTracker } from "./DocumentWriteOriginTracker";
 
 // Note: Virtual schemes (showModifications, git) are now rejected at the provider level
 // in PreviewCustomEditorProvider.resolveCustomTextEditor(), so this code should
@@ -61,6 +65,9 @@ export class EditorPanel {
   private _lastWebviewEdit = 0;
   private _diffCheckTimeout: NodeJS.Timeout | undefined;
   private _webviewReady = false; // Track if webview has sent ready signal
+  private _disposed = false;
+  private readonly _documentSync: DocumentSyncController;
+  private readonly _documentWriteOrigins = createDocumentWriteOriginTracker();
   public readonly instanceId: string; // Unique identifier for debugging webview instances
   private readonly _calendar = new CalendarMessageHandler((message) => {
     this._panel.webview.postMessage(message);
@@ -336,6 +343,30 @@ export class EditorPanel {
 
     logger.debug(`🆔 Created EditorPanel instance: ${this.instanceId}`);
 
+    this._documentSync = createDocumentSyncController({
+      applyContent: async (content) => {
+        const pendingWrite = this._documentWriteOrigins.expect(content);
+        const edit = new vscode.WorkspaceEdit();
+        edit.replace(
+          this._document.uri,
+          new vscode.Range(0, 0, this._document.lineCount, 0),
+          content,
+        );
+        try {
+          const applied = await vscode.workspace.applyEdit(edit);
+          if (!applied) {
+            throw new Error("VS Code rejected the synchronized Markdown edit");
+          }
+          this._updateEditTitle();
+        } finally {
+          this._documentWriteOrigins.cancel(pendingWrite);
+        }
+      },
+      saveDocument: async () => {
+        return this._document.save();
+      },
+    });
+
     this.diff.refreshPendingChatEditState();
 
     let textEditTimer: NodeJS.Timeout | void;
@@ -451,8 +482,10 @@ export class EditorPanel {
         return;
       }
 
-      // Enhanced external change detection
-      const isExternalChange = detectExternalChange(this, e);
+      const isSynchronizedChange = this._documentWriteOrigins.consume(
+        e.document.getText(),
+      );
+      const isExternalChange = !isSynchronizedChange;
 
       if ((global as any).markdownEditorLog) {
         const changeInfo = {
@@ -479,6 +512,7 @@ export class EditorPanel {
 
       // Handle external changes (like quick fixes, spell corrections) immediately
       if (isExternalChange) {
+        this._documentSync.acceptExternalContent(e.document.getText());
         if ((global as any).markdownEditorLog) {
           (global as any).markdownEditorLog(
             `🔄 EXTERNAL CHANGE DETECTED - Updating webview immediately`
@@ -574,22 +608,6 @@ export class EditorPanel {
       async (message) => {
         debug("msg from webview review", message, this._panel.active);
 
-        const syncToEditor = async () => {
-          debug("sync to editor", this._document, this._uri);
-          if (this._document) {
-            const edit = new vscode.WorkspaceEdit();
-            edit.replace(
-              this._document.uri,
-              new vscode.Range(0, 0, this._document.lineCount, 0),
-              message.content
-            );
-            await vscode.workspace.applyEdit(edit);
-          } else if (this._uri) {
-            await vscode.workspace.fs.writeFile(this._uri, message.content);
-          } else {
-            showError(`Cannot find original file to save!`);
-          }
-        };
         switch (message.command) {
           case "ready": {
             // Mark webview as ready
@@ -656,13 +674,10 @@ export class EditorPanel {
             showError(message.content);
             break;
           case "edit": {
-            // Track that this change originates from webview
-            this._lastWebviewEdit = Date.now();
-
-            // 只有当 webview 处于编辑状态时才同步到 vsc 编辑器，避免重复刷新
-            if (this._panel.active) {
-              await syncToEditor();
-              this._updateEditTitle();
+            const accepted = this._documentSync.acceptEdit(message);
+            if (accepted) {
+              // Only accepted revisions should affect external-change classification.
+              this._lastWebviewEdit = Date.now();
             }
             break;
           }
@@ -705,9 +720,12 @@ export class EditorPanel {
             break;
           }
           case "save": {
-            await syncToEditor();
-            await this._document.save();
-            this._updateEditTitle();
+            const saved = await this._documentSync.save(message);
+            if (!saved) {
+              showError("Could not apply and save the latest Markdown revision.");
+            } else {
+              this._updateEditTitle();
+            }
             break;
           }
           case "requestEmbed": {
@@ -1050,7 +1068,13 @@ export class EditorPanel {
     }
   }
 
-  public dispose() {
+  public dispose(): void {
+    if (this._disposed) {
+      return;
+    }
+    this._disposed = true;
+    this._documentSync.dispose();
+
     logger.debug("Sidebar: EditorPanel being disposed");
 
     // Clear any pending diff check timeouts to prevent "Webview is disposed" errors
@@ -1345,6 +1369,7 @@ export class EditorPanel {
         languageId: this.ai.getInlineSuggestionLanguageId(),
       },
       ...props,
+      generation: this._documentSync.getGeneration(),
     });
   }
 

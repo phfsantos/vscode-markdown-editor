@@ -1,3 +1,5 @@
+import { dispatchVditorInput } from "./content-sync";
+
 /**
  * Cursor Management Utility for Vditor
  * Prevents cursor jumping and manages position restoration
@@ -171,9 +173,8 @@ export class CursorManager {
     
     // Trigger content update to VS Code
     setTimeout(() => {
-      if (this.vditor && typeof this.vditor.getValue === 'function') {
-        const content = this.vditor.getValue();
-        (window as any).vscode?.postMessage({ command: "edit", content });
+      if (this.vditor) {
+        dispatchVditorInput(this.vditor);
       }
     }, 50);
   }

@@ -14,6 +14,16 @@ import { DashboardRenderer } from './builtin/DashboardRenderer';
 import type { IRenderContext } from './types';
 import type Vditor from 'vditor';
 
+export function normalizeCustomRenderTarget(
+  element: HTMLElement,
+  language: string,
+): HTMLElement {
+  if (element.matches(`code.language-${language}`)) {
+    return element.parentElement || element;
+  }
+  return element;
+}
+
 /**
  * Initialize the renderer system
  * Registers all built-in renderers
@@ -141,8 +151,11 @@ export function generateVditorCustomRenders(documentUri: string, vditor: Vditor)
               await renderer.onLoad(context);
             }
             
-            // Render
-            await renderer.render(code, vditor, context);
+            // Renderers historically receive a wrapper and often query for a
+            // descendant code element. Targeted refreshes may supply that code
+            // element directly, so normalize both entry shapes here.
+            const renderTarget = normalizeCustomRenderTarget(code, renderer.language);
+            await renderer.render(renderTarget, vditor, context);
             
             resolve(true);
           } catch (error) {

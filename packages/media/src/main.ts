@@ -16,6 +16,7 @@ import { inlineSuggestionController } from "./inline-suggestion-ui";
 import { applySelectedTools } from "./tool-selector";
 import { state, vscodeLog } from "./webview-state";
 import { initVditor, processAfterRender } from "./init-vditor";
+import { dispatchVditorInput, getWebviewContentSync } from "./content-sync";
 
 // Track when we just received setValue from external change (undo/redo)
 let justReceivedExternalChange = false;
@@ -69,10 +70,23 @@ window.addEventListener("message", (e) => {
           initVditor(msg);
         } catch (error) {
           // reset options when error
-          initVditor({ content: msg.content });
+          initVditor({
+            content: msg.content,
+            generation: msg.generation,
+            documentFilename: msg.documentFilename,
+            cdnBaseUri: msg.cdnBaseUri,
+          });
           saveVditorOptions();
         }
       } else {
+        const contentSync = getWebviewContentSync();
+        const accepted = contentSync.acceptExternalUpdate(
+          msg.content,
+          msg.generation ?? contentSync.getGeneration() + 1,
+        );
+        if (!accepted) {
+          break;
+        }
         // Mark that we just received an external change (undo/redo/external edit)
         justReceivedExternalChange = true;
         
@@ -563,14 +577,8 @@ window.addEventListener("message", (e) => {
 
           // CRITICAL: Sync the updated content back to VS Code AND trigger re-render
           if (window.vditor) {
-            const rawContent = vditor.getValue();
-            vscode?.postMessage({ command: "edit", content: rawContent });
-
-            // Force Vditor to re-render the updated code block
-            // This ensures the renderer re-initializes with the correct board ID and file
-            setTimeout(() => {
-              window.vditor.setValue(rawContent);
-            }, 100);
+            dispatchVditorInput(vditor);
+            processAfterRender();
           }
           break;
         }

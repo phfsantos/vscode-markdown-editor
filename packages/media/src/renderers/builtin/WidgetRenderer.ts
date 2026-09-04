@@ -2,6 +2,7 @@ import { BaseRenderer } from '../BaseRenderer';
 import { IRenderer, IRenderContext, IRendererCapabilities } from '../types';
 import { vscodeLogError, vscodeLog } from '../../webview-logger';
 import { initializeWidgetSystem } from '../../widget-integration';
+import { dispatchVditorInput } from '../../content-sync';
 
 /**
  * WidgetRenderer - Renders widget code blocks using the widget system
@@ -399,18 +400,10 @@ export class WidgetRenderer extends BaseRenderer implements IRenderer {
         return;
       }
       
-      // CRITICAL: Trigger Vditor to recognize the change and sync to VS Code
-      // Option 1: Use Vditor's getValue and send to VS Code directly
-      if (vditor && typeof vditor.getValue === 'function') {
-        const rawContent = vditor.getValue();
-        
-        // Use the global window.vscode that's set up in main.ts via utils.ts
-        if ((window as any).vscode && typeof (window as any).vscode.postMessage === 'function') {
-          (window as any).vscode.postMessage({ command: 'edit', content: rawContent });
-          vscodeLog('[WidgetRenderer] Sent updated content to VS Code via window.vscode');
-        } else {
-          vscodeLogError('[WidgetRenderer] window.vscode not available for postMessage');
-        }
+      // Let Vditor serialize the completed mutation through its input callback.
+      if (vditor) {
+        dispatchVditorInput(vditor);
+        vscodeLog('[WidgetRenderer] Sent updated content through Vditor input');
       }
       
       // Also trigger Vditor's internal processing

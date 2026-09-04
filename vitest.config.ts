@@ -12,6 +12,11 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['test/**/*.test.js', 'test/**/*.test.ts'],
+    exclude: [
+      '**/node_modules/**',
+      '**/.git/**',
+      'test/**/*.browser.test.ts',
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],

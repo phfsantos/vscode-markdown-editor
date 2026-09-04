@@ -25,6 +25,10 @@ import { inlineSuggestionController } from "./inline-suggestion-ui";
 import { state, vscodeLog } from "./webview-state";
 import { showReadOnlyTooltip, setupReadOnlyWarnings } from "./read-only-ui";
 import { performClipboardAction, enhanceManualMenuForSubmenus } from "./context-menu";
+import {
+  initializeWebviewContentSync,
+  synchronizeVditorInput,
+} from "./content-sync";
 
 /**
  * Vditor initialization for the editor webview: builds the full Vditor
@@ -115,6 +119,11 @@ export function processAfterRender() {
 
 export function initVditor(msg) {
   inlineSuggestionController.initialize((window as any).vscode);
+  const contentSync = initializeWebviewContentSync(
+    (message) => vscode?.postMessage(message),
+    msg.content || "",
+    msg.generation ?? 0,
+  );
 
   // Initialize Predictionary for autocomplete hints (v1.6.0 ES6 module)
   let predictionary = null;
@@ -969,7 +978,7 @@ export function initVditor(msg) {
       // Custom renderer triggering
       // find instances where we have a element with class vditor-copy right before one of the custom blocks: language-kanban-board, language-table, language-playground
       const customRenderTriggers = document.querySelectorAll(".vditor-copy");
-      let shouldResetValue = false;
+      const customRenderTargets: HTMLElement[] = [];
       customRenderTriggers.forEach((trigger) => {
         const next = trigger.nextElementSibling;
         if (
@@ -980,7 +989,7 @@ export function initVditor(msg) {
         ) {
           // remove the .vditor-copy element to prevent re-triggering
           trigger.remove();
-          shouldResetValue = true;
+          customRenderTargets.push(next as HTMLElement);
         }
       });
 
@@ -1005,18 +1014,22 @@ export function initVditor(msg) {
         }
       }
 
-      // Get content and clean it from diagnostic/diff decorations
-      // Using string manipulation instead of DOM cleanup prevents text jumping
-      const rawContent = vditor.getValue();
+      inlineSuggestionController.handleEditorInput({ content: value });
+      synchronizeVditorInput(contentSync, value);
 
-      inlineSuggestionController.handleEditorInput({ content: rawContent });
-
-      // Send cleaned content to VS Code
-      vscode?.postMessage({ command: "edit", content: rawContent });
-
-      // Re-set the editor content to trigger re-rendering of custom blocks
-      if (shouldResetValue) {
-        vditor.setValue(rawContent);
+      // Refresh only custom-renderer nodes whose copy controls were regenerated.
+      // Replacing the whole editor value here can serialize a partial IR DOM.
+      if (customRenderTargets.length > 0) {
+        const customRenders = generateVditorCustomRenders(
+          (window as any).currentDocumentFilename || msg.documentFilename || "untitled",
+          window.vditor,
+        );
+        for (const target of customRenderTargets) {
+          const renderer = customRenders.find(({ language }) =>
+            target.classList.contains(`language-${language}`),
+          );
+          void renderer?.render(target);
+        }
       }
 
       transientUiTimer && clearTimeout(transientUiTimer);

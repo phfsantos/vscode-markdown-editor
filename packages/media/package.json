@@ -25,6 +25,6 @@
     "lodash": "^4.17.21",
     "predictionary": "^1.6.0",
     "simple-notification-sounds": "^1.0.0",
-    "vditor": "^3.8.4"
+    "vditor": "3.11.2"
   }
 }

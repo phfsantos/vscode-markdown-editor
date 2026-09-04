@@ -2,6 +2,7 @@ import { BaseRenderer } from '../BaseRenderer';
 import { IRenderer, IRenderContext, IRendererCapabilities } from '../types';
 import { vscodeLogError, vscodeLog } from '../../webview-logger';
 import { initializeWidgetSystem } from '../../widget-integration';
+import { dispatchVditorInput } from '../../content-sync';
 
 /**
  * Widget configuration in dashboard
@@ -285,12 +286,9 @@ export class DashboardRenderer extends BaseRenderer implements IRenderer {
         }
       }
       
-      // Sync to VS Code
-      if (vditor && typeof vditor.getValue === 'function') {
-        const rawContent = vditor.getValue();
-        if ((window as any).vscode) {
-          (window as any).vscode.postMessage({ command: 'edit', content: rawContent });
-        }
+      // Let Vditor serialize the completed mutation through its input callback.
+      if (vditor) {
+        dispatchVditorInput(vditor);
       }
       
       if (vditor && typeof vditor.ir?.processAfterRender === 'function') {

@@ -13,10 +13,14 @@ jobs:
           node-version: 20
       - name: Install
         run: yarn --frozen-lockfile
+      - name: Install browser test runtime
+        run: yarn playwright install --with-deps chromium
       - name: Lint
         run: yarn lint
       - name: Test
         run: yarn test
+      - name: Browser synchronization test
+        run: yarn test:browser
       - name: Publish to Open VSX Registry
         uses: HaaLeo/publish-vscode-extension@v2
         id: publishToOpenVSX

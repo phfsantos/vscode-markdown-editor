@@ -1268,18 +1268,6 @@ export class FindReplaceManager {
           // Trigger Vditor's internal content sync by simulating an input event
           const inputEvent = new Event('input', { bubbles: true });
           editorElement.dispatchEvent(inputEvent);
-          
-          // Get the updated content from Vditor
-          const currentContent = this.vditor.getValue();
-          
-          // Notify VS Code about the change with proper command structure
-          if (typeof vscode !== 'undefined') {
-            vscode.postMessage({
-              command: "edit",
-              content: currentContent,
-            });
-            
-          }
         }
       } catch (error) {
         vscodeLogError('❌ FindReplaceManager: Error updating Vditor content:', error);

@@ -266,6 +266,9 @@ Ensure you're using the correct syntax:
 
 For complete markdown syntax guide, see: [demo article](https://ld246.com/guide/markdown)
 
+Maintainers working on fenced custom renderers should also read the
+[custom-block save integrity contract](./docs/custom-block-save-integrity.md).
+
 ## 🎉 What's New in 0.4.7
 
 See [CHANGELOG.md](./CHANGELOG.md) for detailed release notes.

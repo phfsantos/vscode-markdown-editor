@@ -20,6 +20,7 @@
 		"out",
 		"Foyfile.ts",
 		"vitest.config.ts",
+		"vitest.browser.config.ts",
 		"test"
 	]
 }

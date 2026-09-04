@@ -600,6 +600,7 @@
     "pub": "yarn package && npm version patch && git push origin master --tags && vsce package && vsce publish",
     "lint": "eslint src --ext .ts",
     "test": "yarn check-types && yarn test:unit",
+    "test:browser": "vitest run --config vitest.browser.config.ts",
     "test:unit": "vitest run --coverage",
     "test:watch": "vitest"
   },
@@ -608,12 +609,14 @@
     "@types/vscode": "~1.95.0",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
+    "@vitest/browser-playwright": "4.1.10",
     "@vitest/coverage-v8": "^4.1.10",
     "cheerio": "^1.2.0",
     "dotenv": "^17.4.2",
     "esbuild": "0.27.4",
     "eslint": "^8.57.0",
     "foy": "^0.2.5",
+    "playwright": "^1.62.1",
     "ts-node": "^9.1.1",
     "typescript": "5.3.3",
     "vitest": "^4.1.10"

@@ -1,4 +1,5 @@
 import { updateFrontmatterTools } from './tool-selector-modal';
+import { getWebviewContentSync } from './content-sync';
 
 let decoration: HTMLSpanElement | null = null;
 
@@ -165,11 +166,11 @@ export function applySelectedTools(tools: string[]): void {
   const vditor = (window as any).vditor;
   if (!vditor) return;
 
-  const content: string = vditor.getValue();
+  const content = getWebviewContentSync().getContent();
   const updated = updateFrontmatterTools(content, tools);
 
+  getWebviewContentSync().acceptProgrammaticUpdate(updated);
   vditor.setValue(updated);
-  (window as any).vscode?.postMessage({ command: 'edit', content: updated });
 
   setTimeout(() => updateToolSelectorDecoration(), 150);
 }
