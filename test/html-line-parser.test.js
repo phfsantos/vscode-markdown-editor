@@ -27,6 +27,18 @@ function testUnwrapsTransparentDataBlockContainers() {
   console.log('✅ testUnwrapsTransparentDataBlockContainers passed');
 }
 
+function testKeepsMixedDataBlockContainersAsOneRenderedLine() {
+  const result = parseHTMLToLines('<div data-block="">Lead <p>Child</p></div><p>Tail</p>');
+
+  assert.deepStrictEqual(
+    result.map(block => ({ lineNumber: block.lineNumber, text: block.textContent, tagName: block.tagName })),
+    [
+      { lineNumber: 0, text: 'Lead Child', tagName: 'div' },
+      { lineNumber: 1, text: 'Tail', tagName: 'p' }
+    ]
+  );
+}
+
 function testTreatsCodeBlockContainerAsSingleRenderedLine() {
   const result = parseHTMLToLines('<div data-type="code-block"><div><pre><code>line 1\nline 2</code></pre></div></div><p>Tail</p>');
 
@@ -130,6 +142,7 @@ function testToleratesMalformedHtml() {
 
 test('skips parent blocks when nested blocks own rendered lines', testSkipsParentBlocksWhenNestedBlocksOwnRenderedLines);
 test('unwraps transparent data block containers', testUnwrapsTransparentDataBlockContainers);
+test('keeps mixed data block containers as one rendered line', testKeepsMixedDataBlockContainersAsOneRenderedLine);
 test('treats code block container as single rendered line', testTreatsCodeBlockContainerAsSingleRenderedLine);
 test('emits list items as rendered lines', testEmitsListItemsAsRenderedLines);
 test('detects single missing list item', testDetectsSingleMissingListItem);

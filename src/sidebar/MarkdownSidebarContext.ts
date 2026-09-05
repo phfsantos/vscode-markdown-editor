@@ -103,6 +103,11 @@ export class MarkdownSidebarContext implements vscode.Disposable {
   private readonly templateManager = TemplateManager.getInstance();
   private readonly defaultEditorChecker = DefaultEditorChecker.getInstance();
   private readonly tagManager = TagManager.getInstance();
+  /**
+   * Canonical active Markdown document for sidebar consumers and dependent views.
+   * Text-editor, visible-editor, and custom-editor events all converge here so
+   * consumers do not need to reconcile those host-specific sources themselves.
+   */
   private activeDocument?: vscode.TextDocument;
 
   private static currentInstance: MarkdownSidebarContext | undefined;

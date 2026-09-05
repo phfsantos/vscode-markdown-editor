@@ -79,6 +79,9 @@ export class GraphViewPanel {
   }
 
   private static async _resolveMarkdownDocument(docUri?: string): Promise<vscode.TextDocument | undefined> {
+    // An explicit command target wins. Otherwise the sidebar context is the
+    // source of truth because it already reconciles text and custom editors;
+    // the remaining lookups only cover startup before that context exists.
     if (typeof docUri === 'string' && docUri.length > 0) {
       try {
         const uri = vscode.Uri.parse(docUri);
@@ -168,49 +171,6 @@ export class GraphViewPanel {
       async (document) => {
         if (document?.languageId === 'markdown') {
           await this._setActiveDocument(document);
-          return;
-        }
-
-        // Sidebar cleared its active markdown document. Only fall back when
-        // we can find another markdown source; otherwise keep the current
-        // graph rather than wiping it (avoids race on panel focus changes).
-        const fallbackDocument = await GraphViewPanel._resolveMarkdownDocument();
-        if (fallbackDocument) {
-          await this._setActiveDocument(fallbackDocument);
-        }
-      },
-      null,
-      this._disposables
-    );
-
-    vscode.window.onDidChangeActiveTextEditor(
-      async (editor) => {
-        if (editor?.document.languageId === 'markdown') {
-          await this._setActiveDocument(editor.document);
-          return;
-        }
-
-        if (editor && editor.document.languageId !== 'markdown') {
-          const fallbackDocument = GraphViewPanel._getCurrentCustomEditorDocument();
-          if (fallbackDocument) {
-            await this._setActiveDocument(fallbackDocument);
-          }
-        }
-      },
-      null,
-      this._disposables
-    );
-
-    EditorPanel.onDidChangeActiveDocument(
-      async (document) => {
-        if (document?.languageId === 'markdown') {
-          await this._setActiveDocument(document);
-          return;
-        }
-
-        const fallbackDocument = await GraphViewPanel._resolveMarkdownDocument();
-        if (fallbackDocument) {
-          await this._setActiveDocument(fallbackDocument);
         }
       },
       null,
@@ -245,22 +205,6 @@ export class GraphViewPanel {
         showDirectLinksOnly: this._showDirectLinksOnly
       }
     });
-  }
-
-  private static _getCurrentCustomEditorDocument(): vscode.TextDocument | undefined {
-    const candidates = [
-      EditorPanel.currentPanel?._document,
-      ...(EditorPanel.editors ?? []).map((editor) => editor._document)
-    ];
-
-    for (let index = candidates.length - 1; index >= 0; index -= 1) {
-      const document = candidates[index];
-      if (document?.languageId === 'markdown') {
-        return document;
-      }
-    }
-
-    return undefined;
   }
 
   private async _setActiveDocument(document?: vscode.TextDocument): Promise<void> {

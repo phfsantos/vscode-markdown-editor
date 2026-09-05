@@ -148,25 +148,48 @@ test('pending chat diff posts diff-view-cleared when there is no baseline docume
 test('pending chat diff applies a single-view diff when baseline differs', async () => {
   const tab = {};
   const host = createFakeHost({ instanceId: 'a', fsPath: '/w/a.md', tab });
+  const baselineMarkdown = '# Baseline\n\nOriginal body';
+  const baselineHtml = '<h1>Rendered baseline</h1><p>Original body</p>';
+  const currentHtml = '<h1>Current IR</h1><p>Changed body</p>';
+  const leftHtmlLines = ['<h1>Rendered baseline</h1>', '<p>Original body</p>'];
+  const alignedChanges = [
+    { type: 'modified', side: 'both', lineNumber: 1, content: '<p>Changed body</p>', leftLine: 1, rightLine: 1 },
+    { type: 'added', side: 'right', lineNumber: 2, content: '<p>New right line</p>', leftLine: -1, rightLine: 2 },
+    { type: 'spacer', side: 'right', lineNumber: 3, content: '', leftLine: 2, rightLine: -1 },
+  ];
   const baseline = {
     uri: { scheme: 'chat-editing-text-model', path: '/w/a.md', toString: () => 'chat-editing-text-model:/w/a.md' },
-    getText: () => 'baseline text',
+    getText: () => baselineMarkdown,
   };
   host.diff.refreshPendingChatEditState = () => {
     host.diff.pendingChatBaselineDocument = baseline;
   };
+  host.requestRenderedMarkdownHtml = vi.fn().mockResolvedValue(baselineHtml);
+  host.requestIRHtml = vi.fn().mockResolvedValue(currentHtml);
+  const calculateDiffFromHTML = vi.fn().mockReturnValue({
+    changes: alignedChanges,
+    leftHtmlLines,
+    rightHtmlLines: ['<h1>Current IR</h1>', '<p>Changed body</p>', '<p>New right line</p>'],
+  });
+  global.markdownDiffViewSupport.calculateDiffFromHTML = calculateDiffFromHTML;
 
   await host.diff.applyPendingChatDiffVisualization();
 
-  assert.strictEqual(host.messages.length, 1);
-  const msg = host.messages[0];
-  assert.strictEqual(msg.type, 'diff-view-detected');
-  assert.strictEqual(msg.diffInfo.role, 'right');
-  assert.strictEqual(msg.diffInfo.otherUri, 'chat-editing-text-model:/w/a.md');
-  assert.deepStrictEqual(msg.diffInfo.htmlLines, ['<p>L0</p>']);
+  assert.deepStrictEqual(host.requestRenderedMarkdownHtml.mock.calls, [[baselineMarkdown]]);
+  assert.deepStrictEqual(calculateDiffFromHTML.mock.calls, [[baselineHtml, currentHtml]]);
+  assert.deepStrictEqual(host.messages, [{
+    type: 'diff-view-detected',
+    diffInfo: {
+      role: 'right',
+      otherUri: 'chat-editing-text-model:/w/a.md',
+      instanceId: 'a',
+      changes: alignedChanges,
+      stats: { added: 1, deleted: 1, modified: 1 },
+      htmlLines: leftHtmlLines,
+      isHtmlBased: true,
+    },
+  }]);
   assert.strictEqual(host.diff.singleViewDiffApplied, true);
-  // Baseline rendered markdown diffed against current IR html.
-  assert.deepStrictEqual(diffCalls[0], ['<p>baseline text</p>', '<p>ir</p>']);
 });
 
 test('pending chat diff clears once changes are empty after having been applied', async () => {

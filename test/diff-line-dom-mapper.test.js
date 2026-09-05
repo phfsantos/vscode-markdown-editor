@@ -93,6 +93,18 @@ function testParagraphCountsAsRenderedLineWhenInlineChildOwnsText() {
   console.log('✅ testParagraphCountsAsRenderedLineWhenInlineChildOwnsText passed');
 }
 
+function testKeepsMixedDataBlockContainersAsOneRenderedLine() {
+  const mixedBlock = el('div', { 'data-block': '' }, [
+    text('Lead '),
+    el('p', {}, [text('Child')]),
+  ]);
+  const tail = el('p', {}, [text('Tail')]);
+  const root = el('pre', {}, [mixedBlock, tail]);
+
+  assert.deepStrictEqual(getRenderedLineElements(root), [mixedBlock, tail]);
+  assert.deepStrictEqual(Array.from(buildRenderedLineMap(root).values()), [mixedBlock, tail]);
+}
+
 function testSkipsParentBlockWhenNestedBlockExists() {
   const root = el('pre', {}, [
     el('blockquote', {}, [
@@ -233,6 +245,7 @@ function testRebuildsStableLineMapAfterUndoRedoStyleRerenders() {
 
 test('collects nested list items as display lines', testCollectsNestedListItemsAsDisplayLines);
 test('paragraph counts as rendered line when inline child owns text', testParagraphCountsAsRenderedLineWhenInlineChildOwnsText);
+test('keeps mixed data block containers as one rendered line', testKeepsMixedDataBlockContainersAsOneRenderedLine);
 test('skips parent block when nested block exists', testSkipsParentBlockWhenNestedBlockExists);
 test('treats code block container as single rendered line', testTreatsCodeBlockContainerAsSingleRenderedLine);
 test('buildRenderedLineMap uses deepest eligible order', testBuildRenderedLineMapUsesDeepestEligibleOrder);

@@ -110,6 +110,12 @@ function shouldEmitAsLine(node: DomLikeElement): boolean {
     return true;
   }
 
+  // Mirror HtmlLineParser: mixed data-block containers own a rendered line so
+  // their direct text is not lost when nested child blocks are traversed.
+  if (isMixedContentDataBlock(node)) {
+    return true;
+  }
+
   const tagName = getTagName(node);
   if (STANDALONE_LINE_TAGS.has(tagName)) {
     return true;
@@ -128,6 +134,21 @@ function shouldEmitAsLine(node: DomLikeElement): boolean {
   }
 
   return !INLINE_TAGS.has(tagName) && !isStructuralContainer(node);
+}
+
+function isMixedContentDataBlock(node: DomLikeElement): boolean {
+  if (getTagName(node) !== 'div' || !node.hasAttribute?.('data-block')) {
+    return false;
+  }
+
+  const childNodes = getChildNodes(node);
+  const hasChildElement = childNodes.some((child) => child?.nodeType === ELEMENT_NODE);
+  const directText = childNodes
+    .filter((child) => child?.nodeType === TEXT_NODE)
+    .map((child) => child.textContent ?? '')
+    .join('');
+
+  return hasChildElement && normalizeText(directText).length > 0;
 }
 
 function isCodeBlockContainer(node: DomLikeElement): boolean {

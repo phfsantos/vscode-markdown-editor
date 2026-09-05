@@ -169,39 +169,11 @@ export class DiffVisualizer {
       return;
     }
 
-    const contentElement =
-      document.querySelector(".vditor-ir > pre.vditor-reset") ||
-      document.querySelector("pre.vditor-reset");
-
-    if (!contentElement) {
-      return;
-    }
-
-    const lineToDom = this.buildLineToDomMap(contentElement);
-
-    this.diffInfo.changes.forEach((change) => {
-      if (change.side !== this.diffInfo!.role && change.side !== "both") {
-        return;
-      }
-
-      if (change.type === "spacer") {
-        return;
-      }
-
-      const targetElement = lineToDom.get(change.lineNumber);
-      if (!targetElement) {
-        return;
-      }
-
-      if (!targetElement.hasAttribute('data-diff-type')) {
-        const color = this.getChangeColor(change.type);
-        targetElement.style.backgroundColor = color.bg;
-        targetElement.style.borderLeft = `3px solid ${color.border}`;
-        targetElement.style.paddingLeft = "4px";
-        targetElement.title = this.getChangeTooltip(change);
-        this.recordAppliedDecoration(targetElement, change.type, change.lineNumber);
-      }
-    });
+    // Rebuild spacers and shifted line mappings through the same path used for
+    // initial application; a compressed rendered-line map cannot address diff
+    // line numbers after blank-line spacers have been inserted.
+    this.applyLineDecorations();
+    this.addScrollbarDiffIndicators();
   }
 
   private applyDiffVisualizations(): void {
@@ -281,7 +253,10 @@ export class DiffVisualizer {
 
   public clearSpacerBlocks(): void {
     const spacers = document.querySelectorAll(".diff-spacer-block");
-    spacers.forEach((spacer) => spacer.remove());
+    spacers.forEach((spacer) => {
+      this.appliedDecorations.delete(spacer as HTMLElement);
+      spacer.remove();
+    });
   }
 
   public clearDiffDecorations(): void {
@@ -708,8 +683,6 @@ export class DiffVisualizer {
       return false;
     }
 
-    const lineToDom = this.buildLineToDomMap(contentElement);
-
     return this.diffInfo.changes.every((change) => {
       if (change.side !== this.diffInfo!.role && change.side !== "both") {
         return true;
@@ -719,8 +692,9 @@ export class DiffVisualizer {
         return Boolean(contentElement.querySelector(`.diff-spacer-block[data-line-number="${change.lineNumber}"]`));
       }
 
-      const element = lineToDom.get(change.lineNumber);
-      return Boolean(element && element.hasAttribute('data-diff-type'));
+      return Boolean(contentElement.querySelector(
+        `[data-diff-line="${change.lineNumber}"][data-diff-type="${change.type}"]`
+      ));
     });
   }
 
@@ -788,7 +762,11 @@ export class DiffVisualizer {
       if (change.type === "spacer") {
         lineElement = contentElement.querySelector(`.diff-spacer-block[data-line-number="${change.lineNumber}"]`) as HTMLElement;
       } else {
-        lineElement = lineToDom.get(change.lineNumber) || null;
+        // Spacer nodes are excluded from buildRenderedLineMap, so prefer the
+        // element decorated with the already-shifted diff line number.
+        lineElement = contentElement.querySelector(
+          `[data-diff-line="${change.lineNumber}"][data-diff-type="${change.type}"]`
+        ) as HTMLElement || lineToDom.get(change.lineNumber) || null;
       }
       
       if (!lineElement) {
@@ -850,8 +828,11 @@ export class DiffVisualizer {
       return;
     }
     
+    const decoratedElement = contentElement.querySelector(
+      `[data-diff-line="${lineNumber}"]`
+    ) as HTMLElement | null;
     const lineToDom = this.buildLineToDomMap(contentElement);
-    const targetElement = lineToDom.get(lineNumber);
+    const targetElement = decoratedElement || lineToDom.get(lineNumber);
     if (targetElement) {
       targetElement.scrollIntoView({ behavior: "smooth", block: "center" });
     }

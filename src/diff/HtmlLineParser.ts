@@ -188,6 +188,13 @@ function shouldEmitAsLine(node: any, $: any): boolean {
     return true;
   }
 
+  // A data-block with its own text is content, not a transparent wrapper.
+  // Keep the whole container as one line so its direct text is not discarded
+  // while descending into child blocks.
+  if (isMixedContentDataBlock(node, $)) {
+    return true;
+  }
+
   const tagName = getTagName(node);
   if (STANDALONE_LINE_TAGS.has(tagName)) {
     return true;
@@ -206,6 +213,21 @@ function shouldEmitAsLine(node: any, $: any): boolean {
   }
 
   return !INLINE_TAGS.has(tagName) && !isStructuralContainer(node);
+}
+
+function isMixedContentDataBlock(node: any, $: any): boolean {
+  if (getTagName(node) !== 'div' || !Object.prototype.hasOwnProperty.call(node.attribs ?? {}, 'data-block')) {
+    return false;
+  }
+
+  const childNodes = $(node).contents().toArray();
+  const hasChildElement = childNodes.some((child: any) => child?.type === 'tag');
+  const directText = childNodes
+    .filter((child: any) => child?.type === 'text')
+    .map((child: any) => child.data ?? '')
+    .join('');
+
+  return hasChildElement && normalizeText(directText).length > 0;
 }
 
 function isStructuralContainer(node: any): boolean {
