@@ -3,7 +3,7 @@
   "displayName": "Markdown Editor",
   "icon": "media/logo.png",
   "description": "Full-featured WYSIWYG markdown editor with Obsidian-style wiki-links, graph view, backlinks, tags, and knowledge management.",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "publisher": "phfsantos",
   "private": true,
   "workspaces": {

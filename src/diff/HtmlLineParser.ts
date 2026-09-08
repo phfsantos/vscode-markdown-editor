@@ -1,4 +1,15 @@
 import * as cheerio from 'cheerio';
+import { createRenderedLineRules, normalizeRenderedLineText as normalizeText } from './renderedLineRules';
+
+const rules = createRenderedLineRules<any>({
+  tagName: getTagName,
+  children: node => node?.children ?? [],
+  isElement: node => ['tag', 'script', 'style'].includes(node?.type),
+  isText: node => node?.type === 'text',
+  text: node => node?.data ?? '',
+  hasAttribute: (node, name) => Object.prototype.hasOwnProperty.call(node?.attribs ?? {}, name),
+  attribute: (node, name) => node?.attribs?.[name],
+});
 
 export interface ParsedBlock {
   lineNumber: number;
@@ -7,30 +18,12 @@ export interface ParsedBlock {
   tagName: string;
 }
 
-const INLINE_TAGS = new Set([
-  'a', 'abbr', 'b', 'bdi', 'bdo', 'button', 'cite', 'code', 'data', 'dfn',
-  'em', 'i', 'kbd', 'label', 'mark', 'q', 'rp', 'rt', 'ruby', 's', 'samp',
-  'small', 'span', 'strong', 'sub', 'sup', 'time', 'u', 'var', 'wbr', 'br'
-]);
-
-const STANDALONE_LINE_TAGS = new Set([
-  'img', 'hr', 'video', 'audio', 'iframe', 'canvas', 'svg', 'math'
-]);
-
-const ALWAYS_LINE_TAGS = new Set([
-  'li', 'dt', 'dd', 'figcaption', 'caption', 'summary', 'legend'
-]);
-
-const STRUCTURAL_CONTAINER_TAGS = new Set([
-  'ul', 'ol', 'dl', 'table', 'thead', 'tbody', 'tfoot', 'tr'
-]);
-
 /**
  * Parse HTML into stable diff lines using DOM traversal instead of regexp.
  *
  * Eligible block rule:
- * - emit only the deepest eligible rendered block for a subtree
- * - if a block contains another block element, do not emit the parent block
+ * - emit the deepest eligible block unless a list item, mixed data block or
+ *   code container owns the subtree (see renderedLineRules)
  * - when the root exposes loose inline/text content, coalesce it into a synthetic paragraph line
  */
 export function parseHTMLToLines(html: string): ParsedBlock[] {
@@ -98,7 +91,7 @@ function collectParsedBlocks(nodes: any[], $: any, blocks: ParsedBlock[], emitLo
       continue;
     }
 
-    if (isTransparentContainer(node, $)) {
+    if (rules.isTransparentContainer(node)) {
       flushInlineFragments();
       collectParsedBlocks($(node).contents().toArray(), $, blocks, emitLooseInline);
       continue;
@@ -110,7 +103,7 @@ function collectParsedBlocks(nodes: any[], $: any, blocks: ParsedBlock[], emitLo
       continue;
     }
 
-    if (shouldEmitAsLine(node, $)) {
+    if (rules.shouldEmitAsLine(node)) {
       flushInlineFragments();
       blocks.push({
         lineNumber: blocks.length,
@@ -121,7 +114,7 @@ function collectParsedBlocks(nodes: any[], $: any, blocks: ParsedBlock[], emitLo
       continue;
     }
 
-    if (isStructuralContainer(node) || shouldDescendIntoChildBlocks(node, $)) {
+    if (rules.isStructuralContainer(node) || rules.shouldDescendIntoChildBlocks(node)) {
       flushInlineFragments();
       collectParsedBlocks($(node).contents().toArray(), $, blocks, false);
       continue;
@@ -147,174 +140,8 @@ function getRootNodes($: any): any[] {
   return $.root().contents().toArray();
 }
 
-function isCodeBlockContainer(node: any): boolean {
-  return getTagName(node) === 'div' && node?.attribs?.['data-type'] === 'code-block';
-}
-
-function isTransparentContainer(node: any, $: any): boolean {
-  if (isCodeBlockContainer(node) || getTagName(node) !== 'div') {
-    return false;
-  }
-
-  const attribs = node.attribs ?? {};
-  if (!Object.prototype.hasOwnProperty.call(attribs, 'data-block')) {
-    return false;
-  }
-
-  const childNodes = $(node)
-    .contents()
-    .toArray()
-    .filter((child: any) => child && child.type !== 'comment');
-
-  const childElements = childNodes.filter((child: any) => child.type === 'tag');
-  if (childElements.length === 0) {
-    return false;
-  }
-
-  const directText = childNodes
-    .filter((child: any) => child.type === 'text')
-    .map((child: any) => child.data ?? '')
-    .join('');
-
-  return normalizeText(directText).length === 0;
-}
-
-function shouldEmitAsLine(node: any, $: any): boolean {
-  if (isExplicitBlankLine(node)) {
-    return true;
-  }
-
-  if (isCodeBlockContainer(node)) {
-    return true;
-  }
-
-  // A data-block with its own text is content, not a transparent wrapper.
-  // Keep the whole container as one line so its direct text is not discarded
-  // while descending into child blocks.
-  if (isMixedContentDataBlock(node, $)) {
-    return true;
-  }
-
-  const tagName = getTagName(node);
-  if (STANDALONE_LINE_TAGS.has(tagName)) {
-    return true;
-  }
-
-  if (!hasLineTextContent(node, $)) {
-    return false;
-  }
-
-  if (ALWAYS_LINE_TAGS.has(tagName)) {
-    return true;
-  }
-
-  if (hasNestedRenderableBlocks(node, $)) {
-    return false;
-  }
-
-  return !INLINE_TAGS.has(tagName) && !isStructuralContainer(node);
-}
-
-function isMixedContentDataBlock(node: any, $: any): boolean {
-  if (getTagName(node) !== 'div' || !Object.prototype.hasOwnProperty.call(node.attribs ?? {}, 'data-block')) {
-    return false;
-  }
-
-  const childNodes = $(node).contents().toArray();
-  const hasChildElement = childNodes.some((child: any) => child?.type === 'tag');
-  const directText = childNodes
-    .filter((child: any) => child?.type === 'text')
-    .map((child: any) => child.data ?? '')
-    .join('');
-
-  return hasChildElement && normalizeText(directText).length > 0;
-}
-
-function isStructuralContainer(node: any): boolean {
-  return STRUCTURAL_CONTAINER_TAGS.has(getTagName(node));
-}
-
-function shouldDescendIntoChildBlocks(node: any, $: any): boolean {
-  if (isCodeBlockContainer(node)) {
-    return false;
-  }
-
-  const tagName = getTagName(node);
-  if (INLINE_TAGS.has(tagName) || STANDALONE_LINE_TAGS.has(tagName) || ALWAYS_LINE_TAGS.has(tagName)) {
-    return false;
-  }
-
-  return hasNestedRenderableBlocks(node, $);
-}
-
-function hasNestedRenderableBlocks(node: any, $: any): boolean {
-  return $(node)
-    .contents()
-    .toArray()
-    .some((child: any) => {
-      if (!child || (child.type !== 'tag' && child.type !== 'script' && child.type !== 'style')) {
-        return false;
-      }
-
-      return !INLINE_TAGS.has(getTagName(child));
-    });
-}
-
-function isExplicitBlankLine(node: any): boolean {
-  return Boolean(node?.attribs && Object.prototype.hasOwnProperty.call(node.attribs, 'data-empty-line'));
-}
-
-function hasLineTextContent(node: any, $: any): boolean {
-  if (isExplicitBlankLine(node)) {
-    return true;
-  }
-
-  const directText = getDirectTextContent(node, $);
-  if (normalizeText(directText).length > 0) {
-    return true;
-  }
-
-  return hasInlineDescendantText(node, $);
-}
-
-function hasInlineDescendantText(node: any, $: any): boolean {
-  for (const child of $(node).contents().toArray()) {
-    if (!child || child.type === 'comment') {
-      continue;
-    }
-
-    if (child.type === 'text' && normalizeText(child.data ?? '').length > 0) {
-      return true;
-    }
-
-    if (child.type !== 'tag' && child.type !== 'script' && child.type !== 'style') {
-      continue;
-    }
-
-    const childTag = getTagName(child);
-    if (!INLINE_TAGS.has(childTag)) {
-      continue;
-    }
-
-    if (hasLineTextContent(child, $)) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-function getDirectTextContent(node: any, $: any): string {
-  return $(node)
-    .contents()
-    .toArray()
-    .filter((child: any) => child?.type === 'text')
-    .map((child: any) => child.data ?? '')
-    .join('');
-}
-
 function normalizeNodeText(node: any, $: any): string {
-  if (isExplicitBlankLine(node)) {
+  if (rules.isExplicitBlankLine(node)) {
     return '';
   }
 
@@ -332,11 +159,4 @@ function wrapInlineFragment(fragmentHtml: string): string {
   }
 
   return `<p>${trimmed}</p>`;
-}
-
-function normalizeText(value: string): string {
-  return value
-    .replace(/\u200b/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
 }

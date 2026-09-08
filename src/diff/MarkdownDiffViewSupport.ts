@@ -50,6 +50,8 @@ export class MarkdownDiffViewSupport {
    * Calculate an aligned diff from raw text by converting each source line into
    * a simple HTML block first. This keeps the spacer-based diff pipeline usable
    * even when only document text is available.
+   * This is a source-line approximation, not a rendered HTML line counter.
+   * Use calculateDiffFromHTML with Vditor IR HTML for rendered diff targeting.
    */
   public calculateAlignedDiffFromContent(originalContent: string, modifiedContent: string): DiffResult {
     return this.calculateDiffFromHTML(

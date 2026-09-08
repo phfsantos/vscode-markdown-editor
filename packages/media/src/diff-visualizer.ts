@@ -1,4 +1,3 @@
-import { vscodeLogWarn, vscodeLogError } from "./webview-logger";
 import { buildRenderedLineMap, type DomLikeElement } from "./diff-line-dom-mapper";
 
 /**
@@ -7,10 +6,8 @@ import { buildRenderedLineMap, type DomLikeElement } from "./diff-line-dom-mappe
 
 // Debounce and throttle timing constants (in milliseconds)
 const DEBOUNCE_INPUT_REAPPLY_MS = 500;    // Wait time after input before re-applying decorations
-const DEBOUNCE_DIFF_UPDATE_MS = 500;       // Wait time in EditorPanel before full diff recalculation
 const THROTTLE_SCROLL_SYNC_MS = 50;        // Max scroll sync messages per second (20/sec)
 const DEBOUNCE_SCROLL_FINAL_MS = 100;      // Wait time after scrolling stops for final position
-const TIMEOUT_HTML_REQUEST_MS = 5000;      // Timeout for IR HTML content requests
 const DELAY_DIAGNOSTICS_REAPPLY_MS = 50;   // Short delay before re-applying diagnostics
 const DELAY_VDITOR_RENDER_MS = 1000;       // Wait time for Vditor to fully render content
 
@@ -773,11 +770,15 @@ export class DiffVisualizer {
         return;
       }
       
-      if (lineElement.hasAttribute('data-temp-measurement') || lineElement.offsetTop < 0) {
+      if (lineElement.hasAttribute('data-temp-measurement')) {
         return;
       }
 
-      const elementOffsetTop = lineElement.offsetTop;
+      // offsetTop is relative to the nearest positioned ancestor, which can be
+      // a nested list/table/blockquote. Measure in the content's scroll space.
+      const content = contentElement as HTMLElement;
+      const elementOffsetTop = lineElement.getBoundingClientRect().top -
+        content.getBoundingClientRect().top + content.scrollTop - content.clientTop;
       const scrollbarPosition = (elementOffsetTop / totalHeight) * 100;
       const clampedPosition = Math.max(0, Math.min(100, scrollbarPosition));
       const color = this.getScrollbarMarkerColor(change.type);

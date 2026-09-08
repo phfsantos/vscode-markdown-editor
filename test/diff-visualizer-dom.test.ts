@@ -55,6 +55,8 @@ class FakeElement {
   title = "";
   offsetTop = 0;
   scrollHeight = 0;
+  scrollTop = 0;
+  clientTop = 0;
   scrollIntoViewCalls = 0;
   private attributes = new Map<string, string>();
 
@@ -158,6 +160,10 @@ class FakeElement {
 
   scrollIntoView(): void {
     this.scrollIntoViewCalls += 1;
+  }
+
+  getBoundingClientRect(): { top: number } {
+    return { top: this.offsetTop };
   }
 
   querySelector(selector: string): FakeElement | null {

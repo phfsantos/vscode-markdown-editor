@@ -5,7 +5,7 @@ import { format } from "date-fns";
 import Predictionary from "predictionary/src/index.mjs";
 import { lang } from "./lang";
 import { toolbar } from "./toolbar";
-import words from "./words.en.txt";
+import words from "../assets/words.en.txt";
 import {
   fileToBase64,
   getHTML,
