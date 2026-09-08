@@ -1,7 +1,7 @@
 /** Owns diagnostic spans, hover tooltips and quick-fix UI. */
 export class DiagnosticDecorations {
 
-  // Aggregate diagnostics per token key (line|text) for combined tooltip & quick fix
+  // Aggregate diagnostics per source range for combined tooltip & quick fix
   private tokenDiagnostics: Map<string, any[]> = new Map();
 
   clearTokens(): void { this.tokenDiagnostics.clear(); }
@@ -28,12 +28,8 @@ export class DiagnosticDecorations {
       }
 
       const diagnosticText = text.substring(startOffset, endOffset);
-      const lineKey = `${diagnostic.range?.start?.line ?? "na"}`;
-      const tokenKey = `${lineKey}|${diagnosticText}`;
-
-      // Aggregate diagnostics for this token
-      const list = this.tokenDiagnostics.get(tokenKey) || [];
-      list.push(diagnostic);
+      const tokenKey = JSON.stringify([diagnostic.range, diagnostic.lineText]);
+      const list = diagnostic.tokenDiagnostics || [diagnostic];
       this.tokenDiagnostics.set(tokenKey, list);
 
       // Create a styled span that replaces the text node with proper diagnostic styling
@@ -78,7 +74,9 @@ export class DiagnosticDecorations {
       });
 
       // Add quick fix lightbulb integrated into the same element
-      this.addIntegratedQuickFixLightbulb(diagnosticSpan, diagnostic);
+      for (const report of combinedMessages) {
+        this.addIntegratedQuickFixLightbulb(diagnosticSpan, report);
+      }
 
       // Replace the text node with our styled span
       // Duplicate prevention is handled by appliedDiagnostics with character range tracking

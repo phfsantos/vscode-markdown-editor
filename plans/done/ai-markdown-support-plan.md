@@ -207,11 +207,15 @@ Purpose:
 
 Expected sections:
 
-- intent
-- inputs
-- variables/placeholders
-- constraints
-- expected output shape
+- Intent
+- Inputs
+- Variables
+- Constraints
+- Expected Output
+
+These canonical labels are used by the detector, generated templates, validation,
+and editor suggestions. Use Variables for placeholders and Expected Output for
+the required output shape.
 
 #### `SKILL.md`
 

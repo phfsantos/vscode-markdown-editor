@@ -32,6 +32,8 @@ export class DiagnosticVisualizer {
   // Track if diagnostics were skipped due to cursor position
   // When true, we need to re-apply diagnostics when cursor moves or typing stops
   private hasSkippedDiagnostics: boolean = false;
+  // Obsolete spans protected by the caret still need clearing after it moves.
+  private hasDeferredDiagnosticClear: boolean = false;
 
   constructor(vditorInstance: any) {
     this.vditor = vditorInstance;
@@ -55,12 +57,15 @@ export class DiagnosticVisualizer {
 
     // SMART APPLICATION: Only clear if diagnostics actually changed AND visual elements exist
     const newHash = this.generateDiagnosticsHashForArray(diagnostics);
-    const currentHash = this.generateDiagnosticsHash();
+    // Incoming reports may already be stored while waiting for a safe update.
+    // Compare against the applied state, not the pending diagnostics array.
+    const currentHash = this.lastDiagnosticsHash;
     const visualElementsExist = this.verifyDiagnosticElementsExist();
 
     // OPTIMIZATION: If diagnostics haven't changed and are still visible, skip entire operation
     if (
       !force &&
+      !this.hasDeferredDiagnosticClear &&
       newHash === currentHash &&
       this.diagnosticsApplied &&
       visualElementsExist
@@ -91,7 +96,7 @@ export class DiagnosticVisualizer {
       // This prevents unnecessary clearing during getValue() operations that temporarily strip styles
       const hashChanged = newHash !== currentHash;
 
-      if (hashChanged) {
+      if (hashChanged || this.hasDeferredDiagnosticClear) {
         // Only clear when diagnostics content changed
         this.clearDiagnosticStyles();
         this.decorations.clearTokens();
@@ -103,11 +108,9 @@ export class DiagnosticVisualizer {
       this.diagnostics = diagnostics;
       this.applyDiagnosticStyles();
 
-      // Update state after application (only if not already set by force flag above)
-      if (!force) {
-        this.lastDiagnosticsHash = newHash;
-        this.diagnosticsApplied = true;
-      }
+      // Clearing styles resets tracking, including during forced application.
+      this.lastDiagnosticsHash = newHash;
+      this.diagnosticsApplied = true;
 
       // Release the lock after a short delay to allow DOM to stabilize
       // IMPORTANT: Only reset isApplyingDiagnostics, keep diagnosticsApplied as-is
@@ -150,6 +153,7 @@ export class DiagnosticVisualizer {
       '[class*="vscode-diagnostic-"]'
     );
 
+    this.hasDeferredDiagnosticClear = false;
     diagnosticElements.forEach((span, index) => {
       // CURSOR-AWARE: Skip clearing diagnostics in cursor element
       if (
@@ -160,6 +164,7 @@ export class DiagnosticVisualizer {
       ) {
         // Set flag to indicate diagnostics were skipped
         this.hasSkippedDiagnostics = true;
+        this.hasDeferredDiagnosticClear = true;
         this.pendingDiagnosticUpdate = true;
         return; // Skip this element
       }

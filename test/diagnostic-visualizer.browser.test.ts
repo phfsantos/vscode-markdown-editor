@@ -129,7 +129,7 @@ test("untrusted sources are ignored", async () => {
   expect(editor.textContent).toBe(source);
 });
 
-test("overlapping diagnostics currently expose only the first message on a token", async () => {
+test("exact-token diagnostics expose both messages on one token", async () => {
   mount(["wrng word"]);
   await apply([
     diagnostic(0, source),
@@ -139,10 +139,8 @@ test("overlapping diagnostics currently expose only the first message on a token
   expect(spans).toHaveLength(1);
   spans[0].dispatchEvent(new MouseEvent("mouseenter"));
   await vi.advanceTimersByTimeAsync(300);
-  // Characterizes current overlap suppression before extraction. Combining
-  // both messages is a separate behavior change, not an extraction requirement.
   const tooltip = document.querySelector(".vscode-diagnostic-tooltip-content")!;
-  expect(tooltip.textContent).toBe('"wrng": Unknown word (cSpell)');
+  expect(tooltip.textContent).toBe('"wrng": Unknown word (cSpell)\nExpected a different word (textlint)');
 });
 
 test("extension scheduling restores existing diagnostics after transient cleanup", async () => {
@@ -189,4 +187,160 @@ test("content fallback decorates the repeated occurrence nearest the source char
   expect(preceding.toString()).toBe("wrng first, then ");
   expect(editor.querySelectorAll(".vscode-diagnostic-span")).toHaveLength(1);
   expect(editor.textContent).toBe(line);
+});
+
+for (const line of [0, 10]) {
+  test(`exact-token aggregation survives updates and cleanup on source line ${line}`, async () => {
+    mount(["wrng word"]);
+    const style = diagnostic(line, source, "Style advice", "textlint");
+    const spelling = diagnostic(line, source);
+    const reports = [style, spelling, { ...spelling }];
+    const expected = 'Style advice (textlint)\n"wrng": Unknown word (cSpell)';
+    for (let update = 0; update < 2; update++) {
+      await apply(reports);
+      const spans = editor.querySelectorAll<HTMLElement>(".vscode-diagnostic-span");
+      expect(spans).toHaveLength(1);
+      expect(spans[0].dataset.diagnosticMessage).toBe(expected);
+      expect(spans[0].dataset.diagnosticSource).toBe("textlint, cSpell");
+      expect(spans[0].dataset.hasLightbulb).toBe("true");
+      spans[0].dispatchEvent(new MouseEvent("mouseenter"));
+      await vi.advanceTimersByTimeAsync(300);
+      expect(document.querySelector(".vscode-diagnostic-tooltip-content")?.textContent).toBe(expected);
+      const postMessage = vi.fn();
+      (window as any).vscode = { postMessage };
+      const rect = spans[0].getBoundingClientRect();
+      spans[0].dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: rect.right - rect.width * 0.1 }));
+      expect(postMessage).toHaveBeenCalledExactlyOnceWith({ command: "openProblemsPanel" });
+      expect(editor.textContent).toBe(source);
+    }
+    visualizer.cleanupTransientUI();
+    expect(editor.querySelector(".vscode-diagnostic-span")).toBeNull();
+    expect(document.querySelector('[data-diagnostic-ui="true"]')).toBeNull();
+    expect(editor.textContent).toBe(source);
+    await apply(reports);
+    expect(editor.querySelectorAll(".vscode-diagnostic-span")).toHaveLength(1);
+    expect(editor.querySelector<HTMLElement>(".vscode-diagnostic-span")?.dataset.diagnosticMessage).toBe(expected);
+    visualizer.cleanupTransientUI();
+    await apply([style]);
+    expect(editor.querySelector<HTMLElement>(".vscode-diagnostic-span")?.dataset.diagnosticMessage).toBe("Style advice (textlint)");
+    expect(editor.querySelector('[data-has-lightbulb="true"]')).toBeNull();
+    expect(editor.textContent).toBe(source);
+  });
+}
+
+test("identical messages from distinct trusted sources are preserved", async () => {
+  mount(["wrng word"]);
+  await apply([
+    diagnostic(0, source, "Style advice", "textlint"),
+    diagnostic(0, source, "Style advice", "remark-lint"),
+    diagnostic(0, source, "Ignored", "unknown-provider"),
+  ]);
+  expect(editor.querySelectorAll(".vscode-diagnostic-span")).toHaveLength(1);
+  expect(editor.querySelector<HTMLElement>(".vscode-diagnostic-span")?.dataset.diagnosticMessage)
+    .toBe("Style advice (textlint)\nStyle advice (remark-lint)");
+});
+
+for (const force of [false, true]) {
+  test(`empty reports clear existing decorations (force=${force})`, async () => {
+    mount(["wrng word"]);
+    await apply([diagnostic(0, source)]);
+    visualizer.updateDiagnostics([], { documentText: source }, force);
+    await vi.advanceTimersByTimeAsync(200);
+    expect(editor.querySelector(".vscode-diagnostic-span")).toBeNull();
+    expect(editor.querySelector('[data-has-lightbulb="true"]')).toBeNull();
+    expect(document.querySelector('[data-diagnostic-ui="true"]')).toBeNull();
+    expect(editor.textContent).toBe(source);
+    await apply([diagnostic(0, source)]);
+    expect(editor.querySelectorAll(".vscode-diagnostic-span")).toHaveLength(1);
+  });
+
+  test(`replacing reports removes obsolete messages and quick fixes (force=${force})`, async () => {
+    mount(["wrng word"]);
+    const style = diagnostic(0, source, "Style advice", "textlint");
+    await apply([style, diagnostic(0, source)]);
+    visualizer.updateDiagnostics([style], { documentText: source }, force);
+    await vi.advanceTimersByTimeAsync(200);
+    const spans = editor.querySelectorAll<HTMLElement>(".vscode-diagnostic-span");
+    expect(spans).toHaveLength(1);
+    expect(spans[0].dataset.diagnosticMessage).toBe("Style advice (textlint)");
+    expect(editor.querySelector('[data-has-lightbulb="true"]')).toBeNull();
+    spans[0].dispatchEvent(new MouseEvent("mouseenter"));
+    await vi.advanceTimersByTimeAsync(300);
+    expect(document.querySelector(".vscode-diagnostic-tooltip-content")?.textContent).toBe("Style advice (textlint)");
+    expect(editor.textContent).toBe(source);
+  });
+}
+
+for (const collapsed of [false, true]) {
+  test(`report replacement preserves ${collapsed ? "caret" : "selection"} on the active line`, async () => {
+    mount(["prefix wrng suffix", "wrng elsewhere"]);
+    await apply([diagnostic(0, "prefix wrng suffix"), diagnostic(1, "wrng elsewhere")]);
+    editor.focus();
+    const token = editor.querySelector(".vscode-diagnostic-span")!.firstChild!;
+    const selection = window.getSelection()!;
+    const range = document.createRange();
+    range.setStart(token, 1);
+    range.setEnd(token, collapsed ? 1 : 3);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    await apply([diagnostic(1, "wrng elsewhere", "Replacement advice", "textlint")]);
+    expect(document.activeElement).toBe(editor);
+    expect(selection.anchorNode).toBe(token);
+    expect(selection.anchorOffset).toBe(1);
+    expect(selection.isCollapsed).toBe(collapsed);
+    expect(selection.toString()).toBe(collapsed ? "" : "rn");
+    expect(editor.children[1].querySelector<HTMLElement>(".vscode-diagnostic-span")?.dataset.diagnosticMessage)
+      .toBe("Replacement advice (textlint)");
+    expect(editor.textContent).toBe("prefix wrng suffixwrng elsewhere");
+  });
+}
+
+for (const empty of [false, true]) {
+  test(`obsolete spans clear after the caret leaves (empty=${empty})`, async () => {
+    mount(["wrng word", "Other line"]);
+    await apply([diagnostic(0, "wrng word")]);
+    editor.focus();
+    const token = editor.querySelector(".vscode-diagnostic-span")!.firstChild!;
+    const selection = window.getSelection()!;
+    selection.setPosition(token, 1);
+    document.dispatchEvent(new Event("selectionchange"));
+    await apply(empty ? [] : [diagnostic(0, "wrng word", "Style advice", "textlint")]);
+    expect(selection.anchorNode).toBe(token);
+    expect(selection.anchorOffset).toBe(1);
+    selection.setPosition(editor.children[1].firstChild!, 1);
+    document.dispatchEvent(new Event("selectionchange"));
+    await vi.advanceTimersByTimeAsync(300);
+    const spans = editor.querySelectorAll<HTMLElement>(".vscode-diagnostic-span");
+    expect(spans).toHaveLength(empty ? 0 : 1);
+    if (!empty) expect(spans[0].dataset.diagnosticMessage).toBe("Style advice (textlint)");
+    expect(editor.querySelector('[data-has-lightbulb="true"]')).toBeNull();
+    expect(selection.anchorNode).toBe(editor.children[1].firstChild);
+    expect(selection.anchorOffset).toBe(1);
+    expect(editor.textContent).toBe("wrng wordOther line");
+  });
+}
+
+test("partial overlaps retain first-range precedence", async () => {
+  mount(["wrng word"]);
+  const wider = diagnostic(0, source, "Wider advice", "textlint");
+  wider.range.end.character = source.length;
+  await apply([diagnostic(0, source), wider]);
+  const spans = editor.querySelectorAll<HTMLElement>(".vscode-diagnostic-span");
+  expect(spans).toHaveLength(1);
+  expect(spans[0].textContent).toBe("wrng");
+  expect(spans[0].dataset.diagnosticMessage).toBe('"wrng": Unknown word (cSpell)');
+  expect(editor.textContent).toBe(source);
+});
+
+test("repeated tokens on one line keep their own messages", async () => {
+  mount(["wrng then wrng"]);
+  const second = diagnostic(0, source, "Second occurrence", "textlint");
+  second.range.start.character = source.lastIndexOf("wrng");
+  second.range.end.character = source.length;
+  await apply([diagnostic(0, source), second]);
+  const spans = editor.querySelectorAll<HTMLElement>(".vscode-diagnostic-span");
+  expect(spans).toHaveLength(2);
+  expect(spans[0].dataset.diagnosticMessage).toBe('"wrng": Unknown word (cSpell)');
+  expect(spans[1].dataset.diagnosticMessage).toBe("Second occurrence (textlint)");
+  expect(editor.textContent).toBe(source);
 });

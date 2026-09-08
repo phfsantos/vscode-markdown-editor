@@ -372,6 +372,24 @@ function testInlineCompletionProviderRegistersSupportedLanguages() {
 }
 
 test('recognizes supported AI markdown file names', testRecognizesSupportedAiMarkdownFileNames);
+test('prompt taxonomy stays consistent across documentation, detection, templates, and validation', () => {
+  const expected = ['Intent', 'Inputs', 'Variables', 'Constraints', 'Expected Output'];
+  const plan = fs.readFileSync(path.join(__dirname, '..', 'plans', 'done', 'ai-markdown-support-plan.md'), 'utf8');
+  const promptSection = plan.split('#### `.prompt.md`')[1].split('#### `SKILL.md`')[0];
+  const documentedLabels = [...promptSection.split('Expected sections:')[1].matchAll(/^- (.+)$/gm)]
+    .map((match) => match[1]);
+  assert.deepStrictEqual(documentedLabels, expected);
+
+  const document = createDocument('/workspace/prompts/review.prompt.md');
+  const { service } = loadWorkflowService();
+  assert.deepStrictEqual(detector.classifyAIMarkdownFileName(document.fileName).suggestedSections, expected);
+  const snippet = service.getTemplateSnippet(document);
+  assert.deepStrictEqual([...snippet.matchAll(/^## (.+)$/gm)].map((match) => match[1]), expected);
+  const validation = service.validateDocument(createDocument(document.fileName, snippet));
+  assert.strictEqual(validation.isValid, true);
+  assert.deepStrictEqual(validation.presentSections, expected);
+  assert.deepStrictEqual(validation.missingSections, []);
+});
 test('describeDocument reports ready availability', testDescribeDocumentReportsReadyAvailability);
 test('describeDocument reflects affordances setting', testDescribeDocumentReflectsAffordancesSetting);
 test('buildContextPackage includes structured context', testBuildContextPackageIncludesStructuredContext);

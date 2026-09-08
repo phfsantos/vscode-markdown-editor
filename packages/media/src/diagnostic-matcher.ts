@@ -295,21 +295,12 @@ export class DiagnosticMatcher {
       lineText: string;
     }> = [];
 
-    // Basic de-duplication: ensure each (rangeStart, rangeEnd, message) triple only applied once
+    // Group exact source tokens before overlap suppression; keep the first
+    // diagnostic as the matching/severity representative.
+    const groups = new Map<string, any>();
     const seen = new Set<string>();
 
     for (const diagnostic of diagnostics) {
-      // Create deduplication key
-      const key = `${diagnostic.range?.start?.line}:${
-        diagnostic.range?.start?.character
-      }-${diagnostic.range?.end?.line}:${diagnostic.range?.end?.character}|${
-        diagnostic.message
-      }|${diagnostic.code || ""}`;
-      if (seen.has(key)) {
-        continue;
-      }
-      seen.add(key);
-
       // Only include diagnostics with valid line information
       const lineNumber = diagnostic.range?.start?.line;
       const lineText = diagnostic.lineText || "";
@@ -317,11 +308,22 @@ export class DiagnosticMatcher {
       if (lineNumber !== undefined && lineText.trim()) {
         // Filter to only high-confidence diagnostics to avoid false positives
         if (this.isHighConfidenceDiagnostic(diagnostic)) {
-          validDiagnostics.push({
-            diagnostic,
-            lineNumber,
-            lineText: lineText.trim(),
-          });
+          const tokenKey = JSON.stringify([diagnostic.range.start, diagnostic.range.end, lineText]);
+          const key = JSON.stringify([tokenKey, diagnostic.source, diagnostic.message, diagnostic.code]);
+          if (seen.has(key)) continue;
+          seen.add(key);
+          const group = groups.get(tokenKey);
+          if (group) {
+            group.tokenDiagnostics.push(diagnostic);
+          } else {
+            const grouped = { ...diagnostic, tokenDiagnostics: [diagnostic] };
+            groups.set(tokenKey, grouped);
+            validDiagnostics.push({
+              diagnostic: grouped,
+              lineNumber,
+              lineText: lineText.trim(),
+            });
+          }
         }
       }
     }
