@@ -1306,3 +1306,50 @@ span[data-has-lightbulb="true"] {
   font-family: var(--vscode-font-family);
   margin: 8px 0;
 }
+
+/* Body-mounted panels share viewport constraints without clipping child menus. */
+.editor-context-menu {
+  position: fixed;
+  box-sizing: border-box;
+  width: max-content;
+  min-width: min(150px, var(--menu-available-width, 100vw));
+  padding: 4px 0;
+  border: 1px solid var(--vscode-menu-border, #454545);
+  border-radius: 3px;
+  background: var(--vscode-menu-background, #1e1e1e);
+  color: var(--vscode-menu-foreground, #ccc);
+  box-shadow: 0 2px 8px rgba(0,0,0,.5);
+  font: 13px var(--vscode-font-family, sans-serif);
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  z-index: 10000;
+}
+.editor-context-menu [role="menuitem"] {
+  display: flex;
+  gap: 12px;
+  padding: 6px 12px;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.editor-context-menu [role="separator"] {
+  height: 1px;
+  margin: 4px 8px;
+  background: var(--vscode-menu-separatorBackground, #454545);
+}
+.editor-context-menu [role="menuitem"]:hover,
+.editor-context-menu [role="menuitem"]:focus {
+  background: var(--vscode-menu-selectionBackground, #094771);
+  color: var(--vscode-menu-selectionForeground, #fff);
+}
+.editor-context-menu [role="menuitem"]:focus {
+  outline: 1px solid var(--vscode-focusBorder, #007acc);
+  outline-offset: -1px;
+}
+.editor-context-menu [aria-disabled="true"] {
+  color: var(--vscode-disabledForeground, #888);
+  cursor: default;
+}
+.editor-context-menu-label { min-width: 0; flex: 1; }
+.editor-context-menu-indicator { flex-shrink: 0; }

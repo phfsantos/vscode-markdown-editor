@@ -1,3 +1,4 @@
+import { openContextMenu } from "./context-menu-controller";
 import { getMarkdownClipboardText } from './clipboard-selection';
 
 /**
@@ -1124,79 +1125,7 @@ widgets:
    * Create and display our own context menu when Vditor's display fails
    */
   private createAndDisplayContextMenu(x: number, y: number, menuItems: any[]): void {
-    
-    // Remove any existing context menu
-    const existingMenu = document.getElementById('vscode-custom-context-menu');
-    if (existingMenu) existingMenu.remove();
-    
-    // Create context menu element
-    const menu = document.createElement('div');
-    menu.id = 'vscode-custom-context-menu';
-    menu.style.position = 'fixed';
-    menu.style.left = `${x}px`;
-    menu.style.top = `${y}px`;
-    menu.style.backgroundColor = 'var(--vscode-menu-background, #1e1e1e)';
-    menu.style.border = '1px solid var(--vscode-menu-border, #454545)';
-    menu.style.borderRadius = '3px';
-    menu.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.5)';
-    menu.style.zIndex = '10000';
-    menu.style.minWidth = '180px';
-    menu.style.padding = '4px 0';
-    menu.style.fontSize = '13px';
-    menu.style.fontFamily = 'var(--vscode-font-family)';
-    
-    menuItems.forEach(item => {
-      if (item.separator) {
-        const separator = document.createElement('div');
-        separator.style.height = '1px';
-        separator.style.backgroundColor = 'var(--vscode-menu-separatorBackground, #454545)';
-        separator.style.margin = '4px 8px';
-        menu.appendChild(separator);
-      } else {
-        const menuItem = document.createElement('div');
-        menuItem.textContent = item.label;
-        menuItem.style.padding = '8px 16px';
-        menuItem.style.cursor = 'pointer';
-        menuItem.style.color = 'var(--vscode-menu-foreground, #cccccc)';
-        menuItem.style.whiteSpace = 'nowrap';
-        menuItem.style.userSelect = 'none';
-        menuItem.style.fontSize = '13px';
-        
-        menuItem.addEventListener('mouseenter', () => {
-          menuItem.style.backgroundColor = 'var(--vscode-menu-selectionBackground, #094771)';
-        });
-        
-        menuItem.addEventListener('mouseleave', () => {
-          menuItem.style.backgroundColor = 'transparent';
-        });
-        
-        menuItem.addEventListener('click', () => {
-          if (item.click) item.click();
-          menu.remove();
-        });
-        
-        menu.appendChild(menuItem);
-      }
-    });
-    
-    // Add to document
-    document.body.appendChild(menu);
-    
-    // Remove on click outside or escape
-    const removeMenu = (e: Event) => {
-      if (e.type === 'keydown' && (e as KeyboardEvent).key !== 'Escape') return;
-      if (e.type === 'click' && menu.contains(e.target as Node)) return;
-      
-      menu.remove();
-      document.removeEventListener('click', removeMenu);
-      document.removeEventListener('keydown', removeMenu);
-    };
-    
-    setTimeout(() => {
-      document.addEventListener('click', removeMenu);
-      document.addEventListener('keydown', removeMenu);
-    }, 100);
-
+    openContextMenu(x, y, menuItems);
   }
 
   /**

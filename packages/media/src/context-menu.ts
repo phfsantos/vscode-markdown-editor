@@ -4,9 +4,9 @@ import { getMarkdownClipboardText } from "./clipboard-selection";
 /**
  * Custom VS Code-style context menu for the editor webview: selection
  * snapshotting, menu construction (with widget insertion and clipboard
- * actions), submenu enhancement, and keyboard navigation.
+ * actions). Rendering and navigation are owned by context-menu-controller.
  *
- * Extracted from main.ts; behavior unchanged.
+ * Invocation paths share the manual renderer adapter initialized by init-vditor.
  */
 
 let __lastContextMenuBuild = 0;
@@ -543,144 +543,6 @@ widgets:
   return items;
 }
 
-// Enhance manual context menu to support submenus
-export function enhanceManualMenuForSubmenus(menuRoot: HTMLElement) {
-  const parents = menuRoot.querySelectorAll('[data-has-submenu="true"]');
-  parents.forEach((parentEl) => {
-    const p = parentEl as HTMLElement;
-    const submenuData = (p as any)._submenuItems as any[];
-    if (!Array.isArray(submenuData) || submenuData.length === 0) return;
-    let submenuEl: HTMLElement | null = null;
-    let closeTimer: number | null = null;
-
-    const open = () => {
-      if (submenuEl) return; // already open
-      const rect = p.getBoundingClientRect();
-      submenuEl = document.createElement("div");
-      submenuEl.className = "vscode-submenu";
-      submenuEl.style.position = "fixed";
-      submenuEl.style.background = "var(--vscode-menu-background, #1e1e1e)";
-      submenuEl.style.border = "1px solid var(--vscode-menu-border, #454545)";
-      submenuEl.style.borderRadius = "3px";
-      submenuEl.style.padding = "4px 0";
-      submenuEl.style.minWidth = "150px";
-      submenuEl.style.boxShadow = "0 2px 8px rgba(0,0,0,.5)";
-      submenuEl.style.zIndex = "10001";
-
-      // Initially position off-screen to measure dimensions
-      submenuEl.style.left = "-9999px";
-      submenuEl.style.top = "-9999px";
-      submenuEl.style.visibility = "hidden";
-
-      submenuData.forEach((sub) => {
-        if (sub.separator) {
-          const sep = document.createElement("div");
-          sep.style.height = "1px";
-          sep.style.backgroundColor =
-            "var(--vscode-menu-separatorBackground, #454545)";
-          sep.style.margin = "4px 8px";
-          submenuEl!.appendChild(sep);
-          return;
-        }
-        const el = document.createElement("div");
-        el.textContent = sub.label;
-        el.style.padding = "6px 12px";
-        el.style.cursor = sub.disabled ? "default" : "pointer";
-        el.style.color = sub.disabled
-          ? "var(--vscode-disabledForeground, #666)"
-          : "var(--vscode-menu-foreground, #cccccc)";
-        el.style.fontSize = "13px";
-        if (sub.disabled) {
-          el.style.opacity = "0.5";
-          el.style.pointerEvents = "none";
-        }
-        el.addEventListener("mouseenter", () => {
-          el.style.backgroundColor =
-            "var(--vscode-menu-selectionBackground, #094771)";
-        });
-        el.addEventListener("mouseleave", () => {
-          el.style.backgroundColor = "transparent";
-        });
-        el.addEventListener("click", () => {
-          if (sub.click && !sub.disabled) sub.click();
-          const root = document.getElementById("manual-context-menu");
-          if (root) root.remove();
-          submenuEl && submenuEl.remove();
-        });
-        submenuEl!.appendChild(el);
-      });
-
-      submenuEl.addEventListener("mouseleave", () => {
-        close();
-      });
-
-      document.body.appendChild(submenuEl);
-
-      // Get actual submenu dimensions after rendering
-      const submenuRect = submenuEl.getBoundingClientRect();
-      const submenuWidth = submenuRect.width;
-      const submenuHeight = submenuRect.height;
-
-      // Get viewport dimensions
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-
-      // Calculate initial position (to the right of parent menu item)
-      let finalX = rect.right + 4;
-      let finalY = rect.top;
-
-      // Check if submenu would overflow right edge
-      if (finalX + submenuWidth > viewportWidth) {
-        // Position to the left of parent menu item instead
-        finalX = rect.left - submenuWidth - 4;
-
-        // If still overflowing left, constrain to viewport
-        if (finalX < 10) {
-          finalX = 10;
-        }
-      }
-
-      // Check bottom boundary
-      if (finalY + submenuHeight > viewportHeight) {
-        finalY = viewportHeight - submenuHeight - 10;
-      }
-
-      // Check top boundary
-      if (finalY < 10) {
-        finalY = 10;
-      }
-
-      // Apply final position and make visible
-      submenuEl.style.left = `${finalX}px`;
-      submenuEl.style.top = `${finalY}px`;
-      submenuEl.style.visibility = "visible";
-    };
-
-    const scheduleClose = () => {
-      if (closeTimer) window.clearTimeout(closeTimer);
-      closeTimer = window.setTimeout(() => {
-        if (!submenuEl) return;
-        // If mouse entered submenu cancel
-        if (submenuEl.matches(":hover") || p.matches(":hover")) return;
-        close();
-      }, 180);
-    };
-
-    const close = () => {
-      if (submenuEl) {
-        submenuEl.remove();
-        submenuEl = null;
-      }
-    };
-
-    p.addEventListener("mouseenter", () => {
-      if (closeTimer) window.clearTimeout(closeTimer);
-      open();
-    });
-    p.addEventListener("mouseleave", scheduleClose);
-  });
-}
-
 // Flag to prevent duplicate paste operations (owned on window for
 // cross-module access by vscode-integrator).
 (window as any).isProgrammaticPaste = false;
@@ -797,72 +659,6 @@ export async function performClipboardAction(kind: "cut" | "copy" | "paste") {
   }
 }
 
-// Keyboard navigation for manual context menu
-function attachMenuKeyboardNavigation(root: HTMLElement) {
-  const actionable = Array.from(
-    root.querySelectorAll("#manual-context-menu > div")
-  )
-    .map((el) => el as HTMLElement)
-    .filter((el) => !el.dataset.separator && el.style.cursor !== "default");
-  let index = 0;
-  function setActive(i: number) {
-    actionable.forEach((el) => ((el as HTMLElement).style.outline = "none"));
-    const el = actionable[i] as HTMLElement;
-    if (!el) return;
-    index = i;
-    el.focus({ preventScroll: true });
-    el.style.outline = "1px solid var(--vscode-focusBorder,#007acc)";
-  }
-  actionable.forEach((el) => {
-    el.setAttribute("tabindex", "-1");
-  });
-  setActive(0);
-  const keyHandler = (e: KeyboardEvent) => {
-    if (!document.getElementById("manual-context-menu")) {
-      document.removeEventListener("keydown", keyHandler, true);
-      return;
-    }
-    switch (e.key) {
-      case "ArrowDown":
-        index = (index + 1) % actionable.length;
-        setActive(index);
-        e.preventDefault();
-        break;
-      case "ArrowUp":
-        index = (index - 1 + actionable.length) % actionable.length;
-        setActive(index);
-        e.preventDefault();
-        break;
-      case "Enter": {
-        (actionable[index] as HTMLElement)?.click();
-        e.preventDefault();
-        break;
-      }
-      case "Escape": {
-        const menu = document.getElementById("manual-context-menu");
-        if (menu) menu.remove();
-        e.preventDefault();
-        break;
-      }
-      case "ArrowRight": {
-        const el = actionable[index] as any;
-        if (el && el._submenuItems) {
-          // Trigger hover to construct submenu
-          el.dispatchEvent(new Event("mouseenter"));
-        }
-        break;
-      }
-      case "ArrowLeft": {
-        // Close any open submenu by clicking outside (simulate Escape)
-        const sub = document.querySelector(".vscode-submenu");
-        if (sub) sub.remove();
-        break;
-      }
-    }
-  };
-  document.addEventListener("keydown", keyHandler, true);
-}
-
 // Universal capture-phase interceptor to guarantee custom VS Code context menu
 document.addEventListener(
   "contextmenu",
@@ -904,15 +700,6 @@ document.addEventListener(
     // Render manual menu
     if ((window as any).createManualContextMenu) {
       (window as any).createManualContextMenu(e.clientX, e.clientY, items);
-      const root = document.getElementById("manual-context-menu");
-      if (root) {
-        enhanceManualMenuForSubmenus(root);
-        try {
-          attachMenuKeyboardNavigation(root);
-        } catch (err) {
-          vscodeLog(`❌ Keyboard nav attach (mouse) failed: ${err}`);
-        }
-      }
     }
   },
   { capture: true }
@@ -940,15 +727,6 @@ document.addEventListener("keydown", (e: KeyboardEvent) => {
     const items = buildVSCodeContextMenu(fakeEvent as MouseEvent);
     if ((window as any).createManualContextMenu) {
       (window as any).createManualContextMenu(x, y, items);
-      const root = document.getElementById("manual-context-menu");
-      if (root) {
-        enhanceManualMenuForSubmenus(root);
-        try {
-          attachMenuKeyboardNavigation(root);
-        } catch (err) {
-          vscodeLog(`❌ Keyboard nav attach (keyboard) failed: ${err}`);
-        }
-      }
     }
     e.preventDefault();
     e.stopPropagation();

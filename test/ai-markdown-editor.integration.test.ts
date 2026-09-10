@@ -21,7 +21,7 @@ vi.mock('vscode', async (importOriginal) => {
     ColorThemeKind: { Dark: 2 },
     workspace: {
       ...actual.workspace,
-      onDidChangeTextDocument: subscribe,
+      onDidChangeTextDocument: vi.fn(subscribe),
       onDidOpenTextDocument: subscribe,
       onDidCloseTextDocument: subscribe,
     },
@@ -82,7 +82,7 @@ async function openEditor(fileName = '/workspace/helper.agent.md', content?: str
   expect(receive, 'Provider must resolve an editor and register the webview receiver').toBeTypeOf('function');
   await receive!({ command: 'ready' });
   return {
-    doc, messages,
+    doc, messages, receive: receive!,
     update: messages.find((message) => message.command === 'update'),
     action: async (action: string) => {
       messages.length = 0;
@@ -105,6 +105,61 @@ afterEach(() => {
   EditorPanel.currentPanel?.dispose();
   vi.clearAllTimers();
   vi.useRealTimers();
+});
+
+describe('custom editor saves', () => {
+  it('does not report failure when saving emits a dirty-state-only document event', async () => {
+    const { doc, receive, messages } = await openEditor('/workspace/notes.md');
+    const onChange = vi.mocked(vscode.workspace.onDidChangeTextDocument).mock.calls.at(-1)![0];
+    const showError = vi.spyOn(vscode.window, 'showErrorMessage');
+    const save = vi.fn(async () => {
+      onChange({ document: doc, contentChanges: [], reason: undefined });
+      return true;
+    });
+    Object.assign(doc, { save });
+    messages.length = 0;
+
+    await receive({ command: 'save', generation: 0, revision: 0, content: doc.getText() });
+    await receive({ command: 'save', generation: 0, revision: 0, content: doc.getText() });
+
+    expect(save).toHaveBeenCalledTimes(2);
+    expect(showError).not.toHaveBeenCalled();
+    expect(messages.filter(message => message.command === 'update')).toEqual([]);
+  });
+
+  it('still reports a failed document save', async () => {
+    const { doc, receive } = await openEditor('/workspace/notes.md');
+    Object.assign(doc, { save: async () => false });
+    const showError = vi.spyOn(vscode.window, 'showErrorMessage');
+
+    await receive({ command: 'save', generation: 0, revision: 0, content: doc.getText() });
+
+    expect(showError).toHaveBeenCalledWith(
+      '[markdown-editor] Could not apply and save the latest Markdown revision.',
+    );
+  });
+
+  it('still invalidates a save superseded by an actual external text change', async () => {
+    const { doc, receive, messages } = await openEditor('/workspace/notes.md');
+    const onChange = vi.mocked(vscode.workspace.onDidChangeTextDocument).mock.calls.at(-1)![0];
+    Object.assign(doc, { save: async () => {
+      Object.assign(doc, { getText: () => '# External edit' });
+      onChange({ document: doc, contentChanges: [{
+        range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } } as vscode.Range,
+        rangeOffset: 0, rangeLength: 0, text: '# External edit',
+      }], reason: undefined });
+      return true;
+    } });
+    const showError = vi.spyOn(vscode.window, 'showErrorMessage');
+    messages.length = 0;
+
+    await receive({ command: 'save', generation: 0, revision: 0, content: doc.getText() });
+
+    expect(showError).toHaveBeenCalled();
+    expect(messages).toContainEqual(expect.objectContaining({
+      command: 'update', content: '# External edit', generation: 1,
+    }));
+  });
 });
 
 describe('AI markdown custom editor update payload', () => {

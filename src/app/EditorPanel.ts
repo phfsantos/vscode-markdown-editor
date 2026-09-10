@@ -482,6 +482,13 @@ export class EditorPanel {
         return;
       }
 
+      // Saving also emits dirty-state changes without changing the text. These
+      // must not consume pending writes or invalidate the active save generation.
+      if (e.contentChanges.length === 0) {
+        this._updateEditTitle();
+        return;
+      }
+
       const isSynchronizedChange = this._documentWriteOrigins.consume(
         e.document.getText(),
       );
