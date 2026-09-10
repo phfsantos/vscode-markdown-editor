@@ -460,6 +460,7 @@ class VditorLineNumberRenderer {
   private lineMap = new Map<number, HTMLElement>();
   private lineNumberMap = new Map<number, HTMLElement>();
   private currentRoot: HTMLElement | null = null;
+  private gutter: HTMLElement | null = null;
   private activeLineNumber: number | null = null;
   private activeLineElement: HTMLElement | null = null;
 
@@ -518,6 +519,12 @@ class VditorLineNumberRenderer {
   }
 
   private isRelevantMutation(mutation: MutationRecord): boolean {
+    const target = mutation.target instanceof HTMLElement
+      ? mutation.target
+      : mutation.target.parentElement;
+    if (this.isLineNumberNode(target)) {
+      return false;
+    }
     if (mutation.type === "attributes") {
       const target = mutation.target as HTMLElement | null;
       return !this.isLineNumberNode(target);
@@ -544,8 +551,7 @@ class VditorLineNumberRenderer {
 
     return Boolean(node.closest(`[${GUTTER_ATTRIBUTE}="true"]`)) ||
       node.hasAttribute(GUTTER_ATTRIBUTE) ||
-      node.hasAttribute(ITEM_ATTRIBUTE) ||
-      node.hasAttribute(ANCHOR_ATTRIBUTE);
+      node.hasAttribute(ITEM_ATTRIBUTE);
   }
 
   private scheduleRender(): void {
@@ -568,13 +574,21 @@ class VditorLineNumberRenderer {
     }
 
     this.observeRootResize(root);
-    this.clearExistingMarkers(root);
-
     const lineElements = getRenderedLineElements(root as unknown as DomLikeElement) as HTMLElement[];
+    const currentElements = new Set(lineElements);
+    this.lineMap.forEach((element) => {
+      if (!currentElements.has(element)) {
+        element.removeAttribute(ANCHOR_ATTRIBUTE);
+        element.removeAttribute(SOURCE_LINE_ATTRIBUTE);
+        element.removeAttribute(DISPLAY_LINE_ATTRIBUTE);
+        element.removeAttribute(DEPTH_ATTRIBUTE);
+      }
+    });
     this.lineMap.clear();
-    this.lineNumberMap.clear();
 
     if (lineElements.length === 0) {
+      root.querySelector(`:scope > [${GUTTER_ATTRIBUTE}="true"]`)?.remove();
+      this.lineNumberMap.clear();
       root.removeAttribute(ROOT_STATE_ATTRIBUTE);
       root.style.removeProperty(GUTTER_WIDTH_CSS_VARIABLE);
       root.style.removeProperty(ROOT_PADDING_LEFT_CSS_VARIABLE);
@@ -583,17 +597,38 @@ class VditorLineNumberRenderer {
     }
 
     const layout = getLineNumberLayout(lineElements.length);
-    root.style.setProperty(GUTTER_WIDTH_CSS_VARIABLE, `${layout.gutterWidth}px`);
-    root.style.setProperty(ROOT_PADDING_LEFT_CSS_VARIABLE, `${layout.paddingLeft}px`);
+    if (root.style.getPropertyValue(GUTTER_WIDTH_CSS_VARIABLE) !== `${layout.gutterWidth}px`) {
+      root.style.setProperty(GUTTER_WIDTH_CSS_VARIABLE, `${layout.gutterWidth}px`);
+    }
+    if (root.style.getPropertyValue(ROOT_PADDING_LEFT_CSS_VARIABLE) !== `${layout.paddingLeft}px`) {
+      root.style.setProperty(ROOT_PADDING_LEFT_CSS_VARIABLE, `${layout.paddingLeft}px`);
+    }
 
-    const gutter = document.createElement("div");
-    gutter.className = "vditor-line-number-gutter";
-    gutter.setAttribute(GUTTER_ATTRIBUTE, "true");
-    gutter.setAttribute("role", "navigation");
-    gutter.setAttribute("aria-label", "Line numbers");
-    gutter.setAttribute("contenteditable", "false");
-    gutter.addEventListener("click", this.handleGutterClick);
-    gutter.addEventListener("keydown", this.handleGutterKeyDown);
+    let gutter = root.querySelector<HTMLElement>(`:scope > [${GUTTER_ATTRIBUTE}="true"]`);
+    // A cloned gutter has no event listeners and cannot reuse our button map.
+    if (gutter && gutter !== this.gutter) {
+      gutter.remove();
+      gutter = null;
+    }
+    if (!gutter) {
+      this.lineNumberMap.clear();
+      gutter = document.createElement("div");
+      gutter.className = "vditor-line-number-gutter";
+      gutter.setAttribute(GUTTER_ATTRIBUTE, "true");
+      gutter.setAttribute("role", "navigation");
+      gutter.setAttribute("aria-label", "Line numbers");
+      gutter.setAttribute("contenteditable", "false");
+      gutter.addEventListener("click", this.handleGutterClick);
+      gutter.addEventListener("keydown", this.handleGutterKeyDown);
+      root.insertBefore(gutter, root.firstChild);
+      this.gutter = gutter;
+    }
+    this.lineNumberMap.forEach((button, index) => {
+      if (index >= lineElements.length) {
+        button.remove();
+        this.lineNumberMap.delete(index);
+      }
+    });
 
     const rootRect = root.getBoundingClientRect();
 
@@ -614,28 +649,30 @@ class VditorLineNumberRenderer {
       element.setAttribute(DISPLAY_LINE_ATTRIBUTE, String(index + 1));
       element.setAttribute(DEPTH_ATTRIBUTE, String(this.getElementDepth(element, root)));
 
-      const lineNumber = document.createElement("button");
-      lineNumber.className = "vditor-line-number";
-      lineNumber.type = "button";
-      lineNumber.setAttribute(ITEM_ATTRIBUTE, "true");
-      lineNumber.setAttribute(SOURCE_LINE_ATTRIBUTE, String(index));
-      lineNumber.setAttribute("aria-label", `Go to line ${index + 1}`);
-      lineNumber.setAttribute("contenteditable", "false");
-      lineNumber.tabIndex = getLineNumberTabIndex(
-        index,
-        this.activeLineNumber,
-        lineElements.length,
-      );
-      lineNumber.textContent = String(index + 1);
+      let lineNumber = this.lineNumberMap.get(index) as HTMLButtonElement | undefined;
+      if (!lineNumber) {
+        lineNumber = document.createElement("button");
+        lineNumber.className = "vditor-line-number";
+        lineNumber.type = "button";
+        lineNumber.setAttribute(ITEM_ATTRIBUTE, "true");
+        lineNumber.setAttribute(SOURCE_LINE_ATTRIBUTE, String(index));
+        lineNumber.setAttribute("aria-label", `Go to line ${index + 1}`);
+        lineNumber.setAttribute("contenteditable", "false");
+        lineNumber.tabIndex = getLineNumberTabIndex(
+          index,
+          this.activeLineNumber,
+          lineElements.length,
+        );
+        lineNumber.textContent = String(index + 1);
+        this.lineNumberMap.set(index, lineNumber);
+        gutter!.appendChild(lineNumber);
+      }
 
       const { top, height } = positions[index];
-      lineNumber.style.top = `${top}px`;
-      lineNumber.style.height = `${height}px`;
-      this.lineNumberMap.set(index, lineNumber);
-      gutter.appendChild(lineNumber);
+      if (lineNumber.style.top !== `${top}px`) lineNumber.style.top = `${top}px`;
+      if (lineNumber.style.height !== `${height}px`) lineNumber.style.height = `${height}px`;
     });
 
-    root.insertBefore(gutter, root.firstChild);
     root.setAttribute(ROOT_STATE_ATTRIBUTE, "true");
     this.updateActiveLineNumber();
   }
@@ -707,17 +744,6 @@ class VditorLineNumberRenderer {
       this.resizeObserver.observe(root);
       this.currentRoot = root;
     }
-  }
-
-  private clearExistingMarkers(root: HTMLElement): void {
-    root.querySelector(`:scope > [${GUTTER_ATTRIBUTE}="true"]`)?.remove();
-
-    root.querySelectorAll<HTMLElement>(`[${ANCHOR_ATTRIBUTE}="true"]`).forEach((element) => {
-      element.removeAttribute(ANCHOR_ATTRIBUTE);
-      element.removeAttribute(SOURCE_LINE_ATTRIBUTE);
-      element.removeAttribute(DISPLAY_LINE_ATTRIBUTE);
-      element.removeAttribute(DEPTH_ATTRIBUTE);
-    });
   }
 
   private teardownRoot(): void {

@@ -12,9 +12,14 @@ export const renderedLineFixtures = [
     lines: [['li', 'One'], ['li', 'TwoNested'], ['p', 'Paragraph item']],
   },
   {
-    name: 'table cells and caption',
+    name: 'table rows and caption',
     html: '<table><caption>Caption</caption><thead><tr><th>Title</th></tr></thead><tbody><tr><td><span>Cell</span></td></tr><tr><td><p>Nested cell</p></td></tr></tbody></table>',
-    lines: [['caption', 'Caption'], ['th', 'Title'], ['td', 'Cell'], ['p', 'Nested cell']],
+    lines: [['caption', 'Caption'], ['tr', 'Title'], ['tr', 'Cell'], ['tr', 'Nested cell']],
+  },
+  {
+    name: 'multiple cells share one line, including empty rows',
+    html: '<h3>Servers</h3><table><thead><tr><th>Node</th><th>User</th><th>IP</th><th>SSH</th></tr></thead><tbody><tr><td>Pi</td><td><p>ordep</p></td><td><code>192.168.1.1</code></td><td>ssh</td></tr><tr><td></td><td></td><td></td><td></td></tr></tbody></table><p>After</p>',
+    lines: [['h3', 'Servers'], ['tr', 'NodeUserIPSSH'], ['tr', 'Piordep192.168.1.1ssh'], ['tr', ''], ['p', 'After']],
   },
   {
     name: 'blockquote nesting',

@@ -124,7 +124,7 @@ function testCoalescesInlineOnlyAndMixedContent() {
 function testIgnoresStructuralContainersWithoutOwnText() {
   const result = parseHTMLToLines('<table><tbody><tr><td>Alpha</td></tr><tr><td>Beta</td></tr></tbody></table>');
 
-  assert.deepStrictEqual(result.map(block => block.tagName), ['td', 'td']);
+  assert.deepStrictEqual(result.map(block => block.tagName), ['tr', 'tr']);
   assert.deepStrictEqual(result.map(block => block.textContent), ['Alpha', 'Beta']);
 
   console.log('✅ testIgnoresStructuralContainersWithoutOwnText passed');

@@ -97,3 +97,32 @@ Packaging in this session uses VSCE's `pack` function against a temporary stagin
 directory containing the manifest, documentation and built runtime assets, after
 the individual build gates. This avoids rerunning `Foyfile.ts`'s build task, which ends with
 `git add -A`. No files need to be staged to create or test the VSIX.
+
+## Typing latency and table line mapping (2026-09-09)
+
+The gutter renderer recreated every button and removed/reapplied all line anchors
+when Vditor replaced an edited block. A Chromium probe using Vditor and the
+editor CSS, 3,000 paragraphs, a first-paragraph `innerHTML` replacement, and two
+animation frames measured 93–126 ms before button reuse and 25–34 ms after it.
+These are local edit/render timings including frame waits, not installed-extension
+keystroke latency measurements. The idle gutter settled normally; real Vditor
+serialization did not include gutter numbers. The save-integrity callback and
+ordered writer were left intact.
+
+The renderer now retains gutter buttons, updates geometry, and refreshes anchors
+for replaced blocks. It ignores gutter-owned mutations but observes changes to
+actual content, including content already marked as a line anchor. Cloned editor
+DOM gets fresh gutter listeners and maps.
+
+Table rows now own their cells in the shared backend/browser rendered-line rules.
+`td`, `th`, and paragraphs inside cells no longer increment the gutter number.
+Empty cell rows remain addressable; structurally empty rows remain omitted.
+These are rendered line numbers, not Markdown source-line numbers.
+
+Regression coverage: `test/line-number-renderer.browser.test.ts` checks idle
+settling, button reuse on a 1,000-line edit, caret/geometry alignment across table
+cells, insertion/deletion navigation, and cloned DOM navigation. Shared fixtures
+and the browser diff test check row-level parser/target agreement.
+
+Validation commands: `yarn test` and `yarn test:browser`. Installed-extension
+interactive verification remains separate from these automated checks.

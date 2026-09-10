@@ -46,7 +46,7 @@ async function expectDecorated(target: Element, line: number): Promise<void> {
 
 for (const [name, html] of [
   ["nested lists", '<ul><li>Parent<ul><li>Nested child</li></ul></li><li id="target">Sibling</li></ul>'],
-  ["tables", '<table><tbody><tr><td>First</td><td id="target">Second</td></tr></tbody></table>'],
+  ["tables", '<table><tbody><tr><td>First</td><td>row</td></tr><tr id="target"><td>Second</td><td>row</td></tr></tbody></table>'],
   ["blockquotes", '<blockquote><p>First</p><p id="target">Second</p></blockquote>'],
   ["explicit blank lines", '<p data-empty-line="true"><br></p><p id="target">After blank</p>'],
 ]) {

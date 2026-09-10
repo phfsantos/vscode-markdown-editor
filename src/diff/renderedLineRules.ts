@@ -61,6 +61,11 @@ export function createRenderedLineRules<Node>(adapter: RenderedLineAdapter<Node>
     // A data-block with direct text owns its entire subtree.
     if (isDataBlock(node) && hasElementChild(node) && directText(node)) return true;
     const tag = tagName(node);
+    // Cells occupy columns, not successive rendered lines. The row owns all
+    // cell content (including nested paragraphs and empty cells).
+    if (tag === 'tr') {
+      return children(node).some(child => isElement(child) && ['td', 'th'].includes(tagName(child)));
+    }
     if (STANDALONE_LINE_TAGS.has(tag)) return true;
     if (!hasLineText(node)) return false;
     if (ALWAYS_LINE_TAGS.has(tag)) return true;
