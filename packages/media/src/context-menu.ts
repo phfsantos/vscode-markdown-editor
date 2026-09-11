@@ -48,7 +48,11 @@ function getRobustSelectionSnapshot(): { text: string; range: Range | null } {
   if (sel && sel.rangeCount > 0) {
     const text = sel.toString();
     if (text) {
-      return { text, range: sel.getRangeAt(0) };
+      try {
+        return { text, range: sel.getRangeAt(0).cloneRange() };
+      } catch {
+        return { text, range: sel.getRangeAt(0) };
+      }
     }
   }
   return { text: __lastSelectionText, range: __lastSelectionRange };
@@ -608,8 +612,8 @@ export async function performClipboardAction(kind: "cut" | "copy" | "paste") {
 
       const clipboardText = getMarkdownClipboardText({
         fallbackText: text,
-        fallbackRoot: window.vditor?.vditor?.ir?.element || document.body,
-        selection: sel,
+        range,
+        selection: range,
         vditor: window.vditor,
       });
 

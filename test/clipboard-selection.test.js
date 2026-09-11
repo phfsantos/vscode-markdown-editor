@@ -109,6 +109,9 @@ function run() {
     startContainer: customText,
     endContainer: customText,
     commonAncestorContainer: customText,
+    toString() {
+      return "console.log('hello');";
+    },
   };
   const customVditor = createVditor((html) => {
     assert.strictEqual(html, marker.outerHTML);
@@ -121,12 +124,40 @@ function run() {
   });
   assert.strictEqual(customMarkdown, "```playground\nconsole.log('hello');\n```");
 
+  const partialCodeText = {
+    nodeType: 3,
+    textContent: 'console.log(\'hello\');',
+    parentElement: customContainer,
+  };
+  const partialCodeRange = {
+    collapsed: false,
+    startContainer: partialCodeText,
+    startOffset: 0,
+    endContainer: partialCodeText,
+    endOffset: 7,
+    commonAncestorContainer: partialCodeText,
+    cloneContents() {
+      return { innerHTML: '<code>console</code>' };
+    },
+  };
+  const partialCodeVditor = createVditor((html) => {
+    assert.strictEqual(html, '<code>console</code>');
+    return 'console';
+  });
+  const partialCodeMarkdown = getMarkdownClipboardText({
+    fallbackText: 'console',
+    range: partialCodeRange,
+    vditor: partialCodeVditor,
+  });
+  assert.strictEqual(partialCodeMarkdown, 'console');
+
   const replaced = replaceSelectionText('Alpha beta gamma', { start: 6, end: 10 }, 'NEW');
   assert.strictEqual(replaced, 'Alpha NEW gamma');
 
   console.log('✓ selected IR DOM is converted through Vditor markdown APIs');
   console.log('✓ selected lists preserve markdown syntax');
   console.log('✓ custom render selections copy source markdown');
+  console.log('✓ partial code selections copy only the selected fragment');
   console.log('✓ plain text fallback stays plain text');
   console.log('✓ paste replacement swaps the selected range');
   console.log('\n=== clipboard selection tests passed ===');

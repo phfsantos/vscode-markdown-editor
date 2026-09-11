@@ -42,6 +42,7 @@ import {
 
 // Instances used only during/after init
 let cursorManager: CursorManager | null = null;
+let selectionRestoreGeneration = 0;
 let wikiLinkAutocomplete: WikiLinkAutocomplete | null = null;
 let imageURIConverter: ImageURIConverter | null = null;
 
@@ -561,8 +562,8 @@ export function initVditor(msg) {
         }
       } catch (error) {
         return [
-          { label: "Cut", click: () => document.execCommand("cut") },
-          { label: "Copy", click: () => document.execCommand("copy") },
+          { label: "Cut", click: () => performClipboardAction("cut") },
+          { label: "Copy", click: () => performClipboardAction("copy") },
           { label: "Paste", click: () => document.execCommand("paste") },
         ];
       }
@@ -690,6 +691,7 @@ export function initVditor(msg) {
 
       // Initialize VS Code webview integrator
       try {
+        (state.vscodeIntegrator as any)?.dispose?.();
         state.vscodeIntegrator = new VSCodeWebviewIntegrator(window.vditor);
 
         // Add test function to window for manual debugging
@@ -715,6 +717,7 @@ export function initVditor(msg) {
 
       // Initialize cursor manager to prevent jumping
       try {
+        cursorManager?.dispose();
         cursorManager = new CursorManager(window.vditor);
 
         // Connect cursor manager to VSCode integrator for coordinated paste handling
@@ -777,25 +780,15 @@ export function initVditor(msg) {
         }
       });
 
-      // Send cursor position with more detailed tracking
-      const selection = window.getSelection();
-      if (selection && selection.rangeCount > 0) {
-        const range = selection.getRangeAt(0);
-        const editor = document.querySelector(
-          ".vditor-ir .vditor-reset"
-        ) as HTMLElement;
-        if (editor) {
-          // Calculate approximate line and character position
-          const textContent = editor.textContent || "";
-          const beforeCursor = textContent.substring(0, range.startOffset);
-          const lines = beforeCursor.split("\n");
-
-          vscode?.postMessage({
-            command: "cursorPosition",
-            line: lines.length - 1,
-            character: lines[lines.length - 1].length,
-          });
-        }
+      const restoreGeneration = ++selectionRestoreGeneration;
+      const selectionBookmark = cursorManager?.captureSelectionBookmark() || null;
+      const cursorPosition = cursorManager?.getCursorPosition() || null;
+      if (cursorPosition) {
+        vscode?.postMessage({
+          command: "cursorPosition",
+          line: cursorPosition.line,
+          character: cursorPosition.character,
+        });
       }
 
       inlineSuggestionController.handleEditorInput({ content: value });
@@ -808,12 +801,25 @@ export function initVditor(msg) {
           (window as any).currentDocumentFilename || msg.documentFilename || "untitled",
           window.vditor,
         );
+        const renderPromises: Promise<unknown>[] = [];
         for (const target of customRenderTargets) {
           const renderer = customRenders.find(({ language }) =>
             target.classList.contains(`language-${language}`),
           );
-          void renderer?.render(target);
+          const renderResult = renderer?.render(target);
+          if (renderResult && typeof (renderResult as Promise<unknown>).then === "function") {
+            renderPromises.push(Promise.resolve(renderResult));
+          }
         }
+        if (selectionBookmark) {
+          void Promise.all(renderPromises).then(() => {
+            if (restoreGeneration === selectionRestoreGeneration) {
+              cursorManager?.restoreSelectionBookmark(selectionBookmark);
+            }
+          });
+        }
+      } else if (selectionBookmark && restoreGeneration === selectionRestoreGeneration) {
+        cursorManager?.restoreSelectionBookmark(selectionBookmark);
       }
 
       transientUiTimer && clearTimeout(transientUiTimer);
@@ -872,8 +878,12 @@ export function initVditor(msg) {
     // Override setValue to preserve diagnostics and diffs through undo/redo
     const originalSetValue = window.vditor.setValue.bind(window.vditor);
     window.vditor.setValue = function (markdown: string, clearStack?: boolean) {
+      const selectionBookmark = cursorManager?.captureSelectionBookmark() || null;
       // Call original setValue
       originalSetValue(markdown, clearStack);
+      if (selectionBookmark) {
+        cursorManager?.restoreSelectionBookmark(selectionBookmark);
+      }
 
       inlineSuggestionController.handleExternalUpdate();
 

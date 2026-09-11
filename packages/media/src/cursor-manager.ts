@@ -1,4 +1,10 @@
 import { dispatchVditorInput } from "./content-sync";
+import {
+  captureSelectionBookmark,
+  getTextOffset,
+  restoreSelectionBookmark,
+  type SelectionBookmark,
+} from "./cursor-bookmark";
 
 /**
  * Cursor Management Utility for Vditor
@@ -9,6 +15,8 @@ export class CursorManager {
   private lastPosition: { line: number; character: number; offset: number } | null = null;
   private isRestoring = false;
   private mutationObserver: MutationObserver | null = null;
+  private lastBookmark: SelectionBookmark | null = null;
+  private selectionChangeHandler: (() => void) | null = null;
 
   constructor(vditorInstance: any) {
     this.vditor = vditorInstance;
@@ -17,60 +25,40 @@ export class CursorManager {
 
   /**
    * Initialize cursor position tracking and management
-   * MOSTLY DISABLED: Previous implementation was causing cursor jumping
    */
   private initializeCursorTracking(): void {
-    this.setupSelectionMonitoring(); // DISABLED - was causing issues
-    // this.setupMutationObserver(); // Method removed - was causing cursor jumping issues
-    this.setupInputHandling();       // DISABLED - was causing issues
-    this.logCursor('🎯 CursorManager initialized but most features DISABLED to prevent cursor jumping');
-    this.logCursor('🎯 Only manual space/enter handling and paste handling remain active');
+    this.setupSelectionMonitoring();
+    this.setupInputHandling();
+    this.logCursor('🎯 CursorManager initialized with DOM-relative selection tracking');
   }
 
   /**
    * Setup selection change monitoring
    * 
-   * @deprecated This method is currently disabled due to cursor jumping issues.
-   * The selection change monitoring was causing excessive cursor position tracking
-   * during normal typing, which contributed to cursor jumping problems.
-   * 
-   * See: Cursor jumping issue - selection monitoring was storing position on every
-   * character typed, leading to unwanted cursor restoration.
    */
   private setupSelectionMonitoring(): void {
-    this.logCursor("⚠️ Selection change monitoring DISABLED - was causing excessive cursor tracking");
-    
-    // PROBLEM: This was storing cursor position on EVERY selection change,
-    // including normal typing, which contributed to the cursor jumping issue.
-    // We should only track cursor position when specifically needed.
-    
-    return;
-    
-    /*
-    document.addEventListener('selectionchange', () => {
-      if (!this.isRestoring) {
+    this.selectionChangeHandler = () => {
+      if (!this.isRestoring && this.isSelectionInsideEditor()) {
         this.storeCursorPosition();
       }
-    });
-    */
+    };
+    document.addEventListener('selectionchange', this.selectionChangeHandler);
   }
 
 
   /**
    * Setup input handling to prevent cursor jumping during typing
    * 
-   * @deprecated This method is temporarily disabled for debugging cursor jumping issues.
-   * The input event handling was contributing to cursor position interference during
-   * normal typing. Needs to be re-evaluated and potentially redesigned.
-   * 
-   * Note: Paste events are now handled by VSCodeIntegrator to avoid conflicts.
    */
   private setupInputHandling(): void {
     const editor = this.getEditorElement();
     if (!editor) return;
 
-    // TEMPORARILY DISABLED - Let's test vanilla Vditor behavior first
-    this.logCursor("⚠️ CursorManager input handling DISABLED for debugging");
+    editor.addEventListener('input', () => {
+      if (!this.isRestoring) {
+        this.storeCursorPosition();
+      }
+    });
   }
 
   /**
@@ -79,13 +67,6 @@ export class CursorManager {
    */
   public handleAfterPaste(): void {
     this.storeCursorPosition();
-    
-    // If pasting at end of document, ensure proper positioning
-    if (this.isTypingAtEnd()) {
-      setTimeout(() => {
-        this.ensureCursorAtEnd();
-      }, 50);
-    }
   }
 
   /**
@@ -183,16 +164,56 @@ export class CursorManager {
    * Store current cursor position
    */
   public storeCursorPosition(): void {
+    const editor = this.getEditorElement();
     const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) return;
+    if (!editor || !selection || selection.rangeCount === 0) return;
 
-    const range = selection.getRangeAt(0);
-    const position = this.calculateCursorPosition(range);
+    const bookmark = captureSelectionBookmark(editor, selection);
+    if (!bookmark) return;
+    this.lastBookmark = bookmark;
+    const position = this.calculateCursorPosition(selection.getRangeAt(0));
     
     if (position) {
       this.lastPosition = position;
       this.logCursor(`📍 Stored cursor position: line ${position.line}, char ${position.character}, offset ${position.offset}`);
     }
+  }
+
+  public captureSelectionBookmark(): SelectionBookmark | null {
+    const editor = this.getEditorElement();
+    return editor ? captureSelectionBookmark(editor) : null;
+  }
+
+  public restoreSelectionBookmark(bookmark: SelectionBookmark | null): boolean {
+    const editor = this.getEditorElement();
+    if (!editor || !bookmark) return false;
+    this.isRestoring = true;
+    try {
+      return restoreSelectionBookmark(editor, bookmark);
+    } finally {
+      this.isRestoring = false;
+    }
+  }
+
+  public getCursorPosition(): { line: number; character: number } | null {
+    const editor = this.getEditorElement();
+    const selection = window.getSelection();
+    const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
+    if (editor && range && editor.contains(range.startContainer)) {
+      const offset = getTextOffset(editor, range.startContainer, range.startOffset);
+      const lines = (editor.textContent || '').slice(0, offset).split('\n');
+      return { line: lines.length - 1, character: lines[lines.length - 1].length };
+    }
+    return this.lastPosition ? {
+      line: this.lastPosition.line,
+      character: this.lastPosition.character,
+    } : null;
+  }
+
+  private isSelectionInsideEditor(): boolean {
+    const editor = this.getEditorElement();
+    const selection = window.getSelection();
+    return !!editor && !!selection?.anchorNode && editor.contains(selection.anchorNode);
   }
 
   /**
@@ -250,10 +271,7 @@ export class CursorManager {
    */
   public ensureCursorAtEnd(): void {
     if (!this.isTypingAtEnd()) return;
-    
-    setTimeout(() => {
-      this.setCursorAtEnd();
-    }, 5);
+    this.setCursorAtEnd();
   }
 
   /**
@@ -327,8 +345,13 @@ export class CursorManager {
       this.mutationObserver.disconnect();
       this.mutationObserver = null;
     }
+    if (this.selectionChangeHandler) {
+      document.removeEventListener('selectionchange', this.selectionChangeHandler);
+      this.selectionChangeHandler = null;
+    }
     
     this.lastPosition = null;
+    this.lastBookmark = null;
     this.logCursor('🎯 Cursor manager disposed');
   }
 }

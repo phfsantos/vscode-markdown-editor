@@ -26,6 +26,18 @@ test("synchronized writes consume only their matching document change", async ()
   tracker.cancel(pendingWrite);
 });
 
+test("EditorPanel keeps a synchronized write origin pending until VS Code emits its document change", () => {
+  const source = fs.readFileSync(
+    path.join(__dirname, "..", "src", "app", "EditorPanel.ts"),
+    "utf8",
+  );
+  const applyContent = source.match(/applyContent: async \(content\) => \{([\s\S]*?)\n\s*\},\n\s*saveDocument:/)?.[1] ?? "";
+
+  assert.match(applyContent, /this\._documentWriteOrigins\.expect\(content\)/);
+  assert.doesNotMatch(applyContent, /finally \{[\s\S]*?this\._documentWriteOrigins\.cancel\(pendingWrite\)/);
+  assert.match(applyContent, /catch \([\w]+\) \{[\s\S]*?this\._documentWriteOrigins\.cancel\(pendingWrite\)/);
+});
+
 test("synchronized LF writes remain internal when VS Code observes CRLF text", async () => {
   const { createDocumentWriteOriginTracker } = await import(
     "../src/app/DocumentWriteOriginTracker"

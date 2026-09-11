@@ -1,5 +1,25 @@
 import { openContextMenu } from "./context-menu-controller";
 import { getMarkdownClipboardText } from './clipboard-selection';
+import {
+  captureSelectionBookmark,
+  getTextOffset,
+  resolveTextOffset,
+  restoreSelectionBookmark,
+  type SelectionBookmark,
+} from './cursor-bookmark';
+
+function cloneSelectionRange(selectionOrRange: Selection | Range | null): Range | null {
+  if (!selectionOrRange) return null;
+  const range = 'rangeCount' in selectionOrRange
+    ? selectionOrRange.rangeCount > 0 ? selectionOrRange.getRangeAt(0) : null
+    : selectionOrRange;
+  if (!range) return null;
+  try {
+    return range.cloneRange();
+  } catch {
+    return range;
+  }
+}
 
 /**
  * VS Code Integration Manager for Vditor webview
@@ -13,6 +33,8 @@ export class VSCodeWebviewIntegrator {
   private clipboardQueue: Array<{ type: 'read' | 'write', data?: string, resolve: (value: any) => void, reject: (reason?: any) => void }> = [];
   private isProcessingClipboard = false;
   private lastCursorPosition: { line: number, character: number } | null = null;
+  private lastSelectionBookmark: SelectionBookmark | null = null;
+  private selectionChangeHandler: (() => void) | null = null;
 
   constructor(vditorInstance: any) {
     this.vditor = vditorInstance;
@@ -181,32 +203,13 @@ export class VSCodeWebviewIntegrator {
     const editor = this.getEditorElement();
     if (!editor) return;
 
-    // Track cursor position changes
-    editor.addEventListener('selectionchange', () => {
-      this.trackCursorPosition();
-    });
-
-    // Handle content changes that might affect cursor position
-    if (this.vditor) {
-      const originalInput = this.vditor.options?.input;
-      this.vditor.options = {
-        ...this.vditor.options,
-        input: (...args: any[]) => {
-          // Store cursor position before processing
-          this.storeCursorPosition();
-          
-          // Call original input handler
-          if (originalInput) {
-            originalInput.apply(this.vditor, args);
-          }
-          
-          // Restore cursor position after a brief delay
-          setTimeout(() => {
-            this.restoreCursorPosition();
-          }, 10);
-        }
-      };
-    }
+    this.selectionChangeHandler = () => {
+      if (this.isSelectionInsideEditor()) {
+        this.trackCursorPosition();
+      }
+    };
+    // selectionchange is dispatched on Document, not on the contenteditable root.
+    document.addEventListener('selectionchange', this.selectionChangeHandler);
   }
 
   /**
@@ -238,11 +241,12 @@ export class VSCodeWebviewIntegrator {
   /**
    * Handle copy operation with VS Code integration
    */
-  private async handleCopy(e: Event): Promise<void> {
+  private async handleCopy(e: Event, selectionRange: Range | null = null): Promise<void> {
     try {
-      const selection = this.getSelectedText();
+      const capturedRange = selectionRange || cloneSelectionRange(window.getSelection());
+      const selection = capturedRange?.toString() || '';
       if (selection) {
-        const clipboardText = this.getClipboardMarkdown(selection);
+        const clipboardText = this.getClipboardMarkdown(selection, capturedRange);
 
         // Use modern Clipboard API
         if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -304,22 +308,23 @@ export class VSCodeWebviewIntegrator {
   /**
    * Handle cut operation with VS Code integration
    */
-  private async handleCut(e: Event): Promise<void> {
+  private async handleCut(e: Event, selectionRange: Range | null = null): Promise<void> {
     try {
-      const selection = this.getSelectedText();
+      const capturedRange = selectionRange || cloneSelectionRange(window.getSelection());
+      const selection = capturedRange?.toString() || '';
       if (selection) {
-        const clipboardText = this.getClipboardMarkdown(selection);
+        const clipboardText = this.getClipboardMarkdown(selection, capturedRange);
 
         // Use modern Clipboard API
         if (navigator.clipboard && navigator.clipboard.writeText) {
           await navigator.clipboard.writeText(clipboardText);
-          this.deleteSelectedText();
+          this.deleteSelectedText(capturedRange);
           this.vscodeLog(`✅ Cut successful via Clipboard API (${clipboardText.length} chars)`);
         } else {
           // Fallback to VS Code clipboard
           const success = await this.writeToVSCodeClipboard(clipboardText);
           if (success) {
-            this.deleteSelectedText();
+            this.deleteSelectedText(capturedRange);
             this.vscodeLog(`✅ Cut successful via VS Code (${clipboardText.length} chars)`);
           }
         }
@@ -459,10 +464,13 @@ export class VSCodeWebviewIntegrator {
       const selection = window.getSelection();
       if (selection && selection.rangeCount > 0) {
         const range = selection.getRangeAt(0);
+        const editor = this.getEditorElement();
+        if (!editor || !editor.contains(range.startContainer)) return;
         const position = this.convertDOMPositionToLineChar(range.startContainer, range.startOffset);
         
         if (position) {
           this.lastCursorPosition = position;
+          this.lastSelectionBookmark = captureSelectionBookmark(editor, selection);
           
           // Send cursor position update to VS Code
           this.sendToVSCode({
@@ -488,9 +496,14 @@ export class VSCodeWebviewIntegrator {
    * Restore cursor position after content changes
    */
   private restoreCursorPosition(): void {
-    if (!this.lastCursorPosition) return;
+    const editor = this.getEditorElement();
+    if (!editor) return;
 
     try {
+      if (this.lastSelectionBookmark && restoreSelectionBookmark(editor, this.lastSelectionBookmark)) {
+        return;
+      }
+      if (!this.lastCursorPosition) return;
       const element = this.findElementAtLineChar(
         this.lastCursorPosition.line,
         this.lastCursorPosition.character
@@ -499,7 +512,7 @@ export class VSCodeWebviewIntegrator {
       if (element) {
         const selection = window.getSelection();
         const range = document.createRange();
-        range.setStart(element, 0);
+        range.setStart(element.node, element.offset);
         range.collapse(true);
         
         selection?.removeAllRanges();
@@ -582,12 +595,12 @@ export class VSCodeWebviewIntegrator {
     return selection ? selection.toString() : '';
   }
 
-  private getClipboardMarkdown(fallbackText: string): string {
-    const selection = window.getSelection();
+  private getClipboardMarkdown(fallbackText: string, selectionRange: Range | null = null): string {
     return getMarkdownClipboardText({
       fallbackText,
       fallbackRoot: this.getEditorElement(),
-      selection,
+      range: selectionRange,
+      selection: selectionRange,
       vditor: this.vditor,
     });
   }
@@ -624,15 +637,15 @@ export class VSCodeWebviewIntegrator {
     }
   }
 
-  private deleteSelectedText(): void {
+  private deleteSelectedText(selectionRange: Range | null = null): void {
     const selection = window.getSelection();
-    if (selection && selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0);
-      if (!range.collapsed) {
+    const range = selectionRange || cloneSelectionRange(selection);
+    if (range && !range.collapsed) {
         range.deleteContents();
+        if (selection) {
         selection.removeAllRanges();
         selection.addRange(range);
-      }
+        }
     }
   }
 
@@ -707,13 +720,40 @@ export class VSCodeWebviewIntegrator {
   }
 
   private convertDOMPositionToLineChar(node: Node, offset: number): { line: number, character: number } | null {
-    // Convert DOM position to line/character coordinates
-    return null;
+    const editor = this.getEditorElement();
+    if (!editor || !editor.contains(node)) return null;
+    const absoluteOffset = getTextOffset(editor, node, offset);
+    const beforeCursor = (editor.textContent || '').slice(0, absoluteOffset);
+    const lines = beforeCursor.split('\n');
+    return {
+      line: lines.length - 1,
+      character: lines[lines.length - 1].length,
+    };
   }
 
-  private findElementAtLineChar(line: number, character: number): Node | null {
-    // Find DOM element at line/character position
-    return null;
+  private findElementAtLineChar(line: number, character: number): { node: Node; offset: number } | null {
+    const editor = this.getEditorElement();
+    if (!editor) return null;
+    const lines = (editor.textContent || '').split('\n');
+    const offset = lines.slice(0, Math.max(0, line)).reduce((total, value) => total + value.length + 1, 0) +
+      Math.max(0, character);
+    return resolveTextOffset(editor, offset);
+  }
+
+  private isSelectionInsideEditor(): boolean {
+    const editor = this.getEditorElement();
+    const selection = window.getSelection();
+    return !!editor && !!selection?.anchorNode && editor.contains(selection.anchorNode);
+  }
+
+  public dispose(): void {
+    if (this.selectionChangeHandler) {
+      document.removeEventListener('selectionchange', this.selectionChangeHandler);
+      this.selectionChangeHandler = null;
+    }
+    this.pendingRequests.clear();
+    this.lastSelectionBookmark = null;
+    this.lastCursorPosition = null;
   }
 
   private executeVSCodeAction(action: any): void {
@@ -774,7 +814,8 @@ export class VSCodeWebviewIntegrator {
     // Get cursor position for context-sensitive actions
     const position = this.getCursorPositionFromEvent(event);
     const elementType = this.getElementTypeAtPosition(event.target as HTMLElement);
-    const selectedText = this.getSelectedText();
+    const selectionRange = cloneSelectionRange(window.getSelection());
+    const selectedText = selectionRange?.toString() || '';
     
     // Store event coordinates for menu positioning
     const menuX = event.clientX;
@@ -821,14 +862,14 @@ export class VSCodeWebviewIntegrator {
         label: 'Cut',
         click: () => {
 
-          this.handleCut(new ClipboardEvent('cut'));
+          this.handleCut(new ClipboardEvent('cut'), selectionRange);
         }
       },
       {
         label: 'Copy',
         click: () => {
 
-          this.handleCopy(new ClipboardEvent('copy'));
+          this.handleCopy(new ClipboardEvent('copy'), selectionRange);
         }
       },
       {

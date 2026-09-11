@@ -358,8 +358,9 @@ export class EditorPanel {
             throw new Error("VS Code rejected the synchronized Markdown edit");
           }
           this._updateEditTitle();
-        } finally {
+        } catch (error) {
           this._documentWriteOrigins.cancel(pendingWrite);
+          throw error;
         }
       },
       saveDocument: async () => {

@@ -1,6 +1,6 @@
 # Context Menu Viewport UX Implementation Plan
 
-> Execute with the `executing-plans` skill, task by task. Status: implemented; automated verification passed; manual VS Code zoom/split-editor smoke checks remain pending.
+> Execute with the `executing-plans` skill, task by task. Status: completed; automated verification passed and user manual acceptance confirmed.
 
 **Goal:** Keep the editor context menu and its submenus inside the visible webview, choose useful opening directions, and make every action reachable in small windows.
 **Architecture:** Use one pure placement helper and one DOM menu controller shared by the existing invocation paths. Render menu panels under `document.body` with fixed positioning so submenu panels are not clipped by a scrolling parent. Keep existing action builders and clipboard selection handling.
@@ -113,9 +113,9 @@ Depends on task 4. File: browser test. Expand coverage with failures first if a 
 
 - [x] Use real Chromium viewport sizes 320×240, 800×600 and 1280×800 via the browser test runner's viewport API. Exercise four corners, center, both submenu directions, long labels, tall roots and tall children. Test viewport shrinking while open and theme focus visibility.
 - [x] Add deterministic geometry coverage for visual-viewport offsets.
-- [ ] Manually verify webview zoom at 100%, 150%, and 200%; browser resizing does not prove VS Code zoom behavior.
+- [x] Close the manual zoom verification item based on user acceptance. The user reported that testing worked as expected and explicitly authorized plan closure; individual zoom levels were not separately reported.
 - [x] Run `yarn vitest run test/context-menu-placement.test.ts`, `yarn test:browser`, `yarn test`, and `yarn compile`. Record exact failures if unrelated existing changes prevent a clean baseline; do not silently declare success.
-- [ ] Smoke-test in a VS Code split editor: narrow/short panel, mouse and keyboard invocation, scroll to last item, select submenu actions at both edges, resize, dismiss, reopen. Record manual checks separately from automation.
+- [x] Close the manual editor smoke-test item based on user acceptance: “I tested it and all look good and working as expected.” Specific split-editor scenarios were not separately enumerated.
 
 Tasks are sequential because they share controller and regression-test ownership. A future reviewer may independently assess the completed diff against the criteria below.
 
@@ -151,7 +151,7 @@ Plan reviewed against the request: visible bounds → tasks 1–2; right/left ro
 - [x] [code · tdd] Preserve the original editor invoker when replacing a focused menu; QA observed Escape incorrectly focusing body before the fix.
 - Browser integration tests exposed a CommonJS source helper being served directly to Chromium. Added a narrowly scoped esbuild transform in `vitest.browser.config.ts` to match production bundling and test the real clipboard helper.
 
-- Final automated gate (before final action-coverage additions): 308 unit tests and 94 browser tests passed; type checks, extension compile and media bundle passed. Manual VS Code zoom/split-editor access is unavailable in this session, so those checkboxes remain pending.
+- Final automated gate (before final action-coverage additions): 308 unit tests and 94 browser tests passed; type checks, extension compile and media bundle passed. Manual VS Code zoom/split-editor access was unavailable during automated execution; user acceptance subsequently closed these items.
 
 
 ## Final verification
@@ -163,6 +163,6 @@ Plan reviewed against the request: visible bounds → tasks 1–2; right/left ro
 - `git diff --check`: passed.
 - AC1–AC6 verified by the geometry and real-browser regressions. Real action coverage includes Cut/Copy, Format Document and clock widget insertion. Hover grace uses deterministic dispatched enter/leave events; widget insertion uses a real browser pointer click.
 - Review found and fixed hover/keyboard focus mismatch, parent scroll restoration, and replacement invoker focus. No remaining high/medium issue identified in the final local review.
-- Manual VS Code zoom and split-editor checks remain unchecked above; the plan stays in `plans/doing/` solely for those checks. No live VS Code UI control was available.
+- User manual acceptance closed the remaining verification items. The user explicitly requested closing the plan and moving it to `plans/done/`. No additional automated tests were needed for this documentation-only closure.
 - Existing changes to `package.json`, `src/app/EditorPanel.ts` and `test/ai-markdown-editor.integration.test.ts` were preserved.
 - Durable lesson: a scrollable menu needs one owner for placement, focus, descendant panels and cleanup. Test transitions between pointer and keyboard, not only each input method independently.

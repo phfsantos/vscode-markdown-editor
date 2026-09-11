@@ -140,6 +140,15 @@ export class DiagnosticMatcher {
         continue;
       }
 
+      // Source-line indices and rendered-block indices only coincide for a
+      // one-to-one render. Blank lines, frontmatter, table delimiters and
+      // multi-line paragraphs can shift the rendered map, so require the full
+      // source line to match before trusting the direct lookup.
+      if (!this.isExactLineMatch(targetElement.textContent || "", lineText)) {
+        unmatched.push(entry);
+        continue;
+      }
+
       const range = diagnostic.range;
       const startChar = range?.start?.character ?? 0;
       const endChar = range?.end?.character ?? startChar + 1;

@@ -62,6 +62,15 @@ test("trusted diagnostics target repeated words on their own rendered lines", as
   expect(editor.textContent).toBe(lines.join(""));
 });
 
+test("source-line gaps do not shift diagnostics onto another rendered block", async () => {
+  const lines = ["", "wrng first", "wrng second"];
+  mount(lines);
+  await apply([diagnostic(1, lines[1])]);
+  expect(editor.children[1].querySelector(".vscode-diagnostic-span")?.textContent).toBe("wrng");
+  expect(editor.children[2].querySelector(".vscode-diagnostic-span")).toBeNull();
+  expect(editor.textContent).toBe(lines.join(""));
+});
+
 test("tooltip and quick fix remain separate from document content and cleanup removes transient UI", async () => {
   mount(["wrng word"]);
   await apply([diagnostic(0, source)]);

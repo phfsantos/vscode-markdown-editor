@@ -287,6 +287,48 @@ it.each(['Cut','Copy'])('%s writes the editor selection exactly once after menu 
   } finally { writeText.mockRestore(); vi.unstubAllGlobals(); selection.removeAllRanges(); }
 });
 
+it('copies only a partial code-block selection after the menu collapses the live Selection', async () => {
+  await import('../packages/media/src/context-menu');
+  const editor = document.createElement('div');
+  editor.className = 'vditor-reset'; editor.contentEditable = 'true';
+  const node = document.createElement('div'); node.className = 'vditor-ir__node';
+  const marker = document.createElement('pre'); marker.className = 'vditor-ir__marker--pre';
+  const code = document.createElement('code'); code.className = 'language-javascript';
+  code.textContent = 'alpha selected omega';
+  marker.append(code); node.append(marker); editor.append(node); document.body.append(editor);
+  editor.focus();
+
+  const selection = window.getSelection()!;
+  const range = document.createRange();
+  const start = code.firstChild!;
+  range.setStart(start, 6); range.setEnd(start, 14);
+  selection.removeAllRanges(); selection.addRange(range);
+  document.dispatchEvent(new Event('selectionchange'));
+  const writeText = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
+  vi.stubGlobal('vditor', {
+    lute: {
+      VditorIRDOM2Md: (html: string) => html.includes('vditor-ir__marker--pre')
+        ? '```javascript\nalpha selected omega\n```'
+        : '**selected**',
+    },
+  });
+  vi.stubGlobal('vscode', { postMessage: vi.fn() });
+  vi.stubGlobal('createManualContextMenu', (x: number, y: number, items: Parameters<typeof openContextMenu>[2]) => {
+    menu = openContextMenu(x, y, items);
+    selection.removeAllRanges();
+  });
+  try {
+    code.dispatchEvent(new MouseEvent('contextmenu', { clientX: 20, clientY: 20, bubbles: true, cancelable: true }));
+    const copy = Array.from(root().querySelectorAll<HTMLElement>('[role=menuitem]'))
+      .find(row => row.textContent === 'Copy')!;
+    copy.click();
+    await expect.poll(() => writeText.mock.calls.length).toBe(1);
+    expect(writeText).toHaveBeenCalledWith('**selected**');
+  } finally {
+    writeText.mockRestore(); vi.unstubAllGlobals(); selection.removeAllRanges();
+  }
+});
+
 it('dispatches Format Document once through the real action builder', async () => {
   await import('../packages/media/src/context-menu');
   const postMessage = vi.fn();
@@ -339,4 +381,29 @@ it('renders focused actions using the active theme selection and focus colors', 
   expect(style.outlineColor).toBe('rgb(100, 110, 120)');
   expect(style.outlineStyle).toBe('solid');
   expect(style.outlineWidth).toBe('1px');
+});
+
+it('uses the integrator menu selection snapshot after focus collapses the live Selection', async () => {
+  const { VSCodeWebviewIntegrator } = await import('../packages/media/src/vscode-integrator');
+  const wrapper = document.createElement('div'); wrapper.className = 'vditor-ir';
+  const editor = document.createElement('div'); editor.className = 'vditor-reset'; editor.contentEditable = 'true';
+  const text = document.createTextNode('alpha selected omega'); editor.append(text); wrapper.append(editor); document.body.append(wrapper);
+  const selection = window.getSelection()!;
+  const range = document.createRange(); range.setStart(text, 6); range.setEnd(text, 14);
+  selection.removeAllRanges(); selection.addRange(range);
+  const writeText = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
+  const vditor = { lute: { VditorIRDOM2Md: () => '**selected**' }, options: {} };
+  const integrator = Object.create(VSCodeWebviewIntegrator.prototype) as VSCodeWebviewIntegrator;
+  (integrator as any).vditor = vditor;
+  try {
+    const event = new MouseEvent('contextmenu', { clientX: 20, clientY: 20, bubbles: true });
+    Object.defineProperty(event, 'target', { configurable: true, value: editor });
+    const items = integrator.createVditorContextMenu(event);
+    selection.removeAllRanges();
+    (items.find(item => 'label' in item && item.label === 'Copy') as { click: () => void }).click();
+    await expect.poll(() => writeText.mock.calls.length).toBe(1);
+    expect(writeText).toHaveBeenCalledWith('**selected**');
+  } finally {
+    writeText.mockRestore(); selection.removeAllRanges();
+  }
 });

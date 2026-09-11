@@ -81,6 +81,27 @@ function getSourceMarkdownFromIRNode(irNode, vditor) {
   return `\`\`\`${language}\n${content.trimEnd()}\n\`\`\``;
 }
 
+function rangeMatchesNodeContents(range, node) {
+  if (!range || !node || range.collapsed) return false;
+
+  const ownerDocument = node.ownerDocument || getDocumentForRange(range);
+  if (ownerDocument && typeof ownerDocument.createRange === 'function' &&
+      typeof range.compareBoundaryPoints === 'function') {
+    try {
+      const nodeRange = ownerDocument.createRange();
+      nodeRange.selectNodeContents(node);
+      return range.compareBoundaryPoints(0, nodeRange) === 0 &&
+        range.compareBoundaryPoints(2, nodeRange) === 0;
+    } catch {
+      // Fall through to the text comparison for lightweight/test DOM ranges.
+    }
+  }
+
+  const selectedText = typeof range.toString === 'function' ? range.toString() : '';
+  const nodeText = typeof node.textContent === 'string' ? node.textContent : '';
+  return selectedText.length > 0 && nodeText.length > 0 && selectedText === nodeText;
+}
+
 function getSelectedSourceBlockMarkdown(range, vditor) {
   const markdownBlocks = [];
   const seen = new Set();
@@ -95,6 +116,17 @@ function getSelectedSourceBlockMarkdown(range, vditor) {
     const preview = closest(candidate, '.vditor-ir__preview');
     const node = closest(customRender || preview || candidate, '.vditor-ir__node');
     if (!node || seen.has(node)) continue;
+
+    const marker = node.querySelector('.vditor-ir__marker--pre');
+    const sourceCode = marker?.querySelector('code');
+    const completeBlock = [
+      sourceCode,
+      marker,
+      customRender,
+      preview,
+      node,
+    ].some((element) => rangeMatchesNodeContents(range, element));
+    if (!completeBlock) continue;
 
     const markdown = getSourceMarkdownFromIRNode(node, vditor);
     if (markdown) {
