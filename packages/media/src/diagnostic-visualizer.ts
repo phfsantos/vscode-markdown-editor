@@ -1,5 +1,6 @@
 import { DiagnosticMatcher, isDescendantOf } from "./diagnostic-matcher";
 import { DiagnosticDecorations } from "./diagnostic-decorations";
+import { filterDiagnosticsOutsideFencedCodeBlocks } from "../../../src/diagnostics/markdown-diagnostic-filter";
 
 /**
  * Handles VS Code diagnostic visualization in Vditor editor
@@ -587,10 +588,13 @@ export class DiagnosticVisualizer {
     const normalizedDiagnostics = diagnostics.map((diag) =>
       this.normalizeDiagnostic(diag, context)
     );
+    const eligibleDiagnostics = context?.documentText
+      ? filterDiagnosticsOutsideFencedCodeBlocks(normalizedDiagnostics, context.documentText)
+      : normalizedDiagnostics;
 
     // SMART DIAGNOSTIC COMPARISON: Check if diagnostics have actually changed
     const newDiagnosticsHash = this.generateDiagnosticsHashForArray(
-      normalizedDiagnostics
+      eligibleDiagnostics
     );
     const diagnosticsActuallyChanged =
       newDiagnosticsHash !== this.lastDiagnosticsHash;
@@ -607,7 +611,7 @@ export class DiagnosticVisualizer {
       !this.diagnosticsApplied ||
       !visualElementsExist
     ) {
-      this.diagnostics = normalizedDiagnostics;
+      this.diagnostics = eligibleDiagnostics;
 
       // OPTIMIZATION: Apply immediately if safe OR forced, otherwise schedule
       // This ensures diagnostics appear at the first opportunity
@@ -616,7 +620,7 @@ export class DiagnosticVisualizer {
       if (forceApply || isSafe) {
         // Apply immediately for instant feedback
         // CRITICAL: Pass forceApply through to bypass all safety checks
-        this.applyDiagnosticsToEditor(normalizedDiagnostics, forceApply);
+        this.applyDiagnosticsToEditor(eligibleDiagnostics, forceApply);
       } else {
         // User is typing, schedule for later
         this.pendingDiagnosticUpdate = true;
@@ -624,7 +628,7 @@ export class DiagnosticVisualizer {
       }
     } else {
       // Still update the diagnostics array in case there are minor differences
-      this.diagnostics = normalizedDiagnostics;
+      this.diagnostics = eligibleDiagnostics;
     }
   }
 
@@ -645,28 +649,6 @@ export class DiagnosticVisualizer {
     // SMART CHECK: Only update if content changed significantly to prevent unnecessary updates
     if (!force && content === this.lastContent) {
       return;
-    }
-
-    // Check if diagnostics are already applied and still valid
-    if (!force && this.diagnosticsApplied && this.matcher.appliedElementCount > 0) {
-      // Quick validation: if existing diagnostics are mostly still valid, skip update
-      let editor = document.querySelector(
-        ".vditor-ir .vditor-reset"
-      ) as HTMLElement;
-      if (!editor) {
-        editor = document.querySelector(
-          ".vditor-wysiwyg .vditor-reset"
-        ) as HTMLElement;
-      }
-      if (editor) {
-        const existingDiagnostics = editor.querySelectorAll(
-          '[class*="vscode-diagnostic-"]'
-        );
-        if (existingDiagnostics.length > 0) {
-          this.lastContent = content;
-          return;
-        }
-      }
     }
 
     this.lastContent = content;
@@ -722,9 +704,14 @@ export class DiagnosticVisualizer {
       }
     });
 
+    const eligibleDiagnostics = filterDiagnosticsOutsideFencedCodeBlocks(
+      simpleDiagnostics,
+      content
+    );
+
     // Only apply if we actually found diagnostics or need to clear existing ones
-    if (simpleDiagnostics.length > 0 || this.diagnostics.length > 0) {
-      this.applyDiagnosticsToEditor(simpleDiagnostics);
+    if (eligibleDiagnostics.length > 0 || this.diagnostics.length > 0) {
+      this.applyDiagnosticsToEditor(eligibleDiagnostics);
     }
   }
 

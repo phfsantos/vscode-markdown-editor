@@ -52,6 +52,75 @@ async function apply(diagnostics: ReturnType<typeof diagnostic>[]): Promise<void
   await vi.advanceTimersByTimeAsync(200);
 }
 
+function mountFencedMarkdown(prose: string, code: string): void {
+  source = [prose, "```mermaid", code, "```"].join("\n");
+  editor.innerHTML = "";
+  const paragraph = document.createElement("p");
+  paragraph.textContent = prose;
+  const codeBlock = document.createElement("div");
+  codeBlock.dataset.type = "code-block";
+  const pre = document.createElement("pre");
+  pre.textContent = code;
+  codeBlock.appendChild(pre);
+  editor.append(paragraph, codeBlock);
+}
+
+test("external diagnostics never decorate fenced code content", async () => {
+  mountFencedMarkdown("wrng prose", "wrng graph TD");
+
+  await apply([
+    diagnostic(0, "wrng prose"),
+    diagnostic(2, "wrng graph TD", "Mermaid spelling", "markdownlint"),
+  ]);
+
+  expect(editor.children[0].querySelector(".vscode-diagnostic-span")?.textContent).toBe("wrng");
+  expect(editor.children[1].querySelector(".vscode-diagnostic-span")).toBeNull();
+  expect(editor.children[1].querySelector("[data-has-lightbulb]")).toBeNull();
+});
+
+test("simple diagnostics pass only prose Markdown-like tokens to the renderer", async () => {
+  mountFencedMarkdown("![](prose.png)", "![](diagram.png)");
+  const applySpy = vi.spyOn(
+    visualizer as unknown as { applyDiagnosticsToEditor(diagnostics: any[], force?: boolean): void },
+    "applyDiagnosticsToEditor",
+  );
+
+  visualizer.addSimpleDiagnostics(true);
+  await vi.advanceTimersByTimeAsync(200);
+
+  expect(applySpy).toHaveBeenCalledTimes(1);
+  const renderedDiagnostics = applySpy.mock.calls[0][0];
+  expect(renderedDiagnostics).toHaveLength(2);
+  expect(renderedDiagnostics.every((report) => report.range.start.line === 0)).toBe(true);
+  expect(editor.children[1].querySelector(".vscode-diagnostic-span")).toBeNull();
+});
+
+test("filtering the incoming set to empty clears obsolete decorations", async () => {
+  mount(["before", "wrng"]);
+  await apply([diagnostic(1, "wrng")]);
+  expect(editor.querySelector(".vscode-diagnostic-span")).not.toBeNull();
+
+  source = ["before", "```", "wrng", "```"].join("\n");
+  visualizer.updateDiagnostics([diagnostic(2, "wrng")], { documentText: source }, true);
+  await vi.advanceTimersByTimeAsync(200);
+
+  expect(editor.querySelector(".vscode-diagnostic-span")).toBeNull();
+  expect(editor.textContent).toBe("beforewrng");
+});
+
+test("changed content clears stale simple decorations without forcing", async () => {
+  mount(["wrng [link](broken)"]);
+  await apply([diagnostic(0, source)]);
+  expect(editor.querySelector(".vscode-diagnostic-span")).not.toBeNull();
+
+  source = ["```", "wrng [link](broken)", "```"].join("\n");
+  visualizer.addSimpleDiagnostics();
+  await vi.advanceTimersByTimeAsync(200);
+
+  expect(editor.querySelector(".vscode-diagnostic-span")).toBeNull();
+  expect(editor.textContent).toBe("wrng [link](broken)");
+});
+
 test("trusted diagnostics target repeated words on their own rendered lines", async () => {
   const lines = ["wrng first", "wrng second", "wrng third"];
   mount(lines);

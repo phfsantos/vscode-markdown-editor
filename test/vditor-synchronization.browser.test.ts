@@ -4,6 +4,7 @@ import "vditor/dist/index.css";
 import "vditor/dist/js/i18n/en_US.js";
 import "vditor/dist/js/lute/lute.min.js";
 import fixture from "./fixtures/custom-block-save.md?raw";
+import { DiagnosticVisualizer } from "../packages/media/src/diagnostic-visualizer";
 import {
   createWebviewContentSync,
   dispatchVditorInput,
@@ -64,11 +65,15 @@ function setCollapsedSelection(node: Text, offset: number): void {
   selection!.addRange(range);
 }
 
-function expectDocumentStructure(markdown: string, editedBoard: string): void {
+function expectDocumentStructure(
+  markdown: string,
+  direction: "TD" | "LR",
+  pastedLine?: string,
+): void {
   const normalized = markdown.replace(/\r\n/g, "\n");
   const expected = fixture.replace(
-    "<!-- board: fixture-board -->",
-    `<!-- board: ${editedBoard} -->`,
+    "flowchart TD",
+    `flowchart ${direction}${pastedLine ? `\n${pastedLine}` : ""}`,
   );
 
   // Equality proves the callback returned the complete document rather than a
@@ -106,6 +111,7 @@ describe.each([
   ["CRLF", fixture.replace(/\n/g, "\r\n")],
 ])("real Vditor IR synchronization with %s input", (_lineEnding, initialMarkdown) => {
   let editor: Vditor | undefined;
+  let diagnosticVisualizer: DiagnosticVisualizer | undefined;
   let host: HTMLDivElement | undefined;
   let dependencySentinels: HTMLScriptElement[] = [];
   let resourceNodeObserver: MutationObserver | undefined;
@@ -113,6 +119,7 @@ describe.each([
   const resourceNodesCreatedByCase = new Set<Element>();
 
   afterEach(() => {
+    diagnosticVisualizer?.cleanupTransientUI();
     editor?.destroy();
     resourceNodeObserver?.disconnect();
     performanceResourceObserver?.disconnect();
@@ -158,10 +165,10 @@ describe.each([
       STARTING_GENERATION,
     );
 
-    const editedBoard = `fixture-board-edited-${_lineEnding.toLowerCase()}`;
-    let resolveInput!: (message: WebviewContentRevision) => void;
-    const inputCompleted = new Promise<WebviewContentRevision>((resolve) => {
-      resolveInput = resolve;
+    const pastedLine = '  PASTED["Unicode paste: naïve 🚀"] --> START';
+    let resolveNextInput: ((message: WebviewContentRevision) => void) | undefined;
+    const waitForNextInput = () => new Promise<WebviewContentRevision>((resolve) => {
+      resolveNextInput = resolve;
     });
 
     const ready = new Promise<void>((resolve) => {
@@ -176,9 +183,8 @@ describe.each([
         value: initialMarkdown,
         input(markdown) {
           const message = synchronizeVditorInput(contentSync, markdown);
-          if (markdown.includes(editedBoard)) {
-            resolveInput(message);
-          }
+          resolveNextInput?.(message);
+          resolveNextInput = undefined;
         },
         preview: {
           hljs: { enable: false },
@@ -198,24 +204,72 @@ describe.each([
     expect(editor!.version).toBe("3.11.2");
     expect(editor!.getCurrentMode()).toBe("ir");
 
-    const sourceMarker = editor!.vditor.ir.element.querySelector<HTMLElement>(
-      '.vditor-ir__marker--pre > code.language-kanban-board',
+    let sourceMarker = editor!.vditor.ir.element.querySelector<HTMLElement>(
+      '.vditor-ir__marker--pre > code.language-mermaid',
     );
-    expect(sourceMarker, "expected the editable kanban source marker in the real IR DOM").not.toBeNull();
+    expect(sourceMarker, "expected the editable Mermaid source marker in the real IR DOM").not.toBeNull();
     expect(sourceMarker!.closest(".vditor-ir__preview")).toBeNull();
 
-    const sourceText = sourceMarker!.firstChild;
+    diagnosticVisualizer = new DiagnosticVisualizer(editor);
+    const diagnosticLine = '  START["Unicode start: café ☕"] --> MIDDLE{"Keep blank lines?"}';
+    const diagnosticStart = diagnosticLine.indexOf("START");
+    diagnosticVisualizer.updateDiagnostics(
+      [{
+        message: '"START": Unknown word',
+        source: "cSpell",
+        severity: 2,
+        lineText: diagnosticLine,
+        range: {
+          start: { line: 6, character: diagnosticStart },
+          end: { line: 6, character: diagnosticStart + "START".length },
+        },
+      }],
+      { documentText: initialMarkdown },
+      true,
+    );
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+
+    const fencedBlock = sourceMarker!.closest<HTMLElement>('.vditor-ir__node[data-type="code-block"]')
+      ?? sourceMarker!.closest<HTMLElement>(".vditor-ir__node");
+    expect(fencedBlock, "expected the Mermaid source and preview to share a fenced block node").not.toBeNull();
+    expect(sourceMarker!.querySelector(".vscode-diagnostic-span")).toBeNull();
+    expect(sourceMarker!.querySelector("[data-has-lightbulb]")).toBeNull();
+    expect(fencedBlock!.querySelector(".vditor-ir__preview .vscode-diagnostic-span")).toBeNull();
+    expect(fencedBlock!.querySelector(".vditor-ir__preview [data-has-lightbulb]")).toBeNull();
+
+    let sourceText = sourceMarker!.firstChild;
     expect(sourceText?.nodeType).toBe(Node.TEXT_NODE);
-    const mutatedSource = sourceText!.textContent!.replace("fixture-board", editedBoard);
-    sourceText!.textContent = mutatedSource;
-    setCollapsedSelection(sourceText as Text, mutatedSource.indexOf(editedBoard) + editedBoard.length);
+    const declarationEnd = sourceText!.textContent!.indexOf("flowchart TD") + "flowchart TD".length;
+    const pastedSource = `${sourceText!.textContent!.slice(0, declarationEnd)}\n${pastedLine}${sourceText!.textContent!.slice(declarationEnd)}`;
+    sourceText!.textContent = pastedSource;
+    setCollapsedSelection(sourceText as Text, declarationEnd + 1 + pastedLine.length);
 
+    const firstInputCompleted = waitForNextInput();
     expect(dispatchVditorInput(editor!)).toBe(true);
-    const edit = await inputCompleted;
+    const firstEdit = await firstInputCompleted;
 
-    expect(messages).toEqual([edit]);
+    expect(messages).toEqual([firstEdit]);
+    expect(firstEdit.generation).toBe(STARTING_GENERATION);
+    expect(firstEdit.revision).toBe(1);
+    expectDocumentStructure(firstEdit.content, "TD", pastedLine);
+
+    sourceMarker = editor!.vditor.ir.element.querySelector<HTMLElement>(
+      '.vditor-ir__marker--pre > code.language-mermaid',
+    );
+    expect(sourceMarker).not.toBeNull();
+    sourceText = sourceMarker!.firstChild;
+    expect(sourceText?.nodeType).toBe(Node.TEXT_NODE);
+    const editedSource = sourceText!.textContent!.replace("flowchart TD", "flowchart LR");
+    sourceText!.textContent = editedSource;
+    setCollapsedSelection(sourceText as Text, editedSource.indexOf("flowchart LR") + "flowchart LR".length);
+
+    const secondInputCompleted = waitForNextInput();
+    expect(dispatchVditorInput(editor!)).toBe(true);
+    const edit = await secondInputCompleted;
+
+    expect(messages).toEqual([firstEdit, edit]);
     expect(edit.generation).toBe(STARTING_GENERATION);
-    expect(edit.revision).toBe(1);
+    expect(edit.revision).toBe(2);
     expect(Object.keys(edit).sort()).toEqual([
       "command",
       "content",
@@ -226,7 +280,7 @@ describe.each([
     expect(edit).not.toHaveProperty("provenance");
     expect(contentSync.getGeneration()).toBe(STARTING_GENERATION);
     expect(contentSync.getContent()).toBe(edit.content);
-    expectDocumentStructure(edit.content, editedBoard);
+    expectDocumentStructure(edit.content, "LR", pastedLine);
 
     performanceResourceObserver.takeRecords().forEach((entry) => {
       if (entry.entryType === "resource") {

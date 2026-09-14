@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { filterDiagnosticsOutsideFencedCodeBlocks } from './markdown-diagnostic-filter';
 
 export class MarkdownDiagnosticProvider {
     private diagnosticCollection: vscode.DiagnosticCollection;
@@ -87,7 +88,10 @@ export class MarkdownDiagnosticProvider {
             }
         });
 
-        this.diagnosticCollection.set(document.uri, diagnostics);
+        this.diagnosticCollection.set(
+            document.uri,
+            filterDiagnosticsOutsideFencedCodeBlocks(diagnostics, text)
+        );
     }
 
     private isValidUrl(url: string): boolean {

@@ -13,6 +13,8 @@ export interface MockVscodeState {
   installedExtensions: string[];
   executeCommandError: Error | null;
   relativePathBase: string;
+  diagnosticSets: Array<{ uri: unknown; diagnostics: unknown[] }>;
+  diagnostics: unknown[];
 }
 
 const defaultState = (): MockVscodeState => ({
@@ -24,6 +26,8 @@ const defaultState = (): MockVscodeState => ({
   installedExtensions: [],
   executeCommandError: null,
   relativePathBase: '/workspace/',
+  diagnosticSets: [],
+  diagnostics: [],
 });
 
 export let __state: MockVscodeState = defaultState();
@@ -53,6 +57,62 @@ export const workspace = {
   textDocuments: [] as unknown[],
   onDidChangeConfiguration() {
     return { dispose() {} };
+  },
+  onDidChangeTextDocument() {
+    return { dispose() {} };
+  },
+  onDidOpenTextDocument() {
+    return { dispose() {} };
+  },
+  onDidCloseTextDocument() {
+    return { dispose() {} };
+  },
+};
+
+export class Position {
+  constructor(public line: number, public character: number) {}
+}
+
+export class Range {
+  public start: Position;
+  public end: Position;
+
+  constructor(startLine: number, startCharacter: number, endLine: number, endCharacter: number) {
+    this.start = new Position(startLine, startCharacter);
+    this.end = new Position(endLine, endCharacter);
+  }
+}
+
+export class Diagnostic {
+  public source?: string;
+  public code?: string | number;
+
+  constructor(
+    public range: Range,
+    public message: string,
+    public severity: number,
+  ) {}
+}
+
+export const DiagnosticSeverity = {
+  Error: 0,
+  Warning: 1,
+  Information: 2,
+  Hint: 3,
+};
+
+export const languages = {
+  createDiagnosticCollection() {
+    return {
+      set(uri: unknown, diagnostics: unknown[]) {
+        __state.diagnosticSets.push({ uri, diagnostics });
+      },
+      delete() {},
+      dispose() {},
+    };
+  },
+  getDiagnostics() {
+    return __state.diagnostics;
   },
 };
 
@@ -104,6 +164,10 @@ export const Uri = {
   },
   parse(value: string) {
     return { fsPath: value.replace(/^file:\/\//, ''), scheme: 'file', toString: () => value };
+  },
+  joinPath(base: { fsPath: string }, ...parts: string[]) {
+    const joined = [base.fsPath.replace(/\/$/, ''), ...parts].join('/');
+    return { fsPath: joined, scheme: 'file', toString: () => `file://${joined}` };
   },
 };
 

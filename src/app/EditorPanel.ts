@@ -16,6 +16,7 @@ import {
   type DocumentSyncController,
 } from "./DocumentSyncController";
 import { createDocumentWriteOriginTracker } from "./DocumentWriteOriginTracker";
+import { filterDiagnosticsOutsideFencedCodeBlocks } from "../diagnostics/markdown-diagnostic-filter";
 
 // Note: Virtual schemes (showModifications, git) are now rejected at the provider level
 // in PreviewCustomEditorProvider.resolveCustomTextEditor(), so this code should
@@ -1386,11 +1387,13 @@ export class EditorPanel {
    * Update diagnostics in the webview
    */
   private _updateDiagnostics(): void {
-    const diagnostics = vscode.languages.getDiagnostics(this._document.uri);
-
     // Get the document text to provide context for line mapping
     const documentText = this._document.getText();
     const lines = documentText.split("\n");
+    const diagnostics = filterDiagnosticsOutsideFencedCodeBlocks(
+      vscode.languages.getDiagnostics(this._document.uri),
+      documentText
+    );
 
     // Convert VS Code diagnostics to a format the webview can understand
     const serializedDiagnostics = diagnostics.map((diagnostic, index) => {
