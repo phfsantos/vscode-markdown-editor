@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest';
 import {
   filterDiagnosticsOutsideFencedCodeBlocks,
   getFencedCodeBlockRanges,
-} from '../src/diagnostics/markdown-diagnostic-filter';
+} from '@markdown-editor/core';
 
 interface TestDiagnostic {
   message: string;

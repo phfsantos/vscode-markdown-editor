@@ -1,4 +1,4 @@
-import { createRenderedLineRules } from '../../../src/diff/renderedLineRules';
+import { createRenderedLineRules } from '@markdown-editor/core';
 
 const ELEMENT_NODE = 1;
 const TEXT_NODE = 3;

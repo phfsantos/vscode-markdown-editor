@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { EditorPanel } from "./EditorPanel";
+import { EditorPanel, type EditorPanelDependencies } from "./EditorPanel";
 import { findChatEditingStateForDocument } from "./chatEditingDiff";
 import { getWebviewOptions } from "./_utils";
 import { logger } from "../utils/Logger";
@@ -7,7 +7,10 @@ import { logger } from "../utils/Logger";
 export class PreviewCustomEditorProvider
   implements vscode.CustomTextEditorProvider
 {
-  constructor(private context: vscode.ExtensionContext) {}
+  constructor(
+    private context: vscode.ExtensionContext,
+    private readonly dependencies: EditorPanelDependencies = {},
+  ) {}
 
   private getTabInputKind(tab: vscode.Tab | undefined): string {
     if (!tab?.input) {
@@ -132,7 +135,8 @@ export class PreviewCustomEditorProvider
         activeTab,
         webviewPanel,
         isActiveTabCompare,
-        readOnly
+        readOnly,
+        this.dependencies,
       );
     } catch (error) {
       try {
@@ -157,7 +161,10 @@ export class PreviewCustomEditorProvider
             this.context,
             document,
             activeTab,
-            newWebviewPanel
+            newWebviewPanel,
+            false,
+            undefined,
+            this.dependencies,
           );
         } else {
           logger.error(error);

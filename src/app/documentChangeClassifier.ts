@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { logger } from "../utils/Logger";
 
 /**
  * Timing/visibility state used to classify whether a document change came
@@ -33,8 +34,8 @@ e: vscode.TextDocumentChangeEvent
   // ENHANCED: Increased time window for webview edit tracking to handle post-newline typing
   // This prevents cursor jumping after Enter key followed by typing
   if (host.lastWebviewEdit && now - host.lastWebviewEdit < 3000) {
-    if ((global as any).markdownEditorLog) {
-      (global as any).markdownEditorLog(
+    if (logger.debug) {
+      logger.debug(
         `⏰ Recent webview edit detected (${ 
           now - host.lastWebviewEdit
         }ms ago) - not external`
@@ -48,8 +49,8 @@ e: vscode.TextDocumentChangeEvent
     host.lastCursorPosition &&
     now - host.lastCursorPosition.timestamp < 2000
   ) {
-    if ((global as any).markdownEditorLog) {
-      (global as any).markdownEditorLog(
+    if (logger.debug) {
+      logger.debug(
         `⏰ Recent cursor update detected (${ 
           now - host.lastCursorPosition.timestamp
         }ms ago) - not external`
@@ -60,28 +61,28 @@ e: vscode.TextDocumentChangeEvent
 
   // ENHANCED: Detailed logging for debugging cursor jumping issue
   for (const change of e.contentChanges) {
-    if ((global as any).markdownEditorLog) {
-      (global as any).markdownEditorLog(`🔍 CURSOR DEBUG - Change detected:`);
-      (global as any).markdownEditorLog(
+    if (logger.debug) {
+      logger.debug(`🔍 CURSOR DEBUG - Change detected:`);
+      logger.debug(
         `   • Text: "${change.text}" (length: ${change.text.length})`
       );
-      (global as any).markdownEditorLog(
+      logger.debug(
         `   • Range: ${change.range.start.line}:${change.range.start.character}-${change.range.end.line}:${change.range.end.character}`
       );
-      (global as any).markdownEditorLog(
+      logger.debug(
         `   • Range length: ${change.rangeLength}`
       );
-      (global as any).markdownEditorLog(
+      logger.debug(
         `   • Panel state: active=${host.panelActive}, visible=${host.panelVisible}`
       );
-      (global as any).markdownEditorLog(
+      logger.debug(
         `   • Last webview edit: ${
           host.lastWebviewEdit
             ? now - host.lastWebviewEdit + "ms ago"
             : "never"
         }`
       );
-      (global as any).markdownEditorLog(
+      logger.debug(
         `   • Last cursor update: ${
           host.lastCursorPosition
             ? now - host.lastCursorPosition.timestamp + "ms ago"
@@ -117,8 +118,8 @@ e: vscode.TextDocumentChangeEvent
         );
 
       if (hasMarkdownSyntax) {
-        if ((global as any).markdownEditorLog) {
-          (global as any).markdownEditorLog(
+        if (logger.debug) {
+          logger.debug(
             `✅ External change detected: Markdown syntax replacement (likely markdownlint fix)`
           );
         }
@@ -132,8 +133,8 @@ e: vscode.TextDocumentChangeEvent
         change.text.length < 100;
 
       if (isFocusedChange) {
-        if ((global as any).markdownEditorLog) {
-          (global as any).markdownEditorLog(
+        if (logger.debug) {
+          logger.debug(
             `✅ External change detected: Focused replacement pattern (likely quick fix)`
           );
         }
@@ -154,8 +155,8 @@ e: vscode.TextDocumentChangeEvent
         (text.match(/^[a-zA-Z\s\-']+$/) || text.match(/^[a-zA-Z]+$/)))
     ) {
       // Enhanced pattern for words with spaces and hyphens
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `✅ External change detected: Quick fix/spell check pattern`
         );
       }
@@ -169,8 +170,8 @@ e: vscode.TextDocumentChangeEvent
       change.text.trim().includes(" ") &&
       !host.panelActive;
     if (isMultiWordReplacement) {
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `✅ External change detected: Multi-word replacement`
         );
       }
@@ -184,8 +185,8 @@ e: vscode.TextDocumentChangeEvent
       change.range.start.line === 0 &&
       change.range.end.line > 10
     ) {
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `✅ External change detected: Document-wide change`
         );
       }
@@ -198,8 +199,8 @@ e: vscode.TextDocumentChangeEvent
       !host.panelVisible &&
       change.range.end.line - change.range.start.line > 1
     ) {
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `✅ External change detected: Multi-line change while panel inactive`
         );
       }
@@ -214,8 +215,8 @@ e: vscode.TextDocumentChangeEvent
       !change.text.includes("\n") &&
       change.rangeLength !== 1; // Not single character edits
     if (isWordReplacement && !host.panelActive) {
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `✅ External change detected: Word replacement (spell check likely)`
         );
       }
@@ -248,16 +249,16 @@ e: vscode.TextDocumentChangeEvent
         !hasVeryRecentWebviewActivity &&
         !hasVeryRecentCursorActivity
       ) {
-        if ((global as any).markdownEditorLog) {
-          (global as any).markdownEditorLog(
+        if (logger.debug) {
+          logger.debug(
             `✅ Clear replacement pattern overrides panel visibility - treating as external`
           );
         }
         return true;
       }
 
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `❌ Panel active/visible with recent activity - treating as internal change`
         );
       }
@@ -275,8 +276,8 @@ e: vscode.TextDocumentChangeEvent
         now - host.lastCursorPosition.timestamp < 5000;
 
       if (hasRecentWebviewActivity || hasRecentCursorActivity) {
-        if ((global as any).markdownEditorLog) {
-          (global as any).markdownEditorLog(
+        if (logger.debug) {
+          logger.debug(
             `❌ Single character change with recent activity - treating as internal`
           );
         }
@@ -287,8 +288,8 @@ e: vscode.TextDocumentChangeEvent
       const hasExternalIndicators =
         !host.panelVisible && now - host.lastWebviewEdit > 10000; // Increased from 3000ms
       if (!hasExternalIndicators) {
-        if ((global as any).markdownEditorLog) {
-          (global as any).markdownEditorLog(
+        if (logger.debug) {
+          logger.debug(
             `❌ Single character change without strong external indicators - treating as internal`
           );
         }
@@ -310,8 +311,8 @@ e: vscode.TextDocumentChangeEvent
           now - host.lastCursorPosition.timestamp < 8000);
 
       if (hasRecentActivity) {
-        if ((global as any).markdownEditorLog) {
-          (global as any).markdownEditorLog(
+        if (logger.debug) {
+          logger.debug(
             `❌ Small typing sequence with recent activity - treating as internal`
           );
         }
@@ -323,8 +324,8 @@ e: vscode.TextDocumentChangeEvent
     if (change.text.match(/^\s*$/) && change.rangeLength > 0) {
       // Could be external formatting
       if (!host.panelVisible && now - host.lastWebviewEdit > 2000) {
-        if ((global as any).markdownEditorLog) {
-          (global as any).markdownEditorLog(
+        if (logger.debug) {
+          logger.debug(
             `✅ External change detected: Whitespace change while panel not visible`
           );
         }
@@ -334,31 +335,31 @@ e: vscode.TextDocumentChangeEvent
   }
 
   // ENHANCED: Default to internal change with detailed reasoning
-  if ((global as any).markdownEditorLog) {
-    (global as any).markdownEditorLog(
+  if (logger.debug) {
+    logger.debug(
       `❌ EXTERNAL CHANGE DEBUG - Final decision: INTERNAL CHANGE`
     );
-    (global as any).markdownEditorLog(
+    logger.debug(
       `   • Reason: No clear external indicators found`
     );
-    (global as any).markdownEditorLog(
+    logger.debug(
       `   • Panel state: active=${host.panelActive}, visible=${host.panelVisible}`
     );
-    (global as any).markdownEditorLog(
+    logger.debug(
       `   • Recent webview activity: ${
         host.lastWebviewEdit
           ? now - host.lastWebviewEdit + "ms ago"
           : "never"
       }`
     );
-    (global as any).markdownEditorLog(
+    logger.debug(
       `   • Recent cursor activity: ${
         host.lastCursorPosition
           ? now - host.lastCursorPosition.timestamp + "ms ago"
           : "never"
       }`
     );
-    (global as any).markdownEditorLog(
+    logger.debug(
       `   • This should NOT trigger webview update`
     );
   }

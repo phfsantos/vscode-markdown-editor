@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { filterDiagnosticsOutsideFencedCodeBlocks } from './markdown-diagnostic-filter';
+import { filterDiagnosticsOutsideFencedCodeBlocks } from '@markdown-editor/core';
 
 export class MarkdownDiagnosticProvider {
     private diagnosticCollection: vscode.DiagnosticCollection;

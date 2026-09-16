@@ -46,16 +46,16 @@ export class MarkdownDiffProvider {
 
   constructor(private context: vscode.ExtensionContext) {
 
-    (global as any).markdownEditorLog?.('🔍 DIFF PROVIDER: Constructor called');
+    logger.debug?.('🔍 DIFF PROVIDER: Constructor called');
     this.registerCommands();
     this.setupEventHandlers();
 
-    (global as any).markdownEditorLog?.('✅ DIFF PROVIDER: Initialization complete');
+    logger.debug?.('✅ DIFF PROVIDER: Initialization complete');
   }
 
   private registerCommands(): void {
 
-    (global as any).markdownEditorLog?.('🔍 DIFF PROVIDER: Registering commands...');
+    logger.debug?.('🔍 DIFF PROVIDER: Registering commands...');
     
     // Command to compare current file with another file
     this.disposables.push(
@@ -66,7 +66,7 @@ export class MarkdownDiffProvider {
       )
     );
 
-    (global as any).markdownEditorLog?.('✅ DIFF: Registered command: markdown-editor.compareWithFile');
+    logger.debug?.('✅ DIFF: Registered command: markdown-editor.compareWithFile');
 
     // Command to compare with clipboard content
     this.disposables.push(
@@ -77,7 +77,7 @@ export class MarkdownDiffProvider {
       )
     );
 
-    (global as any).markdownEditorLog?.('✅ DIFF: Registered command: markdown-editor.compareWithClipboard');
+    logger.debug?.('✅ DIFF: Registered command: markdown-editor.compareWithClipboard');
 
     // Command to use native VS Code diff editor
     this.disposables.push(
@@ -88,7 +88,7 @@ export class MarkdownDiffProvider {
       )
     );
 
-    (global as any).markdownEditorLog?.('✅ DIFF: Registered command: markdown-editor.openInDiffEditor');
+    logger.debug?.('✅ DIFF: Registered command: markdown-editor.openInDiffEditor');
 
     // Command to compare with previous version (git)
     this.disposables.push(
@@ -99,7 +99,7 @@ export class MarkdownDiffProvider {
       )
     );
 
-    (global as any).markdownEditorLog?.('✅ DIFF: Registered command: markdown-editor.compareWithPrevious');
+    logger.debug?.('✅ DIFF: Registered command: markdown-editor.compareWithPrevious');
 
     // Command to toggle scroll sync
     this.disposables.push(
@@ -110,9 +110,9 @@ export class MarkdownDiffProvider {
       )
     );
 
-    (global as any).markdownEditorLog?.('✅ DIFF: Registered command: markdown-editor.toggleScrollSync');
+    logger.debug?.('✅ DIFF: Registered command: markdown-editor.toggleScrollSync');
 
-    (global as any).markdownEditorLog?.('✅ DIFF PROVIDER: All 5 commands registered successfully');
+    logger.debug?.('✅ DIFF PROVIDER: All 5 commands registered successfully');
   }
 
   private setupEventHandlers(): void {
@@ -139,17 +139,17 @@ export class MarkdownDiffProvider {
    */
   private async compareWithFile(): Promise<void> {
 
-    (global as any).markdownEditorLog?.('🔍 DIFF: compareWithFile() called');
+    logger.debug?.('🔍 DIFF: compareWithFile() called');
     
     const currentEditor = vscode.window.activeTextEditor;
     if (!currentEditor) {
 
-      (global as any).markdownEditorLog?.('❌ DIFF: No active editor found');
+      logger.debug?.('❌ DIFF: No active editor found');
       vscode.window.showErrorMessage('No active editor found');
       return;
     }
 
-    (global as any).markdownEditorLog?.('📄 DIFF: Current editor: ' + currentEditor.document.uri.toString());
+    logger.debug?.('📄 DIFF: Current editor: ' + currentEditor.document.uri.toString());
 
     // Show file picker
     const fileUri = await vscode.window.showOpenDialog({
@@ -165,11 +165,11 @@ export class MarkdownDiffProvider {
 
     if (!fileUri || fileUri.length === 0) {
 
-      (global as any).markdownEditorLog?.('⚠️ DIFF: No file selected');
+      logger.debug?.('⚠️ DIFF: No file selected');
       return;
     }
 
-    (global as any).markdownEditorLog?.('📄 DIFF: Selected file: ' + fileUri[0].toString());
+    logger.debug?.('📄 DIFF: Selected file: ' + fileUri[0].toString());
     
     await this.performComparison(currentEditor.document.uri, fileUri[0]);
   }
@@ -179,7 +179,7 @@ export class MarkdownDiffProvider {
    */
   private async compareWithClipboard(): Promise<void> {
 
-    (global as any).markdownEditorLog?.('🔍 DIFF: compareWithClipboard() called');
+    logger.debug?.('🔍 DIFF: compareWithClipboard() called');
     
     const currentEditor = vscode.window.activeTextEditor;
     if (!currentEditor) {

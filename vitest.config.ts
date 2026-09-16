@@ -24,6 +24,7 @@ export default defineConfig({
       // (EditorPanel, sidebar, calendar OAuth) need extension-host tests and
       // are excluded until those exist.
       include: [
+        'packages/core/src/**/*.ts',
         'src/app/chatEditingDiff.ts',
         'src/diff/**/*.ts',
         'src/services/modelNameNormalizer.ts',

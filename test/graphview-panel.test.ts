@@ -177,6 +177,21 @@ const extensionContext = {
   },
 };
 
+function graphDependencies() {
+  return {
+    activeDocumentContext: {
+      get activeDocument() {
+        return host.graphDocument;
+      },
+      onDidChangeActiveDocument: (listener: Listener<TestDocument | undefined>) =>
+        subscribe(host.graphListeners, listener),
+    },
+    graphGenerator: {
+      generateSimplifiedGraph: host.generateSimplifiedGraph,
+    },
+  };
+}
+
 describe('GraphViewPanel active document behavior', () => {
   beforeEach(() => {
     host.reset();
@@ -194,7 +209,7 @@ describe('GraphViewPanel active document behavior', () => {
     host.graphDocument = sidebarDocument;
     host.activeTextEditor = { document: textEditorDocument };
 
-    await GraphViewPanel.createOrShow(extensionContext as never);
+    await GraphViewPanel.createOrShow(extensionContext as never, undefined, graphDependencies() as never);
     await host.webviewMessageListener?.({ command: 'ready' });
 
     expect(host.postMessage).toHaveBeenCalledWith({
@@ -209,7 +224,7 @@ describe('GraphViewPanel active document behavior', () => {
     const initialDocument = document('/workspace/initial.md');
     const nextDocument = document('/workspace/next.md');
     host.graphDocument = initialDocument;
-    await GraphViewPanel.createOrShow(extensionContext as never);
+    await GraphViewPanel.createOrShow(extensionContext as never, undefined, graphDependencies() as never);
     host.generateSimplifiedGraph.mockClear();
 
     await Promise.all(host.graphListeners.map((listener) => listener(nextDocument)));
@@ -222,7 +237,7 @@ describe('GraphViewPanel active document behavior', () => {
     const sidebarDocument = document('/workspace/sidebar.md');
     const conflictingDocument = document('/workspace/conflicting-editor.md');
     host.graphDocument = sidebarDocument;
-    await GraphViewPanel.createOrShow(extensionContext as never);
+    await GraphViewPanel.createOrShow(extensionContext as never, undefined, graphDependencies() as never);
     host.generateSimplifiedGraph.mockClear();
 
     await Promise.all(host.activeEditorListeners.map((listener) =>

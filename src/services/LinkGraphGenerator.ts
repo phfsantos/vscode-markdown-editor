@@ -39,8 +39,8 @@ export class LinkGraphGenerator {
   private static instance: LinkGraphGenerator;
   private analyzer: RelationshipAnalyzer;
 
-  private constructor() {
-    this.analyzer = RelationshipAnalyzer.getInstance();
+  public constructor(analyzer: RelationshipAnalyzer = RelationshipAnalyzer.getInstance()) {
+    this.analyzer = analyzer;
   }
 
   public static getInstance(): LinkGraphGenerator {

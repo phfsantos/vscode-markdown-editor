@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { logger } from '../utils/Logger';
 import { parseHTMLToLines, ParsedBlock } from './HtmlLineParser';
+import type { DiffPanelRegistry } from '../runtime/ports';
 
 /**
  * Pure diff calculation utility - instance-based diff management now happens in EditorPanel
@@ -8,7 +9,10 @@ import { parseHTMLToLines, ParsedBlock } from './HtmlLineParser';
  */
 export class MarkdownDiffViewSupport {
 
-  constructor(private context: vscode.ExtensionContext) {
+  constructor(
+    private context: vscode.ExtensionContext,
+    private readonly panelRegistry?: DiffPanelRegistry,
+  ) {
     // No global state needed - each EditorPanel manages its own diff state
   }
 
@@ -333,39 +337,20 @@ export class MarkdownDiffViewSupport {
    * Finds the other editor in the diff pair by matching instance ID (primary) or URI (fallback)
    */
   public handleScrollSync(sourceInstanceId: string | undefined, sourceUri: vscode.Uri, targetUri: vscode.Uri, scrollPercentage: number, retryCount: number = 0): void {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires -- lazy require breaks the circular import with EditorPanel
-    const EditorPanel = require('../app/EditorPanel').EditorPanel;
+    const targetEditor = this.panelRegistry?.findTargetPanel(sourceInstanceId, targetUri);
+    if (targetEditor) {
+      targetEditor.sendScrollSync(scrollPercentage);
+      return;
+    }
 
-    if (EditorPanel.editors && EditorPanel.editors.length > 0) {
-      const targetEditor = EditorPanel.editors.find((editor: any) => {
-        const matchesUri = editor._uri && editor._uri.toString() === targetUri.toString();
-        const isNotSource = !sourceInstanceId || editor._instanceId !== sourceInstanceId;
-        return matchesUri && isNotSource;
-      });
-
-      if (targetEditor && targetEditor.sendScrollSync) {
-        targetEditor.sendScrollSync(scrollPercentage);
-      } else {
-        if (retryCount < 3) {
-          const retryDelay = 50 * Math.pow(2, retryCount);
-          logger.warn(`[MarkdownDiffViewSupport] Target editor not found, retrying in ${retryDelay}ms (attempt ${retryCount + 1}/3)`);
-          setTimeout(() => {
-            this.handleScrollSync(sourceInstanceId, sourceUri, targetUri, scrollPercentage, retryCount + 1);
-          }, retryDelay);
-        } else {
-          logger.warn(`[MarkdownDiffViewSupport] Target editor not found after 3 retries: ${targetUri.toString()}`);
-        }
-      }
+    if (retryCount < 3) {
+      const retryDelay = 50 * Math.pow(2, retryCount);
+      logger.warn(`[MarkdownDiffViewSupport] Target editor not found, retrying in ${retryDelay}ms (attempt ${retryCount + 1}/3)`);
+      setTimeout(() => {
+        this.handleScrollSync(sourceInstanceId, sourceUri, targetUri, scrollPercentage, retryCount + 1);
+      }, retryDelay);
     } else {
-      if (retryCount < 3) {
-        const retryDelay = 50 * Math.pow(2, retryCount);
-        logger.warn(`[MarkdownDiffViewSupport] No editors available, retrying in ${retryDelay}ms (attempt ${retryCount + 1}/3)`);
-        setTimeout(() => {
-          this.handleScrollSync(sourceInstanceId, sourceUri, targetUri, scrollPercentage, retryCount + 1);
-        }, retryDelay);
-      } else {
-        logger.warn('[MarkdownDiffViewSupport] No editors available after 3 retries');
-      }
+      logger.warn(`[MarkdownDiffViewSupport] Target editor not found after 3 retries: ${targetUri.toString()}`);
     }
   }
 

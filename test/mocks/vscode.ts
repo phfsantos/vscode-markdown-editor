@@ -73,6 +73,10 @@ export class Position {
   constructor(public line: number, public character: number) {}
 }
 
+export class TreeItem {
+  constructor(public label: string, public collapsibleState?: number) {}
+}
+
 export class Range {
   public start: Position;
   public end: Position;

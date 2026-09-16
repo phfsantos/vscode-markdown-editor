@@ -2,8 +2,7 @@ import * as vscode from 'vscode';
 import { LinkGraphGenerator } from '../services/LinkGraphGenerator';
 import { getWebviewOptions } from './_utils';
 import { logger } from '../utils/Logger';
-import { MarkdownSidebarContext } from '../sidebar/MarkdownSidebarContext';
-import { EditorPanel } from './EditorPanel';
+import type { ActiveDocumentEvents } from '../runtime/ports';
 
 /**
  * Full-screen graph view panel for visualizing markdown file relationships
@@ -13,6 +12,11 @@ interface GraphViewPanelOpenOptions {
   depth?: number;
   maxNodes?: number;
   showDirectLinksOnly?: boolean;
+}
+
+export interface GraphViewPanelDependencies {
+  activeDocumentContext?: ActiveDocumentEvents;
+  graphGenerator?: LinkGraphGenerator;
 }
 
 export class GraphViewPanel {
@@ -31,13 +35,17 @@ export class GraphViewPanel {
 
   public static async createOrShow(
     context: vscode.ExtensionContext,
-    optionsOrDocUri?: string | GraphViewPanelOpenOptions
+    optionsOrDocUri?: string | GraphViewPanelOpenOptions,
+    dependencies: GraphViewPanelDependencies = {},
   ) {
     const openOptions =
       typeof optionsOrDocUri === 'string' ? { docUri: optionsOrDocUri } : optionsOrDocUri ?? {};
 
     logger.debug('[GraphViewPanel] createOrShow called', openOptions);
-    const activeMarkdownDoc = await GraphViewPanel._resolveMarkdownDocument(openOptions.docUri);
+    const activeMarkdownDoc = await GraphViewPanel._resolveMarkdownDocument(
+      openOptions.docUri,
+      dependencies,
+    );
 
     logger.debug(
       '[GraphViewPanel] Active markdown document:',
@@ -74,14 +82,17 @@ export class GraphViewPanel {
       panel,
       context.extensionUri,
       activeMarkdownDoc,
-      openOptions
+      openOptions,
+      dependencies,
     );
   }
 
-  private static async _resolveMarkdownDocument(docUri?: string): Promise<vscode.TextDocument | undefined> {
-    // An explicit command target wins. Otherwise the sidebar context is the
-    // source of truth because it already reconciles text and custom editors;
-    // the remaining lookups only cover startup before that context exists.
+  private static async _resolveMarkdownDocument(
+    docUri?: string,
+    dependencies: GraphViewPanelDependencies = {},
+  ): Promise<vscode.TextDocument | undefined> {
+    // An explicit command target wins. Otherwise use the application-level
+    // active-document context, then the host's native active text editor.
     if (typeof docUri === 'string' && docUri.length > 0) {
       try {
         const uri = vscode.Uri.parse(docUri);
@@ -94,26 +105,14 @@ export class GraphViewPanel {
       }
     }
 
-    const sidebarDocument = MarkdownSidebarContext.getCurrentActiveDocument();
-    if (sidebarDocument?.languageId === 'markdown') {
-      return sidebarDocument;
+    const activeDocument = dependencies.activeDocumentContext?.activeDocument;
+    if (activeDocument?.languageId === 'markdown') {
+      return activeDocument;
     }
 
     const activeEditor = vscode.window.activeTextEditor;
     if (activeEditor?.document.languageId === 'markdown') {
       return activeEditor.document;
-    }
-
-    const customEditorCandidates = [
-      EditorPanel.currentPanel?._document,
-      ...(EditorPanel.editors ?? []).map((editor) => editor._document)
-    ];
-
-    for (let index = customEditorCandidates.length - 1; index >= 0; index -= 1) {
-      const document = customEditorCandidates[index];
-      if (document?.languageId === 'markdown') {
-        return document;
-      }
     }
 
     return undefined;
@@ -123,13 +122,14 @@ export class GraphViewPanel {
     panel: vscode.WebviewPanel,
     extensionUri: vscode.Uri,
     initialDocument?: vscode.TextDocument,
-    initialOptions?: GraphViewPanelOpenOptions
+    initialOptions?: GraphViewPanelOpenOptions,
+    dependencies: GraphViewPanelDependencies = {},
   ) {
     logger.debug('[GraphViewPanel] Constructor called');
 
     this._panel = panel;
     this._extensionUri = extensionUri;
-    this.graphGenerator = LinkGraphGenerator.getInstance();
+    this.graphGenerator = dependencies.graphGenerator ?? LinkGraphGenerator.getInstance();
     this._activeDocument = initialDocument;
     this._applyOpenOptions(initialOptions);
 
@@ -167,11 +167,9 @@ export class GraphViewPanel {
       this._disposables
     );
 
-    MarkdownSidebarContext.onDidChangeActiveDocument(
+    dependencies.activeDocumentContext?.onDidChangeActiveDocument(
       async (document) => {
-        if (document?.languageId === 'markdown') {
-          await this._setActiveDocument(document);
-        }
+        await this._setActiveDocument(document?.languageId === 'markdown' ? document : undefined);
       },
       null,
       this._disposables

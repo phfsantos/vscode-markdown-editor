@@ -39,12 +39,13 @@ runTest('Mini graph UI removes node distance controls', () => {
   assert.ok(!nativeViewsSource.includes('nodeDistance'), 'Mini graph view should not reference nodeDistance state');
 });
 
-runTest('Browser view remains wired to sidebar and active document state', () => {
-  expectIncludes(graphViewPanelSource, "import { MarkdownSidebarContext } from '../sidebar/MarkdownSidebarContext';");
-  expectIncludes(graphViewPanelSource, 'const sidebarDocument = MarkdownSidebarContext.getCurrentActiveDocument();');
-  expectIncludes(sidebarContextSource, 'private static currentInstance: MarkdownSidebarContext | undefined;');
-  expectIncludes(sidebarContextSource, 'public static getCurrentActiveDocument(): vscode.TextDocument | undefined {');
-  expectIncludes(sidebarContextSource, 'MarkdownSidebarContext.currentInstance = this;');
+runTest('Browser view is wired to the application active-document port', () => {
+  expectIncludes(graphViewPanelSource, 'activeDocumentContext?.activeDocument');
+  expectIncludes(graphViewPanelSource, 'dependencies.activeDocumentContext?.onDidChangeActiveDocument');
+  assert.ok(!graphViewPanelSource.includes("../sidebar/MarkdownSidebarContext"), 'Graph view must not import sidebar context');
+  assert.ok(!graphViewPanelSource.includes("from './EditorPanel'"), 'Graph view must not import editor panel internals');
+  assert.ok(!sidebarContextSource.includes('private static currentInstance'), 'Sidebar must not own canonical active-document state');
+  assert.ok(!sidebarContextSource.includes("../app/EditorPanel"), 'Sidebar must not depend on EditorPanel');
 });
 
 runTest('Provider views expose context menu hooks in manifest', () => {

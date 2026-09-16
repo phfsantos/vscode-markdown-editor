@@ -5,10 +5,10 @@
  * Extend this class to create new widgets.
  */
 
-import type { IWidgetConfig, IDataSource, IWidgetEvent } from './types';
+import type { IWidgetConfig, IDataSource, IWidgetEvent, PropertyPath, WidgetAction } from './types';
 import { WidgetBus } from './WidgetBus';
 import { DataProvider } from './DataProvider';
-import { ScriptExecutor } from './ScriptExecutor';
+import { DeclarativeActionEngine } from './DeclarativeActionEngine';
 
 export abstract class BaseWidget extends HTMLElement {
   // Abstract properties - must be implemented by subclasses
@@ -23,12 +23,20 @@ export abstract class BaseWidget extends HTMLElement {
   protected state: Map<string, any>;
   protected _isConnected: boolean = false;
   protected _refreshTimer?: number;
+  private readonly actionEngine: DeclarativeActionEngine;
   
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
     this.state = new Map();
     this.config = this.getDefaultConfig();
+    this.actionEngine = new DeclarativeActionEngine({
+      capabilities: {
+        setData: (path, value) => this.setActionData(path, value),
+        emit: (event, payload) => this.emit(event, payload),
+        openUrl: (url) => this.openActionUrl(url),
+      },
+    });
   }
   
   /**
@@ -232,22 +240,38 @@ export abstract class BaseWidget extends HTMLElement {
     return WidgetBus.getInstance().subscribe(widgetId, event, handler);
   }
   
-  /**
-   * Execute script safely
-   */
-  async executeScript(script: string, context: any = {}): Promise<any> {
-    const executor = ScriptExecutor.getInstance();
-    const result = await executor.execute(script, {
+  /** Execute one closed, declarative widget action. */
+  executeAction(action: WidgetAction, context: Record<string, unknown> = {}): void {
+    this.actionEngine.execute(action, {
       widget: this,
       data: this.data,
-      ...context
+      ...context,
     });
-    
-    if (!result.success) {
-      throw new Error(result.error);
+  }
+
+  private setActionData(path: PropertyPath, value: unknown): void {
+    if (path.length === 0) {
+      throw new Error('A set-data action requires a non-empty property path.');
     }
-    
-    return result.result;
+
+    const root = this.data && typeof this.data === 'object' && !Array.isArray(this.data)
+      ? this.data as Record<string, unknown>
+      : {};
+    let target = root;
+    for (const key of path.slice(0, -1)) {
+      const next = target[key];
+      if (!next || typeof next !== 'object' || Array.isArray(next)) {
+        target[key] = {};
+      }
+      target = target[key] as Record<string, unknown>;
+    }
+    target[path[path.length - 1]] = value;
+    this.data = root;
+    this.onDataReceived?.(root);
+  }
+
+  private openActionUrl(url: string): void {
+    window.open(url, '_blank', 'noopener,noreferrer');
   }
   
   /**

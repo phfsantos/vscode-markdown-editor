@@ -50,7 +50,7 @@ export function getHtmlForWebview(webview: vscode.Webview, ctx: WebviewHtmlConte
                 webview.cspSource
               } 'unsafe-inline'; script-src ${
     webview.cspSource
-  } 'unsafe-inline' 'unsafe-eval'; img-src ${
+  } 'unsafe-inline'; img-src ${
     webview.cspSource
   } https: data: blob:; font-src ${webview.cspSource} data:; media-src ${
     webview.cspSource

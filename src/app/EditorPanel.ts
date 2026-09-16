@@ -6,6 +6,11 @@ import { logger } from "../utils/Logger";
 import { AIMarkdownWorkflowService } from "../services";
 import { NativeNotificationService } from "./NativeNotificationService";
 import { RendererDataStore } from "./RendererDataStore";
+import {
+  createRendererDataErrorResponse,
+  isRendererDataCommand,
+  parseRendererDataMessage,
+} from "./rendererDataMessages";
 import { getHtmlForWebview } from "./webviewHtml";
 import { CalendarMessageHandler } from "./CalendarMessageHandler";
 import { DiffViewController } from "./DiffViewController";
@@ -16,11 +21,22 @@ import {
   type DocumentSyncController,
 } from "./DocumentSyncController";
 import { createDocumentWriteOriginTracker } from "./DocumentWriteOriginTracker";
-import { filterDiagnosticsOutsideFencedCodeBlocks } from "../diagnostics/markdown-diagnostic-filter";
+import { filterDiagnosticsOutsideFencedCodeBlocks } from "@markdown-editor/core";
+import type {
+  ActiveDocumentEvents,
+  DiffCoordinator,
+  EditorNavigationPreviewPort,
+} from "../runtime/ports";
 
 // Note: Virtual schemes (showModifications, git) are now rejected at the provider level
 // in PreviewCustomEditorProvider.resolveCustomTextEditor(), so this code should
 // only ever receive normal file schemes (file, vscode-remote, etc.)
+
+export interface EditorPanelDependencies {
+  diffCoordinator?: DiffCoordinator;
+  activeDocumentEvents?: ActiveDocumentEvents;
+  editorNavigation?: EditorNavigationPreviewPort;
+}
 
 /**
  * Manages cat coding webview panels
@@ -45,15 +61,6 @@ export class EditorPanel {
    * Track ongoing diff calculations to prevent duplicate calculations
    * Map structure: tab -> Promise of ongoing calculation
    */
-
-  /**
-   * Event emitter for active document changes in custom editor
-   */
-  private static _onDidChangeActiveDocument = new vscode.EventEmitter<
-    vscode.TextDocument | undefined
-  >();
-  public static readonly onDidChangeActiveDocument =
-    EditorPanel._onDidChangeActiveDocument.event;
 
   public static readonly viewType = "markdown-editor";
   private _disposables: vscode.Disposable[] = [];
@@ -82,6 +89,7 @@ export class EditorPanel {
   private readonly _notifications = new NativeNotificationService(
     () => this._panel?.title || NodePath.basename(this._fsPath)
   );
+  private readonly _dependencies: EditorPanelDependencies;
 
   // Diff-related properties (set reactively after creation)
 
@@ -94,7 +102,8 @@ export class EditorPanel {
     tab?: vscode.Tab,
     webviewPanel?: vscode.WebviewPanel,
     isDiffView: boolean = false,
-    readOnly?: boolean
+    readOnly?: boolean,
+    dependencies: EditorPanelDependencies = {},
   ) {
     logger.debug(`🔵 EditorPanel.createOrShow called:`);
     logger.debug(`[createOrShow] isDiffView: ${isDiffView}`);
@@ -221,7 +230,8 @@ export class EditorPanel {
       !!webviewPanel,
       tab,
       isDiffView,
-      readOnly
+      readOnly,
+      dependencies,
     );
 
     // For diff views, always add to editors array (not currentPanel)
@@ -247,16 +257,20 @@ export class EditorPanel {
   }
 
   // ---- DiffHost implementation (consumed by DiffViewController) ----
-  public readonly diff: DiffViewController = new DiffViewController(this);
+  public readonly diff: DiffViewController;
 
   // ---- AiHost implementation (consumed by AiMessageHandler) ----
   public readonly ai: AiMessageHandler = new AiMessageHandler(this);
 
   // ---- HandlerHost implementation (consumed by EditorMessageHandlers) ----
-  public readonly handlers: EditorMessageHandlers = new EditorMessageHandlers(this);
+  public readonly handlers: EditorMessageHandlers;
 
   public get context(): vscode.ExtensionContext {
     return this._context;
+  }
+
+  public get editorNavigation(): EditorNavigationPreviewPort | undefined {
+    return this._dependencies.editorNavigation;
   }
 
   public get lastWebviewEdit(): number {
@@ -319,6 +333,10 @@ export class EditorPanel {
     this.ai.postInlineSuggestionEligibility();
   }
 
+  private publishActiveDocument(document: vscode.TextDocument | undefined): void {
+    this._dependencies.activeDocumentEvents?.setActiveDocument(document);
+  }
+
   /**
    * Get this extension configuration
    */
@@ -335,8 +353,12 @@ export class EditorPanel {
     public _isEditor: boolean = false, // Mark if this is a markdown editor panel
     private readonly _tab?: vscode.Tab, // Associated VS Code tab
     private readonly _isExplicitDiffView: boolean = false, // Explicitly marked as diff view by provider
-    private readonly _readOnly?: boolean // Whether the editor is read-only
+    private readonly _readOnly?: boolean, // Whether the editor is read-only
+    dependencies: EditorPanelDependencies = {},
   ) {
+    this._dependencies = dependencies;
+    this.diff = new DiffViewController(this, dependencies.diffCoordinator);
+    this.handlers = new EditorMessageHandlers(this);
     // Generate unique instance ID for debugging
     this.instanceId = `${NodePath.basename(
       this._fsPath
@@ -416,7 +438,7 @@ export class EditorPanel {
           logger.debug(
             `[${this.instanceId}] Panel is now ACTIVE, firing document change event`
           );
-          EditorPanel._onDidChangeActiveDocument.fire(this._document);
+          this.publishActiveDocument(this._document);
 
           // CRITICAL: When panel becomes active, ALWAYS re-check diff context
           // This handles switching from individual tab → diff tab
@@ -449,9 +471,9 @@ export class EditorPanel {
     // Fire initial event if this panel is currently active
     if (this._panel.active) {
       logger.debug(
-        "Sidebar: EditorPanel created and is active, firing initial document change event"
+        "EditorPanel created and is active, publishing the active document"
       );
-      EditorPanel._onDidChangeActiveDocument.fire(this._document);
+      this.publishActiveDocument(this._document);
     }
 
     // Listen for diagnostic changes and send to webview
@@ -459,11 +481,7 @@ export class EditorPanel {
       if (
         e.uris.some((uri) => uri.toString() === this._document.uri.toString())
       ) {
-        if ((global as any).markdownEditorLog) {
-          (global as any).markdownEditorLog(
-            `Diagnostics changed for document, updating webview`
-          );
-        }
+        logger.debug(`Diagnostics changed for document, updating webview`);
         this._updateDiagnostics();
       }
     }, this._disposables);
@@ -496,22 +514,18 @@ export class EditorPanel {
       );
       const isExternalChange = !isSynchronizedChange;
 
-      if ((global as any).markdownEditorLog) {
-        const changeInfo = {
-          changes: e.contentChanges.length,
-          reason: e.reason,
-          panelActive: this._panel.active,
-          isExternal: isExternalChange,
-          changeTypes: e.contentChanges.map((c) => ({
-            rangeLength: c.rangeLength,
-            textLength: c.text.length,
-            range: `${c.range.start.line}:${c.range.start.character}-${c.range.end.line}:${c.range.end.character}`,
-          })),
-        };
-        (global as any).markdownEditorLog(
-          `Document change detected: ${JSON.stringify(changeInfo)}`
-        );
-      }
+      const changeInfo = {
+        changes: e.contentChanges.length,
+        reason: e.reason,
+        panelActive: this._panel.active,
+        isExternal: isExternalChange,
+        changeTypes: e.contentChanges.map((c) => ({
+          rangeLength: c.rangeLength,
+          textLength: c.text.length,
+          range: `${c.range.start.line}:${c.range.start.character}-${c.range.end.line}:${c.range.end.character}`,
+        })),
+      };
+      logger.debug(`Document change detected: ${JSON.stringify(changeInfo)}`);
 
       // changes length
       if (e.contentChanges.length > 0) {
@@ -522,20 +536,10 @@ export class EditorPanel {
       // Handle external changes (like quick fixes, spell corrections) immediately
       if (isExternalChange) {
         this._documentSync.acceptExternalContent(e.document.getText());
-        if ((global as any).markdownEditorLog) {
-          (global as any).markdownEditorLog(
-            `🔄 EXTERNAL CHANGE DETECTED - Updating webview immediately`
-          );
-          (global as any).markdownEditorLog(
-            `   • Source: VS Code panels (quick fix, spell checker, etc.)`
-          );
-          (global as any).markdownEditorLog(
-            `   • Changes: ${e.contentChanges.length} modifications`
-          );
-          (global as any).markdownEditorLog(
-            `   • Force updating webview content now`
-          );
-        }
+        logger.debug(`🔄 EXTERNAL CHANGE DETECTED - Updating webview immediately`);
+        logger.debug(`   • Source: VS Code panels (quick fix, spell checker, etc.)`);
+        logger.debug(`   • Changes: ${e.contentChanges.length} modifications`);
+        logger.debug(`   • Force updating webview content now`);
         if (textEditTimer) {
           clearTimeout(textEditTimer);
         }
@@ -585,11 +589,7 @@ export class EditorPanel {
     // Listen for configuration changes that might affect external change behavior
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration("markdown-editor")) {
-        if ((global as any).markdownEditorLog) {
-          (global as any).markdownEditorLog(
-            "Configuration changed, updating webview"
-          );
-        }
+        logger.debug("Configuration changed, updating webview");
         this._update();
       }
     }, this._disposables);
@@ -616,6 +616,44 @@ export class EditorPanel {
     this._panel.webview.onDidReceiveMessage(
       async (message) => {
         debug("msg from webview review", message, this._panel.active);
+
+        if (message === null || typeof message !== "object") {
+          return;
+        }
+
+        const rendererMessage = parseRendererDataMessage(message);
+        if (isRendererDataCommand(message?.command)) {
+          if (!rendererMessage) {
+            this._panel.webview.postMessage(
+              createRendererDataErrorResponse(message),
+            );
+            return;
+          }
+
+          switch (rendererMessage.command) {
+            case "kanban-save-data":
+              await this._rendererData.handleKanbanSaveData(rendererMessage);
+              return;
+            case "kanban-load-data":
+              await this._rendererData.handleKanbanLoadData(rendererMessage);
+              return;
+            case "kanban-migrate-data":
+              await this._rendererData.handleKanbanMigrateData(rendererMessage);
+              return;
+            case "renderer-load-data":
+              await this._rendererData.handleRendererLoadData(rendererMessage);
+              return;
+            case "renderer-save-data":
+              await this._rendererData.handleRendererSaveData(rendererMessage);
+              return;
+            case "renderer-check-data":
+              await this._rendererData.handleRendererCheckData(rendererMessage);
+              return;
+            case "requestInsertRenderer":
+              await this._rendererData.handleInsertRenderer(rendererMessage);
+              return;
+          }
+        }
 
         switch (message.command) {
           case "ready": {
@@ -659,7 +697,7 @@ export class EditorPanel {
               logger.debug(
                 "[EditorPanel] Vditor ready - emitting document change for sidebar update"
               );
-              EditorPanel._onDidChangeActiveDocument.fire(this._document);
+              this.publishActiveDocument(this._document);
             }
 
             void this.diff.applyPendingChatDiffVisualization();
@@ -702,7 +740,7 @@ export class EditorPanel {
             // Handle scroll synchronization in diff view
 
             if (this._uri && this.diff.otherDiffUri) {
-              const diffSupport = (global as any).markdownDiffViewSupport;
+              const diffSupport = this._dependencies.diffCoordinator;
 
               if (diffSupport) {
                 // Pass instance ID to help identify source editor when URIs are identical
@@ -714,7 +752,7 @@ export class EditorPanel {
                 );
               } else {
                 logger.warn(
-                  "⚠️ EDITOR PANEL: markdownDiffViewSupport not found on global"
+                  "⚠️ EDITOR PANEL: diff coordinator is unavailable"
                 );
               }
             } else {
@@ -821,9 +859,7 @@ export class EditorPanel {
           case "log": {
             // Handle log messages from webview and show in VS Code output
             const webviewMessage = `[Webview] ${message.message}`;
-            if ((global as any).markdownEditorLog) {
-              (global as any).markdownEditorLog(webviewMessage);
-            }
+            logger.debug(webviewMessage);
             break;
           }
           case "requestContextMenu": {
@@ -953,41 +989,6 @@ export class EditorPanel {
             await vscode.commands.executeCommand(`markdown-editor.insert${widgetType}Widget`);
             break;
           }
-          case "kanban-save-data": {
-            // Handle kanban data save
-            await this._rendererData.handleKanbanSaveData(message);
-            break;
-          }
-          case "kanban-load-data": {
-            // Handle kanban data load
-            await this._rendererData.handleKanbanLoadData(message);
-            break;
-          }
-          case "kanban-migrate-data": {
-            // Handle kanban data migration
-            await this._rendererData.handleKanbanMigrateData(message);
-            break;
-          }
-          case "renderer-load-data": {
-            // Generic renderer data load
-            await this._rendererData.handleRendererLoadData(message);
-            break;
-          }
-          case "renderer-save-data": {
-            // Generic renderer data save
-            await this._rendererData.handleRendererSaveData(message);
-            break;
-          }
-          case "renderer-check-data": {
-            // Generic renderer data check
-            await this._rendererData.handleRendererCheckData(message);
-            break;
-          }
-          case "requestInsertRenderer": {
-            // Handle insert custom renderer request from webview
-            await this._rendererData.handleInsertRenderer(message);
-            break;
-          }
           case "requestWorkspaceFiles": {
             // Handle wiki-link autocomplete workspace files request
             await this._rendererData.handleRequestWorkspaceFiles(message);
@@ -1107,8 +1108,10 @@ export class EditorPanel {
       );
     }
 
-    // Fire event that active document is now undefined
-    EditorPanel._onDidChangeActiveDocument.fire(undefined);
+    // Clear the activation-scoped active document when this panel owns it.
+    if (this._dependencies.activeDocumentEvents?.activeDocument?.uri.toString() === this._document.uri.toString()) {
+      this.publishActiveDocument(undefined);
+    }
 
     // Clean up our resources
     this._panel.dispose();
@@ -1436,16 +1439,12 @@ export class EditorPanel {
 
     // Also log to VS Code output channel
     const logMessage = `Diagnostics sent to webview: ${serializedDiagnostics.length} items`;
-    if ((global as any).markdownEditorLog) {
-      (global as any).markdownEditorLog(logMessage);
-      serializedDiagnostics.forEach((diag, i) => {
-        (global as any).markdownEditorLog(
-          `  ${i + 1}. [${diag.source}] Line ${diag.range.start.line}: ${
-            diag.message
-          }`
-        );
-      });
-    }
+    logger.debug(logMessage);
+    serializedDiagnostics.forEach((diag, i) => {
+      logger.debug(
+        `  ${i + 1}. [${diag.source}] Line ${diag.range.start.line}: ${diag.message}`
+      );
+    });
   }
 
 

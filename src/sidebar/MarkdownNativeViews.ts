@@ -3,6 +3,7 @@ import { CacheStatus, Link, RelatedFile } from '../services/RelationshipAnalyzer
 import {
   GraphRequestOptions,
   MarkdownSidebarContext,
+  type MarkdownSidebarContextDependencies,
   SidebarEmbedItem,
   SidebarTemplateItem
 } from './MarkdownSidebarContext';
@@ -722,8 +723,11 @@ export class MarkdownSidebarManager implements vscode.Disposable {
   private readonly graphViewProvider: MarkdownMiniGraphViewProvider;
   private readonly disposables: vscode.Disposable[] = [];
 
-  constructor(private readonly extensionContext: vscode.ExtensionContext) {
-    this.sidebarContext = new MarkdownSidebarContext(extensionContext);
+  constructor(
+    private readonly extensionContext: vscode.ExtensionContext,
+    dependencies: MarkdownSidebarContextDependencies = {},
+  ) {
+    this.sidebarContext = new MarkdownSidebarContext(extensionContext, dependencies);
     this.graphViewProvider = new MarkdownMiniGraphViewProvider(extensionContext, this.sidebarContext);
 
     this.registerTreeView('markdown-sidebar-status', new MarkdownSidebarStatusProvider(this.sidebarContext, 'Open a markdown file to inspect its status.'));

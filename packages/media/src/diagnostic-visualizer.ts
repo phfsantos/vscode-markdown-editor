@@ -1,6 +1,6 @@
 import { DiagnosticMatcher, isDescendantOf } from "./diagnostic-matcher";
 import { DiagnosticDecorations } from "./diagnostic-decorations";
-import { filterDiagnosticsOutsideFencedCodeBlocks } from "../../../src/diagnostics/markdown-diagnostic-filter";
+import { filterDiagnosticsOutsideFencedCodeBlocks } from "@markdown-editor/core";
 
 /**
  * Handles VS Code diagnostic visualization in Vditor editor

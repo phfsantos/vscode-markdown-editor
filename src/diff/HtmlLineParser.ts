@@ -1,5 +1,5 @@
 import * as cheerio from 'cheerio';
-import { createRenderedLineRules, normalizeRenderedLineText as normalizeText } from './renderedLineRules';
+import { createRenderedLineRules, normalizeRenderedLineText as normalizeText } from '@markdown-editor/core';
 
 const rules = createRenderedLineRules<any>({
   tagName: getTagName,

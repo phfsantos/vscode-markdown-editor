@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import * as NodePath from "path";
 import { logger } from "../utils/Logger";
 import { showError, debug } from "./_utils";
+import type { EditorNavigationPreviewPort } from "../runtime/ports";
 
 /**
  * The slice of an editor panel the general webview-command handlers need.
@@ -17,6 +18,7 @@ export interface HandlerHost {
     | { line: number; character: number; timestamp: number }
     | null;
   postMessage(message: unknown): void;
+  readonly editorNavigation?: EditorNavigationPreviewPort;
 }
 
 /**
@@ -111,8 +113,8 @@ export class EditorMessageHandlers {
    */
   public async handleContextMenuRequest(message: any): Promise<void> {
     try {
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `🔧 Context menu requested at position: ${JSON.stringify(
             message.position
           )}`
@@ -153,8 +155,8 @@ export class EditorMessageHandlers {
         })),
       });
     } catch (error) {
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `❌ Context menu request failed: ${error}`
         );
       }
@@ -166,8 +168,8 @@ export class EditorMessageHandlers {
    */
   public async handleQuickFixRequest(message: any): Promise<void> {
     try {
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `🔧 Quick fix requested: ${message.actionTitle}`
         );
       }
@@ -210,15 +212,15 @@ export class EditorMessageHandlers {
           );
         }
 
-        if ((global as any).markdownEditorLog) {
-          (global as any).markdownEditorLog(
+        if (logger.debug) {
+          logger.debug(
             `✅ Quick fix applied: ${targetAction.title}`
           );
         }
       }
     } catch (error) {
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `❌ Quick fix request failed: ${error}`
         );
       }
@@ -239,8 +241,8 @@ export class EditorMessageHandlers {
         requestId: message.requestId,
       });
 
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `📋 Clipboard write successful: ${message.text?.length || 0} chars`
         );
       }
@@ -253,8 +255,8 @@ export class EditorMessageHandlers {
         requestId: message.requestId,
       });
 
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `❌ Clipboard write failed: ${error}`
         );
       }
@@ -276,8 +278,8 @@ export class EditorMessageHandlers {
         requestId: message.requestId,
       });
 
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `📋 Clipboard read successful: ${text.length} chars`
         );
       }
@@ -291,8 +293,8 @@ export class EditorMessageHandlers {
         requestId: message.requestId,
       });
 
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(`❌ Clipboard read failed: ${error}`);
+      if (logger.debug) {
+        logger.debug(`❌ Clipboard read failed: ${error}`);
       }
     }
   }
@@ -309,14 +311,14 @@ export class EditorMessageHandlers {
         timestamp: Date.now(),
       };
 
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `🎯 Cursor position updated: line ${message.line}, char ${message.character}`
         );
       }
     } catch (error) {
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `❌ Cursor position update failed: ${error}`
         );
       }
@@ -329,8 +331,8 @@ export class EditorMessageHandlers {
   public async handleTriggerQuickFix(message: any): Promise<void> {
     try {
       if (!this.host.document) {
-        if ((global as any).markdownEditorLog) {
-          (global as any).markdownEditorLog(
+        if (logger.debug) {
+          logger.debug(
             `❌ Cannot trigger quick fix: no document available`
           );
         }
@@ -351,14 +353,14 @@ export class EditorMessageHandlers {
         range: range,
       });
 
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `🔧 Quick fix triggered at line ${line}, character ${character}`
         );
       }
     } catch (error) {
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `❌ Quick fix trigger failed: ${error}`
         );
       }
@@ -371,12 +373,12 @@ export class EditorMessageHandlers {
   public async handleSelectAll(): Promise<void> {
     try {
       await vscode.commands.executeCommand("editor.action.selectAll");
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(`✅ Select All executed`);
+      if (logger.debug) {
+        logger.debug(`✅ Select All executed`);
       }
     } catch (error) {
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(`❌ Select All failed: ${error}`);
+      if (logger.debug) {
+        logger.debug(`❌ Select All failed: ${error}`);
       }
     }
   }
@@ -387,12 +389,12 @@ export class EditorMessageHandlers {
   public async handleFormatDocument(): Promise<void> {
     try {
       await vscode.commands.executeCommand("editor.action.formatDocument");
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(`✅ Format Document executed`);
+      if (logger.debug) {
+        logger.debug(`✅ Format Document executed`);
       }
     } catch (error) {
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `❌ Format Document failed: ${error}`
         );
       }
@@ -405,12 +407,12 @@ export class EditorMessageHandlers {
   public async handleFormatSelection(): Promise<void> {
     try {
       await vscode.commands.executeCommand("editor.action.formatSelection");
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(`✅ Format Selection executed`);
+      if (logger.debug) {
+        logger.debug(`✅ Format Selection executed`);
       }
     } catch (error) {
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `❌ Format Selection failed: ${error}`
         );
       }
@@ -423,12 +425,12 @@ export class EditorMessageHandlers {
   public async handleShowProblems(): Promise<void> {
     try {
       await vscode.commands.executeCommand("workbench.actions.view.problems");
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(`✅ Show Problems executed`);
+      if (logger.debug) {
+        logger.debug(`✅ Show Problems executed`);
       }
     } catch (error) {
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(`❌ Show Problems failed: ${error}`);
+      if (logger.debug) {
+        logger.debug(`❌ Show Problems failed: ${error}`);
       }
     }
   }
@@ -439,14 +441,14 @@ export class EditorMessageHandlers {
   public async handleOpenProblemsPanel(): Promise<void> {
     try {
       await vscode.commands.executeCommand("workbench.actions.view.problems");
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `💡 Problems panel opened from lightbulb click`
         );
       }
     } catch (error) {
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `❌ Open Problems Panel failed: ${error}`
         );
       }
@@ -480,8 +482,8 @@ export class EditorMessageHandlers {
         }
       }
       
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `🔘 Widget action received: ${action} (${actionType}) data: ${JSON.stringify(data)}`
         );
       }
@@ -499,8 +501,8 @@ export class EditorMessageHandlers {
               await vscode.commands.executeCommand(commandToExecute);
             }
             
-            if ((global as any).markdownEditorLog) {
-              (global as any).markdownEditorLog(
+            if (logger.debug) {
+              logger.debug(
                 `✅ VS Code command executed: ${commandToExecute}`
               );
             }
@@ -508,8 +510,8 @@ export class EditorMessageHandlers {
             // Send success notification back to webview
             vscode.window.showInformationMessage(`Command executed: ${commandToExecute}`);
           } catch (cmdError) {
-            if ((global as any).markdownEditorLog) {
-              (global as any).markdownEditorLog(
+            if (logger.debug) {
+              logger.debug(
                 `❌ VS Code command failed: ${commandToExecute} - ${cmdError}`
               );
             }
@@ -531,8 +533,8 @@ export class EditorMessageHandlers {
           sourceWidgetId: widgetId,
         });
         
-        if ((global as any).markdownEditorLog) {
-          (global as any).markdownEditorLog(
+        if (logger.debug) {
+          logger.debug(
             `📤 Widget action forwarded to target: ${targetWidget}`
           );
         }
@@ -540,8 +542,8 @@ export class EditorMessageHandlers {
       }
       
       // Log value/data actions for extension API consumption
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `📋 Widget action logged: ${action} = ${JSON.stringify(value || data)}`
         );
       }
@@ -554,8 +556,8 @@ export class EditorMessageHandlers {
       }
       
     } catch (error) {
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `❌ Widget action failed: ${error}`
         );
       }
@@ -571,12 +573,12 @@ export class EditorMessageHandlers {
       this.host.postMessage({
         command: "showFind",
       });
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(`✅ Find widget shown`);
+      if (logger.debug) {
+        logger.debug(`✅ Find widget shown`);
       }
     } catch (error) {
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(`❌ Find failed: ${error}`);
+      if (logger.debug) {
+        logger.debug(`❌ Find failed: ${error}`);
       }
     }
   }
@@ -590,12 +592,12 @@ export class EditorMessageHandlers {
       this.host.postMessage({
         command: "showFindReplace",
       });
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(`✅ Find and Replace widget shown`);
+      if (logger.debug) {
+        logger.debug(`✅ Find and Replace widget shown`);
       }
     } catch (error) {
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `❌ Find and Replace failed: ${error}`
         );
       }
@@ -611,12 +613,12 @@ export class EditorMessageHandlers {
       this.host.postMessage({
         command: "insertLink",
       });
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(`✅ Insert Link executed`);
+      if (logger.debug) {
+        logger.debug(`✅ Insert Link executed`);
       }
     } catch (error) {
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(`❌ Insert Link failed: ${error}`);
+      if (logger.debug) {
+        logger.debug(`❌ Insert Link failed: ${error}`);
       }
     }
   }
@@ -630,12 +632,12 @@ export class EditorMessageHandlers {
       this.host.postMessage({
         command: "insertImage",
       });
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(`✅ Insert Image executed`);
+      if (logger.debug) {
+        logger.debug(`✅ Insert Image executed`);
       }
     } catch (error) {
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(`❌ Insert Image failed: ${error}`);
+      if (logger.debug) {
+        logger.debug(`❌ Insert Image failed: ${error}`);
       }
     }
   }
@@ -649,12 +651,12 @@ export class EditorMessageHandlers {
       this.host.postMessage({
         command: "insertTable",
       });
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(`✅ Insert Table executed`);
+      if (logger.debug) {
+        logger.debug(`✅ Insert Table executed`);
       }
     } catch (error) {
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(`❌ Insert Table failed: ${error}`);
+      if (logger.debug) {
+        logger.debug(`❌ Insert Table failed: ${error}`);
       }
     }
   }
@@ -665,12 +667,12 @@ export class EditorMessageHandlers {
   public async handleShowCommandPalette(): Promise<void> {
     try {
       await vscode.commands.executeCommand("workbench.action.showCommands");
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(`✅ Show Command Palette executed`);
+      if (logger.debug) {
+        logger.debug(`✅ Show Command Palette executed`);
       }
     } catch (error) {
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `❌ Show Command Palette failed: ${error}`
         );
       }
@@ -683,12 +685,12 @@ export class EditorMessageHandlers {
   public async handleToggleWordWrap(): Promise<void> {
     try {
       await vscode.commands.executeCommand("editor.action.toggleWordWrap");
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(`✅ Toggle Word Wrap executed`);
+      if (logger.debug) {
+        logger.debug(`✅ Toggle Word Wrap executed`);
       }
     } catch (error) {
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `❌ Toggle Word Wrap failed: ${error}`
         );
       }
@@ -743,8 +745,8 @@ export class EditorMessageHandlers {
         );
       }
 
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `✅ Share fallback used (mailto + clipboard): ${fullText.length} chars`
         );
       }
@@ -753,8 +755,8 @@ export class EditorMessageHandlers {
         `Share failed: ${error instanceof Error ? error.message : String(error)}`
       );
 
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(`❌ Share markdown failed: ${error}`);
+      if (logger.debug) {
+        logger.debug(`❌ Share markdown failed: ${error}`);
       }
     }
   }
@@ -807,8 +809,8 @@ export class EditorMessageHandlers {
         );
       }
 
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `✅ Share HTML fallback used (mailto + clipboard): ${fullHtml.length} chars`
         );
       }
@@ -817,8 +819,8 @@ export class EditorMessageHandlers {
         `Share HTML failed: ${error instanceof Error ? error.message : String(error)}`
       );
 
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(`❌ Share HTML failed: ${error}`);
+      if (logger.debug) {
+        logger.debug(`❌ Share HTML failed: ${error}`);
       }
     }
   }
@@ -925,9 +927,11 @@ export class EditorMessageHandlers {
 
         // For markdown files, use our custom editor
         if (ext === ".md") {
-          // Dynamic import breaks the circular dependency with EditorPanel.
-          const { EditorPanel } = await import("./EditorPanel");
-          await EditorPanel.createOrShow(this.host.context, uri);
+          if (this.host.editorNavigation) {
+            await this.host.editorNavigation.openEditor(uri);
+          } else {
+            await vscode.commands.executeCommand("vscode.open", uri);
+          }
         } else {
           // For other files, use default editor
           await vscode.commands.executeCommand("vscode.open", uri);

@@ -12,7 +12,11 @@ import {
   RelatedFile
 } from '../services/RelationshipAnalyzer';
 import { TagManager } from '../services/TagManager';
-import { EditorPanel } from '../app/EditorPanel';
+import { ActiveDocumentContext } from '../runtime/ActiveDocumentContext';
+import type {
+  ActiveDocumentEvents,
+  EditorNavigationPreviewPort,
+} from '../runtime/ports';
 
 export interface GraphRequestOptions {
   depth: number;
@@ -35,6 +39,13 @@ export interface SidebarEmbedItem {
   raw: string;
   filename: string;
   resolved: string | null;
+}
+
+export interface MarkdownSidebarContextDependencies {
+  activeDocumentContext?: ActiveDocumentEvents;
+  editorNavigation?: EditorNavigationPreviewPort;
+  relationshipAnalyzer?: RelationshipAnalyzer;
+  graphGenerator?: LinkGraphGenerator;
 }
 
 function getMimeForExt(ext: string): string {
@@ -98,98 +109,51 @@ export class MarkdownSidebarContext implements vscode.Disposable {
   private readonly changeEmitter = new vscode.EventEmitter<void>();
   private readonly cacheStatusEmitter = new vscode.EventEmitter<CacheStatus>();
   private readonly disposables: vscode.Disposable[] = [];
-  private readonly relationshipAnalyzer = RelationshipAnalyzer.getInstance();
-  private readonly graphGenerator = LinkGraphGenerator.getInstance();
+  private readonly relationshipAnalyzer: RelationshipAnalyzer;
+  private readonly graphGenerator: LinkGraphGenerator;
   private readonly templateManager = TemplateManager.getInstance();
   private readonly defaultEditorChecker = DefaultEditorChecker.getInstance();
   private readonly tagManager = TagManager.getInstance();
-  /**
-   * Canonical active Markdown document for sidebar consumers and dependent views.
-   * Text-editor, visible-editor, and custom-editor events all converge here so
-   * consumers do not need to reconcile those host-specific sources themselves.
-   */
-  private activeDocument?: vscode.TextDocument;
-
-  private static currentInstance: MarkdownSidebarContext | undefined;
-  private static readonly activeDocumentEmitter = new vscode.EventEmitter<
-    vscode.TextDocument | undefined
-  >();
-
-  public static readonly onDidChangeActiveDocument =
-    MarkdownSidebarContext.activeDocumentEmitter.event;
+  private readonly activeDocumentContext: ActiveDocumentEvents;
+  private readonly editorNavigation?: EditorNavigationPreviewPort;
+  private readonly ownsActiveDocumentContext: boolean;
+  private disposed = false;
 
   public readonly onDidChange = this.changeEmitter.event;
   public readonly onDidChangeCacheStatus = this.cacheStatusEmitter.event;
 
-  constructor(private readonly extensionContext: vscode.ExtensionContext) {
+  constructor(
+    private readonly extensionContext: vscode.ExtensionContext,
+    dependencies: MarkdownSidebarContextDependencies = {},
+  ) {
+    this.activeDocumentContext = dependencies.activeDocumentContext ?? new ActiveDocumentContext();
+    this.ownsActiveDocumentContext = !dependencies.activeDocumentContext;
+    this.editorNavigation = dependencies.editorNavigation;
+    this.relationshipAnalyzer = dependencies.relationshipAnalyzer ?? RelationshipAnalyzer.getInstance();
+    this.graphGenerator = dependencies.graphGenerator ?? LinkGraphGenerator.getInstance();
     void this.templateManager.loadUserTemplates();
 
-    this.relationshipAnalyzer.onCacheStatusChange((status) => {
-      this.cacheStatusEmitter.fire(status);
-      this.changeEmitter.fire();
-    });
+    this.disposables.push(
+      this.relationshipAnalyzer.onCacheStatusChange((status) => {
+        this.cacheStatusEmitter.fire(status);
+        this.changeEmitter.fire();
+      }),
+      this.activeDocumentContext.onDidChangeActiveDocument(() => {
+        this.changeEmitter.fire();
+      }),
+    );
 
     this.disposables.push(
-      vscode.window.onDidChangeActiveTextEditor((editor) => {
-        if (editor?.document.languageId === 'markdown') {
-          this.setActiveDocument(editor.document);
-          return;
-        }
-
-        if (editor && this.isSystemView(editor.document)) {
-          return;
-        }
-
-        if (editor && this.hasFileExtension(editor.document.uri)) {
-          this.setActiveDocument(undefined);
-        }
-      }),
-      vscode.window.onDidChangeVisibleTextEditors((editors) => {
-        const markdownEditor = editors.find(
-          (editor) => editor.document.languageId === 'markdown' && !this.isSystemView(editor.document)
-        );
-
-        if (markdownEditor) {
-          this.setActiveDocument(markdownEditor.document);
-          return;
-        }
-
-        const activeEditor = vscode.window.activeTextEditor;
-        if (activeEditor && this.hasFileExtension(activeEditor.document.uri)) {
-          this.setActiveDocument(undefined);
-        }
-      }),
       vscode.workspace.onDidChangeTextDocument((event) => {
         if (this.activeDocument && event.document.uri.toString() === this.activeDocument.uri.toString()) {
           this.changeEmitter.fire();
         }
       }),
-      EditorPanel.onDidChangeActiveDocument((document: vscode.TextDocument | undefined) => {
-        if (document?.languageId === 'markdown') {
-          this.setActiveDocument(document);
-          return;
-        }
-
-        this.setActiveDocument(undefined);
-      })
     );
-
-    const activeEditor = vscode.window.activeTextEditor;
-    if (activeEditor?.document.languageId === 'markdown') {
-      this.activeDocument = activeEditor.document;
-    } else {
-      const visibleMarkdownEditor = vscode.window.visibleTextEditors.find(
-        (editor) => editor.document.languageId === 'markdown'
-      );
-      this.activeDocument = visibleMarkdownEditor?.document;
-    }
-
-    MarkdownSidebarContext.currentInstance = this;
-    MarkdownSidebarContext.activeDocumentEmitter.fire(this.activeDocument);
   }
 
-  public static getCurrentActiveDocument(): vscode.TextDocument | undefined {
-    return MarkdownSidebarContext.currentInstance?.activeDocument;
+  private get activeDocument(): vscode.TextDocument | undefined {
+    return this.activeDocumentContext.activeDocument;
   }
 
   public getActiveDocument(): vscode.TextDocument | undefined {
@@ -296,61 +260,16 @@ export class MarkdownSidebarContext implements vscode.Disposable {
   }
 
   public dispose(): void {
-    if (MarkdownSidebarContext.currentInstance === this) {
-      MarkdownSidebarContext.currentInstance = undefined;
-      MarkdownSidebarContext.activeDocumentEmitter.fire(undefined);
+    if (this.disposed) {
+      return;
     }
-
+    this.disposed = true;
     this.changeEmitter.dispose();
     this.cacheStatusEmitter.dispose();
     this.disposables.forEach((disposable) => disposable.dispose());
-  }
-
-  private setActiveDocument(document?: vscode.TextDocument): void {
-    const currentUri = this.activeDocument?.uri.toString();
-    const nextUri = document?.uri.toString();
-    if (currentUri === nextUri) {
-      return;
+    if (this.ownsActiveDocumentContext) {
+      this.activeDocumentContext.dispose();
     }
-
-    this.activeDocument = document;
-    MarkdownSidebarContext.activeDocumentEmitter.fire(document);
-    this.changeEmitter.fire();
-  }
-
-  private hasFileExtension(uri: vscode.Uri): boolean {
-    const targetPath = uri.path;
-    return targetPath.includes('.') && targetPath.lastIndexOf('.') > targetPath.lastIndexOf('/');
-  }
-
-  private isSystemView(document: vscode.TextDocument): boolean {
-    const uri = document.uri.toString();
-    const fileName = document.fileName;
-
-    if (uri.includes('extension-output-') || fileName.includes('extension-output-')) {
-      return true;
-    }
-
-    const scheme = document.uri.scheme;
-    if (['output', 'debug', 'vscode-terminal', 'git', 'extension'].includes(scheme)) {
-      return true;
-    }
-
-    const systemLanguageIds = [
-      'Log',
-      'log',
-      'plaintext',
-      'scminput',
-      'search-result',
-      'interactive',
-      'vscode-interactive-input'
-    ];
-
-    return (
-      document.languageId.includes('.output') ||
-      document.languageId.includes('frontmatter.project.output') ||
-      systemLanguageIds.includes(document.languageId)
-    );
   }
 
   private async extractEmbeds(content: string): Promise<SidebarEmbedItem[]> {
@@ -383,13 +302,8 @@ export class MarkdownSidebarContext implements vscode.Disposable {
     }
 
     try {
-      const editor = await EditorPanel.createOrShow(this.extensionContext, this.activeDocument.uri);
-      if (editor && editor['_panel'] && editor['_panel'].webview) {
-        const payload = await this.buildEmbedPayload(resolvedPath, raw);
-        editor['_panel'].webview.postMessage({
-          command: 'openEmbedPreview',
-          embed: payload
-        });
+      const payload = await this.buildEmbedPayload(resolvedPath, raw);
+      if (this.editorNavigation && await this.editorNavigation.previewEmbed(this.activeDocument, payload)) {
         return;
       }
     } catch {

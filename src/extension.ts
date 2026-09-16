@@ -2,8 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { logger } from './utils/Logger';
 const KeyVditorOptions = 'vditor.options';
-import { PreviewCustomEditorProvider } from './app/PreviewCustomEditorProvider';
-import { EditorPanel } from './app/EditorPanel';
+import { ExtensionRuntime } from './runtime/ExtensionRuntime';
 // Import new providers for enhanced VS Code integration
 import { MarkdownDiagnosticProvider } from './diagnostics/MarkdownDiagnosticProvider';
 import { MarkdownTextSyncProvider } from './sync/MarkdownTextSyncProvider';
@@ -12,28 +11,19 @@ import { MarkdownCodeLensProvider, MarkdownDecorationProvider } from './decorati
 import { MarkdownCommandProvider } from './commands/MarkdownCommandProvider';
 import { WidgetCommandProvider } from './commands/WidgetCommandProvider';
 import { VSCodeIntegrator } from './integration/VSCodeIntegrator';
-import { MarkdownDiffViewSupport } from './diff/MarkdownDiffViewSupport';
-import { MarkdownSidebarManager } from './sidebar/MarkdownNativeViews';
 import { WikiLinkCompletionProvider } from './providers/WikiLinkCompletionProvider';
 import { MarkdownInlineCompletionProvider, INLINE_SUGGESTION_LANGUAGE_IDS } from './providers/MarkdownInlineCompletionProvider';
 
 export async function activate(context: vscode.ExtensionContext) {
-  // Make extension context globally available for services like LinkResolver
-  (global as any).extensionContext = context;
-  
-  // Make logger globally available for webview and other components
-  (global as any).markdownEditorLog = (message: string) => {
-    logger.debug(message);
-  };
+  const runtime = new ExtensionRuntime(context);
+  context.subscriptions.push(runtime);
   
   // Log activation
   logger.info('🚀 Markdown Editor extension activated successfully');
-  logger.debug('✅ Global logging function is now available');
-  logger.debug('📊 Logger ready for diagnostic logs');
   logger.debug('🔧 Enhanced external change detection enabled');
   
   // Ensure logger is disposed when extension deactivates
-  context.subscriptions.push({ dispose: () => logger.dispose() });
+  runtime.addDisposables({ dispose: () => logger.dispose() });
   
   // Initialize performance optimizer
   const performanceOptimizer = new PerformanceOptimizer();
@@ -52,29 +42,29 @@ export async function activate(context: vscode.ExtensionContext) {
   // Initialize VS Code integrator for enhanced native features
   const vscodeIntegrator = VSCodeIntegrator.getInstance();
   vscodeIntegrator.registerLanguageFeatures(context);
-  context.subscriptions.push({ dispose: () => vscodeIntegrator.dispose() });
+  runtime.addDisposables({ dispose: () => vscodeIntegrator.dispose() });
   
   // Initialize diagnostic provider for inline errors
   const diagnosticProvider = new MarkdownDiagnosticProvider();
-  context.subscriptions.push(diagnosticProvider);
+  runtime.addDisposables(diagnosticProvider);
   
   // Initialize text sync provider for spell checker compatibility
   const textSyncProvider = new MarkdownTextSyncProvider();
-  context.subscriptions.push(textSyncProvider);
+  runtime.addDisposables(textSyncProvider);
   
   // Initialize decoration provider for native text highlighting
   const decorationProvider = new MarkdownDecorationProvider();
-  context.subscriptions.push(decorationProvider);
+  runtime.addDisposables(decorationProvider);
   
   // Initialize CodeLens provider for inline information
   const codeLensProvider = new MarkdownCodeLensProvider();
-  context.subscriptions.push(
+  runtime.addDisposables(
     vscode.languages.registerCodeLensProvider('markdown', codeLensProvider)
   );
 
   const inlineCompletionProvider = new MarkdownInlineCompletionProvider();
   for (const languageId of INLINE_SUGGESTION_LANGUAGE_IDS) {
-    context.subscriptions.push(
+    runtime.addDisposables(
       vscode.languages.registerInlineCompletionItemProvider(
         { language: languageId },
         inlineCompletionProvider
@@ -85,16 +75,18 @@ export async function activate(context: vscode.ExtensionContext) {
   
   // Initialize enhanced commands
   const commandProvider = new MarkdownCommandProvider(context);
-  context.subscriptions.push(commandProvider);
+  runtime.addDisposables(commandProvider);
 
   // Initialize widget commands
   WidgetCommandProvider.register(context);
   logger.debug('✅ Widget Command Provider registered');
 
-  const sidebarManager = new MarkdownSidebarManager(context);
-  context.subscriptions.push(sidebarManager);
+  const sidebarManager = runtime.sidebarManager;
+  if (!sidebarManager) {
+    throw new Error('Extension runtime did not create the sidebar manager');
+  }
 
-  context.subscriptions.push(
+  runtime.addDisposables(
     vscode.commands.registerCommand('markdown-editor.refreshSidebar', () => {
       sidebarManager.refresh();
     }),
@@ -125,7 +117,7 @@ export async function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  context.subscriptions.push(
+  runtime.addDisposables(
     vscode.workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration('markdown-editor.ai.enableInlineSuggestions')) {
         sidebarManager.refresh();
@@ -135,7 +127,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // Initialize wiki-link completion provider for Obsidian-style [[filename]] autocomplete
   const wikiLinkProvider = WikiLinkCompletionProvider.getInstance();
-  context.subscriptions.push(
+  runtime.addDisposables(
     vscode.languages.registerCompletionItemProvider(
       'markdown',
       wikiLinkProvider,
@@ -144,27 +136,18 @@ export async function activate(context: vscode.ExtensionContext) {
   );
   logger.debug('✅ Wiki-Link Completion Provider registered for [[filename]] autocomplete');
 
-  // Initialize markdown diff view support (detects when editors are in diff view)
-  logger.debug('🔍 DIFF: Initializing Markdown Diff View Support...');
-  const diffViewSupport = new MarkdownDiffViewSupport(context);
-  context.subscriptions.push(diffViewSupport);
-  logger.debug('✅ DIFF: Markdown Diff View Support registered successfully');
-
-  // Make diff support globally available
-  (global as any).markdownDiffViewSupport = diffViewSupport;
-
   // Original command registration with performance optimization
-  context.subscriptions.push(
+  runtime.addDisposables(
     vscode.commands.registerCommand(
       'markdown-editor.openEditor',
       (uri?: vscode.Uri, ...args) => {
         logger.debug('command', uri, args)
         if (uri) {
-          EditorPanel.createOrShow(context, uri)
+          runtime.editorNavigation.openEditor(uri)
         } else {
           const activeDoc = vscode.window.activeTextEditor?.document;
           if (activeDoc && activeDoc.languageId === 'markdown') {
-            EditorPanel.createOrShow(context, activeDoc);
+            runtime.editorNavigation.openEditor(activeDoc);
           } else {
             vscode.window.showErrorMessage('No Markdown file is active.');
           }
@@ -174,7 +157,7 @@ export async function activate(context: vscode.ExtensionContext) {
   )
 
   // Add command to set as default markdown editor
-  context.subscriptions.push(
+  runtime.addDisposables(
     vscode.commands.registerCommand(
       'markdown-editor.setAsDefaultEditor',
       async () => {
@@ -194,7 +177,7 @@ export async function activate(context: vscode.ExtensionContext) {
   )
 
   // Add command for graph view (placeholder for Phase 4)
-  context.subscriptions.push(
+  runtime.addDisposables(
     vscode.commands.registerCommand(
       'markdown-editor.openGraphView',
       async (
@@ -209,9 +192,7 @@ export async function activate(context: vscode.ExtensionContext) {
       ) => {
         logger.debug('[Extension] markdown-editor.openGraphView command called', graphViewInput);
         try {
-          const { GraphViewPanel } = await import('./app/GraphViewPanel');
-          logger.debug('[Extension] GraphViewPanel imported, calling createOrShow');
-          await GraphViewPanel.createOrShow(context, graphViewInput);
+          await runtime.openGraphView(graphViewInput);
         } catch (error) {
           logger.error('Extension: Error creating GraphViewPanel:', error);
           vscode.window.showErrorMessage(`Failed to open graph view: ${error}`);
@@ -237,10 +218,10 @@ export async function activate(context: vscode.ExtensionContext) {
     LinkResolver.getInstance().invalidateCache();
   });
 
-  context.subscriptions.push(fileWatcher);
+  runtime.addDisposables(fileWatcher);
 
   // Watch for file renames to update wiki-links
-  context.subscriptions.push(
+  runtime.addDisposables(
     vscode.workspace.onDidRenameFiles(async (event) => {
       const { LinkResolver } = await import('./services/LinkResolver');
       const resolver = LinkResolver.getInstance();
@@ -260,14 +241,14 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   // Clean up on deactivation
-  context.subscriptions.push({
+  runtime.addDisposables({
     dispose: () => {
       performanceOptimizer.cleanup();
     }
   });
 
   // Command: Filter notes by tag (Quick pick tags -> files)
-  context.subscriptions.push(
+  runtime.addDisposables(
     vscode.commands.registerCommand('markdown-editor.filterByTag', async () => {
       try {
         const { TagManager } = await import('./services/TagManager');
@@ -310,10 +291,10 @@ export async function activate(context: vscode.ExtensionContext) {
   // CRITICAL: Allow multiple editors per document so diff view and individual tabs
   // each get their own webview instance. This prevents constant clearing/reapplying
   // of diff visualizations when switching between tabs.
-  context.subscriptions.push(
+  runtime.addDisposables(
     vscode.window.registerCustomEditorProvider(
       'markdown-editor',
-      new PreviewCustomEditorProvider(context),
+      runtime.createPreviewCustomEditorProvider(),
       {
         webviewOptions: {
           retainContextWhenHidden: true,

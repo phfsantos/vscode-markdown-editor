@@ -9,6 +9,9 @@ const rootDir = path.resolve(__dirname, '..');
 const packageJson = JSON.parse(
   fs.readFileSync(path.join(rootDir, 'package.json'), 'utf8')
 );
+const corePackageJson = JSON.parse(
+  fs.readFileSync(path.join(rootDir, 'packages', 'core', 'package.json'), 'utf8')
+);
 const vscodeIgnore = fs.readFileSync(
   path.join(rootDir, '.vscodeignore'),
   'utf8'
@@ -34,6 +37,29 @@ function testExtensionEntryPointsUseBundle() {
   );
 
   console.log('✅ testExtensionEntryPointsUseBundle passed');
+}
+
+function testCoreWorkspacePackageIsExplicitAndPure() {
+  assert.ok(packageJson.workspaces.packages.includes('packages/*'));
+  assert.strictEqual(corePackageJson.name, '@markdown-editor/core');
+  assert.strictEqual(corePackageJson.types, './src/index.ts');
+  assert.ok(corePackageJson.exports['.'].types);
+  assert.deepStrictEqual(corePackageJson.dependencies || {}, {});
+  assert.strictEqual(packageJson.scripts['build:core'], 'yarn --cwd packages/core build');
+  assert.strictEqual(packageJson.scripts['test:core'], 'yarn --cwd packages/core test');
+}
+
+function testWebviewLoadsWidgetsBeforeMedia() {
+  const webviewHtml = fs.readFileSync(
+    path.join(rootDir, 'src', 'app', 'webviewHtml.ts'),
+    'utf8'
+  );
+  const widgetScript = webviewHtml.indexOf('<script src="${widgetBundleUri}"></script>');
+  const mediaScript = webviewHtml.indexOf('${JsFiles.map((f) => `<script src="${f}"></script>`).join("\\n")}');
+
+  assert.ok(widgetScript >= 0, 'Expected the widget script in the webview shell');
+  assert.ok(mediaScript >= 0, 'Expected the media script in the webview shell');
+  assert.ok(widgetScript < mediaScript, 'Widget scripts must load before media scripts');
 }
 
 function testAiCommandsAndSettingsAreContributed() {
@@ -141,6 +167,8 @@ function testVsixIgnoreKeepsOnlyRuntimeAssets() {
 }
 
 test('extension entry points use bundle', testExtensionEntryPointsUseBundle);
+test('core workspace package is explicit and pure', testCoreWorkspacePackageIsExplicitAndPure);
+test('webview loads widgets before media', testWebviewLoadsWidgetsBeforeMedia);
 test('AI commands and settings are contributed', testAiCommandsAndSettingsAreContributed);
 test('AI activation events and menu placements are contributed', testAiActivationEventsAndMenuPlacementsAreContributed);
 test('.vscodeignore keeps only runtime assets', testVsixIgnoreKeepsOnlyRuntimeAssets);

@@ -6,6 +6,8 @@
  */
 
 import type { IDataSource } from './types';
+import { DeclarativeActionEngine } from './DeclarativeActionEngine';
+import type { ValueExpression } from './types';
 
 interface CacheEntry {
   data: any;
@@ -18,6 +20,7 @@ export class DataProvider {
   private cache: Map<string, CacheEntry> = new Map();
   private pendingRequests: Map<string, Promise<any>> = new Map();
   private vscode: any = null;
+  private readonly expressionEngine = new DeclarativeActionEngine();
   
   private constructor() {
     this.initializeVSCode();
@@ -252,13 +255,14 @@ export class DataProvider {
   /**
    * Apply transform expression to data
    */
-  private applyTransform(data: any, transform: string): any {
+  private applyTransform(data: any, transform: ValueExpression): any {
     try {
-      const func = new Function('data', `return ${transform}`);
-      return func(data);
+      return this.expressionEngine.evaluate(transform, data);
     } catch (error) {
-      console.error('[DataProvider] Transform error:', error);
-      return data;
+      const message = error instanceof Error ? error.message : String(error);
+      const validationError = `Invalid declarative data transform: ${message}`;
+      console.error('[DataProvider] Transform error:', validationError);
+      throw new Error(validationError);
     }
   }
   

@@ -3,6 +3,7 @@ import * as NodePath from "path";
 import { logger } from "../utils/Logger";
 import { findChatEditingStateForDocument } from "./chatEditingDiff";
 import { calculateRoleSpecificDiffStats } from "../diff/roleSpecificStats";
+import type { DiffCoordinator } from "../runtime/ports";
 
 /**
  * The slice of an editor panel the diff controller needs. EditorPanel
@@ -51,7 +52,10 @@ export class DiffViewController {
   pendingChatBaselineDocument: vscode.TextDocument | undefined;
   private updateDebounceTimeout: NodeJS.Timeout | undefined;
 
-  constructor(private readonly host: DiffHost) {}
+  constructor(
+    private readonly host: DiffHost,
+    private readonly diffCoordinator?: DiffCoordinator,
+  ) {}
 
   /**
    * Register this panel as one side of an explicit diff tab (label "a ↔ b").
@@ -162,7 +166,7 @@ export class DiffViewController {
       this.diffRole = diffContext.role;
       this.host.postInlineSuggestionEligibility();
 
-      const diffSupport = (global as any).markdownDiffViewSupport;
+      const diffSupport = this.diffCoordinator;
       if (!diffSupport) {
         logger.debug(
           `[${this.host.instanceId}]   ❌ No diffSupport available for diff calculation`
@@ -359,7 +363,7 @@ export class DiffViewController {
       return;
     }
 
-    const diffSupport = (global as any).markdownDiffViewSupport;
+    const diffSupport = this.diffCoordinator;
     if (!diffSupport?.calculateDiffFromHTML) {
       logger.debug(
         `[${this.host.instanceId}] Pending chat diff skipped - diff support unavailable`
@@ -460,7 +464,7 @@ export class DiffViewController {
       return;
     }
 
-    const diffSupport = (global as any).markdownDiffViewSupport;
+    const diffSupport = this.diffCoordinator;
     if (!diffSupport || !this.host.tab) {
       logger.debug(
         `[${this.host.instanceId}] ❌ No diffSupport available for diff update`

@@ -60,47 +60,48 @@ export interface CacheStatus {
  * Advanced file relationship analyzer with caching and ranking
  */
 export class RelationshipAnalyzer {
-  private static instance: RelationshipAnalyzer;
+  private static instance: RelationshipAnalyzer | undefined;
   private cache: Map<string, CacheEntry<any>> = new Map();
   private readonly CACHE_TTL = 600000; // 10 minute cache for better performance
   private readonly textDecoder = new TextDecoder('utf-8');
   private fileAccessHistory: Map<string, number> = new Map();
   private isBuilding: boolean = false;
   private buildProgress: { current: number; total: number; operation: string } | null = null;
-  private onStatusChange: ((status: CacheStatus) => void) | null = null;
+  private readonly disposables: vscode.Disposable[] = [];
+  private readonly statusListeners = new Set<(status: CacheStatus) => void>();
 
-  private constructor() {
+  public constructor() {
     // Track file access for recency scoring
-    vscode.workspace.onDidOpenTextDocument(doc => {
+    this.disposables.push(vscode.workspace.onDidOpenTextDocument(doc => {
       if (doc.languageId === 'markdown') {
         this.fileAccessHistory.set(doc.uri.fsPath, Date.now());
       }
-    });
+    }));
     
     // Invalidate cache for changed files
-    vscode.workspace.onDidChangeTextDocument(e => {
+    this.disposables.push(vscode.workspace.onDidChangeTextDocument(e => {
       if (e.document.languageId === 'markdown') {
         this.invalidateCacheForFile(e.document.uri.fsPath);
       }
-    });
+    }));
     
     // Invalidate cache for deleted/renamed files
-    vscode.workspace.onDidDeleteFiles(e => {
+    this.disposables.push(vscode.workspace.onDidDeleteFiles(e => {
       e.files.forEach(uri => {
         if (uri.fsPath.endsWith('.md')) {
           this.invalidateCacheForFile(uri.fsPath);
         }
       });
-    });
+    }));
     
-    vscode.workspace.onDidRenameFiles(e => {
+    this.disposables.push(vscode.workspace.onDidRenameFiles(e => {
       e.files.forEach(file => {
         if (file.oldUri.fsPath.endsWith('.md') || file.newUri.fsPath.endsWith('.md')) {
           this.invalidateCacheForFile(file.oldUri.fsPath);
           this.invalidateCacheForFile(file.newUri.fsPath);
         }
       });
-    });
+    }));
   }
   
   /**
@@ -129,8 +130,11 @@ export class RelationshipAnalyzer {
   /**
    * Register callback for cache status changes
    */
-  public onCacheStatusChange(callback: (status: CacheStatus) => void): void {
-    this.onStatusChange = callback;
+  public onCacheStatusChange(callback: (status: CacheStatus) => void): vscode.Disposable {
+    this.statusListeners.add(callback);
+    return {
+      dispose: () => this.statusListeners.delete(callback),
+    };
   }
 
   /**
@@ -206,9 +210,8 @@ export class RelationshipAnalyzer {
    * Notify status change listeners
    */
   private notifyStatusChange(): void {
-    if (this.onStatusChange) {
-      this.onStatusChange(this.getCacheStatus());
-    }
+    const status = this.getCacheStatus();
+    this.statusListeners.forEach((listener) => listener(status));
   }
 
   /**
@@ -588,5 +591,11 @@ export class RelationshipAnalyzer {
   public dispose(): void {
     this.cache.clear();
     this.fileAccessHistory.clear();
+    this.statusListeners.clear();
+    this.disposables.forEach((disposable) => disposable.dispose());
+    this.disposables.length = 0;
+    if (RelationshipAnalyzer.instance === this) {
+      RelationshipAnalyzer.instance = undefined;
+    }
   }
 }

@@ -6,7 +6,8 @@
  */
 
 import type { BaseWidget } from './BaseWidget';
-import type { IWidgetConnection } from './types';
+import { DeclarativeActionEngine } from './DeclarativeActionEngine';
+import type { IWidgetConnection, ValueExpression } from './types';
 
 export class WidgetBus {
   private static instance: WidgetBus;
@@ -14,6 +15,7 @@ export class WidgetBus {
   private widgets: Map<string, BaseWidget>;
   private connections: Map<string, IWidgetConnection>;
   private widgetData: Map<string, any>;
+  private readonly expressionEngine = new DeclarativeActionEngine();
   
   private constructor() {
     this.subscribers = new Map();
@@ -183,20 +185,24 @@ export class WidgetBus {
     );
     
     for (const connection of matchingConnections) {
+      const targetWidget = this.widgets.get(connection.targetProperty.split('.')[0]);
+      if (!targetWidget) {
+        continue;
+      }
+
       try {
-        // Transform payload if transform expression provided
+        // Transform payload if a declarative expression is provided.
         let value = payload;
         if (connection.transform) {
           value = this.evaluateTransform(connection.transform, payload);
         }
-        
-        // Find target widget and update property
-        const targetWidget = this.widgets.get(connection.targetProperty.split('.')[0]);
-        if (targetWidget) {
-          this.updateWidgetProperty(targetWidget, connection.targetProperty, value);
-        }
+
+        this.updateWidgetProperty(targetWidget, connection.targetProperty, value);
       } catch (error) {
-        console.error(`[WidgetBus] Error processing connection ${connection.id}:`, error);
+        const detail = error instanceof Error ? error.message : String(error);
+        const message = `Connection "${connection.id}" rejected: ${detail}`;
+        console.error(`[WidgetBus] Error processing connection ${connection.id}:`, message);
+        this.showConnectionError(targetWidget, message);
       }
     }
   }
@@ -204,13 +210,26 @@ export class WidgetBus {
   /**
    * Evaluate transform expression
    */
-  private evaluateTransform(transform: string, payload: any): any {
-    try {
-      const func = new Function('event', 'payload', `return ${transform}`);
-      return func({ payload }, payload);
-    } catch (error) {
-      console.error('[WidgetBus] Transform evaluation error:', error);
-      return payload;
+  private evaluateTransform(transform: ValueExpression, payload: any): any {
+    return this.expressionEngine.evaluate(transform, payload);
+  }
+
+  /** Surface invalid workspace configuration instead of silently forwarding it. */
+  private showConnectionError(widget: BaseWidget, message: string): void {
+    const candidate = widget as BaseWidget & {
+      showError?: (errorMessage: string) => void;
+    };
+    if (typeof candidate.showError === 'function') {
+      candidate.showError(message);
+      return;
+    }
+
+    if (typeof widget.dispatchEvent === 'function' && typeof CustomEvent !== 'undefined') {
+      widget.dispatchEvent(new CustomEvent('widget-validation-error', {
+        detail: { message },
+        bubbles: true,
+        composed: true,
+      }));
     }
   }
   

@@ -34,12 +34,13 @@ function createFakeHost({ instanceId, fsPath, tab, isDiffView = false, webviewRe
     requestIRHtml: async () => host._irHtml ?? '<p>ir</p>',
     requestRenderedMarkdownHtml: async (markdown) => `<p>${markdown}</p>`,
   };
-  host.diff = new DiffViewController(host);
+  host.diff = new DiffViewController(host, diffCoordinator);
   host.diff.isDiffView = isDiffView;
   return host;
 }
 
 let diffCalls;
+let diffCoordinator;
 
 beforeEach(() => {
   __reset();
@@ -47,7 +48,7 @@ beforeEach(() => {
   DiffViewController.panelTracking.clear();
   DiffViewController.calculationInProgress.clear();
   diffCalls = [];
-  global.markdownDiffViewSupport = {
+  diffCoordinator = {
     calculateDiffFromHTML: (left, right) => {
       diffCalls.push([left, right]);
       return {
@@ -59,13 +60,13 @@ beforeEach(() => {
         rightHtmlLines: ['<p>R0</p>'],
       };
     },
+    handleScrollSync: () => {},
   };
   vi.useFakeTimers();
 });
 
 afterEach(() => {
   vi.useRealTimers();
-  delete global.markdownDiffViewSupport;
 });
 
 test('reactive check skips when diff already applied and panel still visible', async () => {
@@ -171,7 +172,7 @@ test('pending chat diff applies a single-view diff when baseline differs', async
     leftHtmlLines,
     rightHtmlLines: ['<h1>Current IR</h1>', '<p>Changed body</p>', '<p>New right line</p>'],
   });
-  global.markdownDiffViewSupport.calculateDiffFromHTML = calculateDiffFromHTML;
+  diffCoordinator.calculateDiffFromHTML = calculateDiffFromHTML;
 
   await host.diff.applyPendingChatDiffVisualization();
 
@@ -203,7 +204,7 @@ test('pending chat diff clears once changes are empty after having been applied'
     host.diff.pendingChatBaselineDocument = baseline;
   };
   host.diff.singleViewDiffApplied = true;
-  global.markdownDiffViewSupport.calculateDiffFromHTML = () => ({ changes: [], leftHtmlLines: [], rightHtmlLines: [] });
+  diffCoordinator.calculateDiffFromHTML = () => ({ changes: [], leftHtmlLines: [], rightHtmlLines: [] });
 
   await host.diff.applyPendingChatDiffVisualization();
 
@@ -278,4 +279,21 @@ test('registerExplicitDiffPanel assigns left/right sides from the tab label', ()
   // One host on each side, no side left empty.
   assert.ok(pair.left && pair.right, 'both sides registered');
   assert.notStrictEqual(pair.left, pair.right);
+});
+
+test('disposing a diff controller ends its handoff and cancels pending coordination', async () => {
+  const tab = { label: 'left.md ↔ right.md' };
+  const left = createFakeHost({ instanceId: 'left', fsPath: '/w/left.md', tab });
+  const right = createFakeHost({ instanceId: 'right', fsPath: '/w/right.md', tab });
+
+  left.diff.registerExplicitDiffPanel(false);
+  right.diff.registerExplicitDiffPanel(false);
+  await left.diff.updateDiffVisualization();
+  left.diff.dispose();
+
+  await vi.advanceTimersByTimeAsync(1000);
+
+  assert.strictEqual(DiffViewController.panelTracking.has(tab), false);
+  assert.deepStrictEqual(left.messages, []);
+  assert.deepStrictEqual(right.messages, []);
 });

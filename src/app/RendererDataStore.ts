@@ -1,6 +1,25 @@
 import * as vscode from "vscode";
 import * as NodePath from "path";
 import { logger } from "../utils/Logger";
+import {
+  getRendererAssetsDirectory,
+  getRendererDataDisplayFilename,
+  getRendererDataFilePath,
+} from "./rendererDataPath";
+import {
+  type InsertRendererMessage,
+  type KanbanLoadDataMessage,
+  type KanbanMigrateDataMessage,
+  type KanbanSaveDataMessage,
+  type RendererCheckDataMessage,
+  type RendererLoadDataMessage,
+  type RendererSaveDataMessage,
+  type SupportedRendererId,
+} from "./rendererDataMessages";
+import {
+  getRendererDataDescriptor,
+  getRendererInsertDescriptor,
+} from "./rendererDataDescriptors";
 
 /**
  * Host-side context the store needs from its owning editor panel.
@@ -11,6 +30,11 @@ export interface RendererDataStoreContext {
   /** Post a message to the editor's webview. */
   postMessage(message: unknown): void;
 }
+
+const RENDERER_OPERATION_ERROR = {
+  code: "RENDERER_DATA_OPERATION_FAILED",
+  message: "Renderer data operation failed",
+};
 
 /**
  * Persistence and data plumbing for kanban boards and custom block renderers
@@ -26,18 +50,23 @@ export class RendererDataStore {
   /**
    * Handle kanban data save with support for multiple boards
    */
-  public async handleKanbanSaveData(message: any): Promise<void> {
+  public async handleKanbanSaveData(message: KanbanSaveDataMessage): Promise<void> {
     try {
+      const descriptor = getRendererDataDescriptor("kanban-board");
       const kanbanData = message.data;
-      const boardId = message.boardId || "default";
+      const boardId = message.boardId === undefined ? "default" : message.boardId;
 
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(`📥 KANBAN SAVE REQUEST:`);
-        (global as any).markdownEditorLog(
+      if (!descriptor.validateData(kanbanData)) {
+        throw new Error("Invalid renderer data");
+      }
+
+      if (logger.debug) {
+        logger.debug(`📥 KANBAN SAVE REQUEST:`);
+        logger.debug(
           `   rendererId: ${message.rendererId}`
         );
-        (global as any).markdownEditorLog(`   boardId: ${boardId}`);
-        (global as any).markdownEditorLog(`   requestId: ${message.requestId}`);
+        logger.debug(`   boardId: ${boardId}`);
+        logger.debug(`   requestId: ${message.requestId}`);
       }
 
       // Ensure assets directory exists
@@ -46,11 +75,11 @@ export class RendererDataStore {
       const kanbanFilePath = this._getKanbanFilePath(boardId);
       const displayFilename = this._getKanbanDisplayFilename(boardId);
 
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `🗂️ Saving kanban board '${boardId}' to: ${kanbanFilePath}`
         );
-        (global as any).markdownEditorLog(
+        logger.debug(
           `   Display filename: ${displayFilename}`
         );
       }
@@ -66,8 +95,8 @@ export class RendererDataStore {
         content
       );
 
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `✅ Kanban board '${boardId}' saved successfully`
         );
       }
@@ -81,8 +110,8 @@ export class RendererDataStore {
         filename: displayFilename,
       });
     } catch (error) {
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `❌ Failed to save kanban data: ${error}`
         );
       }
@@ -93,8 +122,7 @@ export class RendererDataStore {
         success: false,
         rendererId: message.rendererId || "kanban-board",
         boardId: message.boardId || "default",
-        filename: this._getKanbanDisplayFilename(message.boardId || "default"),
-        error: error instanceof Error ? error.message : String(error),
+        error: { ...RENDERER_OPERATION_ERROR },
       });
     }
   }
@@ -102,23 +130,24 @@ export class RendererDataStore {
   /**
    * Handle kanban data load with support for multiple boards and backwards compatibility
    */
-  public async handleKanbanLoadData(message: any): Promise<void> {
+  public async handleKanbanLoadData(message: KanbanLoadDataMessage): Promise<void> {
     try {
-      const boardId = message.boardId || "default";
+      const descriptor = getRendererDataDescriptor("kanban-board");
+      const boardId = message.boardId === undefined ? "default" : message.boardId;
       const codeBlockData = message.codeBlockData; // For backwards compatibility
       const requestedFilename = message.filename; // Filename from code block
 
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(`📥 KANBAN LOAD REQUEST:`);
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(`📥 KANBAN LOAD REQUEST:`);
+        logger.debug(
           `   rendererId: ${message.rendererId}`
         );
-        (global as any).markdownEditorLog(`   boardId: ${boardId}`);
-        (global as any).markdownEditorLog(`   requestId: ${message.requestId}`);
-        (global as any).markdownEditorLog(
+        logger.debug(`   boardId: ${boardId}`);
+        logger.debug(`   requestId: ${message.requestId}`);
+        logger.debug(
           `   codeBlockData: ${codeBlockData ? "present" : "none"}`
         );
-        (global as any).markdownEditorLog(
+        logger.debug(
           `   requestedFilename: ${requestedFilename}`
         );
       }
@@ -129,11 +158,11 @@ export class RendererDataStore {
       const kanbanFilePath = this._getKanbanFilePath(boardId);
       const displayFilename = this._getKanbanDisplayFilename(boardId);
 
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `   Calculated file path: ${kanbanFilePath}`
         );
-        (global as any).markdownEditorLog(
+        logger.debug(
           `   Display filename: ${displayFilename}`
         );
       }
@@ -142,15 +171,13 @@ export class RendererDataStore {
 
       // First check if we have backwards compatibility data from code block
       if (
-        codeBlockData &&
-        codeBlockData.columns &&
-        Array.isArray(codeBlockData.columns)
+        descriptor.validateData(codeBlockData)
       ) {
         kanbanData = codeBlockData;
         dataSource = "code-block";
 
-        if ((global as any).markdownEditorLog) {
-          (global as any).markdownEditorLog(
+        if (logger.debug) {
+          logger.debug(
             `🔄 Using legacy code block data for board '${boardId}', will migrate to JSON file`
           );
         }
@@ -168,14 +195,14 @@ export class RendererDataStore {
           );
           dataSource = "migrated";
 
-          if ((global as any).markdownEditorLog) {
-            (global as any).markdownEditorLog(
+          if (logger.debug) {
+            logger.debug(
               `✅ Migrated legacy data to: ${kanbanFilePath}`
             );
           }
         } catch (migrateError) {
-          if ((global as any).markdownEditorLog) {
-            (global as any).markdownEditorLog(
+          if (logger.debug) {
+            logger.debug(
               `⚠️ Failed to migrate data: ${migrateError}`
             );
           }
@@ -189,26 +216,20 @@ export class RendererDataStore {
           kanbanData = JSON.parse(content.toString());
           dataSource = "json-file";
 
-          if ((global as any).markdownEditorLog) {
-            (global as any).markdownEditorLog(
+          if (logger.debug) {
+            logger.debug(
               `✅ Loaded kanban board '${boardId}' from: ${kanbanFilePath}`
             );
           }
         } catch (fileError) {
           // File doesn't exist or was moved, create/recreate default data
-          if ((global as any).markdownEditorLog) {
-            (global as any).markdownEditorLog(
+          if (logger.debug) {
+            logger.debug(
               `⚠️ Kanban file not found (${kanbanFilePath}), creating/recreating with default data`
             );
           }
 
-          kanbanData = {
-            columns: [
-              { id: "1", title: "Todo", items: [] },
-              { id: "2", title: "Doing", items: [] },
-              { id: "3", title: "Done", items: [] },
-            ],
-          };
+          kanbanData = descriptor.createDefaultData();
           dataSource = "recreated";
 
           // Create/recreate the JSON file with default data (with quote escaping)
@@ -223,14 +244,14 @@ export class RendererDataStore {
               content
             );
 
-            if ((global as any).markdownEditorLog) {
-              (global as any).markdownEditorLog(
+            if (logger.debug) {
+              logger.debug(
                 `✅ Created/recreated kanban file: ${kanbanFilePath}`
               );
             }
           } catch (createError) {
-            if ((global as any).markdownEditorLog) {
-              (global as any).markdownEditorLog(
+            if (logger.debug) {
+              logger.debug(
                 `⚠️ Failed to create kanban file: ${createError}`
               );
             }
@@ -249,8 +270,8 @@ export class RendererDataStore {
         requestId: message.requestId,
       });
     } catch (error) {
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `❌ Failed to load kanban data: ${error}`
         );
       }
@@ -258,11 +279,10 @@ export class RendererDataStore {
       // Send error back to webview
       this.ctx.postMessage({
         command: "kanban-data-loaded",
-        error: error instanceof Error ? error.message : String(error),
         rendererId: message.rendererId || "kanban-board",
         boardId: message.boardId || "default",
-        filename: this._getKanbanDisplayFilename(message.boardId || "default"),
         requestId: message.requestId,
+        error: { ...RENDERER_OPERATION_ERROR },
       });
     }
   }
@@ -272,37 +292,22 @@ export class RendererDataStore {
    * Files are stored in an 'assets' folder at the same level as the markdown file
    */
   private _getKanbanFilePath(boardId: string = "default"): string {
-    const markdownPath = this.ctx.getFsPath();
-    const dir = NodePath.dirname(markdownPath);
-    const basename = NodePath.basename(
-      markdownPath,
-      NodePath.extname(markdownPath)
+    return getRendererDataFilePath(
+      this.ctx.getFsPath(),
+      "kanban-board",
+      boardId,
     );
-    const assetsDir = NodePath.join(dir, "assets");
-
-    if (boardId === "default") {
-      return NodePath.join(assetsDir, `${basename}.kanban.json`);
-    } else {
-      // For named boards, include the board ID in the filename
-      return NodePath.join(assetsDir, `${basename}.kanban.${boardId}.json`);
-    }
   }
 
   /**
    * Get the relative filename to display in the code block
    */
   private _getKanbanDisplayFilename(boardId: string = "default"): string {
-    const markdownPath = this.ctx.getFsPath();
-    const basename = NodePath.basename(
-      markdownPath,
-      NodePath.extname(markdownPath)
+    return getRendererDataDisplayFilename(
+      this.ctx.getFsPath(),
+      "kanban-board",
+      boardId,
     );
-
-    if (boardId === "default") {
-      return `assets/${basename}.kanban.json`;
-    } else {
-      return `assets/${basename}.kanban.${boardId}.json`;
-    }
   }
 
   /**
@@ -310,62 +315,44 @@ export class RendererDataStore {
    * Format: <document>.<rendererId>.<boardId>.json
    */
   private _getRendererFilePath(
-    rendererId: string,
+    rendererId: SupportedRendererId,
     boardId: string = "default"
   ): string {
-    const markdownPath = this.ctx.getFsPath();
-    const dir = NodePath.dirname(markdownPath);
-    const basename = NodePath.basename(
-      markdownPath,
-      NodePath.extname(markdownPath)
+    const descriptor = getRendererDataDescriptor(rendererId);
+    return getRendererDataFilePath(
+      this.ctx.getFsPath(),
+      descriptor.fileSuffix,
+      boardId,
     );
-    const assetsDir = NodePath.join(dir, "assets");
-
-    if (boardId === "default") {
-      return NodePath.join(assetsDir, `${basename}.${rendererId}.json`);
-    } else {
-      // For named boards, include the board ID in the filename
-      return NodePath.join(
-        assetsDir,
-        `${basename}.${rendererId}.${boardId}.json`
-      );
-    }
   }
 
   /**
    * Get the relative filename to display in the code block for generic renderers
    */
   private _getRendererDisplayFilename(
-    rendererId: string,
+    rendererId: SupportedRendererId,
     boardId: string = "default"
   ): string {
-    const markdownPath = this.ctx.getFsPath();
-    const basename = NodePath.basename(
-      markdownPath,
-      NodePath.extname(markdownPath)
+    const descriptor = getRendererDataDescriptor(rendererId);
+    return getRendererDataDisplayFilename(
+      this.ctx.getFsPath(),
+      descriptor.fileSuffix,
+      boardId,
     );
-
-    if (boardId === "default") {
-      return `assets/${basename}.${rendererId}.json`;
-    } else {
-      return `assets/${basename}.${rendererId}.${boardId}.json`;
-    }
   }
 
   /**
    * Ensure the assets directory exists
    */
   private async _ensureAssetsDirectory(): Promise<void> {
-    const markdownPath = this.ctx.getFsPath();
-    const dir = NodePath.dirname(markdownPath);
-    const assetsDir = NodePath.join(dir, "assets");
+    const assetsDir = getRendererAssetsDirectory(this.ctx.getFsPath());
 
     try {
       await vscode.workspace.fs.stat(vscode.Uri.file(assetsDir));
     } catch (error) {
       // Directory doesn't exist, create it
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `📁 Creating assets directory: ${assetsDir}`
         );
       }
@@ -394,7 +381,7 @@ export class RendererDataStore {
     } else if (Array.isArray(obj)) {
       return obj.map((item) => this._escapeKanbanQuotes(item));
     } else if (obj && typeof obj === "object") {
-      const escaped: any = {};
+      const escaped: Record<string, unknown> = Object.create(null);
       for (const key in obj) {
         if (Object.prototype.hasOwnProperty.call(obj, key)) {
           escaped[key] = this._escapeKanbanQuotes(obj[key]);
@@ -408,10 +395,15 @@ export class RendererDataStore {
   /**
    * Handle kanban data migration from code blocks to JSON files
    */
-  public async handleKanbanMigrateData(message: any): Promise<void> {
+  public async handleKanbanMigrateData(message: KanbanMigrateDataMessage): Promise<void> {
     try {
+      const descriptor = getRendererDataDescriptor("kanban-board");
       const { boardId, codeBlockData } = message;
-      const actualBoardId = boardId || "default";
+      const actualBoardId = boardId === undefined ? "default" : boardId;
+
+      if (!descriptor.validateData(codeBlockData)) {
+        throw new Error("Invalid renderer data");
+      }
 
       // Ensure assets directory exists
       await this._ensureAssetsDirectory();
@@ -419,8 +411,8 @@ export class RendererDataStore {
       const kanbanFilePath = this._getKanbanFilePath(actualBoardId);
       const displayFilename = this._getKanbanDisplayFilename(actualBoardId);
 
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `🔄 Migrating kanban board '${actualBoardId}' from code block to: ${kanbanFilePath}`
         );
       }
@@ -436,8 +428,8 @@ export class RendererDataStore {
         content
       );
 
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `✅ Migration completed for board '${actualBoardId}'`
         );
       }
@@ -450,8 +442,8 @@ export class RendererDataStore {
         filename: displayFilename,
       });
     } catch (error) {
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `❌ Failed to migrate kanban data: ${error}`
         );
       }
@@ -461,8 +453,7 @@ export class RendererDataStore {
         command: "kanban-data-migrated",
         success: false,
         boardId: message.boardId || "default",
-        filename: this._getKanbanDisplayFilename(message.boardId || "default"),
-        error: error instanceof Error ? error.message : String(error),
+        error: { ...RENDERER_OPERATION_ERROR },
       });
     }
   }
@@ -471,15 +462,21 @@ export class RendererDataStore {
    * Generic handler for renderer data loading
    * Wraps the existing kanban file operations for any renderer type
    */
-  public async handleRendererLoadData(message: any): Promise<void> {
+  public async handleRendererLoadData(message: RendererLoadDataMessage): Promise<void> {
     try {
       const { rendererId, boardId, instanceId, requestId } = message;
+      const descriptor = getRendererDataDescriptor(rendererId);
 
       // Use boardId (new protocol) or fallback to instanceId (old protocol)
-      const actualBoardId = boardId || instanceId || "default";
+      const actualBoardId =
+        boardId !== undefined
+          ? boardId
+          : instanceId !== undefined
+            ? instanceId
+            : "default";
 
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `📥 RENDERER LOAD: Renderer '${rendererId}' boardId '${actualBoardId}' requesting data`
         );
       }
@@ -510,14 +507,14 @@ export class RendererDataStore {
         const parsedData = JSON.parse(content.toString());
 
         // Validate data structure matches renderer type
-        const isValidData = this._validateRendererData(rendererId, parsedData);
+        const isValidData = descriptor.validateData(parsedData);
 
         if (!isValidData) {
-          if ((global as any).markdownEditorLog) {
-            (global as any).markdownEditorLog(
+          if (logger.debug) {
+            logger.debug(
               `⚠️ RENDERER LOAD: Invalid data structure in ${rendererFilePath} for renderer '${rendererId}'`
             );
-            (global as any).markdownEditorLog(
+            logger.debug(
               `   File contains wrong renderer type data. Creating correct file with board ID: ${actualBoardId}`
             );
           }
@@ -534,7 +531,7 @@ export class RendererDataStore {
           );
 
           // Create new file with default data for this renderer type
-          const defaultData = this._getDefaultRendererData(rendererId);
+          const defaultData = descriptor.createDefaultData();
           const newContent = Buffer.from(
             JSON.stringify(defaultData, null, 2),
             "utf8"
@@ -544,8 +541,8 @@ export class RendererDataStore {
             newContent
           );
 
-          if ((global as any).markdownEditorLog) {
-            (global as any).markdownEditorLog(
+          if (logger.debug) {
+            logger.debug(
               `✅ RENDERER LOAD: Created correct file: ${correctFilePath}`
             );
           }
@@ -580,21 +577,21 @@ export class RendererDataStore {
         rendererData = parsedData;
         dataSource = "json-file";
 
-        if ((global as any).markdownEditorLog) {
-          (global as any).markdownEditorLog(
+        if (logger.debug) {
+          logger.debug(
             `✅ RENDERER LOAD: Loaded '${rendererId}' data from: ${rendererFilePath}`
           );
         }
       } catch (fileError) {
         // File doesn't exist or is empty, create with default data based on renderer type
-        if ((global as any).markdownEditorLog) {
-          (global as any).markdownEditorLog(
+        if (logger.debug) {
+          logger.debug(
             `⚠️ RENDERER LOAD: File not found or empty (${rendererFilePath}), creating with default data`
           );
         }
 
         // Create file with default data
-        const defaultData = this._getDefaultRendererData(rendererId);
+        const defaultData = descriptor.createDefaultData();
         const content = Buffer.from(
           JSON.stringify(defaultData, null, 2),
           "utf8"
@@ -607,8 +604,8 @@ export class RendererDataStore {
         rendererData = defaultData;
         dataSource = "created-default";
 
-        if ((global as any).markdownEditorLog) {
-          (global as any).markdownEditorLog(
+        if (logger.debug) {
+          logger.debug(
             `✅ RENDERER LOAD: Created default data file: ${rendererFilePath}`
           );
         }
@@ -627,8 +624,8 @@ export class RendererDataStore {
         dataSource: dataSource,
       });
     } catch (error) {
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `❌ RENDERER LOAD: Failed to load data: ${error}`
         );
       }
@@ -640,7 +637,7 @@ export class RendererDataStore {
         rendererId: message.rendererId,
         instanceId: message.instanceId,
         requestId: message.requestId,
-        error: error instanceof Error ? error.message : String(error),
+        error: { ...RENDERER_OPERATION_ERROR },
       });
     }
   }
@@ -649,15 +646,25 @@ export class RendererDataStore {
    * Generic handler for renderer data saving
    * Wraps the existing kanban file operations for any renderer type
    */
-  public async handleRendererSaveData(message: any): Promise<void> {
+  public async handleRendererSaveData(message: RendererSaveDataMessage): Promise<void> {
     try {
       const { rendererId, boardId, instanceId, data, requestId } = message;
+      const descriptor = getRendererDataDescriptor(rendererId);
+
+      if (!descriptor.validateData(data)) {
+        throw new Error("Invalid renderer data");
+      }
 
       // Use boardId (new protocol) or fallback to instanceId (old protocol)
-      const actualBoardId = boardId || instanceId || "default";
+      const actualBoardId =
+        boardId !== undefined
+          ? boardId
+          : instanceId !== undefined
+            ? instanceId
+            : "default";
 
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `💾 RENDERER SAVE: Renderer '${rendererId}' boardId '${actualBoardId}' saving data`
         );
       }
@@ -683,8 +690,8 @@ export class RendererDataStore {
         content
       );
 
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `✅ RENDERER SAVE: Saved '${rendererId}' data to: ${rendererFilePath}`
         );
       }
@@ -700,8 +707,8 @@ export class RendererDataStore {
         filename: displayFilename,
       });
     } catch (error) {
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `❌ RENDERER SAVE: Failed to save data: ${error}`
         );
       }
@@ -713,7 +720,7 @@ export class RendererDataStore {
         rendererId: message.rendererId,
         instanceId: message.instanceId,
         requestId: message.requestId,
-        error: error instanceof Error ? error.message : String(error),
+        error: { ...RENDERER_OPERATION_ERROR },
       });
     }
   }
@@ -721,15 +728,20 @@ export class RendererDataStore {
   /**
    * Generic handler for checking if renderer data file exists
    */
-  public async handleRendererCheckData(message: any): Promise<void> {
+  public async handleRendererCheckData(message: RendererCheckDataMessage): Promise<void> {
     try {
       const { rendererId, boardId, instanceId, requestId } = message;
 
       // Use boardId (new protocol) or fallback to instanceId (old protocol)
-      const actualBoardId = boardId || instanceId || "default";
+      const actualBoardId =
+        boardId !== undefined
+          ? boardId
+          : instanceId !== undefined
+            ? instanceId
+            : "default";
 
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `🔍 RENDERER CHECK: Checking if '${rendererId}' boardId '${actualBoardId}' data exists`
         );
       }
@@ -748,16 +760,16 @@ export class RendererDataStore {
         await vscode.workspace.fs.stat(vscode.Uri.file(rendererFilePath));
         exists = true;
 
-        if ((global as any).markdownEditorLog) {
-          (global as any).markdownEditorLog(
+        if (logger.debug) {
+          logger.debug(
             `✅ RENDERER CHECK: File exists at ${rendererFilePath}`
           );
         }
       } catch (error) {
         exists = false;
 
-        if ((global as any).markdownEditorLog) {
-          (global as any).markdownEditorLog(
+        if (logger.debug) {
+          logger.debug(
             `ℹ️ RENDERER CHECK: File does not exist at ${rendererFilePath}`
           );
         }
@@ -773,11 +785,10 @@ export class RendererDataStore {
         requestId: requestId,
         exists: exists,
         filename: displayFilename,
-        filePath: rendererFilePath,
       });
     } catch (error) {
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `❌ RENDERER CHECK: Failed to check data: ${error}`
         );
       }
@@ -789,7 +800,7 @@ export class RendererDataStore {
         rendererId: message.rendererId,
         instanceId: message.instanceId,
         requestId: message.requestId,
-        error: error instanceof Error ? error.message : String(error),
+        error: { ...RENDERER_OPERATION_ERROR },
       });
     }
   }
@@ -798,12 +809,13 @@ export class RendererDataStore {
    * Handle insert custom renderer request
    * Creates the data file first, then inserts the code block with the filename reference
    */
-  public async handleInsertRenderer(message: any): Promise<void> {
+  public async handleInsertRenderer(message: InsertRendererMessage): Promise<void> {
     try {
       const rendererType = message.rendererType;
+      const descriptor = getRendererInsertDescriptor(rendererType);
 
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `📝 INSERT RENDERER: Request to insert ${rendererType}`
         );
       }
@@ -815,56 +827,26 @@ export class RendererDataStore {
       await this._ensureAssetsDirectory();
 
       // Create data file with default data
-      let defaultData;
-      let language;
-
-      switch (rendererType) {
-        case "kanban-board":
-          language = "kanban-board";
-          defaultData = {
-            columns: [
-              { id: "1", title: "Todo", items: [] },
-              { id: "2", title: "Doing", items: [] },
-              { id: "3", title: "Done", items: [] },
-            ],
-          };
-          break;
-        case "table":
-          language = "table";
-          defaultData = {
-            columns: [
-              { id: "col1", name: "Column 1", type: "text" },
-              { id: "col2", name: "Column 2", type: "text" },
-              { id: "col3", name: "Column 3", type: "text" },
-            ],
-            rows: [
-              {
-                id: "row1",
-                cells: { col1: "Data 1", col2: "Data 2", col3: "Data 3" },
-              },
-              {
-                id: "row2",
-                cells: { col1: "Data 4", col2: "Data 5", col3: "Data 6" },
-              },
-            ],
-          };
-          break;
-        default:
-          throw new Error(`Unknown renderer type: ${rendererType}`);
-      }
+      const defaultData = descriptor.createDefaultData();
+      const language = descriptor.language;
 
       // Get file path and create the file
-      const filePath = this._getRendererFilePath(rendererType, boardId);
-      const displayFilename = this._getRendererDisplayFilename(
-        rendererType,
+      const filePath = getRendererDataFilePath(
+        this.ctx.getFsPath(),
+        descriptor.fileSuffix,
+        boardId,
+      );
+      const displayFilename = getRendererDataDisplayFilename(
+        this.ctx.getFsPath(),
+        descriptor.fileSuffix,
         boardId
       );
 
       const content = Buffer.from(JSON.stringify(defaultData, null, 2), "utf8");
       await vscode.workspace.fs.writeFile(vscode.Uri.file(filePath), content);
 
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `✅ INSERT RENDERER: Created data file at ${filePath}`
         );
       }
@@ -894,21 +876,19 @@ export class RendererDataStore {
         filename: displayFilename,
       });
 
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `✅ INSERT RENDERER: Sent code block to webview for ${rendererType}`
         );
       }
     } catch (error) {
-      if ((global as any).markdownEditorLog) {
-        (global as any).markdownEditorLog(
+      if (logger.debug) {
+        logger.debug(
           `❌ INSERT RENDERER: Failed - ${error}`
         );
       }
       vscode.window.showErrorMessage(
-        `Failed to insert ${message.rendererType}: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        "Failed to insert renderer data."
       );
     }
   }
@@ -1001,73 +981,4 @@ export class RendererDataStore {
     }
   }
 
-  /**
-   * Validate that data structure matches the expected format for a renderer
-   */
-  private _validateRendererData(rendererId: string, data: any): boolean {
-    if (!data || typeof data !== "object") {
-      return false;
-    }
-
-    switch (rendererId) {
-      case "kanban-board":
-        // Kanban should have columns array
-        return (
-          Array.isArray(data.columns) &&
-          data.columns.length > 0 &&
-          data.columns.every((col: any) => col.id && col.title !== undefined)
-        );
-
-      case "table-renderer":
-        // Table should have columns and rows arrays
-        return (
-          Array.isArray(data.columns) &&
-          Array.isArray(data.rows) &&
-          data.columns.length > 0 &&
-          data.columns.every((col: any) => col.id && col.name !== undefined)
-        );
-
-      default:
-        // Unknown renderer, accept any object
-        return true;
-    }
-  }
-
-  /**
-   * Get default data structure for a renderer type
-   */
-  private _getDefaultRendererData(rendererId: string): any {
-    switch (rendererId) {
-      case "kanban-board":
-        return {
-          columns: [
-            { id: "1", title: "Todo", items: [] },
-            { id: "2", title: "Doing", items: [] },
-            { id: "3", title: "Done", items: [] },
-          ],
-        };
-
-      case "table-renderer":
-        return {
-          columns: [
-            { id: "col1", name: "Column 1", type: "text" },
-            { id: "col2", name: "Column 2", type: "text" },
-            { id: "col3", name: "Column 3", type: "text" },
-          ],
-          rows: [
-            {
-              id: "row1",
-              cells: { col1: "Data 1", col2: "Data 2", col3: "Data 3" },
-            },
-            {
-              id: "row2",
-              cells: { col1: "Data 4", col2: "Data 5", col3: "Data 6" },
-            },
-          ],
-        };
-
-      default:
-        return {};
-    }
-  }
 }

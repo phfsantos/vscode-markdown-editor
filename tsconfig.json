@@ -15,6 +15,7 @@
 	"exclude": [
 		"node_modules",
 		".vscode-test",
+		"packages/core",
 		"packages/media",
 		"packages/widgets",
 		"out",
