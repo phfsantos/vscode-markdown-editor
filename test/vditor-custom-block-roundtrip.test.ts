@@ -40,7 +40,7 @@ function createVditorLute(): LuteInstance {
   return lute;
 }
 
-function replacePreviewsWithSvg(irDom: string, cycle: number): string {
+function replacePreviewsWithSvg(irDom: string, cycle: number, expectedPreviewCount = 3): string {
   let previewCount = 0;
   const renderedDom = irDom.replace(
     /(<pre class="vditor-ir__preview"[^>]*>)[\s\S]*?(<\/pre>)/g,
@@ -50,7 +50,7 @@ function replacePreviewsWithSvg(irDom: string, cycle: number): string {
     },
   );
 
-  assert.strictEqual(previewCount, 3, "expected Mermaid, kanban, and table previews");
+  assert.strictEqual(previewCount, expectedPreviewCount);
   assert.match(renderedDom, /<svg data-render-cycle=/);
   return renderedDom;
 }
@@ -118,4 +118,44 @@ test("20 edit and save cycles preserve custom block content and document structu
 
   assert.strictEqual(messages.length, 40);
   assertFixtureStructure(sync.getContent());
+});
+
+test.each([
+  ["untyped", ""],
+  ["text", "text"],
+  ["javascript", "javascript"],
+  ["html", "html"],
+  ["mermaid", "mermaid"],
+  ["registered custom renderer", "kanban-board"],
+])("preserves HTML-like source bytes through 20 %s fence save cycles", (_name, language) => {
+  const source = [
+    "Before the fenced block.",
+    "",
+    `\`\`\`${language}`,
+    '  NODE["before <br> <br/> </br> <tag attr="café ☕">終わり</tag>"]',
+    "",
+    "  trailing sentinel after every token",
+    "```",
+    "",
+    "After the fenced block.",
+    "",
+  ].join("\n");
+  const lute = createVditorLute();
+  const sync = createWebviewContentSync(() => {}, source);
+
+  for (let cycle = 1; cycle <= 20; cycle += 1) {
+    const callbackMarkdown = lute.VditorIRDOM2Md(
+      replacePreviewsWithSvg(lute.Md2VditorIRDOM(sync.getContent()), cycle, 1),
+    );
+    const edit = sync.acceptInput(callbackMarkdown);
+    const save = sync.createSaveRequest();
+
+    assert.strictEqual(edit.revision, cycle);
+    assert.strictEqual(save.revision, cycle);
+    assert.strictEqual(save.content, source);
+    assert.match(save.content, /<br> <br\/> <\/br>/);
+    assert.match(save.content, /<tag attr="café ☕">終わり<\/tag>/u);
+    assert.match(save.content, /trailing sentinel after every token/);
+    assert.strictEqual((save.content.match(/^```/gm) ?? []).length, 2);
+  }
 });

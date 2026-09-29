@@ -311,22 +311,28 @@ describe.each([
   });
 });
 
-test("preserves HTML-like text pasted into a Mermaid fenced block", async () => {
+test.each([
+  ["untyped", "", '  JEN["beet pipeline<br/>"] --> AFTER["sentinel"]'],
+  ["text", "text", 'literal <br> <br/> </br> <tag attr="café ☕">終わり</tag>'],
+  ["JavaScript", "javascript", 'const value = "<br/>"; // trailing sentinel'],
+  ["HTML", "html", '<span data-label="literal <br/>">終わり</span>'],
+  ["Mermaid", "mermaid", '  JEN["beet pipeline<br/>"] --> AFTER["sentinel"]'],
+  ["custom renderer", "kanban-board", '<board-item data-label="literal <br/>">終わり</board-item>'],
+])("preserves HTML-like text pasted into a %s fenced block", async (_name, language, pastedLine) => {
   const dependencySentinels = installBundledVditorDependencies();
   const host = document.createElement("div");
   document.body.appendChild(host);
   const initialMarkdown = [
     "Before the diagram.",
     "",
-    "```mermaid",
-    "flowchart TD",
+    `\`\`\`${language}`,
+    language === "mermaid" ? "flowchart TD" : "existing source before paste",
     '  START["beet pipeline"] --> AFTER["sentinel"]',
     "```",
     "",
     "After the diagram.",
     "",
   ].join("\n");
-  const pastedLine = '  JEN["beet pipeline<br/>"] --> AFTER["sentinel"]';
   const messages: WebviewContentRevision[] = [];
   const contentSync = createWebviewContentSync(
     (message) => {
@@ -368,13 +374,14 @@ test("preserves HTML-like text pasted into a Mermaid fenced block", async () => 
     });
 
     const sourceMarker = editor.vditor.ir.element.querySelector<HTMLElement>(
-      ".vditor-ir__marker--pre > code.language-mermaid",
+      language
+        ? `.vditor-ir__marker--pre > code.language-${language}`
+        : ".vditor-ir__marker--pre > code",
     );
     expect(sourceMarker).not.toBeNull();
     const sourceText = sourceMarker!.firstChild;
     expect(sourceText?.nodeType).toBe(Node.TEXT_NODE);
-    const insertionPoint = sourceText!.textContent!.indexOf("flowchart TD") + "flowchart TD".length;
-    setCollapsedSelection(sourceText as Text, insertionPoint);
+    setCollapsedSelection(sourceText as Text, 0);
 
     const readText = vi.fn().mockResolvedValue(pastedLine);
     Object.defineProperty(navigator, "clipboard", {
@@ -391,12 +398,76 @@ test("preserves HTML-like text pasted into a Mermaid fenced block", async () => 
 
     expect(readText).toHaveReturnedWith(expect.any(Promise));
     expect(messages[0].content).toContain(pastedLine);
-    expect(messages[0].content).toContain('AFTER["sentinel"]');
     expect(messages[0].content).not.toContain("&lt;br/&gt;");
     expect(contentSync.createSaveRequest().content).toBe(messages[0].content);
   } finally {
     editor?.destroy();
     host.remove();
     dependencySentinels.forEach((sentinel) => sentinel.remove());
+  }
+});
+
+test("routes prose through Markdown insertion and fenced selections through literal insertion", async () => {
+  const editorRoot = document.createElement("div");
+  editorRoot.className = "vditor-ir";
+  const reset = document.createElement("div");
+  reset.className = "vditor-reset";
+  const prose = document.createTextNode("prose");
+  reset.append(prose);
+  const marker = document.createElement("div");
+  marker.className = "vditor-ir__marker--pre";
+  const code = document.createElement("code");
+  code.className = "language-text";
+  const codeText = document.createTextNode("old");
+  code.append(codeText);
+  marker.append(code);
+  reset.append(marker);
+  editorRoot.append(reset);
+  document.body.append(editorRoot);
+
+  const insertMD = vi.fn();
+  const insertValue = vi.fn();
+  const inputEvents: InputEvent[] = [];
+  reset.addEventListener("input", (event) => inputEvents.push(event as InputEvent));
+  const fakeVditor = {
+    insertMD,
+    insertValue,
+    vditor: { ir: { element: reset } },
+  };
+  const integrator = new VSCodeWebviewIntegrator(fakeVditor);
+  const readText = vi.fn().mockResolvedValue("literal <br/> suffix");
+  Object.defineProperty(navigator, "clipboard", {
+    configurable: true,
+    value: { readText },
+  });
+
+  try {
+    setCollapsedSelection(prose, prose.length);
+    await (integrator as unknown as {
+      handlePaste(event: Event): Promise<void>;
+    }).handlePaste(new Event("paste"));
+    expect(insertMD).toHaveBeenCalledOnce();
+    expect(insertMD).toHaveBeenCalledWith("literal <br/> suffix");
+    expect(inputEvents).toHaveLength(0);
+
+    const range = document.createRange();
+    range.setStart(codeText, 0);
+    range.setEnd(codeText, codeText.length);
+    const selection = window.getSelection()!;
+    selection.removeAllRanges();
+    selection.addRange(range);
+    await (integrator as unknown as {
+      handlePaste(event: Event): Promise<void>;
+    }).handlePaste(new Event("paste"));
+
+    expect(insertMD).toHaveBeenCalledOnce();
+    expect(insertValue).not.toHaveBeenCalled();
+    expect(code.textContent).toBe("literal <br/> suffix");
+    expect(inputEvents).toHaveLength(1);
+    expect(inputEvents[0].inputType).toBe("insertText");
+  } finally {
+    editorRoot.remove();
+    window.getSelection()?.removeAllRanges();
+    delete (navigator as Navigator & { clipboard?: Clipboard }).clipboard;
   }
 });
