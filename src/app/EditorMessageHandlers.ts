@@ -3,6 +3,7 @@ import * as NodePath from "path";
 import { logger } from "../utils/Logger";
 import { showError, debug } from "./_utils";
 import type { EditorNavigationPreviewPort } from "../runtime/ports";
+import { parseMarkdownPositionLink } from "../navigation/MarkdownLinkTarget";
 
 /**
  * The slice of an editor panel the general webview-command handlers need.
@@ -30,6 +31,31 @@ export interface HandlerHost {
  */
 export class EditorMessageHandlers {
   constructor(private readonly host: HandlerHost) {}
+
+  public async handleOpenLink(message: { href?: unknown }): Promise<void> {
+    if (typeof message.href !== "string" || message.href.length === 0) return;
+    const positioned = parseMarkdownPositionLink(message.href, this.host.uri);
+    if (positioned && this.host.editorNavigation) {
+      await this.host.editorNavigation.openEditor(positioned.uri, {
+        navigationTarget: positioned.target,
+      });
+      return;
+    }
+
+    let url = message.href;
+    if (!/^http/.test(url)) {
+      url = NodePath.resolve(this.host.uri.fsPath, "..", url);
+    }
+    if (url.endsWith(".md") || url.endsWith(".markdown")) {
+      if (this.host.editorNavigation) {
+        await this.host.editorNavigation.openEditor(vscode.Uri.parse(url));
+      } else {
+        await vscode.commands.executeCommand("markdown-editor.openEditor", vscode.Uri.parse(url));
+      }
+      return;
+    }
+    await vscode.commands.executeCommand("vscode.open", vscode.Uri.parse(url));
+  }
 
   /**
    * Handle a request from the webview to preview an embed originating from a wiki-link

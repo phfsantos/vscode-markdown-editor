@@ -156,6 +156,14 @@ export async function activate(context: vscode.ExtensionContext) {
     )
   )
 
+  if (runtime.editorNavigation.handleUri) {
+    runtime.addDisposables(
+      vscode.window.registerUriHandler({
+        handleUri: (uri) => runtime.editorNavigation.handleUri!(uri),
+      }),
+    );
+  }
+
   // Add command to set as default markdown editor
   runtime.addDisposables(
     vscode.commands.registerCommand(

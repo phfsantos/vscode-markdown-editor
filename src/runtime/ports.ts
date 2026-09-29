@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import type { SourceNavigationTarget } from '@markdown-editor/core';
 
 export interface DiffCoordinator {
   calculateDiffFromHTML(leftHtml: string, rightHtml: string): DiffResultLike;
@@ -40,10 +41,18 @@ export interface EditorOpenOptions {
   webviewPanel?: vscode.WebviewPanel;
   isDiffView?: boolean;
   readOnly?: boolean;
+  navigationTarget?: SourceNavigationTarget;
+  mustExist?: boolean;
 }
 
 export interface EditorPanelHandle {
   postMessage(message: unknown): void;
+}
+
+export interface EditorSourceNavigationPanel extends EditorPanelHandle {
+  readonly uri: vscode.Uri;
+  reveal(): void;
+  revealSourcePosition(target: SourceNavigationTarget): void;
 }
 
 export interface EditorNavigationPreviewPort {
@@ -52,4 +61,7 @@ export interface EditorNavigationPreviewPort {
     options?: EditorOpenOptions,
   ): Promise<EditorPanelHandle | undefined>;
   previewEmbed(document: vscode.TextDocument, payload: unknown): Promise<boolean>;
+  handleUri?(uri: vscode.Uri): Promise<void>;
+  registerPanel?(panel: EditorSourceNavigationPanel): vscode.Disposable;
+  consumePendingTarget?(uri: vscode.Uri): SourceNavigationTarget | undefined;
 }

@@ -17,9 +17,14 @@ import { applySelectedTools } from "./tool-selector";
 import { state, vscodeLog } from "./webview-state";
 import { initVditor, processAfterRender } from "./init-vditor";
 import { dispatchVditorInput, getWebviewContentSync } from "./content-sync";
+import { SourcePositionNavigationController } from "./source-position-navigation";
 
 // Track when we just received setValue from external change (undo/redo)
 let justReceivedExternalChange = false;
+
+const sourcePositionNavigation = new SourcePositionNavigationController({
+  getMarkdown: () => (window as any).vditor?.getValue?.() ?? "",
+});
 
 // Initialize diff visualizer - must be called to set up message listeners
 diffVisualizer.initialize();
@@ -49,6 +54,12 @@ window.addEventListener("message", (e) => {
   }
 
   switch (msg.command) {
+    case "revealSourcePosition": {
+      void sourcePositionNavigation.reveal(msg.target).then((result) => {
+        vscodeLog(`[source-position] ${result.status}${result.match ? ` line=${result.match.renderedLine} confidence=${result.match.confidence}` : ""}`);
+      });
+      break;
+    }
     case "update": {
       // Store document filename for renderer system
       if (msg.documentFilename) {

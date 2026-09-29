@@ -13,3 +13,14 @@ export {
   normalizeRenderedLineText,
 } from './renderedLineRules';
 export type { RenderedLineAdapter } from './renderedLineRules';
+export {
+  mapSourcePosition,
+  normalizeSourcePosition,
+} from './sourcePositionMapping';
+export type {
+  RenderedPositionMatch,
+  SourceNavigationTarget,
+  SourcePosition,
+  SourcePositionConfidence,
+  SourcePositionReason,
+} from './sourcePositionMapping';

@@ -116,6 +116,7 @@ export class PreviewCustomEditorProvider
       document.uri.scheme === "git";
 
     const readOnly = isVirtualScheme;
+    const navigationTarget = this.dependencies.editorNavigation?.consumePendingTarget?.(document.uri);
 
     logger.debug(
       `[PreviewCustomEditorProvider] resolveCustomTextEditor path=${document.uri.path} scheme=${document.uri.scheme} documentDirty=${document.isDirty} tabInput=${tabInputKind} tabDirty=${activeTab?.isDirty ?? false} isDiffTab=${isActiveTabCompare} pendingChatEdits=${Boolean(
@@ -137,6 +138,8 @@ export class PreviewCustomEditorProvider
         isActiveTabCompare,
         readOnly,
         this.dependencies,
+        navigationTarget,
+        Boolean(navigationTarget),
       );
     } catch (error) {
       try {
@@ -165,6 +168,8 @@ export class PreviewCustomEditorProvider
             false,
             undefined,
             this.dependencies,
+            navigationTarget,
+            Boolean(navigationTarget),
           );
         } else {
           logger.error(error);

@@ -105,6 +105,13 @@ export const DiagnosticSeverity = {
   Hint: 3,
 };
 
+export const FileType = {
+  Unknown: 0,
+  File: 1,
+  Directory: 2,
+  SymbolicLink: 64,
+};
+
 export const languages = {
   createDiagnosticCollection() {
     return {
@@ -162,18 +169,71 @@ export const window = {
   showErrorMessage: async () => undefined,
 };
 
-export const Uri = {
-  file(fsPath: string) {
-    return { fsPath, scheme: 'file', toString: () => `file://${fsPath}` };
-  },
-  parse(value: string) {
-    return { fsPath: value.replace(/^file:\/\//, ''), scheme: 'file', toString: () => value };
-  },
-  joinPath(base: { fsPath: string }, ...parts: string[]) {
-    const joined = [base.fsPath.replace(/\/$/, ''), ...parts].join('/');
-    return { fsPath: joined, scheme: 'file', toString: () => `file://${joined}` };
-  },
-};
+export class Uri {
+  public readonly fsPath: string;
+
+  constructor(
+    public readonly scheme: string,
+    public readonly authority: string,
+    public readonly path: string,
+    public readonly query = '',
+    public readonly fragment = '',
+  ) {
+    this.fsPath = scheme === 'file' ? decodeURIComponent(path) : path;
+  }
+
+  static file(fsPath: string): Uri {
+    const normalized = fsPath.startsWith('/') ? fsPath : `/${fsPath}`;
+    return new Uri('file', '', normalized);
+  }
+
+  static parse(value: string): Uri {
+    const absolute = /^[a-z][a-z\d+.-]*:/i.test(value);
+    if (!absolute) {
+      const hashIndex = value.indexOf('#');
+      const queryIndex = value.indexOf('?');
+      const pathEnd = [hashIndex, queryIndex].filter(index => index >= 0).reduce((min, index) => Math.min(min, index), value.length);
+      const queryEnd = hashIndex >= 0 ? hashIndex : value.length;
+      return new Uri(
+        '',
+        '',
+        value.slice(0, pathEnd),
+        queryIndex >= 0 ? value.slice(queryIndex + 1, queryEnd) : '',
+        hashIndex >= 0 ? value.slice(hashIndex + 1) : '',
+      );
+    }
+    const parsed = new URL(value);
+    return new Uri(
+      parsed.protocol.slice(0, -1),
+      parsed.host,
+      decodeURIComponent(parsed.pathname),
+      parsed.search.slice(1),
+      parsed.hash.slice(1),
+    );
+  }
+
+  static joinPath(base: Uri, ...parts: string[]): Uri {
+    const joined = [base.path.replace(/\/$/, ''), ...parts].join('/').replace(/\/+/g, '/');
+    return base.with({ path: joined });
+  }
+
+  with(change: Partial<Pick<Uri, 'scheme' | 'authority' | 'path' | 'query' | 'fragment'>>): Uri {
+    return new Uri(
+      change.scheme ?? this.scheme,
+      change.authority ?? this.authority,
+      change.path ?? this.path,
+      change.query ?? this.query,
+      change.fragment ?? this.fragment,
+    );
+  }
+
+  toString(_skipEncoding?: boolean): string {
+    const authority = this.authority ? `//${this.authority}` : this.scheme === 'file' ? '//' : '';
+    const query = this.query ? `?${this.query}` : '';
+    const fragment = this.fragment ? `#${this.fragment}` : '';
+    return `${this.scheme ? `${this.scheme}:` : ''}${authority}${this.path}${query}${fragment}`;
+  }
+}
 
 export class EventEmitter<T = unknown> {
   private listeners: Array<(value: T) => void> = [];

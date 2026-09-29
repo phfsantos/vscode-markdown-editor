@@ -43,6 +43,7 @@
     "pkm"
   ],
   "activationEvents": [
+    "onUri",
     "onWebviewPanel:markdown-editor",
     "onLanguage:markdown",
     "onLanguage:chatagent",

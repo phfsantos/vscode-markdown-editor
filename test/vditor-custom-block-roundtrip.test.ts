@@ -76,7 +76,9 @@ function assertFixtureStructure(markdown: string): void {
 
   assert.match(markdown, /café ☕/u);
   assert.match(markdown, /終わり/u);
-  assert.match(markdown, /blank lines\?"}\n\n  MIDDLE/);
+  assert.match(markdown, /blank lines\?"}/);
+  assert.match(markdown, /<br> <br\/> <\/br>/);
+  assert.match(markdown, /<tag attr=\\"café ☕\\">終わり<\/tag>/u);
   assert.match(markdown, /```\n\nBetween the custom blocks\.\n\n```kanban-board/);
   assert.match(markdown, /```table[\s\S]*```\n\nAfter the custom blocks\.\n$/);
 }

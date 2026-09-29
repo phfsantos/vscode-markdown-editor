@@ -21,7 +21,8 @@ import {
   type DocumentSyncController,
 } from "./DocumentSyncController";
 import { createDocumentWriteOriginTracker } from "./DocumentWriteOriginTracker";
-import { filterDiagnosticsOutsideFencedCodeBlocks } from "@markdown-editor/core";
+import { filterDiagnosticsOutsideFencedCodeBlocks, type SourceNavigationTarget } from "@markdown-editor/core";
+import { SourcePositionDelivery } from "../navigation/MarkdownEditorNavigation";
 import type {
   ActiveDocumentEvents,
   DiffCoordinator,
@@ -90,6 +91,7 @@ export class EditorPanel {
     () => this._panel?.title || NodePath.basename(this._fsPath)
   );
   private readonly _dependencies: EditorPanelDependencies;
+  private readonly _sourcePositionDelivery: SourcePositionDelivery;
 
   // Diff-related properties (set reactively after creation)
 
@@ -104,6 +106,8 @@ export class EditorPanel {
     isDiffView: boolean = false,
     readOnly?: boolean,
     dependencies: EditorPanelDependencies = {},
+    navigationTarget?: SourceNavigationTarget,
+    mustExist: boolean = false,
   ) {
     logger.debug(`🔵 EditorPanel.createOrShow called:`);
     logger.debug(`[createOrShow] isDiffView: ${isDiffView}`);
@@ -155,6 +159,10 @@ export class EditorPanel {
       try {
           doc = await vscode.workspace.openTextDocument(uri);
       } catch (err: unknown) {
+        if (mustExist) {
+          showError(`Could not open existing Markdown target: ${uri.toString()}`);
+          return;
+        }
         // Try to create the file if it doesn't exist (for normal file schemes)
         if (err instanceof Error && uri) {
           logger.warn(
@@ -232,6 +240,7 @@ export class EditorPanel {
       isDiffView,
       readOnly,
       dependencies,
+      navigationTarget,
     );
 
     // For diff views, always add to editors array (not currentPanel)
@@ -355,10 +364,14 @@ export class EditorPanel {
     private readonly _isExplicitDiffView: boolean = false, // Explicitly marked as diff view by provider
     private readonly _readOnly?: boolean, // Whether the editor is read-only
     dependencies: EditorPanelDependencies = {},
+    navigationTarget?: SourceNavigationTarget,
   ) {
     this._dependencies = dependencies;
     this.diff = new DiffViewController(this, dependencies.diffCoordinator);
     this.handlers = new EditorMessageHandlers(this);
+    this._sourcePositionDelivery = new SourcePositionDelivery((message) => {
+      this._panel.webview.postMessage(message);
+    });
     // Generate unique instance ID for debugging
     this.instanceId = `${NodePath.basename(
       this._fsPath
@@ -397,6 +410,13 @@ export class EditorPanel {
 
     // Set the webview's initial html content
     this._init();
+
+    const registration = this._dependencies.editorNavigation?.registerPanel?.(this);
+    if (registration) this._disposables.push(registration);
+    const pendingTarget = this._dependencies.editorNavigation?.consumePendingTarget?.(this._uri);
+    if (pendingTarget || navigationTarget) {
+      this._sourcePositionDelivery.reveal(pendingTarget ?? navigationTarget!);
+    }
 
     if (this._isExplicitDiffView && this._tab?.label) {
       const showModifications =
@@ -692,6 +712,7 @@ export class EditorPanel {
             break;
           }
           case "vditorReady":
+            this._sourcePositionDelivery.markReady();
             // Vditor has initialized/reloaded - notify sidebar via document change event
             if (this._document) {
               logger.debug(
@@ -832,24 +853,7 @@ export class EditorPanel {
             break;
           }
           case "open-link": {
-            let url = message.href;
-            if (!/^http/.test(url)) {
-              url = NodePath.resolve(this._fsPath, "..", url);
-            }
-
-            // if the href is a relative path to a md file, vscode will open it in the editor
-            if (url.endsWith(".md") || url.endsWith(".markdown")) {
-              vscode.commands.executeCommand(
-                "markdown-editor.openEditor",
-                vscode.Uri.parse(url)
-              );
-              break;
-            }
-
-            vscode.commands.executeCommand(
-              "vscode.open",
-              vscode.Uri.parse(url)
-            );
+            await this.handlers.handleOpenLink(message);
             break;
           }
           case "requestAiAction": {
@@ -1078,11 +1082,20 @@ export class EditorPanel {
     }
   }
 
+  public reveal(): void {
+    this._panel.reveal();
+  }
+
+  public revealSourcePosition(target: SourceNavigationTarget): void {
+    this._sourcePositionDelivery.reveal(target);
+  }
+
   public dispose(): void {
     if (this._disposed) {
       return;
     }
     this._disposed = true;
+    this._sourcePositionDelivery.dispose();
     this._documentSync.dispose();
 
     logger.debug("Sidebar: EditorPanel being disposed");

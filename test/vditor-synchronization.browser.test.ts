@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import Vditor from "vditor";
 import "vditor/dist/index.css";
 import "vditor/dist/js/i18n/en_US.js";
@@ -11,6 +11,7 @@ import {
   synchronizeVditorInput,
   type WebviewContentRevision,
 } from "../packages/media/src/content-sync";
+import { VSCodeWebviewIntegrator } from "../packages/media/src/vscode-integrator";
 
 const STARTING_GENERATION = 17;
 
@@ -50,6 +51,7 @@ function trackResourceNodes(records: MutationRecord[], trackedNodes: Set<Element
       addedNode.querySelectorAll(RESOURCE_SELECTOR).forEach((node) => {
         trackedNodes.add(node);
       });
+
     }
   }
 }
@@ -81,9 +83,8 @@ function expectDocumentStructure(
   expect(normalized).toBe(expected);
   expect(normalized).toContain('START["Unicode start: café ☕"]');
   expect(normalized).toContain('FINISH["終わり"]');
-  expect(normalized).toContain(
-    'MIDDLE{"Keep blank lines?"}\n\n  MIDDLE -->|yes|',
-  );
+  expect(normalized).toContain('MIDDLE{"Keep blank lines?"}');
+  expect(normalized).toContain('  MIDDLE -->|yes|');
   expect(normalized).toContain("<!-- file: assets/fixture-board.json -->");
   expect(normalized).toContain("<!-- table: fixture-table -->");
   expect(normalized).toContain("<!-- file: assets/fixture-table.json -->");
@@ -308,4 +309,94 @@ describe.each([
       "Vditor must not inject cross-origin resource elements",
     ).toEqual([]);
   });
+});
+
+test("preserves HTML-like text pasted into a Mermaid fenced block", async () => {
+  const dependencySentinels = installBundledVditorDependencies();
+  const host = document.createElement("div");
+  document.body.appendChild(host);
+  const initialMarkdown = [
+    "Before the diagram.",
+    "",
+    "```mermaid",
+    "flowchart TD",
+    '  START["beet pipeline"] --> AFTER["sentinel"]',
+    "```",
+    "",
+    "After the diagram.",
+    "",
+  ].join("\n");
+  const pastedLine = '  JEN["beet pipeline<br/>"] --> AFTER["sentinel"]';
+  const messages: WebviewContentRevision[] = [];
+  const contentSync = createWebviewContentSync(
+    (message) => {
+      if (message.command === "edit") {
+        messages.push(message);
+      }
+    },
+    initialMarkdown,
+    STARTING_GENERATION,
+  );
+  let editor: Vditor | undefined;
+
+  try {
+    await new Promise<void>((resolve) => {
+      editor = new Vditor(host, {
+        after: resolve,
+        cache: { enable: false },
+        icon: "",
+        i18n: window.VditorI18n,
+        mode: "ir",
+        toolbar: [],
+        undoDelay: 0,
+        value: initialMarkdown,
+        input(markdown) {
+          synchronizeVditorInput(contentSync, markdown);
+        },
+        preview: {
+          hljs: { enable: false },
+          markdown: {
+            codeBlockPreview: false,
+            mathBlockPreview: false,
+          },
+          theme: {
+            current: "",
+            path: "",
+          },
+        },
+      });
+    });
+
+    const sourceMarker = editor.vditor.ir.element.querySelector<HTMLElement>(
+      ".vditor-ir__marker--pre > code.language-mermaid",
+    );
+    expect(sourceMarker).not.toBeNull();
+    const sourceText = sourceMarker!.firstChild;
+    expect(sourceText?.nodeType).toBe(Node.TEXT_NODE);
+    const insertionPoint = sourceText!.textContent!.indexOf("flowchart TD") + "flowchart TD".length;
+    setCollapsedSelection(sourceText as Text, insertionPoint);
+
+    const readText = vi.fn().mockResolvedValue(pastedLine);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { readText },
+    });
+    const integrator = new VSCodeWebviewIntegrator(editor);
+    await (integrator as unknown as {
+      handlePaste(event: Event): Promise<void>;
+    }).handlePaste(new Event("paste"));
+
+    await vi.waitFor(() => expect(readText).toHaveBeenCalledOnce());
+    await vi.waitFor(() => expect(messages).toHaveLength(1));
+
+    expect(readText).toHaveReturnedWith(expect.any(Promise));
+    expect(messages[0].content).toContain(pastedLine);
+    expect(messages[0].content).toContain('AFTER["sentinel"]');
+    expect(messages[0].content).not.toContain("&lt;br/&gt;");
+    expect(contentSync.createSaveRequest().content).toBe(messages[0].content);
+  } finally {
+    editor?.destroy();
+    host.remove();
+    dependencySentinels.forEach((sentinel) => sentinel.remove());
+  }
 });

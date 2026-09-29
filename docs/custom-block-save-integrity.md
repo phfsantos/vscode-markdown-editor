@@ -38,11 +38,21 @@ Markdown-to-IR-to-Markdown conversion before and after SVG replaces rendered
 preview contents. They also verify 20 edit/save cycles preserve exact fixture
 bytes, fence count and order, Unicode, blank lines, and surrounding prose.
 
+## Paste contract
+
+Paste is routed according to the current selection. Inside a fenced-code source
+marker, the clipboard string is inserted as literal text and the normal Vditor
+input callback remains the single synchronization boundary. This preserves
+HTML-like tokens such as `<br>`, `<br/>`, `</br>`, paired tags, quotes, Unicode,
+blank lines, and trailing content exactly as Markdown source bytes. In prose,
+paste retains Vditor's Markdown-aware `insertMD` behavior.
+
 Run the focused checks with:
 
 ```sh
 yarn vitest run test/content-sync.test.ts test/document-sync-controller.test.ts test/custom-render-target.test.ts test/vditor-custom-block-roundtrip.test.ts --coverage=false
 yarn check-types
+yarn vitest --config vitest.browser.config.ts --browser.enabled --browser.name chromium run test/vditor-synchronization.browser.test.ts
 ```
 
 ## Recovery limitation

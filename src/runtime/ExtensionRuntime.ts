@@ -12,6 +12,7 @@ import {
   MarkdownSidebarManager,
 } from '../sidebar/MarkdownNativeViews';
 import { ActiveDocumentContext } from './ActiveDocumentContext';
+import { MarkdownEditorNavigation } from '../navigation/MarkdownEditorNavigation';
 import type {
   ActiveDocumentEvents,
   DiffCoordinator,
@@ -65,14 +66,15 @@ export class ExtensionRuntime implements vscode.Disposable {
       this.activeDocument = activeDocument;
       this.relationshipAnalyzer = relationshipAnalyzer;
       this.diffCoordinator = diffCoordinator;
-      this.editorNavigation = this.createEditorNavigation(contextOrOptions);
+      const editorNavigation = this.createEditorNavigation(contextOrOptions);
+      this.editorNavigation = editorNavigation;
       this.editorPanelDependencies = {
         diffCoordinator,
         activeDocumentEvents: activeDocument,
         editorNavigation: this.editorNavigation,
       };
 
-      this.ownedResources.push(diffCoordinator, activeDocument, relationshipAnalyzer);
+      this.ownedResources.push(diffCoordinator, activeDocument, relationshipAnalyzer, editorNavigation);
       this.sidebarManager = new MarkdownSidebarManager(contextOrOptions, {
         activeDocumentContext: activeDocument,
         editorNavigation: this.editorNavigation,
@@ -151,35 +153,25 @@ export class ExtensionRuntime implements vscode.Disposable {
     this.ownedResources.length = 0;
   }
 
-  private createEditorNavigation(context: vscode.ExtensionContext): EditorNavigationPreviewPort {
-    const openEditor = async (
-      documentOrUri: vscode.Uri | vscode.TextDocument,
-      options: EditorOpenOptions = {},
-    ) => EditorPanel.createOrShow(
-      context,
-      documentOrUri,
-      options.tab,
-      options.webviewPanel,
-      options.isDiffView ?? false,
-      options.readOnly,
-      this.editorPanelDependencies,
-    );
-
-    return {
-      openEditor,
-      previewEmbed: async (document, payload) => {
-        const editor = await openEditor(document);
-        if (!editor) {
-          return false;
-        }
-
-        editor.postMessage({
-          command: 'openEmbedPreview',
-          embed: payload,
-        });
-        return true;
-      },
-    };
+  private createEditorNavigation(context: vscode.ExtensionContext): MarkdownEditorNavigation {
+    return new MarkdownEditorNavigation({
+      openEditor: async (
+        documentOrUri: vscode.Uri | vscode.TextDocument,
+        options: EditorOpenOptions = {},
+      ) => EditorPanel.createOrShow(
+        context,
+        documentOrUri,
+        options.tab,
+        options.webviewPanel,
+        options.isDiffView ?? false,
+        options.readOnly,
+        this.editorPanelDependencies,
+        options.navigationTarget,
+        options.mustExist ?? false,
+      ),
+      stat: async uri => vscode.workspace.fs.stat(uri),
+      showError: message => { void vscode.window.showErrorMessage(message); },
+    });
   }
 
   private isExtensionContext(value: vscode.ExtensionContext | ExtensionRuntimeOptions): value is vscode.ExtensionContext {

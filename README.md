@@ -111,6 +111,25 @@ A powerful markdown editor combining **WYSIWYG editing** with **Obsidian-style k
 - right click on a opened markdown file's tab title
 - then click `Open with markdown editor`
 
+### 5. Open at a source position
+
+Links between Markdown files can target a source line or a source line and character:
+
+```markdown
+[Open line 12](./notes/example.md#L12)
+[Open line 12, character 5](./notes/example.md#L12C5)
+```
+
+External tools can use the extension-owned URI handler. Pass the target file as an encoded URI; `character` is optional and defaults to 1:
+
+```text
+vscode://phfsantos.markdown-editor/open?uri=file%3A%2F%2F%2Fworkspace%2Fnotes%2Fexample.md&line=12&character=5
+```
+
+Line and character values in links are positive and one-based. Internally, character positions use VS Code's zero-based UTF-16 offsets, so Unicode positions follow VS Code's standard cursor semantics. Targets must be existing `.md` or `.markdown` files.
+
+VS Code's generic `--goto file:line:character` option does not select a custom editor and may open the built-in text editor. Use the `vscode://phfsantos.markdown-editor/open` URI when the Markdown Editor must open at the requested position.
+
 ### Custom CSS (custom layout and vditor personalization)
 
 Edit your settings.json and add:

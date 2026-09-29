@@ -583,6 +583,35 @@ export async function performClipboardAction(kind: "cut" | "copy" | "paste") {
               }
             }
 
+            const selectionNode = sel?.rangeCount
+              ? sel.getRangeAt(0).commonAncestorContainer
+              : null;
+            const selectionElement = selectionNode
+              ? selectionNode.nodeType === Node.ELEMENT_NODE
+                ? selectionNode as Element
+                : selectionNode.parentElement
+              : null;
+            const isInsideFencedCode = Boolean(
+              selectionElement?.closest(".vditor-ir__marker--pre"),
+            );
+
+            if (isInsideFencedCode && sel?.rangeCount) {
+              const range = sel.getRangeAt(0);
+              const textNode = document.createTextNode(text);
+              range.insertNode(textNode);
+              range.setStartAfter(textNode);
+              range.collapse(true);
+              sel.removeAllRanges();
+              sel.addRange(range);
+              document.querySelector<HTMLElement>(".vditor-ir .vditor-reset")
+                ?.dispatchEvent(new InputEvent("input", {
+                  bubbles: true,
+                  data: text,
+                  inputType: "insertText",
+                }));
+              return; // SUCCESS - STOP HERE
+            }
+
             if (typeof window.vditor.insertMD === "function") {
               window.vditor.insertMD(text);
               return; // SUCCESS - STOP HERE

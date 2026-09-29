@@ -620,10 +620,15 @@ export class VSCodeWebviewIntegrator {
       }
     }
 
-    if (this.vditor && this.vditor.insertMD) {
+    const isInsideFencedCode = this.isSelectionInsideFencedCode();
+    if (!isInsideFencedCode && this.vditor && this.vditor.insertMD) {
       this.vscodeLog(`[paste-debug] 🟣 Calling vditor.insertMD()`);
       this.vditor.insertMD(text);
       this.vscodeLog(`[paste-debug] 🟣 vditor.insertMD() completed`);
+      return;
+    }
+
+    if (isInsideFencedCode && this.insertLiteralTextAtSelection(text)) {
       return;
     }
 
@@ -635,6 +640,43 @@ export class VSCodeWebviewIntegrator {
     } else {
       this.vscodeLog(`[paste-debug] ⚠️ Cannot insert text - vditor or insertValue not available`);
     }
+  }
+
+  private isSelectionInsideFencedCode(): boolean {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) {
+      return false;
+    }
+
+    const node = selection.getRangeAt(0).commonAncestorContainer;
+    const element = node.nodeType === Node.ELEMENT_NODE
+      ? node as Element
+      : node.parentElement;
+    return Boolean(element?.closest(".vditor-ir__marker--pre"));
+  }
+
+  private insertLiteralTextAtSelection(text: string): boolean {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) {
+      return false;
+    }
+
+    const range = selection.getRangeAt(0);
+    if (!range.collapsed) {
+      range.deleteContents();
+    }
+    const textNode = document.createTextNode(text);
+    range.insertNode(textNode);
+    range.setStartAfter(textNode);
+    range.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    this.getEditorElement()?.dispatchEvent(new InputEvent("input", {
+      bubbles: true,
+      data: text,
+      inputType: "insertText",
+    }));
+    return true;
   }
 
   private deleteSelectedText(selectionRange: Range | null = null): void {
