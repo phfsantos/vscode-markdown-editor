@@ -19,9 +19,72 @@ flowchart TB
         JEN["beet pipeline<br/>ansible web_deploy.yml"]
     end
 
+    subgraph CI2["Jenkins · us-east-1 + ap-northeast-1"]
+        JEN2["beet pipeline<br/>ansible web_deploy.yml"]
+    end
 
-subgraph CI["Jenkins · us-east-1 + ap-northeast-1"]
-JEN["beet pipeline
+    subgraph EC2["api/beet · EC2 fleet, Ansible"]
+        H1["host 1<br/>labelConfig.json"]
+        H2["host n<br/>labelConfig.json"]
+        HC["canary host<br/>labelConfig.json"]
+    end
+
+    MONGO[("Mongo<br/>labels · label_types")]
+    PHP["label_cli.php<br/>hardcoded arrays<br/>NOW NESTED DEEPER"]
+
+    subgraph EPS["beet label endpoints"]
+        E1["labels/getLabelConfig<br/>NEW ?format=paths"]
+        E2["label_types/get<br/>unchanged"]
+        E3["content/getLabels<br/>NOW RECURSIVE"]
+    end
+
+    subgraph FARGATE["ECS Fargate · prod-wgsn-ecs001"]
+        SS["wgsn-search-service<br/>getIdMapping pass-through<br/>flat terms, scoped tokens"]
+        RS["wgsn-report-service<br/>ONE mapper<br/>OWNS closure derivation<br/>writes categories_scoped"]
+        STREAM["wgsn-stream-service<br/>flat · unchanged"]
+        TF["wgsn-trendfeed-api<br/>flat · unchanged"]
+        BACKFILL["one-off Fargate task<br/>closure backfill<br/>~100k trends docs"]
+    end
+
+    OS[("OpenSearch<br/>NEW categories_scoped field")]
+
+    subgraph WEBAPP["wgsn-web"]
+        WFIL["filter UI<br/>RECURSIVE · ragged depth<br/>sends deepest node only"]
+        WTAG["tagging UI<br/>NO CHANGE — already recursive<br/>stops writing the closure"]
+        REDIS[("Redis<br/>getLabels cache")]
+    end
+  
+    JEN -->|"deploy_local.sh<br/>runs PER HOST"| EC2
+    JEN2 --> EC2
+    PHP --> EC2
+    MONGO --> EC2
+    EC2 --> EPS
+
+    E1 --> SS
+    E2 --> SS
+    E2 -->|"uncached, per report"| RS
+    E2 --> STREAM
+    E2 --> TF
+    E3 --> REDIS --> WTAG
+
+    RS --> Q[("S3 queue<br/>wgsn-search-service-queue-*<br/>one object per doc, overwritten")]
+    Q --> ING["ingester<br/>NOT IN ANY REPO READ HERE"]
+    ING --> OS
+    BACKFILL --> OS
+    SS --> QB["buildRelationalQuery<br/>NO CHANGE NEEDED"]
+    QB --> OS
+    SS --> WFIL
+
+    style QB fill:#204a30,stroke:#6c9,color:#fff
+    style WTAG fill:#204a30,stroke:#6c9,color:#fff
+    style STREAM fill:#204a30,stroke:#6c9,color:#fff
+    style TF fill:#204a30,stroke:#6c9,color:#fff
+    style BACKFILL fill:#20304a,stroke:#69c,color:#fff
+    style Q fill:#4a3a20,stroke:#c96,color:#fff
+    style ING fill:#4a3a20,stroke:#c96,color:#fff
+    style PHP fill:#4a2020,stroke:#c66,color:#fff
+    style EC2 fill:#3a2020,stroke:#c66,color:#fff
+    style MONGO fill:#4a2020,stroke:#c66,color:#fff
 ```
 
 Green = already correct, no work. Blue = new. Red = the problem Phase 0 deliberately leaves alone.

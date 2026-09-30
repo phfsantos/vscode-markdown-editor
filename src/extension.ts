@@ -13,6 +13,7 @@ import { WidgetCommandProvider } from './commands/WidgetCommandProvider';
 import { VSCodeIntegrator } from './integration/VSCodeIntegrator';
 import { WikiLinkCompletionProvider } from './providers/WikiLinkCompletionProvider';
 import { MarkdownInlineCompletionProvider, INLINE_SUGGESTION_LANGUAGE_IDS } from './providers/MarkdownInlineCompletionProvider';
+import { ExtensionUriHandler } from './navigation/ExtensionUriHandler';
 
 export async function activate(context: vscode.ExtensionContext) {
   const runtime = new ExtensionRuntime(context);
@@ -36,8 +37,16 @@ export async function activate(context: vscode.ExtensionContext) {
   
   // Register OAuth callback handler for calendar authentication
   const { OAuthCallbackHandler } = await import('./services/calendar/OAuthCallbackHandler');
-  OAuthCallbackHandler.register(context);
-  logger.debug('✅ OAuth Callback Handler registered');
+  const handleNavigationUri = runtime.editorNavigation.handleUri?.bind(runtime.editorNavigation);
+  if (!handleNavigationUri) {
+    throw new Error('Extension runtime did not create a Markdown URI handler');
+  }
+  runtime.addDisposables(
+    vscode.window.registerUriHandler(
+      new ExtensionUriHandler(OAuthCallbackHandler, { handleUri: handleNavigationUri }),
+    ),
+  );
+  logger.debug('✅ Extension URI Handler registered');
   
   // Initialize VS Code integrator for enhanced native features
   const vscodeIntegrator = VSCodeIntegrator.getInstance();
@@ -155,14 +164,6 @@ export async function activate(context: vscode.ExtensionContext) {
       }
     )
   )
-
-  if (runtime.editorNavigation.handleUri) {
-    runtime.addDisposables(
-      vscode.window.registerUriHandler({
-        handleUri: (uri) => runtime.editorNavigation.handleUri!(uri),
-      }),
-    );
-  }
 
   // Add command to set as default markdown editor
   runtime.addDisposables(

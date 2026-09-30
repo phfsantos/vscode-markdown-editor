@@ -30,21 +30,6 @@ interface PendingAuth {
 
 class OAuthCallbackHandlerImpl implements vscode.UriHandler {
   private _pendingAuths = new Map<string, PendingAuth>();
-  private _isRegistered = false;
-  
-  /**
-   * Register this handler with VS Code
-   */
-  public register(context: vscode.ExtensionContext): void {
-    if (this._isRegistered) return;
-    
-    context.subscriptions.push(
-      vscode.window.registerUriHandler(this)
-    );
-    
-    this._isRegistered = true;
-    logger.debug('📅 OAuth: URI handler registered');
-  }
   
   /**
    * Handle incoming URI from browser redirect
