@@ -9,7 +9,7 @@ export class PreviewCustomEditorProvider
 {
   constructor(
     private context: vscode.ExtensionContext,
-    private readonly dependencies: EditorPanelDependencies = {},
+    private readonly dependencies: EditorPanelDependencies,
   ) {}
 
   private getTabInputKind(tab: vscode.Tab | undefined): string {

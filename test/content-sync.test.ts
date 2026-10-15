@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { test } from "vitest";
+import { afterEach, describe, test, vi } from "vitest";
 
 test("Vditor callback markdown remains authoritative when the DOM snapshot is truncated", async () => {
   let contentSyncModule: typeof import("../packages/media/src/content-sync") | null = null;
@@ -42,45 +42,6 @@ test("external generations reset revisions and cannot move backward", async () =
   assert.strictEqual(sync.getContent(), "after external");
 });
 
-test("Vditor input wiring uses callback markdown without reserializing the DOM", () => {
-  const source = fs.readFileSync(
-    path.join(__dirname, "..", "packages", "media", "src", "init-vditor.ts"),
-    "utf8",
-  );
-  const inputCallback = source.match(/input\(value: string\) \{([\s\S]*?)\n\s*upload:/)?.[1] ?? "";
-
-  assert.match(
-    inputCallback,
-    /synchronizeVditorInput\(contentSync, value\)/,
-  );
-  assert.doesNotMatch(inputCallback, /vditor\.getValue\(/);
-  assert.doesNotMatch(inputCallback, /vditor\.setValue\(/);
-});
-
-test("toolbar save uses the authoritative synchronized revision", () => {
-  const source = fs.readFileSync(
-    path.join(__dirname, "..", "packages", "media", "src", "toolbar.ts"),
-    "utf8",
-  );
-  const saveAction = source.match(/name: "save",([\s\S]*?)\n\s*\},\n\s*\{/)?.[1] ?? "";
-
-  assert.match(saveAction, /getWebviewContentSync\(\)\.createSaveRequest\(\)/);
-  assert.doesNotMatch(saveAction, /vditor\.getValue\(/);
-});
-
-test("find and replace relies on Vditor's input callback for serialization", () => {
-  const source = fs.readFileSync(
-    path.join(__dirname, "..", "packages", "media", "src", "find-replace.ts"),
-    "utf8",
-  );
-  const updateMethod =
-    source.match(/private updateVditorContent\(\): void \{([\s\S]*?)\n\s*\}\n\n\s*\/\*\*/)?.[1] ?? "";
-
-  assert.match(updateMethod, /dispatchEvent\(inputEvent\)/);
-  assert.doesNotMatch(updateMethod, /getValue\(/);
-  assert.doesNotMatch(updateMethod, /acceptProgrammaticUpdate\(/);
-});
-
 test("DOM mutations re-enter the authoritative Vditor input callback", async () => {
   const contentSyncModule = await import("../packages/media/src/content-sync");
   const dispatchVditorInput = (
@@ -114,32 +75,6 @@ test("DOM mutations re-enter the authoritative Vditor input callback", async () 
   assert.strictEqual(getValueCalls, 0);
 });
 
-test("external and DOM-mutating updates use authoritative synchronization boundaries", () => {
-  const source = fs.readFileSync(
-    path.join(__dirname, "..", "packages", "media", "src", "main.ts"),
-    "utf8",
-  );
-
-  assert.match(source, /contentSync\.acceptExternalUpdate\(/);
-  assert.match(source, /dispatchVditorInput\(vditor\)/);
-  assert.doesNotMatch(source, /acceptProgrammaticUpdate\(rawContent\)/);
-});
-
-test("a stale external update does not arm the diagnostic refresh flag", () => {
-  const source = fs.readFileSync(
-    path.join(__dirname, "..", "packages", "media", "src", "main.ts"),
-    "utf8",
-  );
-  const acceptedCheck = source.indexOf("if (!accepted)");
-  const flagAssignment = source.indexOf("justReceivedExternalChange = true");
-
-  assert.ok(acceptedCheck >= 0, "expected stale external updates to be rejected");
-  assert.ok(
-    flagAssignment > acceptedCheck,
-    "the diagnostic refresh flag must only be armed after an update is accepted",
-  );
-});
-
 test("equal or older external generations cannot reset authoritative content", async () => {
   const { createWebviewContentSync } = await import(
     "../packages/media/src/content-sync"
@@ -152,42 +87,130 @@ test("equal or older external generations cannot reset authoritative content", a
   assert.strictEqual(sync.getContent(), "local revision");
 });
 
-test("DOM-mutating edit producers re-enter the authoritative input path", () => {
-  const relativeFiles = [
-    "cursor-manager.ts",
-    "main.ts",
-    path.join("renderers", "builtin", "DashboardRenderer.ts"),
-    path.join("renderers", "builtin", "WidgetRenderer.ts"),
-  ];
+// ---- Host update and diagnostics routes ------------------------------------
 
-  for (const relativeFile of relativeFiles) {
-    const source = fs.readFileSync(
-      path.join(__dirname, "..", "packages", "media", "src", relativeFile),
-      "utf8",
-    );
-    assert.doesNotMatch(
-      source,
-      /command:\s*["']edit["']/,
-      `${relativeFile} bypasses content synchronization`,
-    );
-    assert.match(source, /dispatchVditorInput\(/);
-    assert.doesNotMatch(
-      source,
-      /acceptProgrammaticUpdate\((?:rawContent|content)\)/,
-      `${relativeFile} promotes a live DOM serialization`,
-    );
-  }
+import { createDocumentSyncRoutes } from "../packages/media/src/document-sync-routes";
+import { createWebviewContentSync } from "../packages/media/src/content-sync";
+
+function documentSyncRoutes(initialContent = "local", initialGeneration = 3) {
+  const contentSync = createWebviewContentSync(() => {}, initialContent, initialGeneration);
+  const timers: Array<() => void> = [];
+  const editor = {
+    replaced: [] as string[],
+    initialized: [] as unknown[],
+    afterUpdates: 0,
+    diagnostics: [] as boolean[],
+  };
+  const routes = createDocumentSyncRoutes({
+    getContentSync: () => contentSync,
+    recordDocumentState: () => {},
+    initializeEditor: (message) => editor.initialized.push(message),
+    replaceEditorContent: (content) => editor.replaced.push(content),
+    afterExternalUpdate: () => { editor.afterUpdates += 1; },
+    applyDiagnostics: (_message, forceApply) => editor.diagnostics.push(forceApply),
+    setTimeout: (callback) => timers.push(callback),
+  });
+  const update = (message: Record<string, unknown>) =>
+    routes.update!({ command: "update", content: "", ...message } as never);
+  const diagnostics = () => routes.diagnostics!({ command: "diagnostics", diagnostics: [] });
+  return { contentSync, editor, update, diagnostics, expireWindow: () => timers.splice(0).forEach((t) => t()) };
+}
+
+describe("host document update routes", () => {
+  test("an accepted external update replaces the editor content and force-applies the next diagnostics", () => {
+    const { editor, update, diagnostics, contentSync } = documentSyncRoutes();
+
+    update({ content: "external", generation: 4 });
+    diagnostics();
+
+    assert.deepStrictEqual(editor.replaced, ["external"]);
+    assert.strictEqual(editor.afterUpdates, 1);
+    assert.deepStrictEqual(editor.diagnostics, [true]);
+    assert.strictEqual(contentSync.getContent(), "external");
+  });
+
+  test("a stale external update leaves the editor alone and does not arm diagnostics", () => {
+    const { editor, update, diagnostics, contentSync } = documentSyncRoutes();
+
+    update({ content: "stale", generation: 3 });
+    diagnostics();
+
+    assert.deepStrictEqual(editor.replaced, []);
+    assert.deepStrictEqual(editor.diagnostics, [false]);
+    assert.strictEqual(contentSync.getContent(), "local");
+  });
+
+  test("the diagnostic force window closes after it expires", () => {
+    const { editor, update, diagnostics, expireWindow } = documentSyncRoutes();
+
+    update({ content: "external", generation: 4 });
+    expireWindow();
+    diagnostics();
+
+    assert.deepStrictEqual(editor.diagnostics, [false]);
+  });
+
+  test("an update without a generation advances to the next generation", () => {
+    const { update, contentSync } = documentSyncRoutes("local", 3);
+
+    update({ content: "external" });
+
+    assert.strictEqual(contentSync.getGeneration(), 4);
+  });
+
+  test("an init update boots the editor instead of replacing content", () => {
+    const { editor, update } = documentSyncRoutes();
+
+    update({ type: "init", content: "boot", generation: 9 });
+
+    assert.strictEqual(editor.initialized.length, 1);
+    assert.deepStrictEqual(editor.replaced, []);
+  });
 });
 
-test("tool selection transforms the canonical synchronized Markdown", () => {
-  const source = fs.readFileSync(
-    path.join(__dirname, "..", "packages", "media", "src", "tool-selector.ts"),
-    "utf8",
-  );
-  const applySelectedTools =
-    source.match(/export function applySelectedTools[\s\S]*?\n\}/)?.[0] ?? "";
+// ---- Toolbar save and tool selection use the canonical revision -------------
 
-  assert.match(applySelectedTools, /getWebviewContentSync\(\)\.getContent\(\)/);
-  assert.doesNotMatch(applySelectedTools, /vditor\.getValue\(\)/);
-  assert.match(applySelectedTools, /acceptProgrammaticUpdate\(updated\)/);
+vi.mock("../packages/media/src/utils", () => ({ cleanContentForSave: (value: string) => value }));
+vi.mock("../packages/media/src/lang", () => ({ t: (key: string) => key }));
+
+describe("webview edit producers", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
+  test("toolbar save requests the synchronized revision, never a DOM snapshot", async () => {
+    const { initializeWebviewContentSync } = await import("../packages/media/src/content-sync");
+    const { toolbar } = await import("../packages/media/src/toolbar");
+    const posted: unknown[] = [];
+    const contentSync = initializeWebviewContentSync((message) => posted.push(message), "canonical", 2);
+    contentSync.acceptInput("canonical edit");
+    const getValue = vi.fn(() => "truncated DOM");
+    vi.stubGlobal("window", { vditor: { getValue } });
+
+    const save = toolbar.find((item) => typeof item === "object" && item.name === "save") as { click(): void };
+    save.click();
+
+    assert.deepStrictEqual(posted.at(-1), { command: "save", content: "canonical edit", generation: 2, revision: 1 });
+    assert.strictEqual(getValue.mock.calls.length, 0);
+  });
+
+  test("tool selection rewrites the canonical Markdown and emits it as an edit", async () => {
+    vi.useFakeTimers();
+    const { initializeWebviewContentSync } = await import("../packages/media/src/content-sync");
+    const { applySelectedTools } = await import("../packages/media/src/tool-selector");
+    const { updateFrontmatterTools } = await import("../packages/media/src/tool-selector-modal");
+    const canonical = "---\ntools: []\n---\n# Agent";
+    const posted: Array<{ command: string; content?: string }> = [];
+    initializeWebviewContentSync((message) => posted.push(message), canonical, 1);
+    const vditor = { getValue: vi.fn(() => "truncated DOM"), setValue: vi.fn() };
+    vi.stubGlobal("window", { vditor });
+
+    applySelectedTools(["search"]);
+
+    const expected = updateFrontmatterTools(canonical, ["search"]);
+    assert.deepStrictEqual(posted.at(-1), { command: "edit", content: expected, generation: 1, revision: 1 });
+    assert.deepStrictEqual(vditor.setValue.mock.calls, [[expected]]);
+    assert.strictEqual(vditor.getValue.mock.calls.length, 0);
+  });
 });

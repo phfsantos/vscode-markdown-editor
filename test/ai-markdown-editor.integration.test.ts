@@ -39,18 +39,21 @@ const index = vi.hoisted(() => ({
   getBacklinks: vi.fn(async () => []),
   getRelatedFiles: vi.fn(async () => []),
 }));
-vi.mock('../src/services/RelationshipAnalyzer', () => ({
-  RelationshipAnalyzer: { getInstance: () => index },
-}));
-vi.mock('../src/services/LinkGraphGenerator', () => ({
-  LinkGraphGenerator: { getInstance: () => ({ generateSimplifiedGraph: async () => ({ nodes: [], edges: [] }) }) },
-}));
+const graph = { generateSimplifiedGraph: async () => ({ nodes: [], edges: [] }) };
 vi.mock('../src/services', async () => ({
   AIMarkdownWorkflowService: (await import('../src/services/AIMarkdownWorkflowService')).AIMarkdownWorkflowService,
 }));
 
 import { EditorPanel } from '../src/app/EditorPanel';
 import { PreviewCustomEditorProvider } from '../src/app/PreviewCustomEditorProvider';
+import { AIMarkdownWorkflowService } from '../src/services/AIMarkdownWorkflowService';
+
+function editorDependencies() {
+  return {
+    aiWorkflow: new AIMarkdownWorkflowService(index as never, graph as never),
+    relatedFiles: index,
+  };
+}
 
 function document(fileName: string, content = '# Notes\n\nHello café 👋') {
   return {
@@ -78,7 +81,7 @@ async function openEditor(fileName = '/workspace/helper.agent.md', content?: str
     extensionUri: vscode.Uri.file('/extension'),
     globalState: { get: () => ({}), update: async () => {} },
   } as unknown as vscode.ExtensionContext;
-  await new PreviewCustomEditorProvider(context).resolveCustomTextEditor(doc, panel as unknown as vscode.WebviewPanel, {} as vscode.CancellationToken);
+  await new PreviewCustomEditorProvider(context, editorDependencies()).resolveCustomTextEditor(doc, panel as unknown as vscode.WebviewPanel, {} as vscode.CancellationToken);
   expect(receive, 'Provider must resolve an editor and register the webview receiver').toBeTypeOf('function');
   await receive!({ command: 'ready' });
   return {

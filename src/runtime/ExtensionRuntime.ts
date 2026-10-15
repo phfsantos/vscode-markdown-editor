@@ -8,6 +8,8 @@ import { PreviewCustomEditorProvider } from '../app/PreviewCustomEditorProvider'
 import { GraphViewPanel, type GraphViewPanelDependencies } from '../app/GraphViewPanel';
 import { LinkGraphGenerator } from '../services/LinkGraphGenerator';
 import { RelationshipAnalyzer } from '../services/RelationshipAnalyzer';
+import { AIMarkdownWorkflowService } from '../services/AIMarkdownWorkflowService';
+import { WikiLinkCompletionProvider } from '../providers/WikiLinkCompletionProvider';
 import {
   MarkdownSidebarManager,
 } from '../sidebar/MarkdownNativeViews';
@@ -19,7 +21,7 @@ import type {
   DiffPanelRegistry,
   EditorNavigationPreviewPort,
   EditorOpenOptions,
-} from './ports';
+} from '../contracts/ports';
 
 export interface ExtensionRuntimeOptions {
   context?: vscode.ExtensionContext;
@@ -35,14 +37,17 @@ export class ExtensionRuntime implements vscode.Disposable {
   public readonly editorNavigation: EditorNavigationPreviewPort;
   public readonly activeDocument: ActiveDocumentEvents;
   public readonly relationshipAnalyzer: RelationshipAnalyzer | vscode.Disposable;
+  /** Activation-scoped services; created only when constructed from an extension context. */
+  public readonly graphGenerator?: LinkGraphGenerator;
+  public readonly aiWorkflow?: AIMarkdownWorkflowService;
+  public readonly wikiLinkCompletion?: WikiLinkCompletionProvider;
   public readonly sidebarManager?: MarkdownSidebarManager;
 
   private readonly context?: vscode.ExtensionContext;
   private readonly disposables: vscode.Disposable[] = [];
   private readonly ownedResources: vscode.Disposable[] = [];
-  private readonly graphGenerator?: LinkGraphGenerator;
   private disposed = false;
-  private editorPanelDependencies: EditorPanelDependencies = {};
+  private editorPanelDependencies?: EditorPanelDependencies;
 
   public constructor(contextOrOptions: vscode.ExtensionContext | ExtensionRuntimeOptions) {
     if (this.isExtensionContext(contextOrOptions)) {
@@ -60,8 +65,14 @@ export class ExtensionRuntime implements vscode.Disposable {
         },
       };
       const diffCoordinator = new MarkdownDiffViewSupport(contextOrOptions, panelRegistry);
+      // The one relationship index, graph, and AI workflow for this activation.
+      // Every consumer receives these instances; none may construct its own.
       const graphGenerator = new LinkGraphGenerator(relationshipAnalyzer);
+      const aiWorkflow = new AIMarkdownWorkflowService(relationshipAnalyzer, graphGenerator);
+      const wikiLinkCompletion = new WikiLinkCompletionProvider(relationshipAnalyzer);
       this.graphGenerator = graphGenerator;
+      this.aiWorkflow = aiWorkflow;
+      this.wikiLinkCompletion = wikiLinkCompletion;
 
       this.activeDocument = activeDocument;
       this.relationshipAnalyzer = relationshipAnalyzer;
@@ -69,12 +80,20 @@ export class ExtensionRuntime implements vscode.Disposable {
       const editorNavigation = this.createEditorNavigation(contextOrOptions);
       this.editorNavigation = editorNavigation;
       this.editorPanelDependencies = {
+        aiWorkflow,
+        relatedFiles: relationshipAnalyzer,
         diffCoordinator,
         activeDocumentEvents: activeDocument,
         editorNavigation: this.editorNavigation,
       };
 
-      this.ownedResources.push(diffCoordinator, activeDocument, relationshipAnalyzer, editorNavigation);
+      this.ownedResources.push(
+        diffCoordinator,
+        activeDocument,
+        wikiLinkCompletion,
+        relationshipAnalyzer,
+        editorNavigation,
+      );
       this.sidebarManager = new MarkdownSidebarManager(contextOrOptions, {
         activeDocumentContext: activeDocument,
         editorNavigation: this.editorNavigation,
@@ -102,7 +121,7 @@ export class ExtensionRuntime implements vscode.Disposable {
   }
 
   public createPreviewCustomEditorProvider(): PreviewCustomEditorProvider {
-    if (!this.context) {
+    if (!this.context || !this.editorPanelDependencies) {
       throw new Error('A VS Code extension context is required to create providers');
     }
 
@@ -110,6 +129,10 @@ export class ExtensionRuntime implements vscode.Disposable {
   }
 
   public get graphViewDependencies(): GraphViewPanelDependencies {
+    if (!this.graphGenerator) {
+      throw new Error('A VS Code extension context is required to open graph view');
+    }
+
     return {
       activeDocumentContext: this.activeDocument,
       graphGenerator: this.graphGenerator,
@@ -158,7 +181,7 @@ export class ExtensionRuntime implements vscode.Disposable {
       openEditor: async (
         documentOrUri: vscode.Uri | vscode.TextDocument,
         options: EditorOpenOptions = {},
-      ) => EditorPanel.createOrShow(
+      ) => this.editorPanelDependencies && EditorPanel.createOrShow(
         context,
         documentOrUri,
         options.tab,

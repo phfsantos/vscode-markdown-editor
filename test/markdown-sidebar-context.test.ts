@@ -138,18 +138,12 @@ const relationshipAnalyzer = vi.hoisted(() => {
 
 vi.mock('../src/services', () => ({
   DefaultEditorChecker: { getInstance: () => ({ isDefaultEditor: vi.fn() }) },
-  LinkGraphGenerator: { getInstance: () => ({}) },
-  RelationshipAnalyzer: { getInstance: () => relationshipAnalyzer },
   TemplateManager: {
     getInstance: () => ({
       loadUserTemplates: vi.fn().mockResolvedValue(undefined),
       getAllTemplates: vi.fn(() => []),
     }),
   },
-}));
-
-vi.mock('../src/services/RelationshipAnalyzer', () => ({
-  RelationshipAnalyzer: { getInstance: () => relationshipAnalyzer },
 }));
 
 vi.mock('../src/services/TagManager', () => ({
@@ -160,6 +154,19 @@ vi.mock('../src/services/TagManager', () => ({
 }));
 
 import { MarkdownSidebarContext } from '../src/sidebar/MarkdownSidebarContext';
+import { ActiveDocumentContext } from '../src/runtime/ActiveDocumentContext';
+
+const activeDocumentContexts: ActiveDocumentContext[] = [];
+
+function sidebarDependencies() {
+  const activeDocumentContext = new ActiveDocumentContext();
+  activeDocumentContexts.push(activeDocumentContext);
+  return {
+    activeDocumentContext,
+    relationshipAnalyzer: relationshipAnalyzer as never,
+    graphGenerator: {} as never,
+  };
+}
 
 interface TestDocument {
   languageId: string;
@@ -193,7 +200,7 @@ function editor(doc: TestDocument): { document: TestDocument } {
 
 function createContextWithNavigationPort(navigationPort: unknown): MarkdownSidebarContext {
   const Context = MarkdownSidebarContext as unknown as new (...args: unknown[]) => MarkdownSidebarContext;
-  return new Context({} as never, { editorNavigation: navigationPort });
+  return new Context({} as never, { ...sidebarDependencies(), editorNavigation: navigationPort });
 }
 
 describe('MarkdownSidebarContext active document transitions', () => {
@@ -207,6 +214,7 @@ describe('MarkdownSidebarContext active document transitions', () => {
 
   afterEach(() => {
     context?.dispose();
+    activeDocumentContexts.splice(0).forEach((activeDocumentContext) => activeDocumentContext.dispose());
     context = undefined;
   });
 
@@ -220,7 +228,7 @@ describe('MarkdownSidebarContext active document transitions', () => {
       published.push(value),
     );
 
-    context = new MarkdownSidebarContext({} as never);
+    context = new MarkdownSidebarContext({} as never, sidebarDependencies());
 
     expect(context.getActiveDocument()).toBe(activeDocument);
     expect(published).toEqual([]);
@@ -235,13 +243,13 @@ describe('MarkdownSidebarContext active document transitions', () => {
       editor(visibleDocument),
     ];
 
-    context = new MarkdownSidebarContext({} as never);
+    context = new MarkdownSidebarContext({} as never, sidebarDependencies());
 
     expect(context.getActiveDocument()).toBe(visibleDocument);
   });
 
   it('tracks an active Markdown text editor and clears for an active non-Markdown file', () => {
-    context = new MarkdownSidebarContext({} as never);
+    context = new MarkdownSidebarContext({} as never, sidebarDependencies());
     const markdownDocument = document('/workspace/new-active.md');
     const changes = vi.fn();
     context.onDidChange(changes);
@@ -255,7 +263,7 @@ describe('MarkdownSidebarContext active document transitions', () => {
   });
 
   it('uses a visible Markdown editor and clears it when no Markdown editor remains visible', () => {
-    context = new MarkdownSidebarContext({} as never);
+    context = new MarkdownSidebarContext({} as never, sidebarDependencies());
     const markdownDocument = document('/workspace/visible.md');
 
     host.visibleEditorListeners[0]([editor(markdownDocument)]);
@@ -267,7 +275,7 @@ describe('MarkdownSidebarContext active document transitions', () => {
   });
 
   it('tracks and clears documents published by the application active-document context', () => {
-    context = new MarkdownSidebarContext({} as never);
+    context = new MarkdownSidebarContext({} as never, sidebarDependencies());
     const customEditorDocument = document('/workspace/custom.md');
     const published: unknown[] = [];
     const subscription = subscribe(host.activeDocumentListeners, (value) =>
@@ -285,7 +293,7 @@ describe('MarkdownSidebarContext active document transitions', () => {
   });
 
   it('converges text-editor, visible-editor, and custom-editor signals on one public stream', () => {
-    context = new MarkdownSidebarContext({} as never);
+    context = new MarkdownSidebarContext({} as never, sidebarDependencies());
     const textEditorDocument = document('/workspace/text-editor.md');
     const customEditorDocument = document('/workspace/custom-editor.md');
     const visibleEditorDocument = document('/workspace/visible-editor.md');
@@ -325,7 +333,7 @@ describe('MarkdownSidebarContext active document transitions', () => {
   });
 
   it('disposes the relationship-cache status subscription with the sidebar context', () => {
-    context = new MarkdownSidebarContext({} as never);
+    context = new MarkdownSidebarContext({} as never, sidebarDependencies());
     const cacheStatusSubscription = relationshipAnalyzer.cacheStatusSubscription;
 
     context.dispose();

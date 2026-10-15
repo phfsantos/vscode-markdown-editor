@@ -3,7 +3,8 @@ import * as NodePath from "path";
 import { logger } from "../utils/Logger";
 import { findChatEditingStateForDocument } from "./chatEditingDiff";
 import { calculateRoleSpecificDiffStats } from "../diff/roleSpecificStats";
-import type { DiffCoordinator } from "../runtime/ports";
+import type { DiffCoordinator } from "../contracts/ports";
+import type { WebviewMessageRoutes } from "./webviewMessageRouter";
 
 /**
  * The slice of an editor panel the diff controller needs. EditorPanel
@@ -519,5 +520,31 @@ export class DiffViewController {
 
       logger.debug(`[${this.host.instanceId}]   ✅ Diff update completed`);
     }, 500); // Wait 500ms after last change before updating diff
+  }
+
+  /** Diff-view commands owned by this controller. */
+  routes(): WebviewMessageRoutes {
+    return {
+      "diff-scroll-sync": (message) => this.handleScrollSync(message.scrollPercentage),
+    };
+  }
+
+  /** Forward this panel's scroll position to its diff partner. */
+  handleScrollSync(scrollPercentage: number): void {
+    if (!this.otherDiffUri) {
+      logger.warn("⚠️ EDITOR PANEL: No _uri or _otherDiffUri for scroll sync");
+      return;
+    }
+    if (!this.diffCoordinator) {
+      logger.warn("⚠️ EDITOR PANEL: diff coordinator is unavailable");
+      return;
+    }
+    // Pass instance ID to help identify source editor when URIs are identical
+    this.diffCoordinator.handleScrollSync(
+      this.host.instanceId,
+      this.host.uri,
+      this.otherDiffUri,
+      scrollPercentage,
+    );
   }
 }

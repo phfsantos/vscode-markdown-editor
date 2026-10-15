@@ -4,7 +4,7 @@ import type {
   EditorOpenOptions,
   EditorPanelHandle,
   EditorSourceNavigationPanel,
-} from '../runtime/ports';
+} from '../contracts/ports';
 import {
   canonicalDocumentKey,
   isMarkdownUri,

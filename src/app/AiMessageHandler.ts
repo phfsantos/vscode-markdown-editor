@@ -1,8 +1,9 @@
 import * as vscode from "vscode";
 import { logger } from "../utils/Logger";
 import { classifyAIMarkdownFileName } from "../services/AIMarkdownDetector";
-import { AIMarkdownWorkflowService } from "../services";
+import type { AIMarkdownWorkflowService } from "../services";
 import { InlineSuggestionService } from "../services/InlineSuggestionService";
+import type { WebviewMessage, WebviewMessageRoutes } from "./webviewMessageRouter";
 
 /**
  * The slice of an editor panel the AI handlers need. EditorPanel implements
@@ -29,7 +30,20 @@ export interface AiHost {
 export class AiMessageHandler {
   private readonly inlineSuggestionService = InlineSuggestionService.getInstance();
 
-  constructor(private readonly host: AiHost) {}
+  constructor(
+    private readonly host: AiHost,
+    private readonly aiWorkflowService: AIMarkdownWorkflowService,
+  ) {}
+
+  /** AI markdown, chat, and inline-suggestion commands owned by this handler. */
+  public routes(): WebviewMessageRoutes {
+    return {
+      requestInlineSuggestion: (message) => this.handleInlineSuggestionRequest(message),
+      requestAddToChat: () => this.handleAddToChatRequest(),
+      requestAiAction: (message) => this.handleAIMarkdownAction(message),
+      openNativeToolSelector: (message) => this.handleNativeToolSelector(message.selectedTools ?? []),
+    };
+  }
 
   public getInlineSuggestionLanguageId(): string {
     const languageId = this.host.document.languageId;
@@ -439,7 +453,7 @@ export class AiMessageHandler {
     }
   }
 
-  public async handleInlineSuggestionRequest(message: any): Promise<void> {
+  public async handleInlineSuggestionRequest(message: WebviewMessage<"requestInlineSuggestion">): Promise<void> {
     const requestId = String(message?.requestId || "");
     if (!requestId) {
       return;
@@ -516,7 +530,7 @@ export class AiMessageHandler {
     }
   }
 
-  public async handleAIMarkdownAction(message: any): Promise<void> {
+  public async handleAIMarkdownAction(message: WebviewMessage<"requestAiAction">): Promise<void> {
     if (this.host.isDiffView) {
       this.host.postMessage({
         command: "aiMarkdownActionResult",
@@ -526,7 +540,7 @@ export class AiMessageHandler {
       return;
     }
 
-    const aiWorkflowService = AIMarkdownWorkflowService.getInstance();
+    const aiWorkflowService = this.aiWorkflowService;
     const action = String(message?.action || "");
 
     try {

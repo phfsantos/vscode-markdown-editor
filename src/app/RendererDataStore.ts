@@ -7,6 +7,9 @@ import {
   getRendererDataFilePath,
 } from "./rendererDataPath";
 import {
+  createRendererDataErrorResponse,
+  isRendererDataCommand,
+  parseRendererDataMessage,
   type InsertRendererMessage,
   type KanbanLoadDataMessage,
   type KanbanMigrateDataMessage,
@@ -20,6 +23,11 @@ import {
   getRendererDataDescriptor,
   getRendererInsertDescriptor,
 } from "./rendererDataDescriptors";
+import type {
+  WebviewMessage,
+  WebviewMessageDelegate,
+  WebviewMessageRoutes,
+} from "./webviewMessageRouter";
 
 /**
  * Host-side context the store needs from its owning editor panel.
@@ -29,6 +37,13 @@ export interface RendererDataStoreContext {
   getFsPath(): string;
   /** Post a message to the editor's webview. */
   postMessage(message: unknown): void;
+  /** Activation-scoped relationship index used for related-file suggestions. */
+  readonly relatedFiles: RelatedFilesSource;
+}
+
+/** The slice of the relationship index the widget picker needs. */
+export interface RelatedFilesSource {
+  getRelatedFiles(uri: vscode.Uri): Promise<Array<{ path: string }>>;
 }
 
 const RENDERER_OPERATION_ERROR = {
@@ -906,7 +921,7 @@ export class RendererDataStore {
    * Handle wiki-link workspace files request
    * Returns all markdown files in the workspace for autocomplete
    */
-  public async handleRequestWorkspaceFiles(message: any): Promise<void> {
+  public async handleRequestWorkspaceFiles(message: WebviewMessage<"requestWorkspaceFiles">): Promise<void> {
     try {
       // Find all markdown files in workspace
       const files = await vscode.workspace.findFiles(
@@ -953,17 +968,12 @@ export class RendererDataStore {
    * Handle wiki-link related files request
    * Returns files related to the current document
    */
-  public async handleRequestRelatedFiles(message: any): Promise<void> {
+  public async handleRequestRelatedFiles(message: WebviewMessage<"requestRelatedFiles">): Promise<void> {
     try {
       const documentPath = message.documentPath;
       const documentUri = vscode.Uri.file(documentPath);
 
-      // Use RelationshipAnalyzer to get related files
-      const RelationshipAnalyzer = (
-        await import("../services/RelationshipAnalyzer")
-      ).RelationshipAnalyzer;
-      const analyzer = RelationshipAnalyzer.getInstance();
-      const relatedFiles = await analyzer.getRelatedFiles(documentUri);
+      const relatedFiles = await this.ctx.relatedFiles.getRelatedFiles(documentUri);
 
       // Send response back to webview
       this.ctx.postMessage({
@@ -981,4 +991,57 @@ export class RendererDataStore {
     }
   }
 
+  /** Wiki-link autocomplete lookups owned by this store. */
+  public routes(): WebviewMessageRoutes {
+    return {
+      requestWorkspaceFiles: (message) => this.handleRequestWorkspaceFiles(message),
+      requestRelatedFiles: (message) => this.handleRequestRelatedFiles(message),
+    };
+  }
+
+  /**
+   * Renderer persistence has its own validated contract (identifiers become
+   * file paths), so it consumes those commands before the shared protocol.
+   * Malformed persistence requests are answered with an error response.
+   */
+  public readonly persistenceDelegate: WebviewMessageDelegate = async (raw) => {
+    if (typeof raw !== "object" || raw === null) {
+      return false;
+    }
+    const command = (raw as { command?: unknown }).command;
+    if (!isRendererDataCommand(command)) {
+      return false;
+    }
+
+    const message = parseRendererDataMessage(raw);
+    if (!message) {
+      this.ctx.postMessage(createRendererDataErrorResponse(raw));
+      return true;
+    }
+
+    switch (message.command) {
+      case "kanban-save-data":
+        await this.handleKanbanSaveData(message);
+        break;
+      case "kanban-load-data":
+        await this.handleKanbanLoadData(message);
+        break;
+      case "kanban-migrate-data":
+        await this.handleKanbanMigrateData(message);
+        break;
+      case "renderer-load-data":
+        await this.handleRendererLoadData(message);
+        break;
+      case "renderer-save-data":
+        await this.handleRendererSaveData(message);
+        break;
+      case "renderer-check-data":
+        await this.handleRendererCheckData(message);
+        break;
+      case "requestInsertRenderer":
+        await this.handleInsertRenderer(message);
+        break;
+    }
+    return true;
+  };
 }

@@ -5,13 +5,11 @@ const KeyVditorOptions = 'vditor.options';
 import { ExtensionRuntime } from './runtime/ExtensionRuntime';
 // Import new providers for enhanced VS Code integration
 import { MarkdownDiagnosticProvider } from './diagnostics/MarkdownDiagnosticProvider';
-import { MarkdownTextSyncProvider } from './sync/MarkdownTextSyncProvider';
 import { PerformanceOptimizer } from './performance/PerformanceOptimizer';
 import { MarkdownCodeLensProvider, MarkdownDecorationProvider } from './decorations/MarkdownDecorationProviders';
 import { MarkdownCommandProvider } from './commands/MarkdownCommandProvider';
 import { WidgetCommandProvider } from './commands/WidgetCommandProvider';
 import { VSCodeIntegrator } from './integration/VSCodeIntegrator';
-import { WikiLinkCompletionProvider } from './providers/WikiLinkCompletionProvider';
 import { MarkdownInlineCompletionProvider, INLINE_SUGGESTION_LANGUAGE_IDS } from './providers/MarkdownInlineCompletionProvider';
 import { ExtensionUriHandler } from './navigation/ExtensionUriHandler';
 
@@ -57,10 +55,6 @@ export async function activate(context: vscode.ExtensionContext) {
   const diagnosticProvider = new MarkdownDiagnosticProvider();
   runtime.addDisposables(diagnosticProvider);
   
-  // Initialize text sync provider for spell checker compatibility
-  const textSyncProvider = new MarkdownTextSyncProvider();
-  runtime.addDisposables(textSyncProvider);
-  
   // Initialize decoration provider for native text highlighting
   const decorationProvider = new MarkdownDecorationProvider();
   runtime.addDisposables(decorationProvider);
@@ -83,7 +77,11 @@ export async function activate(context: vscode.ExtensionContext) {
   logger.debug('✅ Inline completion provider registered');
   
   // Initialize enhanced commands
-  const commandProvider = new MarkdownCommandProvider(context);
+  const aiWorkflow = runtime.aiWorkflow;
+  if (!aiWorkflow) {
+    throw new Error('Extension runtime did not create the AI markdown workflow service');
+  }
+  const commandProvider = new MarkdownCommandProvider(context, aiWorkflow);
   runtime.addDisposables(commandProvider);
 
   // Initialize widget commands
@@ -135,7 +133,10 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   // Initialize wiki-link completion provider for Obsidian-style [[filename]] autocomplete
-  const wikiLinkProvider = WikiLinkCompletionProvider.getInstance();
+  const wikiLinkProvider = runtime.wikiLinkCompletion;
+  if (!wikiLinkProvider) {
+    throw new Error('Extension runtime did not create the wiki-link completion provider');
+  }
   runtime.addDisposables(
     vscode.languages.registerCompletionItemProvider(
       'markdown',

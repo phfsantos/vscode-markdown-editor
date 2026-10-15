@@ -1,5 +1,6 @@
 import { logger } from "../utils/Logger";
 import { CalendarService } from "../services";
+import type { WebviewMessage, WebviewMessageRoutes } from "./webviewMessageRouter";
 
 /**
  * Webview message handlers for calendar widgets (auth, event requests,
@@ -12,7 +13,7 @@ export class CalendarMessageHandler {
   /**
    * Handle calendar authentication requests from widget
    */
-  public async handleCalendarAuth(message: any): Promise<void> {
+  public async handleCalendarAuth(message: WebviewMessage<"calendar-auth">): Promise<void> {
     const { provider, requestId } = message;
     
     try {
@@ -71,7 +72,7 @@ export class CalendarMessageHandler {
   /**
    * Handle calendar events request from widget
    */
-  public async handleCalendarRequest(message: any): Promise<void> {
+  public async handleCalendarRequest(message: WebviewMessage<"calendar-request">): Promise<void> {
     const { provider, date, requestId } = message;
     
     try {
@@ -127,7 +128,7 @@ export class CalendarMessageHandler {
   /**
    * Handle calendar sign out from widget
    */
-  public async handleCalendarSignOut(message: any): Promise<void> {
+  public async handleCalendarSignOut(message: WebviewMessage<"calendar-signout">): Promise<void> {
     const { provider, requestId } = message;
     
     try {
@@ -154,5 +155,14 @@ export class CalendarMessageHandler {
         error: error instanceof Error ? error.message : String(error),
       });
     }
+  }
+
+  /** Calendar widget commands owned by this handler. */
+  public routes(): WebviewMessageRoutes {
+    return {
+      "calendar-auth": (message) => this.handleCalendarAuth(message),
+      "calendar-request": (message) => this.handleCalendarRequest(message),
+      "calendar-signout": (message) => this.handleCalendarSignOut(message),
+    };
   }
 }

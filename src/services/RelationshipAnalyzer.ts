@@ -60,7 +60,6 @@ export interface CacheStatus {
  * Advanced file relationship analyzer with caching and ranking
  */
 export class RelationshipAnalyzer {
-  private static instance: RelationshipAnalyzer | undefined;
   private cache: Map<string, CacheEntry<any>> = new Map();
   private readonly CACHE_TTL = 600000; // 10 minute cache for better performance
   private readonly textDecoder = new TextDecoder('utf-8');
@@ -118,13 +117,6 @@ export class RelationshipAnalyzer {
     if (keysToDelete.length > 0) {
       this.notifyStatusChange();
     }
-  }
-
-  public static getInstance(): RelationshipAnalyzer {
-    if (!RelationshipAnalyzer.instance) {
-      RelationshipAnalyzer.instance = new RelationshipAnalyzer();
-    }
-    return RelationshipAnalyzer.instance;
   }
 
   /**
@@ -594,8 +586,5 @@ export class RelationshipAnalyzer {
     this.statusListeners.clear();
     this.disposables.forEach((disposable) => disposable.dispose());
     this.disposables.length = 0;
-    if (RelationshipAnalyzer.instance === this) {
-      RelationshipAnalyzer.instance = undefined;
-    }
   }
 }

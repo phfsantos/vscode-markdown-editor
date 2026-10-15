@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import type { ActiveDocumentEvents } from './ports';
+import type { ActiveDocumentEvents } from '../contracts/ports';
 
 export class ActiveDocumentContext implements ActiveDocumentEvents {
   private readonly emitter = new vscode.EventEmitter<vscode.TextDocument | undefined>();

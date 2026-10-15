@@ -1,10 +1,6 @@
 import * as vscode from 'vscode';
-import {
-  DefaultEditorChecker,
-  LinkGraphGenerator,
-  RelationshipAnalyzer,
-  TemplateManager
-} from '../services';
+import { DefaultEditorChecker, TemplateManager } from '../services';
+import type { LinkGraphGenerator, RelationshipAnalyzer } from '../services';
 import {
   Backlink,
   CacheStatus,
@@ -12,11 +8,10 @@ import {
   RelatedFile
 } from '../services/RelationshipAnalyzer';
 import { TagManager } from '../services/TagManager';
-import { ActiveDocumentContext } from '../runtime/ActiveDocumentContext';
 import type {
   ActiveDocumentEvents,
   EditorNavigationPreviewPort,
-} from '../runtime/ports';
+} from '../contracts/ports';
 
 export interface GraphRequestOptions {
   depth: number;
@@ -42,10 +37,10 @@ export interface SidebarEmbedItem {
 }
 
 export interface MarkdownSidebarContextDependencies {
-  activeDocumentContext?: ActiveDocumentEvents;
+  activeDocumentContext: ActiveDocumentEvents;
   editorNavigation?: EditorNavigationPreviewPort;
-  relationshipAnalyzer?: RelationshipAnalyzer;
-  graphGenerator?: LinkGraphGenerator;
+  relationshipAnalyzer: RelationshipAnalyzer;
+  graphGenerator: LinkGraphGenerator;
 }
 
 function getMimeForExt(ext: string): string {
@@ -116,7 +111,6 @@ export class MarkdownSidebarContext implements vscode.Disposable {
   private readonly tagManager = TagManager.getInstance();
   private readonly activeDocumentContext: ActiveDocumentEvents;
   private readonly editorNavigation?: EditorNavigationPreviewPort;
-  private readonly ownsActiveDocumentContext: boolean;
   private disposed = false;
 
   public readonly onDidChange = this.changeEmitter.event;
@@ -124,13 +118,13 @@ export class MarkdownSidebarContext implements vscode.Disposable {
 
   constructor(
     private readonly extensionContext: vscode.ExtensionContext,
-    dependencies: MarkdownSidebarContextDependencies = {},
+    dependencies: MarkdownSidebarContextDependencies,
   ) {
-    this.activeDocumentContext = dependencies.activeDocumentContext ?? new ActiveDocumentContext();
-    this.ownsActiveDocumentContext = !dependencies.activeDocumentContext;
+    // The runtime owns the active-document context; the sidebar only observes it.
+    this.activeDocumentContext = dependencies.activeDocumentContext;
     this.editorNavigation = dependencies.editorNavigation;
-    this.relationshipAnalyzer = dependencies.relationshipAnalyzer ?? RelationshipAnalyzer.getInstance();
-    this.graphGenerator = dependencies.graphGenerator ?? LinkGraphGenerator.getInstance();
+    this.relationshipAnalyzer = dependencies.relationshipAnalyzer;
+    this.graphGenerator = dependencies.graphGenerator;
     void this.templateManager.loadUserTemplates();
 
     this.disposables.push(
@@ -267,9 +261,6 @@ export class MarkdownSidebarContext implements vscode.Disposable {
     this.changeEmitter.dispose();
     this.cacheStatusEmitter.dispose();
     this.disposables.forEach((disposable) => disposable.dispose());
-    if (this.ownsActiveDocumentContext) {
-      this.activeDocumentContext.dispose();
-    }
   }
 
   private async extractEmbeds(content: string): Promise<SidebarEmbedItem[]> {

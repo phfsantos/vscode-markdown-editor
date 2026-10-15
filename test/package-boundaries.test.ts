@@ -2,7 +2,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
+
+// Whole-tree syntax scans are slow under coverage instrumentation.
+vi.setConfig({ testTimeout: 30_000 });
 
 const testDirectory = path.dirname(fileURLToPath(import.meta.url));
 const rootDirectory = path.resolve(testDirectory, '..');
@@ -235,5 +238,68 @@ describe('package source boundaries', () => {
         details || '(no violations found)',
       ].join('\n'),
     ).toEqual([]);
+  });
+});
+
+interface RootEdge {
+  sourcePath: string;
+  targetPath: string;
+}
+
+function rootSourceEdges(): RootEdge[] {
+  const rootSourceDirectory = path.join(rootDirectory, 'src');
+  const edges: RootEdge[] = [];
+  for (const sourcePath of listSourceFiles(rootSourceDirectory)) {
+    for (const specifier of moduleSpecifiers(sourcePath)) {
+      if (!specifier.startsWith('.')) continue;
+      const targetPath = resolveRelativeImport(sourcePath, specifier);
+      if (targetPath) edges.push({ sourcePath, targetPath });
+    }
+  }
+  return edges;
+}
+
+function rootArea(filePath: string): string {
+  const relativePath = path.relative(path.join(rootDirectory, 'src'), filePath);
+  const [first] = relativePath.split(path.sep);
+  return relativePath.includes(path.sep) ? first : relativePath;
+}
+
+describe('root source dependency direction', () => {
+  test('only the composition root depends on src/runtime', () => {
+    const composers = new Set(['runtime', 'extension.ts']);
+    const violations = rootSourceEdges()
+      .filter(({ sourcePath, targetPath }) =>
+        rootArea(targetPath) === 'runtime' && !composers.has(rootArea(sourcePath)))
+      .map(({ sourcePath, targetPath }) => `${displayPath(sourcePath)} -> ${displayPath(targetPath)}`);
+
+    expect(violations, violations.join('\n') || '(no violations found)').toEqual([]);
+  });
+
+  test('src/contracts depends on nothing else in src', () => {
+    const violations = rootSourceEdges()
+      .filter(({ sourcePath, targetPath }) =>
+        rootArea(sourcePath) === 'contracts' && rootArea(targetPath) !== 'contracts')
+      .map(({ sourcePath, targetPath }) => `${displayPath(sourcePath)} -> ${displayPath(targetPath)}`);
+
+    expect(fs.existsSync(path.join(rootDirectory, 'src', 'contracts', 'ports.ts'))).toBe(true);
+    expect(violations, violations.join('\n') || '(no violations found)').toEqual([]);
+  });
+});
+
+describe('feature module dependency direction', () => {
+  const forbidden: Array<[string, RegExp, string]> = [
+    ['src/app/GraphViewPanel.ts', /^src\/sidebar\//, 'graph view must read the active document port, not sidebar state'],
+    ['src/app/GraphViewPanel.ts', /^src\/app\/EditorPanel\.ts$/, 'graph view must not depend on editor panel internals'],
+    ['src/sidebar/', /^src\/app\//, 'sidebar must not depend on editor application modules'],
+  ];
+
+  test.each(forbidden)('%s does not import %s', (sourcePrefix, targetPattern, reason) => {
+    const violations = rootSourceEdges()
+      .map(({ sourcePath, targetPath }) => [displayPath(sourcePath), displayPath(targetPath)] as const)
+      .filter(([source, target]) => source.startsWith(sourcePrefix) && targetPattern.test(target))
+      .map(([source, target]) => `${source} -> ${target}`);
+
+    expect(violations, `${reason}\n${violations.join('\n')}`).toEqual([]);
   });
 });

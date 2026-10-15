@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { RelationshipAnalyzer } from './RelationshipAnalyzer';
+import type { RelationshipAnalyzer } from './RelationshipAnalyzer';
 
 /**
  * Graph node representing a markdown file
@@ -36,19 +36,7 @@ export interface GraphData {
  * Generates graph visualization data from markdown files
  */
 export class LinkGraphGenerator {
-  private static instance: LinkGraphGenerator;
-  private analyzer: RelationshipAnalyzer;
-
-  public constructor(analyzer: RelationshipAnalyzer = RelationshipAnalyzer.getInstance()) {
-    this.analyzer = analyzer;
-  }
-
-  public static getInstance(): LinkGraphGenerator {
-    if (!LinkGraphGenerator.instance) {
-      LinkGraphGenerator.instance = new LinkGraphGenerator();
-    }
-    return LinkGraphGenerator.instance;
-  }
+  public constructor(private readonly analyzer: RelationshipAnalyzer) {}
 
   /**
    * Generate graph data for a specific file and its relationships

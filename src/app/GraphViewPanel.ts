@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
-import { LinkGraphGenerator } from '../services/LinkGraphGenerator';
+import type { LinkGraphGenerator } from '../services/LinkGraphGenerator';
 import { getWebviewOptions } from './_utils';
 import { logger } from '../utils/Logger';
-import type { ActiveDocumentEvents } from '../runtime/ports';
+import type { ActiveDocumentEvents } from '../contracts/ports';
 
 /**
  * Full-screen graph view panel for visualizing markdown file relationships
@@ -16,7 +16,7 @@ interface GraphViewPanelOpenOptions {
 
 export interface GraphViewPanelDependencies {
   activeDocumentContext?: ActiveDocumentEvents;
-  graphGenerator?: LinkGraphGenerator;
+  graphGenerator: LinkGraphGenerator;
 }
 
 export class GraphViewPanel {
@@ -35,8 +35,8 @@ export class GraphViewPanel {
 
   public static async createOrShow(
     context: vscode.ExtensionContext,
-    optionsOrDocUri?: string | GraphViewPanelOpenOptions,
-    dependencies: GraphViewPanelDependencies = {},
+    optionsOrDocUri: string | GraphViewPanelOpenOptions | undefined,
+    dependencies: GraphViewPanelDependencies,
   ) {
     const openOptions =
       typeof optionsOrDocUri === 'string' ? { docUri: optionsOrDocUri } : optionsOrDocUri ?? {};
@@ -88,8 +88,8 @@ export class GraphViewPanel {
   }
 
   private static async _resolveMarkdownDocument(
-    docUri?: string,
-    dependencies: GraphViewPanelDependencies = {},
+    docUri: string | undefined,
+    dependencies: GraphViewPanelDependencies,
   ): Promise<vscode.TextDocument | undefined> {
     // An explicit command target wins. Otherwise use the application-level
     // active-document context, then the host's native active text editor.
@@ -121,15 +121,15 @@ export class GraphViewPanel {
   private constructor(
     panel: vscode.WebviewPanel,
     extensionUri: vscode.Uri,
-    initialDocument?: vscode.TextDocument,
-    initialOptions?: GraphViewPanelOpenOptions,
-    dependencies: GraphViewPanelDependencies = {},
+    initialDocument: vscode.TextDocument | undefined,
+    initialOptions: GraphViewPanelOpenOptions | undefined,
+    dependencies: GraphViewPanelDependencies,
   ) {
     logger.debug('[GraphViewPanel] Constructor called');
 
     this._panel = panel;
     this._extensionUri = extensionUri;
-    this.graphGenerator = dependencies.graphGenerator ?? LinkGraphGenerator.getInstance();
+    this.graphGenerator = dependencies.graphGenerator;
     this._activeDocument = initialDocument;
     this._applyOpenOptions(initialOptions);
 

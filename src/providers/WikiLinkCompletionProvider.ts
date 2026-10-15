@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { RelationshipAnalyzer } from '../services/RelationshipAnalyzer';
+import type { RelationshipAnalyzer } from '../services/RelationshipAnalyzer';
 
 /**
  * Completion item for wiki-links
@@ -14,27 +14,24 @@ interface WikiLinkCompletion extends vscode.CompletionItem {
  * Provides autocomplete for wiki-links ([[filename]])
  * Triggers on [[ and provides intelligent file suggestions
  */
-export class WikiLinkCompletionProvider implements vscode.CompletionItemProvider {
-  private static instance: WikiLinkCompletionProvider;
-  private relationshipAnalyzer: RelationshipAnalyzer;
+export class WikiLinkCompletionProvider implements vscode.CompletionItemProvider, vscode.Disposable {
   private workspaceFiles: Map<string, vscode.Uri> = new Map();
   private lastScan: number = 0;
   private readonly SCAN_INTERVAL = 60000; // Re-scan every 60 seconds
+  private readonly disposables: vscode.Disposable[] = [];
 
-  private constructor() {
-    this.relationshipAnalyzer = RelationshipAnalyzer.getInstance();
-    
+  public constructor(private readonly relationshipAnalyzer: RelationshipAnalyzer) {
     // Watch for file changes
-    vscode.workspace.onDidCreateFiles(() => this.invalidateCache());
-    vscode.workspace.onDidDeleteFiles(() => this.invalidateCache());
-    vscode.workspace.onDidRenameFiles(() => this.invalidateCache());
+    this.disposables.push(
+      vscode.workspace.onDidCreateFiles(() => this.invalidateCache()),
+      vscode.workspace.onDidDeleteFiles(() => this.invalidateCache()),
+      vscode.workspace.onDidRenameFiles(() => this.invalidateCache()),
+    );
   }
 
-  public static getInstance(): WikiLinkCompletionProvider {
-    if (!WikiLinkCompletionProvider.instance) {
-      WikiLinkCompletionProvider.instance = new WikiLinkCompletionProvider();
-    }
-    return WikiLinkCompletionProvider.instance;
+  public dispose(): void {
+    this.disposables.forEach((disposable) => disposable.dispose());
+    this.disposables.length = 0;
   }
 
   /**

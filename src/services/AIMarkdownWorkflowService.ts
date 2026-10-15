@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { logger } from '../utils/Logger';
-import { RelationshipAnalyzer } from './RelationshipAnalyzer';
-import { LinkGraphGenerator } from './LinkGraphGenerator';
+import type { RelationshipAnalyzer } from './RelationshipAnalyzer';
+import type { LinkGraphGenerator } from './LinkGraphGenerator';
 import {
   AIMarkdownClassification,
   classifyAIMarkdownFileName,
@@ -53,19 +53,10 @@ export interface AIMarkdownDescribeOptions {
 }
 
 export class AIMarkdownWorkflowService {
-  private static instance: AIMarkdownWorkflowService;
-  private readonly analyzer = RelationshipAnalyzer.getInstance();
-  private readonly graphGenerator = LinkGraphGenerator.getInstance();
-
-  private constructor() {}
-
-  public static getInstance(): AIMarkdownWorkflowService {
-    if (!AIMarkdownWorkflowService.instance) {
-      AIMarkdownWorkflowService.instance = new AIMarkdownWorkflowService();
-    }
-
-    return AIMarkdownWorkflowService.instance;
-  }
+  public constructor(
+    private readonly analyzer: RelationshipAnalyzer,
+    private readonly graphGenerator: LinkGraphGenerator,
+  ) {}
 
   public describeDocument(
     document: vscode.TextDocument,

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { AIMarkdownWorkflowService } from '../services/AIMarkdownWorkflowService';
+import type { AIMarkdownWorkflowService } from '../services/AIMarkdownWorkflowService';
 import { EditorPanel } from '../app/EditorPanel';
 
 /**
@@ -7,9 +7,11 @@ import { EditorPanel } from '../app/EditorPanel';
  */
 export class MarkdownCommandProvider {
     private readonly disposables: vscode.Disposable[] = [];
-    private readonly aiWorkflowService = AIMarkdownWorkflowService.getInstance();
 
-    constructor(private context: vscode.ExtensionContext) {
+    constructor(
+        private context: vscode.ExtensionContext,
+        private readonly aiWorkflowService: AIMarkdownWorkflowService,
+    ) {
         this.registerCommands();
     }
 

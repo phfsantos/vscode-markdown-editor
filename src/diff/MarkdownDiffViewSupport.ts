@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { logger } from '../utils/Logger';
 import { parseHTMLToLines, ParsedBlock } from './HtmlLineParser';
-import type { DiffPanelRegistry } from '../runtime/ports';
+import type { DiffPanelRegistry } from '../contracts/ports';
 
 /**
  * Pure diff calculation utility - instance-based diff management now happens in EditorPanel

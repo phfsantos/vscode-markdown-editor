@@ -5,6 +5,7 @@ type Listener<T = unknown> = (value: T) => unknown;
 const host = vi.hoisted(() => ({
   activeTextEditor: undefined as { document: TestDocument } | undefined,
   graphDocument: undefined as TestDocument | undefined,
+  lastPanel: undefined as { webview: { html: string } } | undefined,
   graphListeners: [] as Listener<TestDocument | undefined>[],
   editorPanelListeners: [] as Listener<TestDocument | undefined>[],
   activeEditorListeners: [] as Listener<{ document: TestDocument } | undefined>[],
@@ -110,7 +111,7 @@ vi.mock('vscode', () => {
       get activeTextEditor() {
         return host.activeTextEditor;
       },
-      createWebviewPanel: () => ({
+      createWebviewPanel: () => (host.lastPanel = {
         title: '',
         reveal: host.reveal,
         onDidDispose: vi.fn(() => ({ dispose() {} })),
@@ -132,12 +133,6 @@ vi.mock('vscode', () => {
     },
   };
 });
-
-vi.mock('../src/services/LinkGraphGenerator', () => ({
-  LinkGraphGenerator: {
-    getInstance: () => ({ generateSimplifiedGraph: host.generateSimplifiedGraph }),
-  },
-}));
 
 vi.mock('../src/app/_utils', () => ({
   getWebviewOptions: () => ({}),
@@ -179,6 +174,7 @@ const extensionContext = {
 
 function graphDependencies() {
   return {
+    graphGenerator: { generateSimplifiedGraph: host.generateSimplifiedGraph },
     activeDocumentContext: {
       get activeDocument() {
         return host.graphDocument;
@@ -201,6 +197,15 @@ describe('GraphViewPanel active document behavior', () => {
 
   afterEach(() => {
     GraphViewPanel.currentPanel?.dispose();
+  });
+
+  it('renders graph controls without a node-distance control', async () => {
+    host.graphDocument = document('/workspace/sidebar.md');
+
+    await GraphViewPanel.createOrShow(extensionContext as never, undefined, graphDependencies() as never);
+
+    expect(host.lastPanel?.webview.html).toContain('<html');
+    expect(host.lastPanel?.webview.html).not.toMatch(/nodeDistance|node-distance-value/);
   });
 
   it('prefers the sidebar context document over the active VS Code editor', async () => {

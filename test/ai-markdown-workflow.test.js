@@ -10,42 +10,30 @@ import * as detector from '../src/services/AIMarkdownDetector';
 import { AIMarkdownWorkflowService } from '../src/services/AIMarkdownWorkflowService';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const inlineSuggestionServiceSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'services', 'InlineSuggestionService.ts'), 'utf8');
-const inlineCompletionProviderSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'providers', 'MarkdownInlineCompletionProvider.ts'), 'utf8');
 
 // Mutable per-test state consumed lazily by the vi.mock factories below and
 // by the shared vscode mock (clipboard, commands, extensions, config).
 let currentState;
 
-vi.mock('../src/services/RelationshipAnalyzer', () => ({
-  RelationshipAnalyzer: class MockRelationshipAnalyzer {
-    static getInstance() {
-      return {
-        async getOutgoingLinks() {
-          return currentState.outgoingLinks;
-        },
-        async getBacklinks() {
-          return currentState.backlinks;
-        },
-        async getRelatedFiles() {
-          return currentState.relatedFiles;
-        },
-      };
-    }
+// The workflow service receives its relationship index and graph through its
+// constructor; these fakes read the per-test state lazily.
+const relationshipIndex = {
+  async getOutgoingLinks() {
+    return currentState.outgoingLinks;
   },
-}));
+  async getBacklinks() {
+    return currentState.backlinks;
+  },
+  async getRelatedFiles() {
+    return currentState.relatedFiles;
+  },
+};
 
-vi.mock('../src/services/LinkGraphGenerator', () => ({
-  LinkGraphGenerator: class MockLinkGraphGenerator {
-    static getInstance() {
-      return {
-        async generateSimplifiedGraph() {
-          return currentState.graphData;
-        },
-      };
-    }
+const graphGenerator = {
+  async generateSimplifiedGraph() {
+    return currentState.graphData;
   },
-}));
+};
 
 vi.mock('../src/utils/Logger', () => ({
   logger: {
@@ -91,7 +79,7 @@ function loadWorkflowService(options = {}) {
   currentState = state;
 
   return {
-    service: AIMarkdownWorkflowService.getInstance(),
+    service: new AIMarkdownWorkflowService(relationshipIndex, graphGenerator),
     state,
   };
 }
@@ -357,20 +345,6 @@ async function testOpenChatWorkflowHandlesExecutionFailure() {
   assert.strictEqual(state.warns.length, 1);
 }
 
-function testInlineSuggestionServiceUsesCopilotLmApi() {
-  assert(inlineSuggestionServiceSource.includes("selectChatModels({ vendor: 'copilot' })"));
-  assert(inlineSuggestionServiceSource.includes('LanguageModelChatMessage.User(prompt)'));
-  assert(inlineSuggestionServiceSource.includes('Return only the immediate continuation text that should appear after the cursor.'));
-}
-
-function testInlineCompletionProviderRegistersSupportedLanguages() {
-  assert(inlineCompletionProviderSource.includes("'markdown'"));
-  assert(inlineCompletionProviderSource.includes("'chatagent'"));
-  assert(inlineCompletionProviderSource.includes("'skill'"));
-  assert(inlineCompletionProviderSource.includes("'prompt'"));
-  assert(inlineCompletionProviderSource.includes('new vscode.InlineCompletionItem('));
-}
-
 test('recognizes supported AI markdown file names', testRecognizesSupportedAiMarkdownFileNames);
 test('prompt taxonomy stays consistent across documentation, detection, templates, and validation', () => {
   const expected = ['Intent', 'Inputs', 'Variables', 'Constraints', 'Expected Output'];
@@ -402,5 +376,3 @@ test('openChatWorkflow falls back when AI is disabled', testOpenChatWorkflowFall
 test('openChatWorkflow respects chat interop setting', testOpenChatWorkflowRespectsChatInteropSetting);
 test('openChatWorkflow uses first available chat command', testOpenChatWorkflowUsesFirstAvailableChatCommand);
 test('openChatWorkflow handles execution failure', testOpenChatWorkflowHandlesExecutionFailure);
-test('InlineSuggestionService uses Copilot LM API', testInlineSuggestionServiceUsesCopilotLmApi);
-test('inline completion provider registers supported languages', testInlineCompletionProviderRegistersSupportedLanguages);

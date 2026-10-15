@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import * as os from "os";
 import { execFile } from "child_process";
 import { logger } from "../utils/Logger";
+import type { WebviewMessage, WebviewMessageRoutes } from "./webviewMessageRouter";
 
 /**
  * Native OS notification support for widget events (timers, alarms).
@@ -22,7 +23,7 @@ export class NativeNotificationService {
    * Show widget notifications as native OS notifications.
    * Falls back to VS Code notifications if the platform command is unavailable.
    */
-  public async handleWidgetNotification(message: any): Promise<void> {
+  public async handleWidgetNotification(message: WebviewMessage<"widget-notification">): Promise<void> {
     const isWarningType =
       message.type === "timer-completed" || message.type === "alarm-triggered";
 
@@ -485,5 +486,12 @@ export class NativeNotificationService {
         resolve();
       });
     });
+  }
+
+  /** Widget notification commands owned by this service. */
+  public routes(): WebviewMessageRoutes {
+    return {
+      "widget-notification": (message) => this.handleWidgetNotification(message),
+    };
   }
 }

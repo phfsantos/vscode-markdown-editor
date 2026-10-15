@@ -2,8 +2,11 @@ import * as vscode from "vscode";
 import * as NodePath from "path";
 import { logger } from "../utils/Logger";
 import { showError, debug } from "./_utils";
-import type { EditorNavigationPreviewPort } from "../runtime/ports";
+import type { EditorNavigationPreviewPort } from "../contracts/ports";
 import { parseMarkdownPositionLink } from "../navigation/MarkdownLinkTarget";
+import type { WebviewMessage, WebviewMessageRoutes } from "./webviewMessageRouter";
+
+const KeyVditorOptions = "vditor.options";
 
 /**
  * The slice of an editor panel the general webview-command handlers need.
@@ -15,6 +18,7 @@ export interface HandlerHost {
   readonly document: vscode.TextDocument;
   readonly uri: vscode.Uri;
   readonly context: vscode.ExtensionContext;
+  readonly config: vscode.WorkspaceConfiguration;
   lastCursorPosition:
     | { line: number; character: number; timestamp: number }
     | null;
@@ -31,6 +35,118 @@ export interface HandlerHost {
  */
 export class EditorMessageHandlers {
   constructor(private readonly host: HandlerHost) {}
+
+  /** Native editor, link, and editor-option commands owned by these handlers. */
+  public routes(): WebviewMessageRoutes {
+    return {
+      // Host notices and logging.
+      info: (message) => { void vscode.window.showInformationMessage(message.content); },
+      error: (message) => showError(message.content),
+      log: (message) => logger.debug(`[Webview] ${message.message}`),
+
+      // Editor options persisted in global state.
+      "save-options": (message) => this.host.context.globalState.update(KeyVditorOptions, message.options),
+      "reset-config": () => this.host.context.globalState.update(KeyVditorOptions, {}),
+
+      // Assets, links, and embeds.
+      upload: (message) => this.handleUpload(message),
+      "open-link": (message) => this.handleOpenLink(message),
+      requestEmbed: async (message) => {
+        // User clicked preview button in webview - resolve the filename to a full path and open embed
+        try {
+          await this.handleRequestEmbed(message);
+        } catch (err) {
+          logger.error("EditorPanel: requestEmbed failed", err);
+        }
+      },
+      resolveWikiLink: (message) => this.handleResolveWikiLink(message),
+      navigateToWikiLink: (message) => this.handleNavigateToWikiLink(message),
+      openFile: (message) => this.handleOpenFile(message),
+
+      // Native VS Code integration.
+      requestContextMenu: (message) => this.handleContextMenuRequest(message),
+      requestQuickFix: (message) => this.handleQuickFixRequest(message),
+      triggerQuickFix: (message) => this.handleTriggerQuickFix(message),
+      cursorPosition: (message) => this.handleCursorPositionUpdate(message),
+      clipboardWrite: (message) => this.handleClipboardWrite(message),
+      clipboardRead: (message) => this.handleClipboardRead(message),
+      clipboardWriteRequest: (message) => this.handleClipboardWrite(message),
+      clipboardReadRequest: (message) => this.handleClipboardRead(message),
+      selectAll: () => this.handleSelectAll(),
+      formatDocument: () => this.handleFormatDocument(),
+      formatSelection: () => this.handleFormatSelection(),
+      showProblems: () => this.handleShowProblems(),
+      openProblemsPanel: () => this.handleOpenProblemsPanel(),
+      find: () => this.handleFind(),
+      findAndReplace: () => this.handleFindAndReplace(),
+      insertLink: () => this.handleInsertLink(),
+      insertImage: () => this.handleInsertImage(),
+      insertTable: () => this.handleInsertTable(),
+      showCommandPalette: () => this.handleShowCommandPalette(),
+      toggleWordWrap: () => this.handleToggleWordWrap(),
+      shareMarkdown: (message) => this.handleShareMarkdown(message),
+      shareHtml: (message) => this.handleShareHtml(message),
+      openWithTextEditor: () => this.handleOpenWithTextEditor(),
+
+      // Widgets.
+      "widget-action": (message) => this.handleWidgetAction(message),
+      insertChartWidget: () => this.handleInsertWidget("chart"),
+      insertTableWidget: () => this.handleInsertWidget("table"),
+      insertKanbanWidget: () => this.handleInsertWidget("kanban"),
+      insertFormWidget: () => this.handleInsertWidget("form"),
+      insertMapWidget: () => this.handleInsertWidget("map"),
+    };
+  }
+
+  /** Context-menu widget insertions run the matching registered widget command. */
+  public async handleInsertWidget(widgetType: "chart" | "table" | "kanban" | "form" | "map"): Promise<void> {
+    await vscode.commands.executeCommand(`markdown-editor.insert${widgetType}Widget`);
+  }
+
+  /**
+   * Save pasted or dropped files into the configured asset folder and tell the
+   * webview the document-relative paths to insert.
+   */
+  public async handleUpload(message: WebviewMessage<"upload">): Promise<void> {
+    const fsPath = this.host.uri.fsPath;
+    const imageSaveFolder = (this.host.config.get<string>("imageSaveFolder") || "assets")
+      .replace(
+        "${projectRoot}",
+        vscode.workspace.getWorkspaceFolder(this.host.uri)?.uri.fsPath || ""
+      )
+      .replace("${file}", fsPath)
+      .replace(
+        "${fileBasenameNoExtension}",
+        NodePath.basename(fsPath, NodePath.extname(fsPath))
+      )
+      .replace("${dir}", NodePath.dirname(fsPath));
+    const assetsFolder = NodePath.resolve(NodePath.dirname(fsPath), imageSaveFolder);
+    try {
+      await vscode.workspace.fs.createDirectory(vscode.Uri.file(assetsFolder));
+    } catch (error) {
+      logger.error("Failed to create image folder:", error);
+      showError(`Invalid image folder: ${assetsFolder}`);
+    }
+    await Promise.all(
+      message.files.map(async (file) => {
+        const content = Buffer.from(file.base64, "base64");
+        return vscode.workspace.fs.writeFile(
+          vscode.Uri.file(NodePath.join(assetsFolder, file.name)),
+          content
+        );
+      })
+    );
+    const files = message.files.map((file) =>
+      NodePath.relative(
+        NodePath.dirname(fsPath),
+        NodePath.join(assetsFolder, file.name)
+      ).replace(/\\/g, "/")
+    );
+    this.host.postMessage({
+      command: "uploaded",
+      files,
+    });
+  }
 
   public async handleOpenLink(message: { href?: unknown }): Promise<void> {
     if (typeof message.href !== "string" || message.href.length === 0) return;
@@ -61,7 +177,7 @@ export class EditorMessageHandlers {
    * Handle a request from the webview to preview an embed originating from a wiki-link
    * The webview sends { command: 'requestEmbed', filename, currentDocument }
    */
-  public async handleRequestEmbed(message: any): Promise<void> {
+  public async handleRequestEmbed(message: WebviewMessage<"requestEmbed">): Promise<void> {
     const { filename } = message;
     if (!filename) return;
 
@@ -137,7 +253,7 @@ export class EditorMessageHandlers {
   /**
    * Handle context menu requests from webview
    */
-  public async handleContextMenuRequest(message: any): Promise<void> {
+  public async handleContextMenuRequest(message: WebviewMessage<"requestContextMenu">): Promise<void> {
     try {
       if (logger.debug) {
         logger.debug(
@@ -192,7 +308,7 @@ export class EditorMessageHandlers {
   /**
    * Handle quick fix requests from webview
    */
-  public async handleQuickFixRequest(message: any): Promise<void> {
+  public async handleQuickFixRequest(message: WebviewMessage<"requestQuickFix">): Promise<void> {
     try {
       if (logger.debug) {
         logger.debug(
@@ -256,7 +372,7 @@ export class EditorMessageHandlers {
   /**
    * Handle clipboard write requests from webview
    */
-  public async handleClipboardWrite(message: any): Promise<void> {
+  public async handleClipboardWrite(message: { text?: string; requestId?: string }): Promise<void> {
     try {
       await vscode.env.clipboard.writeText(message.text || "");
 
@@ -292,7 +408,7 @@ export class EditorMessageHandlers {
   /**
    * Handle clipboard read requests from webview
    */
-  public async handleClipboardRead(message: any): Promise<void> {
+  public async handleClipboardRead(message: { requestId?: string }): Promise<void> {
     try {
       const text = await vscode.env.clipboard.readText();
 
@@ -328,7 +444,7 @@ export class EditorMessageHandlers {
   /**
    * Handle cursor position updates from webview
    */
-  public async handleCursorPositionUpdate(message: any): Promise<void> {
+  public async handleCursorPositionUpdate(message: WebviewMessage<"cursorPosition">): Promise<void> {
     try {
       // Store cursor position for potential restoration
       this.host.lastCursorPosition = {
@@ -354,7 +470,7 @@ export class EditorMessageHandlers {
   /**
    * Handle quick fix trigger requests from webview
    */
-  public async handleTriggerQuickFix(message: any): Promise<void> {
+  public async handleTriggerQuickFix(message: WebviewMessage<"triggerQuickFix">): Promise<void> {
     try {
       if (!this.host.document) {
         if (logger.debug) {
@@ -489,13 +605,13 @@ export class EditorMessageHandlers {
    * - value: Simple value actions (logged and available for extensions)
    * - data: JSON data actions (logged and available for extensions)
    */
-  public async handleWidgetAction(message: any): Promise<void> {
+  public async handleWidgetAction(message: WebviewMessage<"widget-action">): Promise<void> {
     try {
       const { actionType, action, value, targetWidget, widgetId, vscodeCommand } = message;
       
       // Handle data which might be wrapped in a 'raw' property if JSON parsing failed in ButtonWidget
-      let data = message.data;
-      if (data && typeof data === 'object' && data.raw !== undefined) {
+      let data: unknown = message.data;
+      if (isRecord(data) && data.raw !== undefined) {
         // Try to parse the raw value as JSON
         if (typeof data.raw === 'string') {
           try {
@@ -516,8 +632,10 @@ export class EditorMessageHandlers {
       
       // Handle VS Code command execution
       if (actionType === 'vscode-command') {
-        const commandToExecute = vscodeCommand || data?.command;
-        const commandArgs = data?.args || [];
+        const dataRecord = isRecord(data) ? data : undefined;
+        const commandToExecute =
+          vscodeCommand || (typeof dataRecord?.command === 'string' ? dataRecord.command : undefined);
+        const commandArgs = dataRecord?.args || [];
         
         if (commandToExecute) {
           try {
@@ -730,7 +848,7 @@ export class EditorMessageHandlers {
     * 2) If unavailable/fails, extension falls back to OS mail handler via mailto.
     * 3) Full markdown is always copied to clipboard as a reliable backup.
    */
-  public async handleShareMarkdown(message: any): Promise<void> {
+  public async handleShareMarkdown(message: WebviewMessage<"shareMarkdown">): Promise<void> {
     const fullText =
       typeof message?.content === "string"
         ? message.content
@@ -794,7 +912,7 @@ export class EditorMessageHandlers {
    * 2) If unavailable/fails, extension falls back to OS mail handler via mailto.
    * 3) Full HTML is always copied to clipboard as a reliable backup.
    */
-  public async handleShareHtml(message: any): Promise<void> {
+  public async handleShareHtml(message: WebviewMessage<"shareHtml">): Promise<void> {
     const fullHtml =
       typeof message?.content === "string"
         ? message.content
@@ -876,7 +994,7 @@ export class EditorMessageHandlers {
   /**
    * Handle wiki-link path resolution request from webview
    */
-  public async handleResolveWikiLink(message: any): Promise<void> {
+  public async handleResolveWikiLink(message: WebviewMessage<"resolveWikiLink">): Promise<void> {
     const { filename, requestId } = message;
 
     try {
@@ -911,7 +1029,7 @@ export class EditorMessageHandlers {
   /**
    * Handle wiki-link navigation request from webview
    */
-  public async handleNavigateToWikiLink(message: any): Promise<void> {
+  public async handleNavigateToWikiLink(message: WebviewMessage<"navigateToWikiLink">): Promise<void> {
     const { filename, heading } = message;
 
     try {
@@ -942,13 +1060,14 @@ export class EditorMessageHandlers {
   /**
    * Handle file open request from webview (wiki-links, embeds, sidebar)
    */
-  public async handleOpenFile(message: any): Promise<void> {
+  public async handleOpenFile(message: WebviewMessage<"openFile">): Promise<void> {
     const { filename, heading, filePath, path } = message;
 
     try {
       // If we have a direct file path (from sidebar or embed modal), use it
-      if (filePath || path) {
-        const uri = vscode.Uri.file(filePath || path);
+      const directPath = filePath || path;
+      if (directPath) {
+        const uri = vscode.Uri.file(directPath);
         const ext = NodePath.extname(uri.fsPath).toLowerCase();
 
         // For markdown files, use our custom editor
@@ -988,4 +1107,8 @@ export class EditorMessageHandlers {
       vscode.window.showErrorMessage(`Failed to open file: ${error}`);
     }
   }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

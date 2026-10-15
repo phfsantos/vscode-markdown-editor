@@ -24,3 +24,19 @@ export type {
   SourcePositionConfidence,
   SourcePositionReason,
 } from './sourcePositionMapping';
+export {
+  HOST_TO_WEBVIEW_COMMANDS,
+  WEBVIEW_TO_HOST_COMMANDS,
+  createMessageRejection,
+  parseHostToWebviewMessage,
+  parseWebviewToHostMessage,
+} from './editorProtocol';
+export type {
+  HostToWebviewCommand,
+  HostToWebviewMessage,
+  MessageOf,
+  MessageRejection,
+  ProtocolParseResult,
+  WebviewToHostCommand,
+  WebviewToHostMessage,
+} from './editorProtocol';

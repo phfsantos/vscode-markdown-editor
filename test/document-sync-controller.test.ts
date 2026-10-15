@@ -1,6 +1,4 @@
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import path from "node:path";
 import { test } from "vitest";
 
 test("synchronized writes consume only their matching document change", async () => {
@@ -24,18 +22,6 @@ test("synchronized writes consume only their matching document change", async ()
   assert.strictEqual(tracker.consume("cancelled content"), false);
 
   tracker.cancel(pendingWrite);
-});
-
-test("EditorPanel keeps a synchronized write origin pending until VS Code emits its document change", () => {
-  const source = fs.readFileSync(
-    path.join(__dirname, "..", "src", "app", "EditorPanel.ts"),
-    "utf8",
-  );
-  const applyContent = source.match(/applyContent: async \(content\) => \{([\s\S]*?)\n\s*\},\n\s*saveDocument:/)?.[1] ?? "";
-
-  assert.match(applyContent, /this\._documentWriteOrigins\.expect\(content\)/);
-  assert.doesNotMatch(applyContent, /finally \{[\s\S]*?this\._documentWriteOrigins\.cancel\(pendingWrite\)/);
-  assert.match(applyContent, /catch \([\w]+\) \{[\s\S]*?this\._documentWriteOrigins\.cancel\(pendingWrite\)/);
 });
 
 test("synchronized LF writes remain internal when VS Code observes CRLF text", async () => {
@@ -364,28 +350,4 @@ test("invalid revisions are rejected at the controller boundary", async () => {
     await controller.save({ generation: Number.NaN, revision: 0, content: "bad" }),
     false,
   );
-});
-
-test("EditorPanel routes revisions and saves through one document controller", () => {
-  const source = fs.readFileSync(
-    path.join(__dirname, "..", "src", "app", "EditorPanel.ts"),
-    "utf8",
-  );
-
-  assert.match(source, /createDocumentSyncController/);
-  assert.match(source, /const accepted = this\._documentSync\.acceptEdit\(message\)/);
-  assert.match(source, /if \(accepted\) \{[\s\S]{0,200}this\._lastWebviewEdit = Date\.now\(\)/);
-  assert.match(source, /const saved = await this\._documentSync\.save\(message\)/);
-  assert.match(source, /if \(!saved\) \{[\s\S]*?showError\(/);
-  assert.match(source, /generation: this\._documentSync\.getGeneration\(\)/);
-  assert.match(source, /this\._documentSync\.acceptExternalContent\(e\.document\.getText\(\)\)/);
-  assert.match(source, /this\._documentWriteOrigins\.expect\(content\)/);
-  assert.match(
-    source,
-    /this\._documentWriteOrigins\.consume\(\s*e\.document\.getText\(\),?\s*\)/,
-  );
-  assert.match(source, /const isExternalChange = !isSynchronizedChange/);
-  assert.match(source, /dispose\(\)[\s\S]{0,500}this\._documentSync\.dispose\(\)/);
-  assert.doesNotMatch(source, /detectExternalChange\(this, e\)/);
-  assert.doesNotMatch(source, /const syncToEditor = async/);
 });

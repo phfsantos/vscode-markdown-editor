@@ -3,14 +3,11 @@ import * as NodePath from "path";
 const KeyVditorOptions = "vditor.options";
 import { showError, getWebviewOptions, debug, showWarning } from "./_utils";
 import { logger } from "../utils/Logger";
-import { AIMarkdownWorkflowService } from "../services";
+import type { AIMarkdownWorkflowService } from "../services";
+import type { RelatedFilesSource } from "./RendererDataStore";
 import { NativeNotificationService } from "./NativeNotificationService";
 import { RendererDataStore } from "./RendererDataStore";
-import {
-  createRendererDataErrorResponse,
-  isRendererDataCommand,
-  parseRendererDataMessage,
-} from "./rendererDataMessages";
+import { createWebviewMessageRouter, type WebviewMessageRoutes } from "./webviewMessageRouter";
 import { getHtmlForWebview } from "./webviewHtml";
 import { CalendarMessageHandler } from "./CalendarMessageHandler";
 import { DiffViewController } from "./DiffViewController";
@@ -21,19 +18,25 @@ import {
   type DocumentSyncController,
 } from "./DocumentSyncController";
 import { createDocumentWriteOriginTracker } from "./DocumentWriteOriginTracker";
-import { filterDiagnosticsOutsideFencedCodeBlocks, type SourceNavigationTarget } from "@markdown-editor/core";
+import {
+  filterDiagnosticsOutsideFencedCodeBlocks,
+  parseWebviewToHostMessage,
+  type SourceNavigationTarget,
+} from "@markdown-editor/core";
 import { SourcePositionDelivery } from "../navigation/MarkdownEditorNavigation";
 import type {
   ActiveDocumentEvents,
   DiffCoordinator,
   EditorNavigationPreviewPort,
-} from "../runtime/ports";
+} from "../contracts/ports";
 
 // Note: Virtual schemes (showModifications, git) are now rejected at the provider level
 // in PreviewCustomEditorProvider.resolveCustomTextEditor(), so this code should
 // only ever receive normal file schemes (file, vscode-remote, etc.)
 
 export interface EditorPanelDependencies {
+  aiWorkflow: AIMarkdownWorkflowService;
+  relatedFiles: RelatedFilesSource;
   diffCoordinator?: DiffCoordinator;
   activeDocumentEvents?: ActiveDocumentEvents;
   editorNavigation?: EditorNavigationPreviewPort;
@@ -81,12 +84,7 @@ export class EditorPanel {
   private readonly _calendar = new CalendarMessageHandler((message) => {
     this._panel.webview.postMessage(message);
   });
-  private readonly _rendererData = new RendererDataStore({
-    getFsPath: () => this._fsPath,
-    postMessage: (message) => {
-      this._panel.webview.postMessage(message);
-    },
-  });
+  private readonly _rendererData: RendererDataStore;
   private readonly _notifications = new NativeNotificationService(
     () => this._panel?.title || NodePath.basename(this._fsPath)
   );
@@ -101,11 +99,11 @@ export class EditorPanel {
   public static async createOrShow(
     context: vscode.ExtensionContext,
     docOrUri: vscode.Uri | vscode.TextDocument,
-    tab?: vscode.Tab,
-    webviewPanel?: vscode.WebviewPanel,
-    isDiffView: boolean = false,
-    readOnly?: boolean,
-    dependencies: EditorPanelDependencies = {},
+    tab: vscode.Tab | undefined,
+    webviewPanel: vscode.WebviewPanel | undefined,
+    isDiffView: boolean,
+    readOnly: boolean | undefined,
+    dependencies: EditorPanelDependencies,
     navigationTarget?: SourceNavigationTarget,
     mustExist: boolean = false,
   ) {
@@ -269,7 +267,7 @@ export class EditorPanel {
   public readonly diff: DiffViewController;
 
   // ---- AiHost implementation (consumed by AiMessageHandler) ----
-  public readonly ai: AiMessageHandler = new AiMessageHandler(this);
+  public readonly ai: AiMessageHandler;
 
   // ---- HandlerHost implementation (consumed by EditorMessageHandlers) ----
   public readonly handlers: EditorMessageHandlers;
@@ -360,13 +358,21 @@ export class EditorPanel {
     public _document: vscode.TextDocument, // 当前有 markdown 编辑器
     public _uri = _document.uri, // 从资源管理器打开，只有 uri 没有 _document
     public _isEditor: boolean = false, // Mark if this is a markdown editor panel
-    private readonly _tab?: vscode.Tab, // Associated VS Code tab
+    private readonly _tab: vscode.Tab | undefined, // Associated VS Code tab
     private readonly _isExplicitDiffView: boolean = false, // Explicitly marked as diff view by provider
-    private readonly _readOnly?: boolean, // Whether the editor is read-only
-    dependencies: EditorPanelDependencies = {},
+    private readonly _readOnly: boolean | undefined, // Whether the editor is read-only
+    dependencies: EditorPanelDependencies,
     navigationTarget?: SourceNavigationTarget,
   ) {
     this._dependencies = dependencies;
+    this.ai = new AiMessageHandler(this, dependencies.aiWorkflow);
+    this._rendererData = new RendererDataStore({
+      getFsPath: () => this._fsPath,
+      postMessage: (message) => {
+        this._panel.webview.postMessage(message);
+      },
+      relatedFiles: dependencies.relatedFiles,
+    });
     this.diff = new DiffViewController(this, dependencies.diffCoordinator);
     this.handlers = new EditorMessageHandlers(this);
     this._sourcePositionDelivery = new SourcePositionDelivery((message) => {
@@ -632,419 +638,108 @@ export class EditorPanel {
       void this.diff.applyPendingChatDiffVisualization();
     }, this._disposables);
 
-    // Handle messages from the webview
+    // Webview messages are parsed against the shared protocol and dispatched
+    // to the feature that owns each command. This panel only routes document
+    // lifecycle commands itself.
+    const routeWebviewMessage = createWebviewMessageRouter({
+      delegates: [this._rendererData.persistenceDelegate],
+      routeGroups: [
+        this.lifecycleRoutes(),
+        this.ai.routes(),
+        this.handlers.routes(),
+        this.diff.routes(),
+        this._calendar.routes(),
+        this._notifications.routes(),
+        this._rendererData.routes(),
+      ],
+      reject: (rejection) => {
+        logger.warn(
+          `[${this.instanceId}] Rejected malformed webview message "${rejection.rejectedCommand}": ${rejection.issues.join("; ")}`
+        );
+        this._panel.webview.postMessage(rejection);
+      },
+    });
     this._panel.webview.onDidReceiveMessage(
-      async (message) => {
+      async (message: unknown) => {
         debug("msg from webview review", message, this._panel.active);
-
-        if (message === null || typeof message !== "object") {
-          return;
-        }
-
-        const rendererMessage = parseRendererDataMessage(message);
-        if (isRendererDataCommand(message?.command)) {
-          if (!rendererMessage) {
-            this._panel.webview.postMessage(
-              createRendererDataErrorResponse(message),
-            );
-            return;
-          }
-
-          switch (rendererMessage.command) {
-            case "kanban-save-data":
-              await this._rendererData.handleKanbanSaveData(rendererMessage);
-              return;
-            case "kanban-load-data":
-              await this._rendererData.handleKanbanLoadData(rendererMessage);
-              return;
-            case "kanban-migrate-data":
-              await this._rendererData.handleKanbanMigrateData(rendererMessage);
-              return;
-            case "renderer-load-data":
-              await this._rendererData.handleRendererLoadData(rendererMessage);
-              return;
-            case "renderer-save-data":
-              await this._rendererData.handleRendererSaveData(rendererMessage);
-              return;
-            case "renderer-check-data":
-              await this._rendererData.handleRendererCheckData(rendererMessage);
-              return;
-            case "requestInsertRenderer":
-              await this._rendererData.handleInsertRenderer(rendererMessage);
-              return;
-          }
-        }
-
-        switch (message.command) {
-          case "ready": {
-            // Mark webview as ready
-            this._webviewReady = true;
-            logger.debug(`[${this.instanceId}] 📥 Webview ready signal received`);
-            
-            // REACTIVE DIFF CHECK: When webview is ready, check if we're in a diff view
-            // This is a good time because the tab should be created by now
-            void this.diff.checkDiffViewContextReactive();
-
-            // Generate CDN base URI for Vditor to locate assets
-            // Points to media/dist directory where all Vditor assets are bundled
-            const mediaUri = this._panel.webview.asWebviewUri(
-              vscode.Uri.joinPath(this._extensionUri, "out", "media")
-            );
-            const cdnBaseUri = mediaUri.toString();
-
-            this._update({
-              type: "init",
-              documentPath: this._uri?.fsPath || "untitled",
-              cdnBaseUri: cdnBaseUri,
-              options: {
-                useVscodeThemeColor: this._config.get<boolean>(
-                  "useVscodeThemeColor"
-                ),
-                ...this._context.globalState.get(KeyVditorOptions),
-              },
-              theme:
-                vscode.window.activeColorTheme.kind ===
-                vscode.ColorThemeKind.Dark
-                  ? "dark"
-                  : "light",
-              isReadOnly: this._readOnly || false, // Pass readOnly flag to webview
-            });
-            break;
-          }
-          case "vditorReady":
-            this._sourcePositionDelivery.markReady();
-            // Vditor has initialized/reloaded - notify sidebar via document change event
-            if (this._document) {
-              logger.debug(
-                "[EditorPanel] Vditor ready - emitting document change for sidebar update"
-              );
-              this.publishActiveDocument(this._document);
-            }
-
-            void this.diff.applyPendingChatDiffVisualization();
-            this.ai.postInlineSuggestionEligibility();
-            break;
-          case "save-options":
-            this._context.globalState.update(KeyVditorOptions, message.options);
-            break;
-          case "info":
-            vscode.window.showInformationMessage(message.content);
-            break;
-          case "widget-notification":
-            // Handle widget notifications with native OS notifications when possible.
-            await this._notifications.handleWidgetNotification(message);
-            break;
-          case "widget-action":
-            // Handle widget action events (button clicks, form submissions, etc.)
-            await this.handlers.handleWidgetAction(message);
-            break;
-          case "error":
-            showError(message.content);
-            break;
-          case "edit": {
-            const accepted = this._documentSync.acceptEdit(message);
-            if (accepted) {
-              // Only accepted revisions should affect external-change classification.
-              this._lastWebviewEdit = Date.now();
-            }
-            break;
-          }
-          case "requestInlineSuggestion": {
-            await this.ai.handleInlineSuggestionRequest(message);
-            break;
-          }
-          case "requestAddToChat": {
-            await this.ai.handleAddToChatRequest();
-            break;
-          }
-          case "diff-scroll-sync": {
-            // Handle scroll synchronization in diff view
-
-            if (this._uri && this.diff.otherDiffUri) {
-              const diffSupport = this._dependencies.diffCoordinator;
-
-              if (diffSupport) {
-                // Pass instance ID to help identify source editor when URIs are identical
-                diffSupport.handleScrollSync(
-                  this.instanceId,
-                  this._uri,
-                  this.diff.otherDiffUri,
-                  message.scrollPercentage
-                );
-              } else {
-                logger.warn(
-                  "⚠️ EDITOR PANEL: diff coordinator is unavailable"
-                );
-              }
-            } else {
-              logger.warn(
-                "⚠️ EDITOR PANEL: No _uri or _otherDiffUri for scroll sync"
-              );
-            }
-            break;
-          }
-          case "reset-config": {
-            await this._context.globalState.update(KeyVditorOptions, {});
-            break;
-          }
-          case "save": {
-            const saved = await this._documentSync.save(message);
-            if (!saved) {
-              showError("Could not apply and save the latest Markdown revision.");
-            } else {
-              this._updateEditTitle();
-            }
-            break;
-          }
-          case "requestEmbed": {
-            // User clicked preview button in webview - resolve the filename to a full path and open embed
-            try {
-              await this.handlers.handleRequestEmbed(message);
-            } catch (err) {
-              logger.error("EditorPanel: requestEmbed failed", err);
-            }
-            break;
-          }
-          case "upload": {
-            const imageSaveFolder = (
-              this._config.get<string>("imageSaveFolder") || "assets"
-            )
-              .replace(
-                "${projectRoot}",
-                vscode.workspace.getWorkspaceFolder(this._uri)?.uri.fsPath || ""
-              )
-              .replace("${file}", this._fsPath)
-              .replace(
-                "${fileBasenameNoExtension}",
-                NodePath.basename(this._fsPath, NodePath.extname(this._fsPath))
-              )
-              .replace("${dir}", NodePath.dirname(this._fsPath));
-            const assetsFolder = NodePath.resolve(
-              NodePath.dirname(this._fsPath),
-              imageSaveFolder
-            );
-            try {
-              await vscode.workspace.fs.createDirectory(
-                vscode.Uri.file(assetsFolder)
-              );
-            } catch (error) {
-              logger.error("Failed to create image folder:", error);
-              showError(`Invalid image folder: ${assetsFolder}`);
-            }
-            await Promise.all(
-              message.files.map(async (f: any) => {
-                const content = Buffer.from(f.base64, "base64");
-                return vscode.workspace.fs.writeFile(
-                  vscode.Uri.file(NodePath.join(assetsFolder, f.name)),
-                  content
-                );
-              })
-            );
-            const files = message.files.map((f: any) =>
-              NodePath.relative(
-                NodePath.dirname(this._fsPath),
-                NodePath.join(assetsFolder, f.name)
-              ).replace(/\\/g, "/")
-            );
-            this._panel.webview.postMessage({
-              command: "uploaded",
-              files,
-            });
-            break;
-          }
-          case "open-link": {
-            await this.handlers.handleOpenLink(message);
-            break;
-          }
-          case "requestAiAction": {
-            await this.ai.handleAIMarkdownAction(message);
-            break;
-          }
-          case "log": {
-            // Handle log messages from webview and show in VS Code output
-            const webviewMessage = `[Webview] ${message.message}`;
-            logger.debug(webviewMessage);
-            break;
-          }
-          case "requestContextMenu": {
-            // Handle context menu requests from webview
-            await this.handlers.handleContextMenuRequest(message);
-            break;
-          }
-          case "requestQuickFix": {
-            // Handle quick fix requests from webview
-            await this.handlers.handleQuickFixRequest(message);
-            break;
-          }
-          case "clipboardWrite": {
-            // Handle clipboard write requests from webview
-            await this.handlers.handleClipboardWrite(message);
-            break;
-          }
-          case "clipboardRead": {
-            // Handle clipboard read requests from webview
-            await this.handlers.handleClipboardRead(message);
-            break;
-          }
-          case "clipboardWriteRequest": {
-            await this.handlers.handleClipboardWrite({ text: message.text, requestId: message.requestId });
-            break;
-          }
-          case "clipboardReadRequest": {
-            await this.handlers.handleClipboardRead({ requestId: message.requestId });
-            break;
-          }
-          case "cursorPosition": {
-            // Handle cursor position updates from webview
-            await this.handlers.handleCursorPositionUpdate(message);
-            break;
-          }
-          case "triggerQuickFix": {
-            // Handle quick fix trigger requests from webview
-            await this.handlers.handleTriggerQuickFix(message);
-            break;
-          }
-          case "selectAll": {
-            // Handle select all command
-            await this.handlers.handleSelectAll();
-            break;
-          }
-          case "formatDocument": {
-            // Handle format document command
-            await this.handlers.handleFormatDocument();
-            break;
-          }
-          case "formatSelection": {
-            // Handle format selection command
-            await this.handlers.handleFormatSelection();
-            break;
-          }
-          case "showProblems": {
-            // Handle show problems command
-            await this.handlers.handleShowProblems();
-            break;
-          }
-          case "openProblemsPanel": {
-            // Handle open problems panel command (from lightbulb clicks)
-            await this.handlers.handleOpenProblemsPanel();
-            break;
-          }
-          case "find": {
-            // Handle find command
-            await this.handlers.handleFind();
-            break;
-          }
-          case "findAndReplace": {
-            // Handle find and replace command
-            await this.handlers.handleFindAndReplace();
-            break;
-          }
-          case "insertLink": {
-            // Handle insert link command
-            await this.handlers.handleInsertLink();
-            break;
-          }
-          case "insertImage": {
-            // Handle insert image command
-            await this.handlers.handleInsertImage();
-            break;
-          }
-          case "insertTable": {
-            // Handle insert table command
-            await this.handlers.handleInsertTable();
-            break;
-          }
-          case "showCommandPalette": {
-            // Handle show command palette command
-            await this.handlers.handleShowCommandPalette();
-            break;
-          }
-          case "toggleWordWrap": {
-            // Handle toggle word wrap command
-            await this.handlers.handleToggleWordWrap();
-            break;
-          }
-          case "shareMarkdown": {
-            // Handle share markdown command
-            await this.handlers.handleShareMarkdown(message);
-            break;
-          }
-          case "shareHtml": {
-            // Handle share html command
-            await this.handlers.handleShareHtml(message);
-            break;
-          }
-          case "openWithTextEditor": {
-            await this.handlers.handleOpenWithTextEditor();
-            break;
-          }
-          case "insertChartWidget":
-          case "insertTableWidget":
-          case "insertKanbanWidget":
-          case "insertFormWidget":
-          case "insertMapWidget": {
-            // Handle widget insert commands from context menu
-            // Map command to template type: insertChartWidget -> chart, insertKanbanWidget -> kanban
-            const commandName = message.command;
-            const widgetType = commandName
-              .replace('insert', '')
-              .replace('Widget', '')
-              .toLowerCase();
-            await vscode.commands.executeCommand(`markdown-editor.insert${widgetType}Widget`);
-            break;
-          }
-          case "requestWorkspaceFiles": {
-            // Handle wiki-link autocomplete workspace files request
-            await this._rendererData.handleRequestWorkspaceFiles(message);
-            break;
-          }
-          case "requestRelatedFiles": {
-            // Handle wiki-link autocomplete related files request
-            await this._rendererData.handleRequestRelatedFiles(message);
-            break;
-          }
-          case "resolveWikiLink": {
-            // Handle wiki-link path resolution request
-            await this.handlers.handleResolveWikiLink(message);
-            break;
-          }
-          case "navigateToWikiLink": {
-            // Handle wiki-link navigation request
-            await this.handlers.handleNavigateToWikiLink(message);
-            break;
-          }
-          case "openFile": {
-            // Handle file open request from webview (wiki-links, embeds, etc.)
-            await this.handlers.handleOpenFile(message);
-            break;
-          }
-          case "calendar-auth": {
-            // Handle calendar authentication requests
-            await this._calendar.handleCalendarAuth(message);
-            break;
-          }
-          case "calendar-request": {
-            // Handle calendar events request
-            await this._calendar.handleCalendarRequest(message);
-            break;
-          }
-          case "calendar-signout": {
-            // Handle calendar sign out
-            await this._calendar.handleCalendarSignOut(message);
-            break;
-          }
-          case "openNativeToolSelector": {
-            await this.ai.handleNativeToolSelector(message.selectedTools ?? []);
-            break;
-          }
-        }
+        await routeWebviewMessage(message);
       },
       null,
       this._disposables
     );
   }
 
+  /** Commands that drive this panel's document and webview lifecycle. */
+  private lifecycleRoutes(): WebviewMessageRoutes {
+    return {
+      ready: () => {
+        // Mark webview as ready
+        this._webviewReady = true;
+        logger.debug(`[${this.instanceId}] 📥 Webview ready signal received`);
 
+        // REACTIVE DIFF CHECK: When webview is ready, check if we're in a diff view
+        // This is a good time because the tab should be created by now
+        void this.diff.checkDiffViewContextReactive();
+
+        // Generate CDN base URI for Vditor to locate assets
+        // Points to media/dist directory where all Vditor assets are bundled
+        const mediaUri = this._panel.webview.asWebviewUri(
+          vscode.Uri.joinPath(this._extensionUri, "out", "media")
+        );
+        const cdnBaseUri = mediaUri.toString();
+
+        void this._update({
+          type: "init",
+          documentPath: this._uri?.fsPath || "untitled",
+          cdnBaseUri: cdnBaseUri,
+          options: {
+            useVscodeThemeColor: this._config.get<boolean>(
+              "useVscodeThemeColor"
+            ),
+            ...this._context.globalState.get(KeyVditorOptions),
+          },
+          theme:
+            vscode.window.activeColorTheme.kind ===
+            vscode.ColorThemeKind.Dark
+              ? "dark"
+              : "light",
+          isReadOnly: this._readOnly || false, // Pass readOnly flag to webview
+        });
+      },
+      vditorReady: () => {
+        this._sourcePositionDelivery.markReady();
+        // Vditor has initialized/reloaded - notify sidebar via document change event
+        if (this._document) {
+          logger.debug(
+            "[EditorPanel] Vditor ready - emitting document change for sidebar update"
+          );
+          this.publishActiveDocument(this._document);
+        }
+
+        void this.diff.applyPendingChatDiffVisualization();
+        this.ai.postInlineSuggestionEligibility();
+      },
+      edit: (message) => {
+        const accepted = this._documentSync.acceptEdit(message);
+        if (accepted) {
+          // Only accepted revisions should affect external-change classification.
+          this._lastWebviewEdit = Date.now();
+        }
+      },
+      save: async (message) => {
+        const saved = await this._documentSync.save(message);
+        if (!saved) {
+          showError("Could not apply and save the latest Markdown revision.");
+        } else {
+          this._updateEditTitle();
+        }
+      },
+      // Replies to requestIRHtml/requestRenderedMarkdownHtml are consumed by
+      // the per-request listeners those methods register.
+      irHtmlResponse: () => undefined,
+      renderedMarkdownHtmlResponse: () => undefined,
+    };
+  }
 
   /**
    * Send scroll sync message to this editor's webview
@@ -1076,7 +771,7 @@ export class EditorPanel {
   /**
    * Post a message to the webview
    */
-  public postMessage(message: any): void {
+  public postMessage(message: unknown): void {
     if (this._panel && this._panel.webview) {
       this._panel.webview.postMessage(message);
     }
@@ -1187,8 +882,11 @@ export class EditorPanel {
       let resolved = false;
       
       // Set up one-time message listener for the response
-      const listener = (message: any) => {
-        if (message.command === 'irHtmlResponse' && message.requestId === requestId) {
+      const listener = (raw: unknown) => {
+        const parsed = parseWebviewToHostMessage(raw);
+        if (parsed.kind !== "message" || parsed.message.command !== "irHtmlResponse") return;
+        const message = parsed.message;
+        if (message.requestId === requestId) {
           if (resolved) return; // Prevent double resolution
           resolved = true;
           
@@ -1200,7 +898,7 @@ export class EditorPanel {
           if (message.error) {
             logger.error(`[${this.instanceId}] Error getting IR HTML from panel ${this.instanceId}: ${message.error}`);
             resolve(null);
-          } else if (message.html == null) {
+          } else if (typeof message.html !== "string") {
             logger.error(`[${this.instanceId}] No HTML content in response from panel ${this.instanceId}`);
             resolve(null);
           } else {
@@ -1266,11 +964,11 @@ export class EditorPanel {
     return new Promise(resolve => {
       let resolved = false;
 
-      const listener = (message: any) => {
-        if (
-          message.command === 'renderedMarkdownHtmlResponse' &&
-          message.requestId === requestId
-        ) {
+      const listener = (raw: unknown) => {
+        const parsed = parseWebviewToHostMessage(raw);
+        if (parsed.kind !== "message" || parsed.message.command !== "renderedMarkdownHtmlResponse") return;
+        const message = parsed.message;
+        if (message.requestId === requestId) {
           if (resolved) {
             return;
           }
@@ -1285,7 +983,7 @@ export class EditorPanel {
             return;
           }
 
-          if (message.html == null) {
+          if (typeof message.html !== "string") {
             logger.error(
               `[${this.instanceId}] No rendered HTML content in response from panel ${this.instanceId}`
             );
@@ -1371,8 +1069,7 @@ export class EditorPanel {
 
     // Get the full document path for wiki-link autocomplete
     const documentPath = this._uri?.fsPath || "untitled";
-    const aiWorkflowService = AIMarkdownWorkflowService.getInstance();
-    const aiMarkdown = aiWorkflowService.describeDocument(this._document, {
+    const aiMarkdown = this._dependencies.aiWorkflow.describeDocument(this._document, {
       hasPendingChatEdits: Boolean(this.diff.pendingChatBaselineDocument),
     });
 
@@ -1459,33 +1156,4 @@ export class EditorPanel {
       );
     });
   }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 }

@@ -725,7 +725,7 @@ export class MarkdownSidebarManager implements vscode.Disposable {
 
   constructor(
     private readonly extensionContext: vscode.ExtensionContext,
-    dependencies: MarkdownSidebarContextDependencies = {},
+    dependencies: MarkdownSidebarContextDependencies,
   ) {
     this.sidebarContext = new MarkdownSidebarContext(extensionContext, dependencies);
     this.graphViewProvider = new MarkdownMiniGraphViewProvider(extensionContext, this.sidebarContext);
