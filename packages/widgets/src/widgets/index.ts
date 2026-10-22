@@ -23,6 +23,8 @@ export type { CalendarEventsWidgetConfig, CalendarEventsWidgetData, CalendarEven
 export { WeatherWidget } from './WeatherWidget';
 export { StockWidget } from './StockWidget';
 export { ProductivityWidget } from './ProductivityWidget';
+export { HabitTrackerWidget } from './HabitTrackerWidget';
+export type { HabitTrackerWidgetConfig, HabitTrackerWidgetData } from './HabitTrackerWidget';
 export { TimerWidget } from './TimerWidget';
 export type { TimerWidgetConfig, TimerWidgetData } from './TimerWidget';
 export { AlarmWidget } from './AlarmWidget';

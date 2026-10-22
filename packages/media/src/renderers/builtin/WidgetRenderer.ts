@@ -10,7 +10,7 @@ import { dispatchVditorInput } from '../../content-sync';
  * Supports various widget types:
  * - Data widgets: chart, table, form
  * - Time widgets: clock, calendar, timer
- * - Info widgets: weather, stock, productivity
+ * - Info widgets: weather, stock, productivity, habit-tracker
  * 
  * Usage:
  * ```widget
@@ -34,7 +34,7 @@ export class WidgetRenderer extends BaseRenderer implements IRenderer {
   readonly name = 'Widget';
   readonly language = 'widget';
   readonly version = '2.0.0';
-  readonly description = 'Interactive widgets (clock, calendar, timer, weather, stock, productivity, chart, table, form)';
+  readonly description = 'Interactive widgets (clock, calendar, timer, weather, stock, productivity, habit-tracker, chart, table, form)';
   readonly author = 'VSCode Markdown Editor';
   
   readonly capabilities: IRendererCapabilities = {
@@ -539,7 +539,7 @@ export class WidgetRenderer extends BaseRenderer implements IRenderer {
       const { config, data } = parsed;
 
       if (!config.type) {
-        this.showWidgetError(element, 'Widget type not specified. Add "type: clock" (or calendar, weather, stock, productivity, chart, table, form)');
+        this.showWidgetError(element, 'Widget type not specified. Add "type: clock" (or calendar, weather, stock, productivity, habit-tracker, chart, table, form)');
         return;
       }
 
@@ -556,7 +556,7 @@ export class WidgetRenderer extends BaseRenderer implements IRenderer {
       const widget = registry.create(config);
       
       if (!widget) {
-        this.showWidgetError(element, `Unknown widget type: ${config.type}. Available: clock, calendar, weather, stock, productivity, chart, table, form`);
+        this.showWidgetError(element, `Unknown widget type: ${config.type}. Available: clock, calendar, weather, stock, productivity, habit-tracker, chart, table, form`);
         return;
       }
 

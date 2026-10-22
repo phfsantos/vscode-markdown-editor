@@ -174,6 +174,12 @@ function insertWidgetDirect(widgetType: string) {
         ]
       }
     },
+    'habit-tracker': {
+      config: { type: 'habit-tracker', title: 'Daily Habit', size: 'sm', showStreak: true },
+      data: {
+        completedDates: []
+      }
+    },
     // Data widgets
     chart: {
       config: { type: 'chart', title: 'My Chart', chartType: 'bar' },
@@ -505,6 +511,10 @@ widgets:
       {
         label: "✅ Tasks Widget",
         click: () => insertWidgetDirect("productivity"),
+      },
+      {
+        label: "🔥 Habit Tracker Widget",
+        click: () => insertWidgetDirect("habit-tracker"),
       },
       {
         label: "📊 Chart Widget",

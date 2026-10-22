@@ -90,6 +90,20 @@ export class WidgetCommandProvider {
       }
     },
     {
+      type: 'habit-tracker',
+      displayName: 'Habit Tracker',
+      description: 'Monthly habit grid with a daily check-in and streaks',
+      icon: '🔥',
+      defaultConfig: {
+        title: 'Daily Habit',
+        size: 'sm',
+        showStreak: true
+      },
+      sampleData: {
+        completedDates: []
+      }
+    },
+    {
       type: 'macro-board',
       displayName: 'Macro Board',
       description: 'Stream Deck style grid for launching commands and macros',

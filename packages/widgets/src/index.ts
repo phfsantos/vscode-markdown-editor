@@ -32,6 +32,8 @@ export { CalendarWidget } from './widgets/CalendarWidget';
 export { WeatherWidget } from './widgets/WeatherWidget';
 export { StockWidget } from './widgets/StockWidget';
 export { ProductivityWidget } from './widgets/ProductivityWidget';
+export { HabitTrackerWidget } from './widgets/HabitTrackerWidget';
+export type { HabitTrackerWidgetConfig, HabitTrackerWidgetData } from './widgets/HabitTrackerWidget';
 export { MacroBoardWidget } from './widgets/MacroBoardWidget';
 export type { MacroBoardWidgetConfig, MacroBoardWidgetData, MacroBoardButton } from './widgets/MacroBoardWidget';
 

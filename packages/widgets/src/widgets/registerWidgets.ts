@@ -18,6 +18,7 @@ import { CalendarEventsWidget } from './CalendarEventsWidget';
 import { WeatherWidget } from './WeatherWidget';
 import { StockWidget } from './StockWidget';
 import { ProductivityWidget } from './ProductivityWidget';
+import { HabitTrackerWidget } from './HabitTrackerWidget';
 import { TimerWidget } from './TimerWidget';
 import { AlarmWidget } from './AlarmWidget';
 import { SingleAlarmWidget } from './SingleAlarmWidget';
@@ -199,6 +200,19 @@ export function registerCoreWidgets() {
       component: ProductivityWidget,
       tagName: 'productivity-widget',
       displayName: 'Tasks'
+    }
+  });
+
+  // Habit Tracker Widget
+  registry.register({
+    type: 'habit-tracker',
+    displayName: 'Habit Tracker',
+    description: 'Monthly habit grid with a daily check-in and streaks',
+    category: 'productivity',
+    reactComponent: {
+      component: HabitTrackerWidget,
+      tagName: 'habit-tracker-widget',
+      displayName: 'Habit Tracker'
     }
   });
   

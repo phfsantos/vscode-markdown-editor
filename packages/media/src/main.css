@@ -230,6 +230,27 @@ body[data-use-vscode-theme-color="1"] .vditor {
   color: var(--vscode-editor-foreground) !important;
 }
 
+/* Tables: vditor hard-codes light row colours (#fafbfc/#fff) that clash with the
+   VS Code foreground forced above, so derive rows and borders from the theme. */
+.vditor .vditor-reset table tr,
+.vditor .vditor-reset table tbody tr:nth-child(2n) {
+  background-color: transparent;
+  border-top-color: var(--vscode-editorWidget-border, rgba(127, 127, 127, 0.35));
+}
+
+.vditor .vditor-reset table td,
+.vditor .vditor-reset table th {
+  border-color: var(--vscode-editorWidget-border, rgba(127, 127, 127, 0.35));
+}
+
+.vditor .vditor-reset table thead tr {
+  background-color: var(--vscode-keybindingTable-headerBackground, rgba(127, 127, 127, 0.12));
+}
+
+.vditor .vditor-reset table tbody tr:nth-child(2n) {
+  background-color: var(--vscode-tree-tableOddRowsBackground, rgba(127, 127, 127, 0.06));
+}
+
 /* Paragraph and general text */
 .vditor-reset p,
 .vditor-reset span,
