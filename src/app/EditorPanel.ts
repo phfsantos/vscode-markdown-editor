@@ -220,7 +220,7 @@ export class EditorPanel {
     if (!panel) {
       panel = vscode.window.createWebviewPanel(
         EditorPanel.viewType,
-        "Markdown Editor",
+        "Markdown Studio",
         column || vscode.ViewColumn.One,
         getWebviewOptions(extensionUri)
       );

@@ -156,7 +156,7 @@ export class PreviewCustomEditorProvider
           // see
           const newWebviewPanel = vscode.window.createWebviewPanel(
             EditorPanel.viewType,
-            "Markdown Editor",
+            "Markdown Studio",
             column || vscode.ViewColumn.One,
             getWebviewOptions(this.context.extensionUri)
           );

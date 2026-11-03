@@ -27,7 +27,8 @@
  * type: button
  * title: VS Code Actions
  * label: Open Settings
- * action: vscode-command
+ * action: open-settings
+ * actionType: vscode-command
  * data: {"command": "workbench.action.openSettings"}
  * ```
  * 
@@ -36,7 +37,8 @@
  * type: button
  * title: Add Task Button
  * label: Add New Task
- * action: widget-action
+ * action: add-task
+ * actionType: widget-action
  * targetWidget: productivity
  * data: {"action": "add-task", "text": "New task from button"}
  * ```
@@ -339,27 +341,13 @@ export const ButtonWidget: React.FC<ReactWidgetProps> = ({
       
       console.log('[ButtonWidget] Executing action:', actionPayload);
       
-      // Dispatch the button action event
+      // The webview's button-action bridge forwards this to the extension host
+      // (including vscode-command actions, via data.command / data.args).
       const actionEvent = new CustomEvent('button-action', {
         bubbles: true,
         detail: actionPayload,
       });
       document.dispatchEvent(actionEvent);
-      
-      // For VS Code commands, also send to extension host
-      if (actionType === 'vscode-command' && parsedData?.command) {
-        const vscode = (window as any).vscode;
-        if (vscode && typeof vscode.postMessage === 'function') {
-          vscode.postMessage({
-            command: 'widget-action',
-            type: 'vscode-command',
-            vscodeCommand: parsedData.command,
-            args: parsedData.args || [],
-            widgetId: (config as any).id,
-          });
-          console.log('[ButtonWidget] Sent VS Code command:', parsedData.command);
-        }
-      }
       
       // For widget actions, dispatch a targeted event
       if (actionType === 'widget-action' && targetWidget) {

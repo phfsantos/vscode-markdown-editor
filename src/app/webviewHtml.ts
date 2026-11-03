@@ -60,7 +60,7 @@ export function getHtmlForWebview(webview: vscode.Webview, ctx: WebviewHtmlConte
               ${CssFiles.map(
                 (f) => `<link href="${f}" rel="stylesheet">`
               ).join("\n")}
-              <title>markdown editor</title>
+              <title>Markdown Studio</title>
               <style>
                   /* Inline critical styles for immediate effect */
                   html, body {

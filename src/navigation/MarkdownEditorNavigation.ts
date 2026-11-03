@@ -112,7 +112,7 @@ export class MarkdownEditorNavigation implements vscode.Disposable {
   public async handleUri(uri: vscode.Uri): Promise<void> {
     const parsed = parseExtensionNavigationUri(uri);
     if (!parsed) {
-      this.dependencies.showError('Invalid Markdown Editor navigation link.');
+      this.dependencies.showError('Invalid Markdown Studio navigation link.');
       return;
     }
     await this.openEditor(parsed.uri, { navigationTarget: parsed.target });

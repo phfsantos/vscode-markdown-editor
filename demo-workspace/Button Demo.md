@@ -84,7 +84,7 @@ fullWidth: true
 
 ## VS Code Command Button
 
-Execute VS Code commands directly:
+Execute VS Code commands directly. Commands listed in `markdown-editor.widgets.allowedCommands` run immediately; anything else (or any command with arguments) asks for confirmation, and widget commands are disabled in untrusted workspaces.
 
 ### Open Settings
 

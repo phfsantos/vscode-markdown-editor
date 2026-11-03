@@ -12,13 +12,14 @@ import { WidgetCommandProvider } from './commands/WidgetCommandProvider';
 import { VSCodeIntegrator } from './integration/VSCodeIntegrator';
 import { MarkdownInlineCompletionProvider, INLINE_SUGGESTION_LANGUAGE_IDS } from './providers/MarkdownInlineCompletionProvider';
 import { ExtensionUriHandler } from './navigation/ExtensionUriHandler';
+import { setMarkdownStudioAsDefaultEditor } from './commands/setAsDefaultEditorCommand';
 
 export async function activate(context: vscode.ExtensionContext) {
   const runtime = new ExtensionRuntime(context);
   context.subscriptions.push(runtime);
   
   // Log activation
-  logger.info('🚀 Markdown Editor extension activated successfully');
+  logger.info('🚀 Markdown Studio extension activated successfully');
   logger.debug('🔧 Enhanced external change detection enabled');
   
   // Ensure logger is disposed when extension deactivates
@@ -166,23 +167,11 @@ export async function activate(context: vscode.ExtensionContext) {
     )
   )
 
-  // Add command to set as default markdown editor
+  // Merges global *.md/*.markdown associations without dropping unrelated ones
   runtime.addDisposables(
     vscode.commands.registerCommand(
       'markdown-editor.setAsDefaultEditor',
-      async () => {
-        const config = vscode.workspace.getConfiguration();
-        await config.update(
-          'workbench.editorAssociations',
-          {
-            "*.md": "markdown-editor",
-            "*.markdown": "markdown-editor"
-          },
-          vscode.ConfigurationTarget.Global
-        );
-        sidebarManager.refresh();
-        vscode.window.showInformationMessage('Markdown Editor set as default for .md files');
-      }
+      () => setMarkdownStudioAsDefaultEditor(() => sidebarManager.refresh())
     )
   )
 

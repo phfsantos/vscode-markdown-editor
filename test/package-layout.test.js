@@ -166,9 +166,52 @@ function testVsixIgnoreKeepsOnlyRuntimeAssets() {
   console.log('✅ testVsixIgnoreKeepsOnlyRuntimeAssets passed');
 }
 
+function testVsixIgnoreExcludesRepositoryTooling() {
+  const ignoreLines = vscodeIgnore.split('\n').map((line) => line.trim());
+  const toolingPatterns = [
+    '.claude/',
+    '.codex/',
+    '.agents/',
+    '.vitest-attachments/',
+    'vitest.browser.config.ts',
+    '.nvmrc',
+    'AGENTS.md',
+    'CLAUDE.md',
+    'ArchitectureDiagram.md',
+    'PUBLISHING_CHECKLIST.md',
+    'docs/',
+  ];
+
+  for (const pattern of toolingPatterns) {
+    assert.ok(
+      ignoreLines.includes(pattern),
+      `Expected .vscodeignore to exclude ${pattern}`
+    );
+  }
+}
+
 test('extension entry points use bundle', testExtensionEntryPointsUseBundle);
 test('core workspace package is explicit and pure', testCoreWorkspacePackageIsExplicitAndPure);
 test('webview loads widgets before media', testWebviewLoadsWidgetsBeforeMedia);
 test('AI commands and settings are contributed', testAiCommandsAndSettingsAreContributed);
 test('AI activation events and menu placements are contributed', testAiActivationEventsAndMenuPlacementsAreContributed);
 test('.vscodeignore keeps only runtime assets', testVsixIgnoreKeepsOnlyRuntimeAssets);
+
+test('Markdown Studio branding preserves the installed extension identity', () => {
+  assert.strictEqual(packageJson.displayName, 'Markdown Studio');
+  assert.strictEqual(packageJson.name, 'markdown-editor');
+  assert.strictEqual(packageJson.publisher, 'phfsantos');
+  assert.strictEqual(packageJson.contributes.customEditors.length, 1);
+  assert.strictEqual(packageJson.contributes.customEditors[0].viewType, 'markdown-editor');
+  assert.strictEqual(packageJson.contributes.customEditors[0].displayName, 'Markdown Studio');
+  assert.strictEqual(
+    packageJson.contributes.viewsContainers.activitybar[0].title,
+    'Markdown Studio'
+  );
+  for (const command of packageJson.contributes.commands) {
+    assert.strictEqual(command.category, 'Markdown Studio', command.command);
+    assert.ok(command.command.startsWith('markdown-editor.'), command.command);
+  }
+  assert.strictEqual(packageJson.contributes.configuration.title, 'Markdown Studio');
+});
+test('.vscodeignore excludes repository tooling', testVsixIgnoreExcludesRepositoryTooling);

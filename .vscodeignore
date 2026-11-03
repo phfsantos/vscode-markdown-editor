@@ -31,6 +31,8 @@ coverage/
 demo.gif
 assets/
 media/screenshot-main.png
+media/marketplace-icon.svg
+scripts/
 .gitignore
 media/index.html
 media/dist/
@@ -48,3 +50,14 @@ plans/
 .env
 **/.env
 .worktrees/
+.claude/
+.codex/
+.agents/
+.vitest-attachments/
+vitest.browser.config.ts
+.nvmrc
+AGENTS.md
+CLAUDE.md
+ArchitectureDiagram.md
+PUBLISHING_CHECKLIST.md
+docs/

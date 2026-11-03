@@ -53,49 +53,70 @@ export class DefaultEditorChecker {
   }
 
   /**
-   * Set this extension as the default editor for markdown files
+   * Set this extension as the default editor for the given patterns.
+   * Merges into the target scope's own value so unrelated associations survive
+   * and workspace overrides are never copied into user settings.
    */
   public async setAsDefaultEditor(
-    scope: vscode.ConfigurationTarget = vscode.ConfigurationTarget.Global
+    scope: vscode.ConfigurationTarget = vscode.ConfigurationTarget.Global,
+    patterns: readonly string[] = this.MARKDOWN_PATTERNS,
+    resource?: vscode.Uri
   ): Promise<void> {
-    const currentAssociations = this.getEditorAssociations();
-    const newAssociations: Record<string, string> = { ...currentAssociations };
-
-    // Set all markdown patterns
-    this.MARKDOWN_PATTERNS.forEach(pattern => {
+    const newAssociations = this.getScopedAssociations(scope, resource);
+    patterns.forEach(pattern => {
       newAssociations[pattern] = this.EDITOR_VIEW_TYPE;
     });
 
     await vscode.workspace
-      .getConfiguration('workbench')
+      .getConfiguration('workbench', resource)
       .update('editorAssociations', newAssociations, scope);
 
     vscode.window.showInformationMessage(
-      'Markdown Editor is now the default editor for markdown files'
+      'Markdown Studio is now the default editor for Markdown files'
     );
   }
 
   /**
-   * Reset to VS Code default markdown preview
+   * Remove this extension's associations from the target scope, keeping patterns
+   * that are now assigned to other editors.
    */
   public async resetToDefault(
-    scope: vscode.ConfigurationTarget = vscode.ConfigurationTarget.Global
+    scope: vscode.ConfigurationTarget = vscode.ConfigurationTarget.Global,
+    resource?: vscode.Uri
   ): Promise<void> {
-    const currentAssociations = this.getEditorAssociations();
-    const newAssociations: Record<string, string> = { ...currentAssociations };
-
-    // Remove markdown patterns
-    this.MARKDOWN_PATTERNS.forEach(pattern => {
-      delete newAssociations[pattern];
-    });
+    const newAssociations = this.getScopedAssociations(scope, resource);
+    for (const [pattern, viewType] of Object.entries(newAssociations)) {
+      if (viewType === this.EDITOR_VIEW_TYPE) {
+        delete newAssociations[pattern];
+      }
+    }
 
     await vscode.workspace
-      .getConfiguration('workbench')
+      .getConfiguration('workbench', resource)
       .update('editorAssociations', newAssociations, scope);
 
     vscode.window.showInformationMessage(
       'Reset to VS Code default markdown editor'
     );
+  }
+
+  private getScopedAssociations(
+    scope: vscode.ConfigurationTarget,
+    resource?: vscode.Uri
+  ): Record<string, string> {
+    if (scope === vscode.ConfigurationTarget.WorkspaceFolder && !resource) {
+      throw new Error('A resource is required to update workspace-folder editor associations.');
+    }
+    const inspected = vscode.workspace
+      .getConfiguration('workbench', resource)
+      .inspect<Record<string, string>>('editorAssociations');
+    const scoped =
+      scope === vscode.ConfigurationTarget.Workspace
+        ? inspected?.workspaceValue
+        : scope === vscode.ConfigurationTarget.WorkspaceFolder
+          ? inspected?.workspaceFolderValue
+          : inspected?.globalValue;
+    return { ...(scoped ?? {}) };
   }
 
   /**
@@ -135,7 +156,7 @@ export class DefaultEditorChecker {
    */
   public async showSetDefaultPrompt(): Promise<void> {
     const choice = await vscode.window.showInformationMessage(
-      'Would you like to set Markdown Editor as the default editor for markdown files?',
+      'Would you like to set Markdown Studio as the default editor for Markdown files?',
       'Yes',
       'No',
       'Don\'t ask again'
@@ -219,12 +240,12 @@ export class DefaultEditorChecker {
 
     const updateStatusBar = () => {
       if (this.isDefaultEditor()) {
-        statusBarItem.text = '$(check) MD Editor';
-        statusBarItem.tooltip = 'Markdown Editor is the default editor';
+        statusBarItem.text = '$(check) Markdown Studio';
+        statusBarItem.tooltip = 'Markdown Studio is the default Markdown editor';
         statusBarItem.command = undefined;
       } else {
-        statusBarItem.text = '$(info) MD Editor';
-        statusBarItem.tooltip = 'Click to set as default markdown editor';
+        statusBarItem.text = '$(info) Markdown Studio';
+        statusBarItem.tooltip = 'Click to set Markdown Studio as the default Markdown editor';
         statusBarItem.command = 'markdown-editor.setAsDefaultEditor';
       }
     };

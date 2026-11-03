@@ -5,6 +5,11 @@ import { showError, debug } from "./_utils";
 import type { EditorNavigationPreviewPort } from "../contracts/ports";
 import { parseMarkdownPositionLink } from "../navigation/MarkdownLinkTarget";
 import type { WebviewMessage, WebviewMessageRoutes } from "./webviewMessageRouter";
+import {
+  authorizeWidgetCommand,
+  createVscodeWidgetCommandPolicyPorts,
+  type WidgetCommandPolicyPorts,
+} from "./widgetCommandPolicy";
 
 const KeyVditorOptions = "vditor.options";
 
@@ -34,7 +39,10 @@ export interface HandlerHost {
  * Extracted from EditorPanel.
  */
 export class EditorMessageHandlers {
-  constructor(private readonly host: HandlerHost) {}
+  constructor(
+    private readonly host: HandlerHost,
+    private readonly commandPolicy: WidgetCommandPolicyPorts = createVscodeWidgetCommandPolicyPorts(),
+  ) {}
 
   /** Native editor, link, and editor-option commands owned by these handlers. */
   public routes(): WebviewMessageRoutes {
@@ -607,7 +615,7 @@ export class EditorMessageHandlers {
    */
   public async handleWidgetAction(message: WebviewMessage<"widget-action">): Promise<void> {
     try {
-      const { actionType, action, value, targetWidget, widgetId, vscodeCommand } = message;
+      const { actionType, action, value, targetWidget, widgetId } = message;
       
       // Handle data which might be wrapped in a 'raw' property if JSON parsing failed in ButtonWidget
       let data: unknown = message.data;
@@ -633,17 +641,22 @@ export class EditorMessageHandlers {
       // Handle VS Code command execution
       if (actionType === 'vscode-command') {
         const dataRecord = isRecord(data) ? data : undefined;
-        const commandToExecute =
-          vscodeCommand || (typeof dataRecord?.command === 'string' ? dataRecord.command : undefined);
-        const commandArgs = dataRecord?.args || [];
+        const commandToExecute = typeof dataRecord?.command === 'string' ? dataRecord.command : undefined;
+        const commandArgs = Array.isArray(dataRecord?.args) ? dataRecord.args : [];
         
         if (commandToExecute) {
-          try {
-            if (Array.isArray(commandArgs) && commandArgs.length > 0) {
-              await vscode.commands.executeCommand(commandToExecute, ...commandArgs);
-            } else {
-              await vscode.commands.executeCommand(commandToExecute);
+          const decision = await authorizeWidgetCommand(commandToExecute, commandArgs, this.commandPolicy);
+          if (decision !== 'allowed') {
+            logger.debug(`🚫 Widget command ${commandToExecute} not run: ${decision}`);
+            if (decision === 'untrusted') {
+              void vscode.window.showWarningMessage(
+                `Widget commands are disabled in untrusted workspaces ("${commandToExecute}" was not run).`
+              );
             }
+            return;
+          }
+          try {
+            await vscode.commands.executeCommand(commandToExecute, ...commandArgs);
             
             if (logger.debug) {
               logger.debug(

@@ -42,7 +42,7 @@ export class NativeNotificationService {
           ? `From: ${message.title || "Alarms"}`
           : "";
 
-    const nativeTitle = message.title || "Markdown Editor";
+    const nativeTitle = message.title || "Markdown Studio";
     const nativeBody = fallbackDetail
       ? `${fallbackMessage}\n${fallbackDetail}`
       : fallbackMessage;
@@ -64,7 +64,7 @@ export class NativeNotificationService {
     title: string,
     body: string
   ): Promise<boolean> {
-    const safeTitle = String(title || "Markdown Editor").trim() || "Markdown Editor";
+    const safeTitle = String(title || "Markdown Studio").trim() || "Markdown Studio";
     const safeBody = String(body || "Widget notification").trim() || "Widget notification";
     const windowsContext = this.getWindowsNotificationContext();
 

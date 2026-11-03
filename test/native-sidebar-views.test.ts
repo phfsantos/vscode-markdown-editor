@@ -42,6 +42,7 @@ vi.mock('vscode', async (importOriginal) => {
 
 const sidebarContext = vi.hoisted(() => ({
   activeDocument: undefined as undefined | { uri: { fsPath: string; toString(): string } },
+  isDefaultEditor: true,
 }));
 
 vi.mock('../src/sidebar/MarkdownSidebarContext', () => ({
@@ -49,7 +50,7 @@ vi.mock('../src/sidebar/MarkdownSidebarContext', () => ({
     public onDidChange = () => ({ dispose() {} });
     public onDidChangeCacheStatus = () => ({ dispose() {} });
     public getActiveDocument() { return sidebarContext.activeDocument; }
-    public isDefaultEditor() { return true; }
+    public isDefaultEditor() { return sidebarContext.isDefaultEditor; }
     public getCacheStatus() { return { isBuilding: false, cacheSize: 3, buildProgress: null, ttl: 1 }; }
     public async getGraphData() { return { nodes: [], edges: [] }; }
     public refresh() {}
@@ -101,6 +102,7 @@ beforeEach(() => {
   host.webviewViewProviders.clear();
   host.executed.length = 0;
   host.workspaceState.clear();
+  sidebarContext.isDefaultEditor = true;
   sidebarContext.activeDocument = {
     uri: { fsPath: '/workspace/note.md', toString: () => 'file:///workspace/note.md' },
   };
@@ -119,6 +121,30 @@ describe('status view inline suggestion toggle', () => {
 
     expect(toggle?.label).toBe(label);
     expect(toggle?.command?.command).toBe('markdown-editor.toggleInlineSuggestions');
+  });
+});
+
+describe('status view default-editor item', () => {
+  it('offers Markdown Studio as the default editor through the stable command ID', async () => {
+    sidebarContext.isDefaultEditor = false;
+    createManager();
+
+    const items = (await host.treeProviders.get('markdown-sidebar-status')!.getChildren()) as TestItem[];
+    const warning = items.find((item) => item.contextValue === 'defaultEditorWarning');
+
+    expect(warning?.label).toBe('Set Markdown Studio as the default Markdown editor');
+    expect(warning?.command).toMatchObject({
+      command: 'markdown-editor.setAsDefaultEditor',
+      title: 'Set Markdown Studio as Default',
+    });
+  });
+
+  it('reports Markdown Studio as the configured default', async () => {
+    createManager();
+
+    const items = (await host.treeProviders.get('markdown-sidebar-status')!.getChildren()) as TestItem[];
+
+    expect(items.some((item) => item.label === 'Markdown Studio is the default Markdown editor')).toBe(true);
   });
 });
 

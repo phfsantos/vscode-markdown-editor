@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Markdown Studio listing icon: the sidebar-icon.svg glyph on an opaque tile. Rasterize to logo.png. -->
+  <rect width="512" height="512" fill="#13243A" />
+  <g transform="translate(73.6 64.8) scale(16)">
+    <g transform="translate(-4.5 1) scale(1.4)">
+      <g transform="translate(5 -2) scale(0.6)">
+        <path d="M 0.3 4 L 0.3 20 L 2.6 20 L 2.6 9.5 L 5.8 14.1 L 9 9.5 L 9 20 L 11.3 20 L 11.3 4 L 5.8 12.5 Z" fill="#38BDF8" stroke="#38BDF8" stroke-width="1" stroke-linejoin="round" />
+      </g>
+      <g transform="translate(-2 -1.3)">
+        <path d="M 18 1.9 L 18 7.9 L 16.7 7.9 L 18.4 11.2 L 20.1 7.9 L 18.8 7.9 L 18.8 1.9 Z" fill="#38BDF8" stroke="#38BDF8" stroke-width="1" stroke-linejoin="round" />
+      </g>
+    </g>
+    <g fill="#FBBF24">
+      <path d="M 3.3 17.55 H 4.6 V 19.6 H 6.65 V 20.9 H 4.6 V 22.95 H 3.3 V 20.9 H 1.25 V 19.6 H 3.3 Z" />
+      <path d="M 9.45 17.55 H 10.75 V 19.6 H 12.8 V 20.9 H 10.75 V 22.95 H 9.45 V 20.9 H 7.4 V 19.6 H 9.45 Z" />
+      <path d="M 15.6 17.55 H 16.9 V 19.6 H 18.95 V 20.9 H 16.9 V 22.95 H 15.6 V 20.9 H 13.55 V 19.6 H 15.6 Z" />
+    </g>
+  </g>
+</svg>

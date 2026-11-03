@@ -11,7 +11,7 @@ class Logger {
 
   private constructor() {
     // Create output channel for markdown editor logs
-    this.outputChannel = vscode.window.createOutputChannel('Markdown Editor');
+    this.outputChannel = vscode.window.createOutputChannel('Markdown Studio');
     this.updateConfig();
     
     // Listen for config changes

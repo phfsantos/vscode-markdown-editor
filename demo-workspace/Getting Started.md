@@ -1,10 +1,10 @@
-# Getting Started with Markdown Editor
+# Getting Started with Markdown Studio
 
 Welcome! This guide will help you understand the key features of this extension.
 
 ## What is This Extension?
 
-The Markdown Editor brings **Obsidian-style features** to VS Code, including:
+Markdown Studio brings **Obsidian-style features** to VS Code, including:
 
 - 📝 WYSIWYG editing with instant rendering
 - 🔗 Wiki-style links with `[[filename]]` syntax
@@ -38,6 +38,7 @@ All tags appear in the sidebar for easy browsing!
 
 ## Related Notes
 
+- [[Markdown Studio Showcase]] - A tour of what the editor can do
 - [[Wiki Links Guide]] - Deep dive into linking
 - [[Tags and Organization]] - Organization strategies  
 - [[README]] - Main workspace overview

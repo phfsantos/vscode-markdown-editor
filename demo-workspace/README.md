@@ -1,6 +1,8 @@
-# Welcome to the Markdown Editor Demo Workspace
+# Welcome to the Markdown Studio Demo Workspace
 
-This workspace demonstrates all the powerful features of the Markdown Editor extension.
+This workspace demonstrates all the powerful features of the Markdown Studio extension.
+
+Start with [[Markdown Studio Showcase]] for a one-page tour.
 
 ## 🌟 Features Demonstrated
 
@@ -37,10 +39,10 @@ This workspace has **10+ interconnected notes** showcasing:
 
 ## 🎯 Try These Features
 
-1. **Open Sidebar**: Click the Markdown Tools icon in the activity bar
-2. **View Graph**: Run command `Markdown Editor: Open Link Graph View`
-3. **Quick Open**: Press `Ctrl+Shift+P` → `Markdown Editor: Quick Open Note`
-4. **Daily Note**: Run `Markdown Editor: Open Daily Note`
+1. **Open Sidebar**: Click the Markdown Studio icon in the activity bar
+2. **View Graph**: Run command `Markdown Studio: Open Link Graph View`
+3. **Quick Open**: Press `Ctrl+Shift+P` → `Markdown Studio: Quick Open Note`
+4. **Daily Note**: Run `Markdown Studio: Open Daily Note`
 
 ---
 

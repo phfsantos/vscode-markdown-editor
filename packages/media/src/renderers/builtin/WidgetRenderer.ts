@@ -3,6 +3,7 @@ import { IRenderer, IRenderContext, IRendererCapabilities } from '../types';
 import { vscodeLogError, vscodeLog } from '../../webview-logger';
 import { initializeWidgetSystem } from '../../widget-integration';
 import { dispatchVditorInput } from '../../content-sync';
+import { toWidgetActionMessage } from '../../widget-action-message';
 
 /**
  * WidgetRenderer - Renders widget code blocks using the widget system
@@ -296,16 +297,7 @@ export class WidgetRenderer extends BaseRenderer implements IRenderer {
         
         // Send action to VS Code via postMessage
         if ((window as any).vscode && typeof (window as any).vscode.postMessage === 'function') {
-          (window as any).vscode.postMessage({
-            command: 'widget-action',
-            actionType: detail.actionType,
-            action: detail.action,
-            value: detail.value,
-            data: detail.data,
-            targetWidget: detail.targetWidget,
-            widgetId: detail.widgetId,
-            timestamp: detail.timestamp,
-          });
+          (window as any).vscode.postMessage(toWidgetActionMessage(detail));
           vscodeLog(`[WidgetRenderer] Sent button action to VS Code: ${detail.action}`);
         } else {
           vscodeLogError('[WidgetRenderer] window.vscode not available for button action');

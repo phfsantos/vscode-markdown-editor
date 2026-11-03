@@ -1,175 +1,62 @@
-# Publishing Checklist for VS Code Marketplace
+# Publishing Checklist
 
-## Pre-Publishing Steps
+Repeatable release checklist for **Markdown Studio** (`phfsantos.markdown-editor`).
+Start every release from a fresh copy of the unchecked list below; do not reuse
+results from a previous release.
 
-### 1. Documentation ✅
-- [x] README.md updated with latest features
-- [x] CHANGELOG.md updated with version 0.4.7
-- [x] Screenshots section added with note about screenshot placement
-- [x] All features documented with clear descriptions
-- [x] Configuration options documented
-- [x] Commands list included
+Releases are published by `.github/workflows/main.yml` when a `v*` tag is pushed.
+The workflow refuses to publish unless the tag equals `v` + the `version` in
+`package.json`, then lints, tests, and publishes the **same VSIX** to Open VSX and
+the Visual Studio Marketplace.
 
-### 2. Package Configuration ✅
-- [x] Version bumped to 0.4.7 in package.json
-- [x] Description updated with key features
-- [x] Keywords optimized for marketplace discovery
-- [x] Categories set appropriately
-- [x] Repository URL configured
-- [x] Icon file present (media/logo.png)
+## 1. Prepare
 
-### 3. Screenshot & Media
-- [ ] **ACTION REQUIRED**: Save workspace screenshot to `./media/screenshot-main.png`
-  - Should show: WYSIWYG editor, sidebar panel, and graph view
-  - Recommended size: 1280x720 or higher
-  - Format: PNG
-  - Current screenshot reference is visible in VS Code
-- [x] Demo GIF present (demo.gif)
-- [x] Logo present (media/logo.png)
+- [ ] Read the release version: `node -p "require('./package.json').version"`
+- [ ] Bump `version` in `package.json` manually if needed (there is no auto-bump script).
+- [ ] Move the `CHANGELOG.md` "Unreleased" entries under that version with today's date.
+- [ ] README describes current behavior, command names, and settings.
+- [ ] If the icon changed, regenerate it: `yarn icon:render` (writes `media/logo.png` from `media/marketplace-icon.svg`).
+- [ ] If the UI changed, recapture `media/screenshot-main.png` (see "Screenshot recipe" below).
 
-### 4. Code Quality ✅
-- [x] Build completes without errors: `yarn foy build`
-- [x] No TypeScript compilation errors
-- [x] All tests passing
-- [x] No security vulnerabilities (0 found)
+## 2. Verify locally (fresh runs)
 
-### 5. Testing
-- [x] Extension builds successfully
-- [x] Core features tested:
-  - [x] WYSIWYG editor opens
-  - [x] Sidebar panel loads
-  - [x] Graph view displays
-  - [x] Wiki-links autocomplete works
-  - [x] Cache status displays
-  - [x] Commands accessible
+- [ ] `yarn --frozen-lockfile`
+- [ ] `yarn lint`
+- [ ] `yarn test`
+- [ ] `yarn test:browser`
+- [ ] `GITHUB_REF_NAME=v$(node -p "require('./package.json').version") node scripts/verify-release.cjs`
 
-### 6. Marketplace Requirements
-- [x] README.md has clear description
-- [x] README.md has screenshots/demo
-- [x] CHANGELOG.md is up to date
-- [x] License file present (MIT)
-- [x] Repository linked
-- [x] Publisher configured (phfsantos)
+## 3. Inspect the VSIX
 
-## Publishing Commands
+- [ ] `npx @vscode/vsce package --out markdown-studio.vsix`
+- [ ] `npx @vscode/vsce ls` contains no `src/`, `scripts/`, sourcemaps, or test files.
+- [ ] `unzip -p markdown-studio.vsix extension/package.json` shows the expected `displayName`, `version`, and `icon`.
+- [ ] Install it in a clean profile: `code --profile release-check --install-extension markdown-studio.vsix`
+  - [ ] The Extensions view shows "Markdown Studio" with the colored icon.
+  - [ ] Opening a `.md` file with "Open in Markdown Studio" works.
+  - [ ] "Set Markdown Studio as Default" adds only `*.md` / `*.markdown` and keeps other `workbench.editorAssociations` entries.
+- [ ] Delete the local VSIX afterwards.
 
-### Package the Extension
-```bash
-# Install vsce if not already installed
-npm install -g @vscode/vsce
+## 4. Publish
 
-# Package the extension
-vsce package
-```
+- [ ] Commit the release changes.
+- [ ] `git tag -a v<version> -m "Release v<version>"`
+- [ ] `git push origin v<version>`
+- [ ] Watch the "Deploy Extension" workflow until it succeeds.
 
-This will create a `.vsix` file (e.g., `markdown-editor-0.4.7.vsix`)
+## 5. After publishing
 
-### Publish to Marketplace
-```bash
-# First time: Get your Personal Access Token from:
-# https://dev.azure.com/ (Visual Studio Marketplace)
+- [ ] Marketplace listing (https://marketplace.visualstudio.com/items?itemName=phfsantos.markdown-editor) shows the new version, name, and icon.
+- [ ] Open VSX listing (https://open-vsx.org/extension/phfsantos/markdown-editor) shows the same version.
+- [ ] Install from the Marketplace in a clean profile and open a Markdown file.
+- [ ] Create a GitHub release for the tag with the changelog section.
 
-# Login (only needed once)
-vsce login phfsantos
+## Screenshot recipe
 
-# Publish
-vsce publish
-```
+`media/screenshot-main.png` is the first image on the Marketplace page, so it should show the editor and the sidebar together.
 
-### Alternative: Manual Upload
-1. Go to https://marketplace.visualstudio.com/manage/publishers/phfsantos
-2. Click "New Extension" → "Visual Studio Code"
-3. Upload the `.vsix` file
-4. Fill in any additional marketplace information
-
-## Post-Publishing
-
-### 1. Verify Publication
-- [ ] Check marketplace listing: https://marketplace.visualstudio.com/items?itemName=phfsantos.markdown-editor
-- [ ] Verify version number is 0.4.7
-- [ ] Confirm all screenshots display correctly
-- [ ] Test installation from marketplace
-
-### 2. Git Tag
-```bash
-git tag -a v0.4.7 -m "Release version 0.4.7 - Performance improvements and cache management"
-git push origin v0.4.7
-```
-
-### 3. GitHub Release
-1. Go to: https://github.com/phfsantos/vscode-markdown-editor/releases
-2. Click "Draft a new release"
-3. Tag: v0.4.7
-4. Title: "v0.4.7 - Performance & Cache Management"
-5. Copy content from CHANGELOG.md for v0.4.7
-6. Attach the `.vsix` file
-7. Publish release
-
-### 4. Announce
-- [ ] Update repository README if needed
-- [ ] Share on social media (optional)
-- [ ] Notify users of major improvements
-
-## Key Features to Highlight in Marketplace
-
-1. **Obsidian-Style Knowledge Management** - Wiki-links, backlinks, graph view
-2. **WYSIWYG Editing** - Real-time markdown rendering
-3. **Performance Optimized** - Smart caching, incremental loading
-4. **Large Workspace Support** - Tested with 1000+ files
-5. **Rich Tooling** - Diagnostics, CodeLens, commands
-6. **Daily Notes** - Quick note-taking workflow
-7. **Interactive Graph** - Visualize note relationships
-8. **Tag Management** - Organize with #tags
-
-## Troubleshooting
-
-### If screenshot is missing
-Save the current VS Code workspace view to `./media/screenshot-main.png` showing:
-- Left: Sidebar panel with all sections visible
-- Center: Markdown editor with content
-- Right: Graph view panel (if using multiple columns)
-
-### If build fails
-```bash
-cd /var/www/vscode-markdown-editor
-yarn install
-yarn foy build
-```
-
-### If tests fail
-```bash
-cd /var/www/vscode-markdown-editor/test
-node run-all.js
-```
-
-## Important Notes
-
-- Ensure the screenshot at `./media/screenshot-main.png` exists before packaging
-- The marketplace uses the first image in README as the main screenshot
-- Version in package.json must match CHANGELOG.md
-- All links in README should work (no broken links)
-- Description should be compelling and clear for marketplace listing
-
-## Final Check Before Publishing
-
-Run these commands to ensure everything is ready:
-
-```bash
-# 1. Check version consistency
-grep '"version"' package.json
-grep '## \[' CHANGELOG.md | head -1
-
-# 2. Verify screenshot exists
-ls -lh ./media/screenshot-main.png
-
-# 3. Final build
-yarn foy build
-
-# 4. Check for errors
-echo "Build exit code: $?"
-
-# 5. Package
-vsce package
-
-# If all above succeeds, you're ready to publish!
-```
+1. Open `demo-workspace/` as the workspace folder, using a dark theme and a window about 1600×1000.
+2. Open `Markdown Studio Showcase.md` in Markdown Studio (Instant Rendering mode).
+3. Open the Markdown Studio sidebar, with Backlinks, Outgoing Links and Tags expanded.
+4. Run `Markdown Studio: Open Link Graph View` and place it to the side, or capture it as a second image.
+5. Hide the minimap, close the panel and other tabs, then capture the whole window. Before publishing, make sure the dated widgets still show data for the current month.

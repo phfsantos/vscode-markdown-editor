@@ -46,7 +46,13 @@ const languageModels = vi.hoisted(() => ({ api: undefined as unknown }));
 const webviewTarget = { postMessage: vi.fn() };
 const vditor = { insertValue: vi.fn() };
 
+let routeHostMessage: (raw: unknown) => string;
+
 function postFromHost(data: unknown): void {
+  routeHostMessage(data);
+}
+
+function postToWindow(data: unknown): void {
   const event = new Event('message');
   Object.defineProperty(event, 'data', { value: data });
   (globalThis as unknown as { window: EventTarget }).window.dispatchEvent(event);
@@ -55,13 +61,29 @@ function postFromHost(data: unknown): void {
 beforeAll(async () => {
   const window = Object.assign(new EventTarget(), { vscode: webviewTarget, vditor });
   vi.stubGlobal('window', window);
-  await import('../packages/media/src/ai-markdown-bridge');
+  const { aiMarkdownRoutes, syncAiMarkdownFromUpdate } = await import('../packages/media/src/ai-markdown-bridge');
+  const { createHostMessageRouter } = await import('../packages/media/src/host-message-router');
+  // Mirrors main.ts: `update` belongs to the document routes, which hand it to the AI bridge.
+  routeHostMessage = createHostMessageRouter({
+    routeGroups: [{ update: syncAiMarkdownFromUpdate }, aiMarkdownRoutes],
+    reportMalformed: vi.fn(),
+  });
 });
 
 describe('AI markdown webview bridge', () => {
   beforeEach(() => vi.clearAllMocks());
 
   const aiMarkdown = { isAIMarkdown: true, availability: { affordancesEnabled: true } };
+
+  it('installs no window message listener of its own', () => {
+    postToWindow({ command: 'inlineSuggestionEligibility', enabled: false });
+    postToWindow({ command: 'insertTextAtCursor', text: '## Context' });
+    postToWindow({ command: 'update', content: '', aiMarkdown });
+
+    expect(ui.inline.updateEligibility).not.toHaveBeenCalled();
+    expect(vditor.insertValue).not.toHaveBeenCalled();
+    expect(ui.updateAIMarkdownUI).not.toHaveBeenCalled();
+  });
 
   it('shows AI tools, chat anchor, and eligibility from an editor update', () => {
     const chatAnchor = { visible: true, relativePath: 'notes.md' };

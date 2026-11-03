@@ -20,6 +20,8 @@ import { dispatchVditorInput, getWebviewContentSync } from "./content-sync";
 import { SourcePositionNavigationController } from "./source-position-navigation";
 import { showEmbedPreview } from "./embed-preview";
 import { createDocumentSyncRoutes } from "./document-sync-routes";
+import { installCalendarBridge } from "./calendar-bridge";
+import { aiMarkdownRoutes, syncAiMarkdownFromUpdate } from "./ai-markdown-bridge";
 import {
   createHostMessageRouter,
   type HostMessage,
@@ -51,6 +53,7 @@ const documentRoutes: HostMessageRoutes = {
   ...createDocumentSyncRoutes({
     getContentSync: getWebviewContentSync,
     recordDocumentState: (msg) => {
+      syncAiMarkdownFromUpdate(msg);
       // Store document filename for renderer system
       if (msg.documentFilename) {
         (window as any).currentDocumentFilename = msg.documentFilename;
@@ -180,8 +183,6 @@ const editorCommandRoutes: HostMessageRoutes = {
 
 const aiRoutes: HostMessageRoutes = {
   nativeToolSelectorResult: (msg) => applySelectedTools(msg.selectedTools ?? []),
-  inlineSuggestionEligibility: (msg) => inlineSuggestionController.updateEligibility(msg),
-  inlineSuggestionResult: (msg) => inlineSuggestionController.handleSuggestionResponse(msg),
 };
 
 // Calendar replies are re-dispatched as window events that widgets listen for.
@@ -321,6 +322,7 @@ const routeHostMessage = createHostMessageRouter({
     vscodeIntegrationRoutes,
     editorCommandRoutes,
     aiRoutes,
+    aiMarkdownRoutes,
     calendarRoutes,
     diffHtmlRoutes,
     rendererRoutes,
@@ -338,51 +340,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-// Calendar widget event listeners - forward widget requests to extension
-window.addEventListener('calendar-request', ((event: CustomEvent) => {
-  // Widget is requesting calendar events
-  const { provider, date, requestId } = event.detail || {};
-  vscode?.postMessage({
-    command: 'calendar-request',
-    provider: provider || 'all',
-    date: date || new Date().toISOString().split('T')[0],
-    requestId,
-  });
-}) as EventListener);
-
-window.addEventListener('calendar-auth', ((event: CustomEvent) => {
-  // Widget is requesting calendar authentication
-  const { provider, requestId } = event.detail || {};
-  vscode?.postMessage({
-    command: 'calendar-auth',
-    provider: provider || 'outlook', // Default to Outlook as it's better supported
-    requestId,
-  });
-}) as EventListener);
-
-window.addEventListener('calendar-signout', ((event: CustomEvent) => {
-  // Widget is requesting to sign out from a calendar provider
-  const { provider, requestId } = event.detail || {};
-  vscode?.postMessage({
-    command: 'calendar-signout',
-    provider,
-    requestId,
-  });
-}) as EventListener);
-
-window.addEventListener('calendar-event-action', ((event: CustomEvent) => {
-  // Widget is performing an action on a calendar event (join, open, etc.)
-  const { action, eventData } = event.detail || {};
-  
-  // Handle video meeting actions
-  if (action === 'join' && eventData?.link) {
-    // Open meeting link in browser
-    vscode?.postMessage({
-      command: 'open-link',
-      href: eventData.link,
-    });
-  }
-}) as EventListener);
+installCalendarBridge(window, (message) => vscode?.postMessage(message));
 
 // when window is loaded
 window.addEventListener('load', () => {

@@ -4,61 +4,61 @@
     "SessionStart": [
       {
         "type": "command",
-        "osx": "./.projectmind/hooks/session-start.sh",
-        "linux": "./.projectmind/hooks/session-start.sh",
-        "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File .projectmind\\hooks\\session-start.ps1",
+        "osx": "./.projectmind/hooks/session-start.sh copilot",
+        "linux": "./.projectmind/hooks/session-start.sh copilot",
+        "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File .projectmind\\hooks\\session-start.ps1 copilot",
         "timeout": 30
       }
     ],
     "UserPromptSubmit": [
       {
         "type": "command",
-        "osx": "./.projectmind/hooks/prompt-submitted.sh",
-        "linux": "./.projectmind/hooks/prompt-submitted.sh",
-        "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File .projectmind\\hooks\\prompt-submitted.ps1",
+        "osx": "./.projectmind/hooks/prompt-submitted.sh copilot",
+        "linux": "./.projectmind/hooks/prompt-submitted.sh copilot",
+        "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File .projectmind\\hooks\\prompt-submitted.ps1 copilot",
         "timeout": 10
       }
     ],
     "PreToolUse": [
       {
         "type": "command",
-        "osx": "./.projectmind/hooks/pre-tool-use.sh",
-        "linux": "./.projectmind/hooks/pre-tool-use.sh",
-        "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File .projectmind\\hooks\\pre-tool-use.ps1",
+        "osx": "./.projectmind/hooks/pre-tool-use.sh copilot",
+        "linux": "./.projectmind/hooks/pre-tool-use.sh copilot",
+        "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File .projectmind\\hooks\\pre-tool-use.ps1 copilot",
         "timeout": 15
       }
     ],
     "PostToolUse": [
       {
         "type": "command",
-        "osx": "./.projectmind/hooks/post-tool-use.sh",
-        "linux": "./.projectmind/hooks/post-tool-use.sh",
-        "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File .projectmind\\hooks\\post-tool-use.ps1",
+        "osx": "./.projectmind/hooks/post-tool-use.sh copilot",
+        "linux": "./.projectmind/hooks/post-tool-use.sh copilot",
+        "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File .projectmind\\hooks\\post-tool-use.ps1 copilot",
         "timeout": 15
       }
     ],
     "Stop": [
       {
         "type": "command",
-        "osx": "./.projectmind/hooks/session-end.sh",
-        "linux": "./.projectmind/hooks/session-end.sh",
-        "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File .projectmind\\hooks\\session-end.ps1",
+        "osx": "./.projectmind/hooks/session-end.sh copilot",
+        "linux": "./.projectmind/hooks/session-end.sh copilot",
+        "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File .projectmind\\hooks\\session-end.ps1 copilot",
         "timeout": 30
       },
       {
         "type": "command",
-        "osx": "./.projectmind/hooks/delivery-gate.sh",
-        "linux": "./.projectmind/hooks/delivery-gate.sh",
-        "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File .projectmind\\hooks\\delivery-gate.ps1",
+        "osx": "./.projectmind/hooks/delivery-gate.sh copilot",
+        "linux": "./.projectmind/hooks/delivery-gate.sh copilot",
+        "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File .projectmind\\hooks\\delivery-gate.ps1 copilot",
         "timeout": 15
       }
     ],
     "PreCompact": [
       {
         "type": "command",
-        "osx": "./.projectmind/hooks/pre-compact.sh",
-        "linux": "./.projectmind/hooks/pre-compact.sh",
-        "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File .projectmind\\hooks\\pre-compact.ps1",
+        "osx": "./.projectmind/hooks/pre-compact.sh copilot",
+        "linux": "./.projectmind/hooks/pre-compact.sh copilot",
+        "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File .projectmind\\hooks\\pre-compact.ps1 copilot",
         "timeout": 15
       }
     ]

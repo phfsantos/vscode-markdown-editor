@@ -6,8 +6,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.projectmind/hooks/session-start.sh\"",
-            "commandWindows": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"& (Join-Path (git rev-parse --show-toplevel) '.projectmind/hooks/session-start.ps1')\"",
+            "command": "bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.projectmind/hooks/session-start.sh\" codex",
+            "commandWindows": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"& (Join-Path (git rev-parse --show-toplevel) '.projectmind/hooks/session-start.ps1') codex\"",
             "timeout": 30
           }
         ]
@@ -18,8 +18,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.projectmind/hooks/prompt-submitted.sh\"",
-            "commandWindows": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"& (Join-Path (git rev-parse --show-toplevel) '.projectmind/hooks/prompt-submitted.ps1')\"",
+            "command": "bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.projectmind/hooks/prompt-submitted.sh\" codex",
+            "commandWindows": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"& (Join-Path (git rev-parse --show-toplevel) '.projectmind/hooks/prompt-submitted.ps1') codex\"",
             "timeout": 10
           }
         ]
@@ -30,8 +30,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.projectmind/hooks/pre-tool-use.sh\"",
-            "commandWindows": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"& (Join-Path (git rev-parse --show-toplevel) '.projectmind/hooks/pre-tool-use.ps1')\"",
+            "command": "bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.projectmind/hooks/pre-tool-use.sh\" codex",
+            "commandWindows": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"& (Join-Path (git rev-parse --show-toplevel) '.projectmind/hooks/pre-tool-use.ps1') codex\"",
             "timeout": 15
           }
         ]
@@ -42,8 +42,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.projectmind/hooks/post-tool-use.sh\"",
-            "commandWindows": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"& (Join-Path (git rev-parse --show-toplevel) '.projectmind/hooks/post-tool-use.ps1')\"",
+            "command": "bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.projectmind/hooks/post-tool-use.sh\" codex",
+            "commandWindows": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"& (Join-Path (git rev-parse --show-toplevel) '.projectmind/hooks/post-tool-use.ps1') codex\"",
             "timeout": 15
           }
         ]
@@ -54,8 +54,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.projectmind/hooks/session-end.sh\"",
-            "commandWindows": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"& (Join-Path (git rev-parse --show-toplevel) '.projectmind/hooks/session-end.ps1')\"",
+            "command": "bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.projectmind/hooks/session-end.sh\" codex",
+            "commandWindows": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"& (Join-Path (git rev-parse --show-toplevel) '.projectmind/hooks/session-end.ps1') codex\"",
             "timeout": 30
           }
         ]
@@ -64,8 +64,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.projectmind/hooks/delivery-gate.sh\"",
-            "commandWindows": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"& (Join-Path (git rev-parse --show-toplevel) '.projectmind/hooks/delivery-gate.ps1')\"",
+            "command": "bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.projectmind/hooks/delivery-gate.sh\" codex",
+            "commandWindows": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"& (Join-Path (git rev-parse --show-toplevel) '.projectmind/hooks/delivery-gate.ps1') codex\"",
             "timeout": 15
           }
         ]
@@ -76,8 +76,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.projectmind/hooks/pre-compact.sh\"",
-            "commandWindows": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"& (Join-Path (git rev-parse --show-toplevel) '.projectmind/hooks/pre-compact.ps1')\"",
+            "command": "bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.projectmind/hooks/pre-compact.sh\" codex",
+            "commandWindows": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"& (Join-Path (git rev-parse --show-toplevel) '.projectmind/hooks/pre-compact.ps1') codex\"",
             "timeout": 15
           }
         ]

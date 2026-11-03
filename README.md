@@ -1,16 +1,22 @@
-# Markdown Editor — A Full-Featured WYSIWYG Editor for VS Code
+<p align="center"><img src="media/logo.png" alt="Markdown Studio icon" width="128" height="128"></p>
+
+# Markdown Studio
+
+Visual Markdown editing and connected notes for VS Code.
 
 [![Version](https://img.shields.io/visual-studio-marketplace/v/phfsantos.markdown-editor)](https://marketplace.visualstudio.com/items?itemName=phfsantos.markdown-editor)
 [![Installs](https://img.shields.io/visual-studio-marketplace/i/phfsantos.markdown-editor)](https://marketplace.visualstudio.com/items?itemName=phfsantos.markdown-editor)
 [![Rating](https://img.shields.io/visual-studio-marketplace/r/phfsantos.markdown-editor)](https://marketplace.visualstudio.com/items?itemName=phfsantos.markdown-editor)
 
-A powerful markdown editor combining **WYSIWYG editing** with **Obsidian-style knowledge management**. Features include wiki-links, interactive graph views, backlinks, tag management, and advanced markdown tooling—all within VS Code.
+Markdown Studio combines **WYSIWYG editing** with **Obsidian-style knowledge management**: wiki-links, an interactive graph view, backlinks, tag management, and Markdown tooling, all inside VS Code.
+
+> **Formerly "Markdown Editor".** Only the display name changed. The extension ID (`phfsantos.markdown-editor`), commands, `markdown-editor.*` settings, and existing editor associations keep working without migration.
 
 ## 📸 Screenshots
 
 ### Obsidian-Style Knowledge Management
 
-![Markdown Editor with Sidebar and Graph View](./media/screenshot-main.png)
+![Markdown Studio with its sidebar and graph view](./media/screenshot-main.png)
 
 *Complete workspace view featuring: WYSIWYG editor (center), dedicated sidebar panel (left) with templates, tags, embeds, outgoing links, backlinks, related files, and interactive graph visualization (right) showing note connections and relationships.*
 
@@ -19,8 +25,6 @@ A powerful markdown editor combining **WYSIWYG editing** with **Obsidian-style k
 ![Demo Animation](./demo.gif)
 
 *Real-time rendering, multiple editing modes, and seamless VS Code integration*
-
-> **Note for Marketplace**: Please save the screenshot from your workspace and place it at `./media/screenshot-main.png` before publishing. The screenshot should show the complete interface with sidebar panel and graph view visible.
 
 ## ✨ Key Features
 
@@ -43,7 +47,7 @@ A powerful markdown editor combining **WYSIWYG editing** with **Obsidian-style k
   - 🔗 **Outgoing Links** — View all links in the current file with resolution status
   - 🎯 **Related Files** — Smart recommendations based on proximity, backlinks, and content similarity
 - **Daily Notes**: Quick command to create/open today's note with customizable folder
-- **Performance Optimized**: Incremental loading with caching for large workspaces (1000+ files)
+- **Performance Optimized**: Incremental loading with caching for large workspaces
 
 ### 🛠️ Advanced Markdown Tools
 
@@ -77,7 +81,6 @@ A powerful markdown editor combining **WYSIWYG editing** with **Obsidian-style k
 - **Cache Management**: Visual cache status in sidebar with one-click rebuild
 - **Incremental Loading**: Sidebar sections load progressively for instant feedback
 - **Configurable Performance Modes**: Auto / Performance / Compatibility
-- **Large Workspace Support**: Tested with 1000+ markdown files
 - **Parallel Processing**: Backlinks, outgoing links, and related files computed simultaneously
 
 ## Install
@@ -94,7 +97,7 @@ A powerful markdown editor combining **WYSIWYG editing** with **Obsidian-style k
 
 - open a markdown file
 - type `cmd-shift-p` to enter command mode
-- type `markdown-editor: Open with markdown editor`
+- type `Markdown Studio: Open in Markdown Studio`
 
 ### 2. Key bindings
 
@@ -104,12 +107,12 @@ A powerful markdown editor combining **WYSIWYG editing** with **Obsidian-style k
 ### 3. Explorer Context menu
 
 - right click on markdown file
-- then click `Open with markdown editor`
+- then click `Open in Markdown Studio`
 
 ### 4. Editor title context menu
 
-- right click on a opened markdown file's tab title
-- then click `Open with markdown editor`
+- right click on an open markdown file's tab title
+- then click `Open in Markdown Studio`
 
 ### 5. Open at a source position
 
@@ -128,21 +131,20 @@ vscode://phfsantos.markdown-editor/open?uri=file%3A%2F%2F%2Fworkspace%2Fnotes%2F
 
 Line and character values in links are positive and one-based. Internally, character positions use VS Code's zero-based UTF-16 offsets, so Unicode positions follow VS Code's standard cursor semantics. Targets must be existing `.md` or `.markdown` files.
 
-VS Code's generic `--goto file:line:character` option does not select a custom editor and may open the built-in text editor. Use the `vscode://phfsantos.markdown-editor/open` URI when the Markdown Editor must open at the requested position.
+VS Code's generic `--goto file:line:character` option does not select a custom editor and may open the built-in text editor. Use the `vscode://phfsantos.markdown-editor/open` URI when Markdown Studio must open at the requested position.
+
+### 6. Make Markdown Studio the default editor
+
+Run `Markdown Studio: Set Markdown Studio as Default` (or use the Status view in the sidebar). It adds `*.md` and `*.markdown` to your user-level `workbench.editorAssociations` and keeps every other association you already have. Workspace settings are never copied into user settings. To cover more extensions, add patterns such as `"*.mdown": "markdown-editor"` yourself.
 
 ### Custom CSS (custom layout and vditor personalization)
 
-Edit your settings.json and add:
+Add CSS rules as a single string in your settings.json:
 
 ```json
 {
-  "markdown-editor.customCss": "my custom css rules"
-```
-
-**Example:**
-
-```json
-span
+  "markdown-editor.customCss": ".vditor-reset { max-width: 900px; margin: 0 auto; }"
+}
 ```
 
 ## ⚙️ Configuration
@@ -185,6 +187,23 @@ The extension provides many settings to customize your experience:
 }
 ```
 
+### Widget Commands
+
+Button, Macro Board, and Dev Commands widgets can run VS Code commands. Because widget
+config comes from the Markdown document, widget commands never run in untrusted
+workspaces, and any command that is not in `markdown-editor.widgets.allowedCommands`
+(or that passes arguments) asks for confirmation first. The allowlist is a user-level
+setting, so a repository cannot extend it.
+
+```json
+{
+  "markdown-editor.widgets.allowedCommands": [
+    "workbench.action.openSettings",
+    "workbench.action.showCommands"
+  ]
+}
+```
+
 ### AI Settings
 
 ```json
@@ -203,7 +222,7 @@ The extension provides many settings to customize your experience:
 }
 ```
 
-You can also toggle `markdown-editor.ai.enableInlineSuggestions` from the Status view in the Markdown Tools sidebar. The status panel includes a one-click entry and title-bar button so the feature can stay opt-in without digging through settings.
+You can also toggle `markdown-editor.ai.enableInlineSuggestions` from the Status view in the Markdown Studio sidebar. The status panel includes a one-click entry and title-bar button so the feature can stay opt-in without digging through settings.
 
 ### Performance Settings
 
@@ -235,17 +254,17 @@ You can also toggle `markdown-editor.ai.enableInlineSuggestions` from the Status
 
 Access these commands via Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`):
 
-- `Markdown Editor: Open with markdown editor` - Open file in WYSIWYG editor
-- `Markdown Editor: Set as Default Markdown Editor` - Make this the default for .md files
-- `Markdown Editor: Open Link Graph View` - Open full-screen interactive graph
-- `Markdown Editor: Quick Open Note (Fuzzy)` - Fuzzy search all markdown files
-- `Markdown Editor: Open Daily Note` - Create/open today's daily note
-- `Markdown Editor: Rebuild Relationship Cache` - Manually rebuild link/tag cache
-- `Markdown Editor: AI: Toggle Auto-Complete Suggestions` - Enable or disable opt-in AI ghost text
-- `Markdown Editor: Show Heading Statistics` - Analyze document structure
-- `Markdown Editor: Validate Document Structure` - Check for markdown issues
-- `Markdown Editor: Format Table` - Auto-format markdown table
-- `Markdown Editor: Insert Table of Contents` - Generate TOC from headings
+- `Markdown Studio: Open in Markdown Studio` - Open file in WYSIWYG editor
+- `Markdown Studio: Set Markdown Studio as Default` - Make this the default for `.md` and `.markdown` files
+- `Markdown Studio: Open Link Graph View` - Open full-screen interactive graph
+- `Markdown Studio: Quick Open Note (Fuzzy)` - Fuzzy search all markdown files
+- `Markdown Studio: Open Daily Note` - Create/open today's daily note
+- `Markdown Studio: Rebuild Relationship Cache` - Manually rebuild link/tag cache
+- `Markdown Studio: AI: Toggle Auto-Complete Suggestions` - Enable or disable opt-in AI ghost text
+- `Markdown Studio: Show Heading Statistics` - Analyze document structure
+- `Markdown Studio: Validate Document Structure` - Check for markdown issues
+- `Markdown Studio: Format Table` - Auto-format markdown table
+- `Markdown Studio: Insert Table of Contents` - Generate TOC from headings
 
 ## 🔧 Troubleshooting
 
@@ -256,7 +275,7 @@ If you encounter issues, enable debug logging to see detailed information:
 1. Open Settings (JSON): `Ctrl+Shift+P` → "Preferences: Open Settings (JSON)"
 2. Add: `"markdown-editor.enableDebugLogging": true`
 3. Open the Output panel: View → Output
-4. Select "Markdown Editor" from the dropdown
+4. Select "Markdown Studio" from the dropdown
 5. Reproduce the issue and check the logs
 
 ### Performance with Large Workspaces
@@ -281,6 +300,10 @@ Ensure you're using the correct syntax:
 - `[[folder/filename]]` — Links to file in subfolder
 - File extensions are optional
 
+## ⚠️ Known Issues
+
+- **The editor-type dropdown shows "Markdown Studio - Markdown Studio".** VS Code's picker always shows "editor name - extension name" for extension editors, and an extension can't change that format. Markdown Studio uses the same name for both, so it appears twice (Hex Editor and Excalidraw do the same). This is cosmetic and choosing the entry works normally. Showing the name only once needs a change in VS Code. Giving the editor a different name, such as "Visual Editor - Markdown Studio", would also avoid the repeat, but we kept one name for consistency.
+
 ## 📚 Supported Syntax
 
 For complete markdown syntax guide, see: [demo article](https://ld246.com/guide/markdown)
@@ -288,34 +311,11 @@ For complete markdown syntax guide, see: [demo article](https://ld246.com/guide/
 Maintainers working on fenced custom renderers should also read the
 [custom-block save integrity contract](./docs/custom-block-save-integrity.md).
 
-## 🎉 What's New in 0.4.7
+## 📰 Release Notes
 
-See [CHANGELOG.md](./CHANGELOG.md) for detailed release notes.
+See [CHANGELOG.md](./CHANGELOG.md) for release notes.
 
-### Latest Features
-
-- 🚀 **Performance Overhaul**: Incremental sidebar loading with visual loading states
-- 💾 **Smart Caching**: 10-minute cache with intelligent invalidation and manual rebuild
-- 📊 **Cache Status Display**: Real-time cache monitoring in sidebar header
-- 🎯 **Enhanced Graph View**: Adjustable depth, max nodes, and node distance controls
-- 📎 **Embed Support**: Preview images and files directly in sidebar
-- 🔗 **Related Files**: Smart file recommendations based on multiple factors
-- ⚡ **Instant UI**: Progressive loading ensures responsive experience on large workspaces
-- 🏷️ **Tag Management**: Browse all workspace tags with file counts
-- 🔄 **Real-time Updates**: Sidebar updates automatically on file changes
-- ✨ **Polish**: Improved UI, better error handling, and optimized rendering
-
-### Previous Highlights (0.4.2)
-
-- 🆕 Obsidian-style sidebar with interactive graph view
-- 🆕 Wiki-link support with intelligent autocomplete
-- 🆕 Daily notes functionality with customizable templates
-- 🆕 Enhanced diagnostics and CodeLens
-- ✨ Production-ready logging system
-- 🔒 Security audit clean (0 vulnerabilities)
-- ✅ Comprehensive test coverage
-
-## �🙏 Acknowledgement
+## 🙏 Acknowledgement
 
 - [vscode](https://github.com/microsoft/vscode)
 - [vditor](https://github.com/Vanessa219/vditor)
@@ -323,7 +323,6 @@ See [CHANGELOG.md](./CHANGELOG.md) for detailed release notes.
 
 ## 📝 Todo
 
-- [ ]  Using [Custom Text Editor](https://code.visualstudio.com/api/extension-guides/custom-editors#custom-text-editor) ([demo](https://github.com/gera2ld/markmap-vscode))
 - [ ]  Code splitting for main.js bundle size optimization
 - [ ]  Multi-root workspace support
 

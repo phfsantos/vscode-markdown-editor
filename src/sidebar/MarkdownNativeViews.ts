@@ -112,16 +112,16 @@ class MarkdownSidebarStatusProvider extends MarkdownSidebarTreeProvider {
     }
 
     if (this.sidebarContext.isDefaultEditor()) {
-      const defaultEditorOk = new SidebarItem('Default markdown editor is configured');
+      const defaultEditorOk = new SidebarItem('Markdown Studio is the default Markdown editor');
       defaultEditorOk.iconPath = new vscode.ThemeIcon('check');
       items.push(defaultEditorOk);
     } else {
-      const defaultEditorWarning = new SidebarItem('Set Markdown Editor as the default .md editor');
+      const defaultEditorWarning = new SidebarItem('Set Markdown Studio as the default Markdown editor');
       defaultEditorWarning.iconPath = new vscode.ThemeIcon('warning');
       defaultEditorWarning.contextValue = 'defaultEditorWarning';
       defaultEditorWarning.command = {
         command: 'markdown-editor.setAsDefaultEditor',
-        title: 'Set as Default Markdown Editor'
+        title: 'Set Markdown Studio as Default'
       };
       items.push(defaultEditorWarning);
     }

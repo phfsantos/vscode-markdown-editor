@@ -1,11 +1,21 @@
 # Changelog
 
-All notable changes to the "Markdown Editor" extension will be documented in this file.
+All notable changes to the "Markdown Studio" extension (formerly "Markdown Editor") will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.5.0] - Unreleased
+
+### Branding
+
+- Renamed the extension's display name from "Markdown Editor" to **Markdown Studio**.
+  The extension ID (`phfsantos.markdown-editor`), commands, `markdown-editor.*`
+  settings, and existing editor associations are unchanged.
+- New colored Marketplace/Extensions icon built from the sidebar glyph
+  (`media/marketplace-icon.svg` → `media/logo.png`, regenerate with `yarn icon:render`).
+- The sidebar icon now draws its plus signs as vector paths instead of text.
+- Command categories, titles, the Output channel, and status messages use the new name.
 
 ### AI
 
@@ -15,12 +25,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- "Set Markdown Studio as Default" now writes `*.md` and `*.markdown` to user
+  settings only, keeps unrelated `workbench.editorAssociations` entries, no
+  longer copies workspace associations into user settings, and reports
+  failures instead of claiming success.
 - Corrected typo'd model ids in the `markdown-editor.ai.modelName` setting
   (`gtp-4o-mini` → `gpt-4o-mini`, `gtp-4o` → `gpt-4o`). Previously saved typo
   values are normalized automatically at read time.
 
 ### Changed
 
+- The publish workflow runs on `v*` tags and fails if the tag does not match the
+  `package.json` version. The `pub` script, which bumped the version twice, was removed.
 - Minimum supported VS Code version raised from 1.47 to **1.95** — required by
   the Language Model API (`vscode.lm`, including `lm.tools`) that powers inline
   AI suggestions and the chat-agent tool selector.

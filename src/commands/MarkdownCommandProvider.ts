@@ -419,12 +419,12 @@ export class MarkdownCommandProvider {
         const contextPackage = await this.aiWorkflowService.buildContextPackage(document);
         const inserted = this.postToActiveCustomEditor('insertTextAtCursor', contextPackage.markdown);
         if (inserted) {
-            vscode.window.showInformationMessage('AI context inserted into the custom markdown editor.');
+            vscode.window.showInformationMessage('AI context inserted into Markdown Studio.');
             return;
         }
 
         await vscode.env.clipboard.writeText(contextPackage.markdown);
-        vscode.window.showInformationMessage('AI context copied to the clipboard because no active custom markdown editor was found.');
+        vscode.window.showInformationMessage('AI context copied to the clipboard because no active Markdown Studio editor was found.');
     }
 
     private async insertAiTemplate(uri?: vscode.Uri): Promise<void> {

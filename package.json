@@ -1,8 +1,8 @@
 {
   "name": "markdown-editor",
-  "displayName": "Markdown Editor",
+  "displayName": "Markdown Studio",
   "icon": "media/logo.png",
-  "description": "Full-featured WYSIWYG markdown editor with Obsidian-style wiki-links, graph view, backlinks, tags, and knowledge management.",
+  "description": "Visual Markdown editing and connected notes for VS Code: WYSIWYG editing, wiki-links, backlinks, tags, and a graph view.",
   "version": "0.5.11",
   "publisher": "phfsantos",
   "private": true,
@@ -60,7 +60,7 @@
       "activitybar": [
         {
           "id": "markdown-tools",
-          "title": "Markdown Tools",
+          "title": "Markdown Studio",
           "icon": "media/sidebar-icon.svg"
         }
       ]
@@ -118,135 +118,135 @@
     "commands": [
       {
         "command": "markdown-editor.openEditor",
-        "title": "Open with markdown editor",
+        "title": "Open in Markdown Studio",
         "icon": "$(markdown)",
-        "category": "markdown-editor"
+        "category": "Markdown Studio"
       },
       {
         "command": "markdown-editor.setAsDefaultEditor",
-        "title": "Set as Default Markdown Editor",
+        "title": "Set Markdown Studio as Default",
         "icon": "$(check)",
-        "category": "markdown-editor"
+        "category": "Markdown Studio"
       },
       {
         "command": "markdown-editor.showHeadingStats",
         "title": "Show Heading Statistics",
         "icon": "$(graph)",
-        "category": "markdown-editor"
+        "category": "Markdown Studio"
       },
       {
         "command": "markdown-editor.addAltText",
         "title": "Add Alt Text to Image",
         "icon": "$(pencil)",
-        "category": "markdown-editor"
+        "category": "Markdown Studio"
       },
       {
         "command": "markdown-editor.formatTable",
         "title": "Format Table",
         "icon": "$(table)",
-        "category": "markdown-editor"
+        "category": "Markdown Studio"
       },
       {
         "command": "markdown-editor.insertTOC",
         "title": "Insert Table of Contents",
         "icon": "$(list-unordered)",
-        "category": "markdown-editor"
+        "category": "Markdown Studio"
       },
       {
         "command": "markdown-editor.validateDocument",
         "title": "Validate Document Structure",
         "icon": "$(check)",
-        "category": "markdown-editor"
+        "category": "Markdown Studio"
       },
       {
         "command": "markdown-editor.openGraphView",
         "title": "Open Link Graph View",
         "icon": "$(graph)",
-        "category": "markdown-editor"
+        "category": "Markdown Studio"
       },
       {
         "command": "markdown-editor.quickOpenNote",
         "title": "Quick Open Note (Fuzzy)",
         "icon": "$(search)",
-        "category": "markdown-editor"
+        "category": "Markdown Studio"
       },
       {
         "command": "markdown-editor.openDailyNote",
         "title": "Open Daily Note",
         "icon": "$(calendar)",
-        "category": "markdown-editor"
+        "category": "Markdown Studio"
       },
       {
         "command": "markdown-editor.rebuildCache",
         "title": "Rebuild Relationship Cache",
         "icon": "$(sync)",
-        "category": "markdown-editor"
+        "category": "Markdown Studio"
       },
       {
         "command": "markdown-editor.refreshSidebar",
         "title": "Refresh Sidebar",
         "icon": "$(refresh)",
-        "category": "markdown-editor"
+        "category": "Markdown Studio"
       },
       {
         "command": "markdown-editor.createNoteFromTemplate",
         "title": "Create Note From Template",
         "icon": "$(new-file)",
-        "category": "markdown-editor"
+        "category": "Markdown Studio"
       },
       {
         "command": "markdown-editor.previewEmbed",
         "title": "Preview Embed",
         "icon": "$(eye)",
-        "category": "markdown-editor"
+        "category": "Markdown Studio"
       },
       {
         "command": "markdown-editor.filterByTag",
         "title": "Filter by Tag",
         "icon": "$(tag)",
-        "category": "markdown-editor"
+        "category": "Markdown Studio"
       },
       {
         "command": "markdown-editor.copyAiContext",
         "title": "AI: Copy Context Package",
         "icon": "$(copy)",
-        "category": "markdown-editor"
+        "category": "Markdown Studio"
       },
       {
         "command": "markdown-editor.insertAiContext",
         "title": "AI: Insert Context Package",
         "icon": "$(add)",
-        "category": "markdown-editor"
+        "category": "Markdown Studio"
       },
       {
         "command": "markdown-editor.insertAiTemplate",
         "title": "AI: Insert Markdown Template",
         "icon": "$(new-file)",
-        "category": "markdown-editor"
+        "category": "Markdown Studio"
       },
       {
         "command": "markdown-editor.openAiChat",
         "title": "AI: Open Chat Workflow",
         "icon": "$(comment-discussion)",
-        "category": "markdown-editor"
+        "category": "Markdown Studio"
       },
       {
         "command": "markdown-editor.validateAiMarkdown",
         "title": "AI: Validate Markdown Structure",
         "icon": "$(check)",
-        "category": "markdown-editor"
+        "category": "Markdown Studio"
       },
       {
         "command": "markdown-editor.toggleInlineSuggestions",
         "title": "AI: Toggle Auto-Complete Suggestions",
         "icon": "$(sparkle)",
-        "category": "markdown-editor"
+        "category": "Markdown Studio"
       }
     ],
     "customEditors": [
       {
         "viewType": "markdown-editor",
-        "displayName": "Markdown Editor",
+        "displayName": "Markdown Studio",
         "selector": [
           {
             "filenamePattern": "*.{md,markdown,mdown,mkdn,mkd,rmd,qmd}"
@@ -415,7 +415,7 @@
       ]
     },
     "configuration": {
-      "title": "markdown-editor",
+      "title": "Markdown Studio",
       "properties": {
         "markdown-editor.imageSaveFolder": {
           "type": "string",
@@ -485,6 +485,43 @@
           "type": "boolean",
           "default": false,
           "description": "Enable debug logging to console (for development and troubleshooting)"
+        },
+        "markdown-editor.widgets.allowedCommands": {
+          "type": "array",
+          "scope": "application",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "workbench.action.openSettings",
+            "workbench.action.openGlobalKeybindings",
+            "workbench.action.showCommands",
+            "workbench.action.quickOpen",
+            "workbench.action.selectTheme",
+            "workbench.action.toggleSidebarVisibility",
+            "workbench.action.focusSideBar",
+            "workbench.action.toggleZenMode",
+            "workbench.action.splitEditor",
+            "workbench.action.terminal.toggleTerminal",
+            "workbench.action.output.toggleOutput",
+            "workbench.actions.view.problems",
+            "workbench.view.explorer",
+            "workbench.view.search",
+            "workbench.view.scm",
+            "workbench.view.extensions",
+            "workbench.action.files.newUntitledFile",
+            "workbench.action.files.openFile",
+            "workbench.action.files.saveAll",
+            "editor.action.formatDocument",
+            "editor.action.commentLine",
+            "editor.action.rename",
+            "editor.action.revealDefinition",
+            "editor.action.goToReferences",
+            "markdown-editor.openDailyNote",
+            "markdown-editor.openGraphView",
+            "markdown-editor.quickOpenNote"
+          ],
+          "markdownDescription": "VS Code commands that widgets (Button, Macro Board, Dev Commands) may run without a confirmation prompt. Commands with arguments always ask first, and widget commands never run in untrusted workspaces. User settings only."
         },
         "markdown-editor.calendar.outlookClientId": {
           "type": "string",
@@ -597,13 +634,13 @@
     "check-types:widgets": "yarn --cwd packages/widgets type-check",
     "check-types": "yarn check-types:core && tsc --noEmit -p ./ --skipLibCheck && yarn --cwd packages/media type-check && yarn check-types:widgets",
     "watch:types": "tsc --noEmit --watch -p ./ --skipLibCheck",
+    "icon:render": "node scripts/render-icon.cjs",
     "package": "yarn foy build",
     "test:core": "yarn --cwd packages/core test",
     "test:widgets": "yarn --cwd packages/widgets vitest run --config vitest.config.ts",
     "vscode:prepublish": "yarn package",
     "watch": "yarn foy watch",
     "start": "yarn foy watch",
-    "pub": "yarn package && npm version patch && git push origin master --tags && vsce package && vsce publish",
     "lint": "eslint src --ext .ts",
     "test": "yarn check-types && yarn test:core && yarn test:unit && yarn test:widgets",
     "test:browser": "vitest run --config vitest.browser.config.ts",

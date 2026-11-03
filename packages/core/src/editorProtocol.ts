@@ -26,7 +26,8 @@ type FieldKind =
   | 'stringArray'
   | 'record'
   | 'position'
-  | 'uploadFiles';
+  | 'uploadFiles'
+  | 'requestId';
 
 interface FieldTypes {
   navigationTarget: SourceNavigationTarget;
@@ -39,6 +40,7 @@ interface FieldTypes {
   record: Record<string, unknown>;
   position: { line?: number; character?: number };
   uploadFiles: Array<{ name: string; base64: string }>;
+  requestId: string | number;
 }
 
 interface KindField<K extends FieldKind, O extends boolean> {
@@ -96,7 +98,8 @@ const documentRevision = {
 
 const optionalRequestId = { requestId: optional('string') } as const;
 
-const calendarAccount = { provider: oneOf('google', 'outlook'), requestId: optional('string') } as const;
+// Calendar widgets correlate requests with numeric counters.
+const calendarAccount = { provider: oneOf('google', 'outlook'), requestId: optional('requestId') } as const;
 
 const webviewToHostSchemas = {
   // Lifecycle and document synchronization.
@@ -119,14 +122,14 @@ const webviewToHostSchemas = {
     detail: optional('string'),
     title: optional('string'),
   },
+  // vscode-command actions carry the command id and args in `data.command` / `data.args`.
   'widget-action': {
-    actionType: optional('string'),
+    actionType: optionalOneOf('value', 'data', 'vscode-command', 'widget-action'),
     action: optional('unknown'),
     value: optional('unknown'),
     targetWidget: optional('string'),
     // Widget ids come from user-authored widget config and are only echoed back.
     widgetId: optional('unknown'),
-    vscodeCommand: optional('string'),
     data: optional('unknown'),
   },
 
@@ -191,7 +194,7 @@ const webviewToHostSchemas = {
   'calendar-request': {
     provider: oneOf('google', 'outlook', 'all'),
     date: required('string'),
-    requestId: optional('string'),
+    requestId: optional('requestId'),
   },
   'calendar-signout': calendarAccount,
 
@@ -205,13 +208,13 @@ const webviewToHostSchemas = {
 } as const;
 
 const calendarReply = {
-  requestId: optional('string'),
+  requestId: optional('requestId'),
   provider: optional('string'),
   date: optional('string'),
 } as const;
 
 const calendarResult = {
-  requestId: optional('string'),
+  requestId: optional('requestId'),
   provider: optional('string'),
   success: optional('boolean'),
   error: optional('unknown'),
@@ -375,6 +378,8 @@ function validateField(spec: FieldSpec, value: unknown): string | undefined {
       return isFiniteNumber(value) ? undefined : 'must be a finite number';
     case 'boolean':
       return typeof value === 'boolean' ? undefined : 'must be a boolean';
+    case 'requestId':
+      return typeof value === 'string' || isFiniteNumber(value) ? undefined : 'must be a string or finite number';
     case 'unknown':
       return undefined;
     case 'array':
