@@ -1,0 +1,8 @@
+{
+  "name": "markdown-studio-ui-tests",
+  "private": true,
+  "devDependencies": {
+    "vscode-extension-tester": "8.28.1",
+    "mocha": "11.8.0"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "agent-activity-consumer", "displayName": "Agent Activity Consumer (Test Fixture)",
+  "publisher": "markdown-studio-tests", "version": "0.0.1", "private": true,
+  "engines": { "vscode": "^1.95.0" }, "main": "./extension.js",
+  "activationEvents": ["onStartupFinished"],
+  "contributes": { "commands": [
+    { "command": "agent-activity-consumer.report", "title": "Activity Test: Report" },
+    { "command": "agent-activity-consumer.clear", "title": "Activity Test: Clear" },
+    { "command": "agent-activity-consumer.stopHeartbeat", "title": "Activity Test: Stop Heartbeat" }
+  ] }
+}

@@ -1,0 +1,10 @@
+.md-agent-activity-layer { position: fixed; inset: 0; pointer-events: none; z-index: 30; user-select: none; }
+.md-agent-task-indicator { position: absolute; box-sizing: border-box; border: 2px solid var(--vscode-focusBorder, #007acc); border-radius: 50%; pointer-events: none; }
+.md-agent-task-indicator[data-state="working"] { border-right-color: transparent; animation: md-agent-spin 1s linear infinite; }
+.md-agent-task-indicator[data-state="waiting"] { border-style: dotted; }
+.md-agent-task-indicator[data-state="review"] { border-radius: 3px; }
+.md-agent-activity-header { position: fixed; right: 8px; bottom: 8px; z-index: 30; max-width: min(80vw, 420px); padding: 3px 6px; border: 1px solid var(--vscode-contrastBorder, var(--vscode-focusBorder, #007acc)); border-radius: 3px; background: var(--vscode-editor-background, #fff); color: var(--vscode-editor-foreground, #222); font-size: 11px; pointer-events: none; user-select: none; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.md-agent-activity-status { position: fixed; width: 1px; height: 1px; clip-path: inset(50%); overflow: hidden; white-space: nowrap; pointer-events: none; user-select: none; }
+@keyframes md-agent-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .md-agent-task-indicator[data-state="working"] { animation: none; border-style: double; border-right-color: var(--vscode-focusBorder, #007acc); } }
+@media (forced-colors: active) { .md-agent-task-indicator { border-color: Highlight; } .md-agent-activity-header { color: CanvasText; background: Canvas; border-color: Highlight; } }

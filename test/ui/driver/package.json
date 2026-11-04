@@ -1,0 +1,44 @@
+{
+  "name": "context-ui-driver",
+  "publisher": "markdown-studio-tests",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "main": "./extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "context-ui.open",
+        "title": "Context UI: Open Test Document"
+      },
+      {
+        "command": "context-ui.snapshot",
+        "title": "Context UI: Record Snapshot"
+      },
+      {
+        "command": "context-ui.other",
+        "title": "Context UI: Open Other Document"
+      },
+      {
+        "command": "context-ui.clear",
+        "title": "Context UI: Open Unrelated Document"
+      },
+      {
+        "command": "context-ui.badgesOff",
+        "title": "Context UI: Disable Badges"
+      },
+      {
+        "command": "context-ui.badgesOn",
+        "title": "Context UI: Enable Badges"
+      },
+      {
+        "command": "context-ui.chat",
+        "title": "Context UI: Focus Chat"
+      }
+    ]
+  }
+}

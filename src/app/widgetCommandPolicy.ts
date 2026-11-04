@@ -19,7 +19,7 @@ export interface WidgetCommandPolicyPorts {
   allowAlways(command: string): Promise<void>;
 }
 
-const COMMAND_ID = /^[A-Za-z0-9_.\-]+$/;
+const COMMAND_ID = /^[A-Za-z0-9_.-]+$/;
 
 /**
  * Widget commands come from user-authored Markdown, so they never run in an

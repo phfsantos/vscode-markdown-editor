@@ -1,3 +1,6 @@
+import type { AgentActivityRegistry } from '../integration/AgentActivityRegistry';
+import { activityDescription } from '../integration/AgentActivityDecorations';
+import type { EditorContextPort } from '../contracts/ports';
 import * as vscode from "vscode";
 import * as NodePath from "path";
 const KeyVditorOptions = "vditor.options";
@@ -7,7 +10,7 @@ import type { AIMarkdownWorkflowService } from "../services";
 import type { RelatedFilesSource } from "./RendererDataStore";
 import { NativeNotificationService } from "./NativeNotificationService";
 import { RendererDataStore } from "./RendererDataStore";
-import { createWebviewMessageRouter, type WebviewMessageRoutes } from "./webviewMessageRouter";
+import { createWebviewMessageRouter, type WebviewMessageRoutes, type WebviewMessage } from "./webviewMessageRouter";
 import { getHtmlForWebview } from "./webviewHtml";
 import { CalendarMessageHandler } from "./CalendarMessageHandler";
 import { DiffViewController } from "./DiffViewController";
@@ -39,6 +42,8 @@ export interface EditorPanelDependencies {
   relatedFiles: RelatedFilesSource;
   diffCoordinator?: DiffCoordinator;
   activeDocumentEvents?: ActiveDocumentEvents;
+  editorContext?: EditorContextPort;
+  agentActivity?: AgentActivityRegistry;
   editorNavigation?: EditorNavigationPreviewPort;
 }
 
@@ -340,8 +345,36 @@ export class EditorPanel {
     this.ai.postInlineSuggestionEligibility();
   }
 
+  public updateEditorContext(message: WebviewMessage<'editor-context'>): void {
+    if (message.panelId !== this.instanceId) return;
+    this._dependencies.editorContext?.updateSelection(this.instanceId, message.documentVersion, message.selectionStatus, message.selection);
+  }
+
+  private publishContextSource(): void {
+    if (this._disposed || !this._document || !this._panel) return;
+    this._panel.webview.postMessage({ command: 'editor-context-source', panelId: this.instanceId,
+      documentVersion: this._document.version, content: this._document.getText() });
+    this.publishAgentActivity();
+  }
+
+  private publishAgentActivity(): void {
+    if (this._disposed || !this._webviewReady || !this._dependencies.agentActivity) return;
+    const snapshot = this._dependencies.agentActivity.getSnapshot(this._document.uri);
+    this._panel.webview.postMessage({ command: 'agent-activity', panelId: this.instanceId,
+      documentVersion: this._document.version, generation: this._documentSync.getGeneration(),
+      sequence: snapshot.sequence, content: this._document.getText(), summary: activityDescription(snapshot),
+      tasks: snapshot.activities.flatMap(a => a.task?.documentVersion === this._document.version ? [{
+        line: a.task.line, expectedLineText: a.task.expectedLineText, state: a.state, producerLabel: a.producer.label,
+      }] : []),
+    });
+  }
+
   private publishActiveDocument(document: vscode.TextDocument | undefined): void {
-    this._dependencies.activeDocumentEvents?.setActiveDocument(document);
+    if (this._dependencies.editorContext) {
+      this._dependencies.editorContext.reconcile();
+    } else if (this._panel.active) {
+      this._dependencies.activeDocumentEvents?.setActiveDocument(document);
+    }
   }
 
   /**
@@ -410,9 +443,18 @@ export class EditorPanel {
       },
     });
 
+    const contextRegistration = dependencies.editorContext?.registerPanel(this.instanceId, this._document, this._panel);
+    if (contextRegistration) this._disposables.push(contextRegistration);
+
+    const activitySubscription = dependencies.agentActivity?.onDidChange(uri => {
+      if (uri.toString() === this._document.uri.toString()) this.publishAgentActivity();
+    });
+    if (activitySubscription) this._disposables.push(activitySubscription);
+
     this.diff.refreshPendingChatEditState();
 
     let textEditTimer: NodeJS.Timeout | void;
+    this._disposables.push({ dispose: () => { if (textEditTimer) clearTimeout(textEditTimer); } });
 
     // Set the webview's initial html content
     this._init();
@@ -432,8 +474,8 @@ export class EditorPanel {
 
     // DEFERRED DIFF DETECTION: Check for diff context after a short delay
     // This allows tabGroups to be populated with the new tab
-    setTimeout(() => {
-      if (!this._panel || this._panel.visible === false) {
+    const deferredDiffCheck = setTimeout(() => {
+      if (this._disposed || !this._panel || this._panel.visible === false) {
         logger.debug(
           `[${this.instanceId}] ⏰ Deferred diff check skipped - panel not visible`
         );
@@ -444,6 +486,7 @@ export class EditorPanel {
       );
       void this.diff.checkDiffViewContextReactive();
     }, 200); // 200ms delay to allow tab creation
+    this._disposables.push({ dispose: () => clearTimeout(deferredDiffCheck) });
 
     // Listen for when the panel is disposed
     // This happens when the user closes the panel or when the panel is closed programmatically
@@ -510,11 +553,11 @@ export class EditorPanel {
         logger.debug(`Diagnostics changed for document, updating webview`);
         this._updateDiagnostics();
       }
-    }, this._disposables);
+    }, undefined, this._disposables);
 
     // update EditorPanel when vsc editor changes
     vscode.workspace.onDidChangeTextDocument((e) => {
-      const isPrimaryDocument = e.document.fileName === this._document.fileName;
+      const isPrimaryDocument = e.document.uri.toString() === this._document.uri.toString();
       const isRelevantChatEditingDocument =
         !isPrimaryDocument && this.diff.isRelevantChatEditingDocument(e.document);
 
@@ -527,6 +570,8 @@ export class EditorPanel {
         void this.diff.applyPendingChatDiffVisualization();
         return;
       }
+
+      this.publishContextSource();
 
       // Saving also emits dirty-state changes without changing the text. These
       // must not consume pending writes or invalidate the active save generation.
@@ -610,7 +655,7 @@ export class EditorPanel {
           void this.diff.applyPendingChatDiffVisualization();
         }
       }, 300);
-    }, this._disposables);
+    }, undefined, this._disposables);
 
     // Listen for configuration changes that might affect external change behavior
     vscode.workspace.onDidChangeConfiguration((e) => {
@@ -618,7 +663,7 @@ export class EditorPanel {
         logger.debug("Configuration changed, updating webview");
         this._update();
       }
-    }, this._disposables);
+    }, undefined, this._disposables);
 
     vscode.workspace.onDidOpenTextDocument((document) => {
       if (!this.diff.isRelevantChatEditingDocument(document)) {
@@ -627,7 +672,7 @@ export class EditorPanel {
 
       this.diff.refreshPendingChatEditState();
       void this.diff.applyPendingChatDiffVisualization();
-    }, this._disposables);
+    }, undefined, this._disposables);
 
     vscode.workspace.onDidCloseTextDocument((document) => {
       if (!this.diff.isRelevantChatEditingDocument(document)) {
@@ -636,7 +681,7 @@ export class EditorPanel {
 
       this.diff.refreshPendingChatEditState();
       void this.diff.applyPendingChatDiffVisualization();
-    }, this._disposables);
+    }, undefined, this._disposables);
 
     // Webview messages are parsed against the shared protocol and dispatched
     // to the feature that owns each command. This panel only routes document
@@ -707,6 +752,7 @@ export class EditorPanel {
         });
       },
       vditorReady: () => {
+        this.publishContextSource();
         this._sourcePositionDelivery.markReady();
         // Vditor has initialized/reloaded - notify sidebar via document change event
         if (this._document) {
@@ -722,6 +768,7 @@ export class EditorPanel {
       edit: (message) => {
         const accepted = this._documentSync.acceptEdit(message);
         if (accepted) {
+          this._dependencies.editorContext?.invalidateSelection(this.instanceId);
           // Only accepted revisions should affect external-change classification.
           this._lastWebviewEdit = Date.now();
         }
@@ -757,7 +804,7 @@ export class EditorPanel {
    * Navigate to a heading in the document
    */
   public navigateToHeading(heading: string): void {
-    if (this._panel && this._panel.webview) {
+    if (!this._disposed && this._panel && this._panel.webview) {
       this._panel.webview.postMessage({
         command: "navigateToHeading",
         heading: heading,
@@ -772,7 +819,7 @@ export class EditorPanel {
    * Post a message to the webview
    */
   public postMessage(message: unknown): void {
-    if (this._panel && this._panel.webview) {
+    if (!this._disposed && this._panel && this._panel.webview) {
       this._panel.webview.postMessage(message);
     }
   }
@@ -817,7 +864,7 @@ export class EditorPanel {
     }
 
     // Clear the activation-scoped active document when this panel owns it.
-    if (this._dependencies.activeDocumentEvents?.activeDocument?.uri.toString() === this._document.uri.toString()) {
+    if (!this._dependencies.editorContext && this._dependencies.activeDocumentEvents?.activeDocument?.uri.toString() === this._document.uri.toString()) {
       this.publishActiveDocument(undefined);
     }
 
@@ -843,9 +890,10 @@ export class EditorPanel {
     this._panel.title = NodePath.basename(this._fsPath);
 
     // Send initial diagnostics to webview immediately after init
-    setTimeout(() => {
-      this._updateDiagnostics();
-    }, 100); // Very short delay - diagnostics at first opportunity
+    const diagnosticsTimer = setTimeout(() => {
+      if (!this._disposed) this._updateDiagnostics();
+    }, 100);
+    this._disposables.push({ dispose: () => clearTimeout(diagnosticsTimer) }); // Very short delay - diagnostics at first opportunity
   }
 
   /**
@@ -1047,6 +1095,7 @@ export class EditorPanel {
       isReadOnly?: boolean;
     } = { options: void 0 }
   ) {
+    if (this._disposed) return;
     let diffData:
       | { originalContent: string; modifiedContent: string; changes?: any[] }
       | undefined;
@@ -1093,6 +1142,7 @@ export class EditorPanel {
       ...props,
       generation: this._documentSync.getGeneration(),
     });
+    this.publishContextSource();
   }
 
 
@@ -1100,6 +1150,7 @@ export class EditorPanel {
    * Update diagnostics in the webview
    */
   private _updateDiagnostics(): void {
+    if (this._disposed) return;
     // Get the document text to provide context for line mapping
     const documentText = this._document.getText();
     const lines = documentText.split("\n");

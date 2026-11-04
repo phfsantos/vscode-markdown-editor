@@ -28,6 +28,7 @@ export interface HandlerHost {
     | { line: number; character: number; timestamp: number }
     | null;
   postMessage(message: unknown): void;
+  updateEditorContext?(message: WebviewMessage<'editor-context'>): void;
   readonly editorNavigation?: EditorNavigationPreviewPort;
 }
 
@@ -47,6 +48,7 @@ export class EditorMessageHandlers {
   /** Native editor, link, and editor-option commands owned by these handlers. */
   public routes(): WebviewMessageRoutes {
     return {
+      'editor-context': message => this.host.updateEditorContext?.(message),
       // Host notices and logging.
       info: (message) => { void vscode.window.showInformationMessage(message.content); },
       error: (message) => showError(message.content),

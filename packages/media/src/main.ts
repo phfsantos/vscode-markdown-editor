@@ -1,4 +1,7 @@
 import "./preload";
+import { AgentActivityController } from "./agent-activity-controller";
+import "./agent-activity.css";
+import { EditorContextController } from "./editor-context-controller";
 
 import { fixCut, fixLinkClick, saveVditorOptions } from "./utils";
 
@@ -28,6 +31,19 @@ import {
   type HostMessageRoutes,
 } from "./host-message-router";
 
+const agentActivity = new AgentActivityController({
+  getMarkdown: () => window.vditor?.getValue() ?? '',
+});
+window.addEventListener('beforeunload', () => agentActivity.dispose(), { once: true });
+
+const editorContext = new EditorContextController({
+  getMarkdown: () => {
+    try { return getWebviewContentSync().getContent(); } catch { return ''; }
+  },
+  postMessage: message => vscode?.postMessage(message),
+});
+window.addEventListener('beforeunload', () => editorContext.dispose(), { once: true });
+
 const sourcePositionNavigation = new SourcePositionNavigationController({
   getMarkdown: () => (window as any).vditor?.getValue?.() ?? "",
 });
@@ -50,9 +66,12 @@ initializeRendererSystem();
 // every message against the shared protocol before any group sees it.
 
 const documentRoutes: HostMessageRoutes = {
+  'agent-activity': message => agentActivity.receive(message),
+  'editor-context-source': message => { editorContext.setSource(message); agentActivity.setSource(message); },
   ...createDocumentSyncRoutes({
     getContentSync: getWebviewContentSync,
     recordDocumentState: (msg) => {
+      agentActivity.setGeneration(msg.generation);
       syncAiMarkdownFromUpdate(msg);
       // Store document filename for renderer system
       if (msg.documentFilename) {

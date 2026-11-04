@@ -14,9 +14,17 @@
  *   does not own (for example renderer persistence, which has its own parser).
  */
 
+import { isSourceRange, type SourceRange } from './sourceSelectionMapping';
 import type { SourceNavigationTarget } from './sourcePositionMapping';
 
+export interface ActivityTaskProjection {
+  line: number; expectedLineText: string; state: 'working' | 'waiting' | 'review'; producerLabel: string;
+}
+
 type FieldKind =
+  | 'activityTasks'
+  | 'sourceRange'
+  | 'unsignedInteger'
   | 'navigationTarget'
   | 'string'
   | 'number'
@@ -30,6 +38,9 @@ type FieldKind =
   | 'requestId';
 
 interface FieldTypes {
+  activityTasks: ActivityTaskProjection[];
+  sourceRange: SourceRange;
+  unsignedInteger: number;
   navigationTarget: SourceNavigationTarget;
   string: string;
   number: number;
@@ -103,6 +114,12 @@ const calendarAccount = { provider: oneOf('google', 'outlook'), requestId: optio
 
 const webviewToHostSchemas = {
   // Lifecycle and document synchronization.
+  'editor-context': {
+    panelId: required('string'),
+    documentVersion: required('unsignedInteger'),
+    selectionStatus: oneOf('exact', 'unavailable'),
+    selection: optional('sourceRange'),
+  },
   ready: empty,
   vditorReady: empty,
   edit: documentRevision,
@@ -221,6 +238,13 @@ const calendarResult = {
 } as const;
 
 const hostToWebviewSchemas = {
+  'agent-activity': {
+    panelId: required('string'), documentVersion: required('unsignedInteger'), generation: required('unsignedInteger'),
+    sequence: required('unsignedInteger'), content: required('string'), summary: required('string'), tasks: required('activityTasks'),
+  },
+  'editor-context-source': {
+    panelId: required('string'), documentVersion: required('unsignedInteger'), content: required('string'),
+  },
   update: {
     content: required('string'),
     type: optionalOneOf('init', 'update'),
@@ -359,6 +383,9 @@ function parseWith(
     message[field] = fieldValue;
   }
 
+  if (command === 'editor-context' && ((message.selectionStatus === 'exact') !== (message.selection !== undefined))) {
+    issues.push('selection must be present only for exact context');
+  }
   return issues.length > 0
     ? { kind: 'malformed', command, issues }
     : { kind: 'message', message: message as { command: string } };
@@ -372,6 +399,17 @@ function validateField(spec: FieldSpec, value: unknown): string | undefined {
   }
 
   switch (spec.kind) {
+    case 'activityTasks':
+      return Array.isArray(value) && value.length <= 10_000 && value.every(task => isRecord(task)
+        && Number.isSafeInteger(task.line) && (task.line as number) >= 0
+        && typeof task.expectedLineText === 'string' && task.expectedLineText.length <= 100_000 && !/[\r\n]/.test(task.expectedLineText)
+        && ['working', 'waiting', 'review'].includes(task.state as string)
+        && typeof task.producerLabel === 'string' && task.producerLabel.length <= 120)
+        ? undefined : 'must contain validated task projections';
+    case 'sourceRange':
+      return isSourceRange(value) ? undefined : 'must be an ordered source range';
+    case 'unsignedInteger':
+      return Number.isSafeInteger(value) && (value as number) >= 0 ? undefined : 'must be a nonnegative safe integer';
     case 'string':
       return typeof value === 'string' ? undefined : 'must be a string';
     case 'number':

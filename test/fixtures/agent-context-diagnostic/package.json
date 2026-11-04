@@ -1,0 +1,17 @@
+{
+  "name": "markdown-studio-context-diagnostic",
+  "displayName": "Markdown Studio Context Diagnostic (test fixture)",
+  "publisher": "markdown-studio-tests",
+  "version": "0.0.0",
+  "private": true,
+  "engines": { "vscode": "^1.95.0" },
+  "main": "./extension.js",
+  "activationEvents": ["onStartupFinished"],
+  "contributes": {
+    "commands": [
+      { "command": "markdown-studio-diagnostics.snapshot", "title": "Markdown Studio Diagnostic: Record Snapshot" },
+      { "command": "markdown-studio-diagnostics.copyLog", "title": "Markdown Studio Diagnostic: Copy Event Log" },
+      { "command": "markdown-studio-diagnostics.clearLog", "title": "Markdown Studio Diagnostic: Clear Event Log" }
+    ]
+  }
+}

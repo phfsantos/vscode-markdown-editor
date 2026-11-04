@@ -73,3 +73,6 @@ sidebar-dist/
 
 # Written by ProjectMind: this URL is machine-specific
 .codex/config.toml
+
+# Isolated real VS Code UI test artifacts
+.extest/

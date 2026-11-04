@@ -40,3 +40,8 @@ export type {
   WebviewToHostCommand,
   WebviewToHostMessage,
 } from './editorProtocol';
+
+export * from './sourceSelectionMapping';
+
+export { parseTaskItems, resolveTaskAnchor, remapTaskAnchor } from './taskAnchorMapping';
+export type { TaskAnchor, ParsedTask, SourceChange } from './taskAnchorMapping';

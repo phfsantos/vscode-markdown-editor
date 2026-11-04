@@ -1,4 +1,9 @@
 import * as vscode from 'vscode';
+import { AgentActivityRegistry } from '../integration/AgentActivityRegistry';
+import { AgentActivityApi } from '../integration/AgentActivityApi';
+import { AgentActivityDecorations } from '../integration/AgentActivityDecorations';
+import { MarkdownStudioApiService } from '../integration/MarkdownStudioApiService';
+import type { MarkdownStudioApiV1 } from '../integration/MarkdownStudioApi';
 import { MarkdownDiffViewSupport } from '../diff/MarkdownDiffViewSupport';
 import {
   EditorPanel,
@@ -13,6 +18,7 @@ import { WikiLinkCompletionProvider } from '../providers/WikiLinkCompletionProvi
 import {
   MarkdownSidebarManager,
 } from '../sidebar/MarkdownNativeViews';
+import { EditorContextRegistry } from './EditorContextRegistry';
 import { ActiveDocumentContext } from './ActiveDocumentContext';
 import { MarkdownEditorNavigation } from '../navigation/MarkdownEditorNavigation';
 import type {
@@ -36,6 +42,9 @@ export class ExtensionRuntime implements vscode.Disposable {
   public readonly diffCoordinator: DiffCoordinator;
   public readonly editorNavigation: EditorNavigationPreviewPort;
   public readonly activeDocument: ActiveDocumentEvents;
+  public readonly editorContext?: EditorContextRegistry;
+  public readonly api?: MarkdownStudioApiV1;
+  public readonly agentActivity?: AgentActivityRegistry;
   public readonly relationshipAnalyzer: RelationshipAnalyzer | vscode.Disposable;
   /** Activation-scoped services; created only when constructed from an extension context. */
   public readonly graphGenerator?: LinkGraphGenerator;
@@ -53,7 +62,23 @@ export class ExtensionRuntime implements vscode.Disposable {
     if (this.isExtensionContext(contextOrOptions)) {
       this.context = contextOrOptions;
 
-      const activeDocument = new ActiveDocumentContext();
+      const editorContext = new EditorContextRegistry();
+      this.editorContext = editorContext;
+      const agentActivity = new AgentActivityRegistry({
+        getDocument: uri => vscode.workspace.textDocuments.find(doc => doc.uri.toString() === uri.toString()),
+      });
+      this.disposables.push(
+        vscode.workspace.onDidChangeTextDocument(event => agentActivity.documentChanged(event.document.uri, event.document, event.contentChanges)),
+        vscode.workspace.onDidDeleteFiles(event => event.files.forEach(uri => agentActivity.clearUri(uri))),
+        vscode.workspace.onDidRenameFiles(event => event.files.forEach(file => agentActivity.clearUri(file.oldUri))),
+      );
+      this.agentActivity = agentActivity;
+      const activityApi = new AgentActivityApi(agentActivity);
+      this.disposables.push(activityApi, agentActivity);
+      const apiService = new MarkdownStudioApiService(editorContext, undefined, activityApi);
+      this.api = apiService.api;
+      this.disposables.push(apiService);
+      const activeDocument = new ActiveDocumentContext(editorContext);
       const relationshipAnalyzer = new RelationshipAnalyzer();
       const panelRegistry: DiffPanelRegistry = {
         findTargetPanel: (sourceInstanceId, targetUri) => {
@@ -74,6 +99,12 @@ export class ExtensionRuntime implements vscode.Disposable {
       this.aiWorkflow = aiWorkflow;
       this.wikiLinkCompletion = wikiLinkCompletion;
 
+      this.disposables.push(new AgentActivityDecorations(agentActivity, {
+        getActiveUri: () => activeDocument.activeDocument?.uri,
+        onDidChangeActiveUri: activeDocument.onDidChangeActiveDocument,
+        createStatusBarItem: () => vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 90),
+        registerFileDecorationProvider: provider => vscode.window.registerFileDecorationProvider(provider),
+      }));
       this.activeDocument = activeDocument;
       this.relationshipAnalyzer = relationshipAnalyzer;
       this.diffCoordinator = diffCoordinator;
@@ -84,12 +115,15 @@ export class ExtensionRuntime implements vscode.Disposable {
         relatedFiles: relationshipAnalyzer,
         diffCoordinator,
         activeDocumentEvents: activeDocument,
+        editorContext,
+        agentActivity,
         editorNavigation: this.editorNavigation,
       };
 
       this.ownedResources.push(
         diffCoordinator,
         activeDocument,
+        editorContext,
         wikiLinkCompletion,
         relationshipAnalyzer,
         editorNavigation,

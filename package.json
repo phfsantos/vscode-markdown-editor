@@ -43,6 +43,12 @@
     "pkm"
   ],
   "activationEvents": [
+    "onCommand:markdown-editor.getActiveContext",
+    "onCommand:markdown-editor.agentActivity.startSession",
+    "onCommand:markdown-editor.agentActivity.update",
+    "onCommand:markdown-editor.agentActivity.clear",
+    "onCommand:markdown-editor.agentActivity.heartbeat",
+    "onCommand:markdown-editor.agentActivity.endSession",
     "onUri",
     "onWebviewPanel:markdown-editor",
     "onLanguage:markdown",
@@ -645,7 +651,8 @@
     "test": "yarn check-types && yarn test:core && yarn test:unit && yarn test:widgets",
     "test:browser": "vitest run --config vitest.browser.config.ts",
     "test:unit": "vitest run --coverage",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:ui": "node scripts/uiTest.mjs"
   },
   "devDependencies": {
     "@types/node": "^12.20.55",

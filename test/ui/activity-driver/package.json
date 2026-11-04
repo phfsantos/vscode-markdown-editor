@@ -1,0 +1,72 @@
+{
+  "name": "activity-ui-driver",
+  "publisher": "markdown-studio-tests",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "main": "./extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "activity-ui.open",
+        "title": "Activity UI: Open Tasks"
+      },
+      {
+        "command": "activity-ui.snapshot",
+        "title": "Activity UI: Snapshot"
+      },
+      {
+        "command": "activity-ui.exports",
+        "title": "Activity UI: Report Exports"
+      },
+      {
+        "command": "activity-ui.commands",
+        "title": "Activity UI: Report Commands"
+      },
+      {
+        "command": "activity-ui.two",
+        "title": "Activity UI: Report Second Producer"
+      },
+      {
+        "command": "activity-ui.clear",
+        "title": "Activity UI: Clear Producers"
+      },
+      {
+        "command": "activity-ui.badgesOff",
+        "title": "Activity UI: Disable Badges"
+      },
+      {
+        "command": "activity-ui.badgesOn",
+        "title": "Activity UI: Enable Badges"
+      },
+      {
+        "command": "activity-ui.split",
+        "title": "Activity UI: Split Tasks"
+      },
+      {
+        "command": "activity-ui.closeReopen",
+        "title": "Activity UI: Close Reopen Tasks"
+      },
+      {
+        "command": "activity-ui.stop",
+        "title": "Activity UI: Stop Heartbeat"
+      },
+      {
+        "command": "activity-ui.editAbove",
+        "title": "Activity UI: Edit Above Tasks"
+      },
+      {
+        "command": "activity-ui.editTask",
+        "title": "Activity UI: Edit Target Task"
+      },
+      {
+        "command": "activity-ui.rename",
+        "title": "Activity UI: Rename Tasks"
+      }
+    ]
+  }
+}

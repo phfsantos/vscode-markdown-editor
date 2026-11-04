@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import type { SourceNavigationTarget } from '@markdown-editor/core';
+import type { SourceNavigationTarget, SourceRange } from '@markdown-editor/core';
 
 export interface DiffCoordinator {
   calculateDiffFromHTML(leftHtml: string, rightHtml: string): DiffResultLike;
@@ -64,4 +64,12 @@ export interface EditorNavigationPreviewPort {
   handleUri?(uri: vscode.Uri): Promise<void>;
   registerPanel?(panel: EditorSourceNavigationPanel): vscode.Disposable;
   consumePendingTarget?(uri: vscode.Uri): SourceNavigationTarget | undefined;
+}
+
+/** Panel lifecycle/context sink; the activation runtime owns its implementation. */
+export interface EditorContextPort {
+  registerPanel(panelId: string, document: vscode.TextDocument, panel: vscode.WebviewPanel): vscode.Disposable;
+  reconcile(): void;
+  invalidateSelection(panelId: string): void;
+  updateSelection(panelId: string, documentVersion: number, status: 'exact' | 'unavailable', range?: SourceRange): void;
 }

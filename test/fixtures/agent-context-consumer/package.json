@@ -1,0 +1,46 @@
+{
+  "name": "agent-context-consumer",
+  "displayName": "Agent Context Consumer (Test Fixture)",
+  "publisher": "markdown-studio-tests",
+  "version": "0.0.1",
+  "private": true,
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "main": "./extension.js",
+  "extensionKind": [
+    "ui"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "agent-context-consumer.readExports",
+        "title": "Context Test: Read Same-host Exports"
+      },
+      {
+        "command": "agent-context-consumer.readCommand",
+        "title": "Context Test: Read Command Fallback"
+      },
+      {
+        "command": "agent-context-consumer.assertContext",
+        "title": "Context Test: Assert Expected Context"
+      },
+      {
+        "command": "agent-context-consumer.getObservations",
+        "title": "Context Test: Get Observations"
+      },
+      {
+        "command": "agent-context-consumer.copyContext",
+        "title": "Context Test: Copy File/Range Context"
+      },
+      {
+        "command": "agent-context-consumer.getHostInfo",
+        "title": "Context Test: Get Host Placement"
+      }
+    ]
+  },
+  "browser": "./extension.js"
+}

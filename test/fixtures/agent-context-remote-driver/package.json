@@ -1,0 +1,16 @@
+{
+  "name": "agent-context-remote-driver",
+  "displayName": "Markdown Studio Remote Context Driver (test fixture)",
+  "publisher": "markdown-studio-tests",
+  "version": "0.0.1",
+  "private": true,
+  "engines": { "vscode": "^1.95.0" },
+  "browser": "./extension.js",
+  "extensionKind": ["ui"],
+  "contributes": {
+    "commands": [
+      { "command": "markdown-studio-remote-test.open", "title": "Remote Context Test: Open Fixture" },
+      { "command": "markdown-studio-remote-test.verify", "title": "Remote Context Test: Verify Selection" }
+    ]
+  }
+}

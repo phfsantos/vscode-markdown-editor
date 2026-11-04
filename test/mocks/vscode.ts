@@ -138,12 +138,18 @@ export const env = {
   },
 };
 
+const registeredCommands = new Map<string, (...args: any[]) => any>();
 export const commands = {
+  registerCommand(name: string, callback: (...args: any[]) => any) {
+    registeredCommands.set(name, callback);
+    return { dispose: () => registeredCommands.delete(name) };
+  },
   async getCommands() {
     return __state.availableCommands.slice();
   },
-  async executeCommand(commandId: string) {
+  async executeCommand(commandId: string, ...args: any[]) {
     __state.executedCommands.push(commandId);
+    if (registeredCommands.has(commandId)) return registeredCommands.get(commandId)!(...args);
     if (__state.executeCommandError) {
       throw __state.executeCommandError;
     }
@@ -157,6 +163,13 @@ export const extensions = {
 };
 
 export const window = {
+  tabGroups: {
+    activeTabGroup: { activeTab: undefined as unknown, viewColumn: 1 },
+    onDidChangeTabs() { return { dispose() {} }; },
+    onDidChangeTabGroups() { return { dispose() {} }; },
+  },
+  activeTextEditor: undefined as any,
+  onDidChangeActiveTextEditor() { return { dispose() {} }; },
   createOutputChannel() {
     return {
       appendLine() {},
@@ -237,14 +250,17 @@ export class Uri {
 
 export class EventEmitter<T = unknown> {
   private listeners: Array<(value: T) => void> = [];
-  event = (listener: (value: T) => void) => {
-    this.listeners.push(listener);
-    return { dispose: () => {} };
+  event = (listener: (value: T) => void, thisArgs?: unknown, disposables?: Array<{ dispose(): void }>) => {
+    const bound = (value: T) => listener.call(thisArgs, value);
+    this.listeners.push(bound);
+    const disposable = { dispose: () => { this.listeners = this.listeners.filter(entry => entry !== bound); } };
+    disposables?.push(disposable);
+    return disposable;
   };
   fire(value: T) {
     for (const listener of this.listeners) listener(value);
   }
-  dispose() {}
+  dispose() { this.listeners = []; }
 }
 
 export const LanguageModelChatMessage = {
@@ -255,3 +271,10 @@ export const LanguageModelChatMessage = {
 // vscode.lm is intentionally undefined by default — services must handle
 // hosts without the Language Model API; tests can assign onto it if needed.
 export const lm = undefined;
+
+export class TabInputCustom {
+  constructor(public uri: Uri, public viewType: string) {}
+}
+export class TabInputText {
+  constructor(public uri: Uri) {}
+}

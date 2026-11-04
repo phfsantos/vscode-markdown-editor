@@ -182,6 +182,9 @@ export function cleanContentForSave(content: string): string {
 
   // Remove diagnostic decoration spans and attributes
   let cleaned = content;
+  // Activity UI belongs outside Vditor; defense against accidental transient markup.
+  cleaned = cleaned.replace(/<(span|div)[^>]*\bdata-agent-activity="true"[^>]*>[\s\S]*?<\/\1>/g, "")
+    .replace(/\s+data-agent-activity(?:-[\w-]+)?="[^"]*"/g, "");
 
   // Remove diagnostic severity class spans (e.g., vscode-diagnostic-error-underline)
   // Handles class attribute anywhere in the span tag and diagnostic class anywhere in the class list
