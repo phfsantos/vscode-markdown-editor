@@ -1,0 +1,50 @@
+{
+  "timestamp": "2026-11-05T15:25:34.636Z",
+  "vscode": "1.145.0-insider",
+  "uri": "file:///Users/pedrosantos/www/vscode-markdown-editor/test/markdown-activity-check/tasks.md",
+  "markdownStudioVersion": "0.5.11",
+  "copilotChatVersion": "0.73.2026102902",
+  "nativeChatCompetition": "Requires screenshots of actual pending native Chat edits; this probe cannot certify that session.",
+  "taskLineZeroBased": 2,
+  "before": {
+    "textSha256": "1f5626e36895a54ad355f0cfdadfc753ca1e532d87b1e4449311fb0636ec75bb",
+    "version": 1,
+    "dirty": false,
+    "diskSha256": "1f5626e36895a54ad355f0cfdadfc753ca1e532d87b1e4449311fb0636ec75bb",
+    "settings": {
+      "workbench.editor.decorations.badges": {
+        "key": "workbench.editor.decorations.badges",
+        "defaultValue": true
+      },
+      "workbench.editor.decorations.colors": {
+        "key": "workbench.editor.decorations.colors",
+        "defaultValue": true
+      },
+      "workbench.editor.tabSizing": {
+        "key": "workbench.editor.tabSizing",
+        "defaultValue": "fit"
+      },
+      "explorer.decorations.badges": {
+        "key": "explorer.decorations.badges",
+        "defaultValue": true
+      },
+      "git.decorations.enabled": {
+        "key": "git.decorations.enabled",
+        "defaultValue": true
+      },
+      "markdown-editor.ai.enable": {
+        "key": "markdown-editor.ai.enable",
+        "defaultValue": true
+      },
+      "markdown-editor.ai.showEditorActionBar": {
+        "key": "markdown-editor.ai.showEditorActionBar"
+      },
+      "markdown-editor.ai.enableInlineSuggestions": {
+        "key": "markdown-editor.ai.enableInlineSuggestions",
+        "defaultValue": false
+      }
+    }
+  },
+  "reported": false,
+  "error": "AssertionError [ERR_ASSERTION]: Reporting activity changed document or settings\n+ actual - expected\n\n+ undefined\n- {\n-   dirty: false,\n-   diskSha256: '1f5626e36895a54ad355f0cfdadfc753ca1e532d87b1e4449311fb0636ec75bb',\n-   settings: {\n-     'explorer.decorations.badges': {\n-       defaultLanguageValue: undefined,\n-       defaultValue: true,\n-       globalLanguageValue: undefined,\n-       globalLocalLanguageValue: undefined,\n-       globalLocalValue: undefined,\n-       globalRemoteLanguageValue: undefined,\n-       globalRemoteValue: undefined,\n-       globalValue: undefined,\n-       key: 'explorer.decorations.badges',\n-       languageIds: undefined,\n-       workspaceFolderLanguageValue: undefined,\n-       workspaceFolderValue: undefined,\n-       workspaceLanguageValue: undefined,\n-       workspaceValue: undefined\n-     },\n-     'git.decorations.enabled': {\n-       defaultLanguageValue: undefined,\n-       defaultValue: true,\n-       globalLanguageValue: undefined,\n-       globalLocalLanguageValue: undefined,\n-       globalLocalValue: undefined,\n-       globalRemoteLanguageValue: undefined,\n-       globalRemoteValue: undefined,\n-       globalValue: undefined,\n-       key: 'git.decorations.enabled',\n-       languageIds: undefined,\n-       workspaceFolderLanguageValue: undefined,\n-       workspaceFolderValue: undefined,\n-       workspaceLanguageValue: undefined,\n-       workspaceValue: undefined\n-     },\n-     'markdown-editor.ai.enable': {\n-       defaultLanguageValue: undefined,\n-       defaultValue: true,\n-       globalLanguageValue: undefined,\n-       globalLocalLanguageValue: undefined,\n-       globalLocalValue: undefined,\n-       globalRemoteLanguageValue: undefined,\n-       globalRemoteValue: undefined,\n-       globalValue: undefined,\n-       key: 'markdown-editor.ai.enable',\n-       languageIds: undefined,\n-       workspaceFolderLanguageValue: undefined,\n-       workspaceFolderValue: undefined,\n-       workspaceLanguageValue: undefined,\n-       workspaceValue: undefined\n-     },\n-     'markdown-editor.ai.enableInlineSuggestions': {\n-       defaultLanguageValue: undefined,\n-       defaultValue: false,\n-       globalLanguageValue: undefined,\n-       globalLocalLanguageValue: undefined,\n-       globalLocalValue: undefined,\n-       globalRemoteLanguageValue: undefined,\n-       globalRemoteValue: undefined,\n-       globalValue: undefined,\n-       key: 'markdown-editor.ai.enableInlineSuggestions',\n-       languageIds: undefined,\n-       workspaceFolderLanguageValue: undefined,\n-       workspaceFolderValue: undefined,\n-       workspaceLanguageValue: undefined,\n-       workspaceValue: undefined\n-     },\n-     'markdown-editor.ai.showEditorActionBar': {\n-       defaultLanguageValue: undefined,\n-       defaultValue: undefined,\n-       globalLanguageValue: undefined,\n-       globalLocalLanguageValue: undefined,\n-       globalLocalValue: undefined,\n-       globalRemoteLanguageValue: undefined,\n-       globalRemoteValue: undefined,\n-       globalValue: undefined,\n-       key: 'markdown-editor.ai.showEditorActionBar',\n-       languageIds: undefined,\n-       workspaceFolderLanguageValue: undefined,\n-       workspaceFolderValue: undefined,\n-       workspaceLanguageValue: undefined,\n-       workspaceValue: undefined\n-     },\n-     'workbench.editor.decorations.badges': {\n-       defaultLanguageValue: undefined,\n-       defaultValue: true,\n-       globalLanguageValue: undefined,\n-       globalLocalLanguageValue: undefined,\n-       globalLocalValue: undefined,\n-       globalRemoteLanguageValue: undefined,\n-       globalRemoteValue: undefined,\n-       globalValue: undefined,\n-       key: 'workbench.editor.decorations.badges',\n-       languageIds: undefined,\n-       workspaceFolderLanguageValue: undefined,\n-       workspaceFolderValue: undefined,\n-       workspaceLanguageValue: undefined,\n-       workspaceValue: undefined\n-     },\n-     'workbench.editor.decorations.colors': {\n-       defaultLanguageValue: undefined,\n-       defaultValue: true,\n-       globalLanguageValue: undefined,\n-       globalLocalLanguageValue: undefined,\n-       globalLocalValue: undefined,\n-       globalRemoteLanguageValue: undefined,\n-       globalRemoteValue: undefined,\n-       globalValue: undefined,\n-       key: 'workbench.editor.decorations.colors',\n-       languageIds: undefined,\n-       workspaceFolderLanguageValue: undefined,\n-       workspaceFolderValue: undefined,\n-       workspaceLanguageValue: undefined,\n-       workspaceValue: undefined\n-     },\n-     'workbench.editor.tabSizing': {\n-       defaultLanguageValue: undefined,\n-       defaultValue: 'fit',\n-       globalLanguageValue: undefined,\n-       globalLocalLanguageValue: undefined,\n-       globalLocalValue: undefined,\n-       globalRemoteLanguageValue: undefined,\n-       globalRemoteValue: undefined,\n-       globalValue: undefined,\n-       key: 'workbench.editor.tabSizing',\n-       languageIds: undefined,\n-       workspaceFolderLanguageValue: undefined,\n-       workspaceFolderValue: undefined,\n-       workspaceLanguageValue: undefined,\n-       workspaceValue: undefined\n-     }\n-   },\n-   textSha256: '1f5626e36895a54ad355f0cfdadfc753ca1e532d87b1e4449311fb0636ec75bb',\n-   version: 1\n- }\n\n\tat /Users/pedrosantos/.vscode-server-insiders/extensions/markdown-studio-tests.agent-activity-chat-check-0.0.1/extension.js:79:14\n\tat async /Users/pedrosantos/.vscode-server-insiders/extensions/markdown-studio-tests.agent-activity-chat-check-0.0.1/extension.js:50:18\n\tat async wh._executeContributedCommand (file:///Users/pedrosantos/.vscode-server-insiders/bin/206844b5537c1b7582f6e81b41e1c5402c7e7fbc/out/vs/workbench/api/node/extensionHostProcess.js:165:49397)"
+}

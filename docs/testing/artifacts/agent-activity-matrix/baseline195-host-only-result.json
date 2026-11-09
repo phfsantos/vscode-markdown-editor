@@ -1,0 +1,44 @@
+{
+  "version": "1.95.0",
+  "commit": "912bb683695358a54ae0c670461738984cbb5b95",
+  "platform": "darwin",
+  "arch": "x64",
+  "hostOnly": true,
+  "documentOnly": false,
+  "status": 0,
+  "signal": null,
+  "report": "/private/tmp/markdown-studio-activity-baseline195-c65NoY/activity-report.json",
+  "hostLog": "/private/tmp/markdown-studio-activity-baseline195-c65NoY/host.log",
+  "checks": [
+    "Markdown Studio absent from extension registry"
+  ],
+  "editorRuntime": "document-control-passed",
+  "notes": [],
+  "hostProbe": [
+    {
+      "label": "workspace.fs.readFile control.txt",
+      "status": "passed",
+      "elapsedMs": 67
+    },
+    {
+      "label": "openTextDocument control.txt",
+      "status": "passed",
+      "elapsedMs": 14
+    },
+    {
+      "label": "workspace.fs.readFile control.md",
+      "status": "passed",
+      "elapsedMs": 30
+    },
+    {
+      "label": "openTextDocument control.md",
+      "status": "passed",
+      "elapsedMs": 11
+    },
+    {
+      "label": "openTextDocument untitled",
+      "status": "passed",
+      "elapsedMs": 118
+    }
+  ]
+}

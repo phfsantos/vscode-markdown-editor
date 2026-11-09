@@ -1,0 +1,15 @@
+{
+  "version": "1.95.0",
+  "checks": [
+    "cold activation and JSON start/update/heartbeat/clear/end stable APIs",
+    "exports activity session stable APIs"
+  ],
+  "notes": [
+    "Error: Timed out after 15s: openTextDocument"
+  ],
+  "coldCommandActivation": {
+    "wasActive": false,
+    "activated": true
+  },
+  "editorRuntime": "blocked"
+}

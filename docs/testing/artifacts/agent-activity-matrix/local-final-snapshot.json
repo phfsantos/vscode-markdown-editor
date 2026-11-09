@@ -1,0 +1,62 @@
+{
+  "sequence": 36,
+  "operation": "clear",
+  "coldActivation": {
+    "wasActive": true,
+    "activated": true,
+    "ended": true
+  },
+  "version": "1.140.0",
+  "context": {
+    "panelId": "renamed.md-1793876162879-b7s1dbeu5",
+    "uri": "file:///var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/md-ui-8LiNJh/workspace/renamed.md",
+    "documentVersion": 1,
+    "selectionStatus": "unavailable"
+  },
+  "git": {
+    "version": "10.0.0",
+    "changes": [
+      {
+        "uri": "file:///var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/md-ui-8LiNJh/workspace/tasks.md",
+        "status": 5
+      },
+      {
+        "uri": "file:///var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/md-ui-8LiNJh/workspace/activity.json",
+        "status": 7
+      }
+    ]
+  },
+  "settings": {
+    "workbench.editor.decorations.badges": true,
+    "workbench.editor.pinnedTabSizing": "compact",
+    "files.simpleDialog.enable": true
+  },
+  "activeDocument": {
+    "uri": "file:///var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/md-ui-8LiNJh/workspace/renamed.md",
+    "version": 1,
+    "dirty": false,
+    "text": "Intro\n- [ ] Same\n- [x] Same\n"
+  },
+  "tabs": [
+    {
+      "uri": "file:///var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/md-ui-8LiNJh/workspace/saved.md",
+      "custom": true,
+      "pinned": false,
+      "preview": false,
+      "viewType": "markdown-editor",
+      "active": false,
+      "groupActive": true
+    },
+    {
+      "uri": "file:///var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/md-ui-8LiNJh/workspace/renamed.md",
+      "custom": true,
+      "pinned": false,
+      "preview": false,
+      "viewType": "markdown-editor",
+      "active": true,
+      "groupActive": true
+    }
+  ],
+  "nativeEditors": [],
+  "badges": true
+}

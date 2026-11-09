@@ -9,7 +9,7 @@ describe('source task anchors', () => {
     expect(resolveTaskAnchor(source, 2, {documentVersion:1,line:1,expectedLineText:'  * [x] Same'})).toBeUndefined();
   });
   it('excludes fences, nested fences, HTML and indented code', () => {
-    const source = '```md\n- [ ] code\n```\n- parent\n  ~~~\n  - [ ] code\n  ~~~\n\n    - [ ] code\n\n<!--\n- [ ] code\n-->\n\n- [ ] Real';
+    const source = '```md\n- [ ] code\n```\n- parent\n  ~~~\n  - [ ] code\n  ~~~\n\n    - [ ] code\n\n- [ ] Real';
     expect(parseTaskItems(source).map(t => t.text)).toEqual(['- [ ] Real']);
   });
   it('remaps only through disjoint original-coordinate changes', () => {
@@ -26,4 +26,12 @@ describe('source task anchors', () => {
     expect(remapTaskAnchor(source,'```\n'+source,2,a,[{rangeOffset:0,rangeLength:0,text:'```\n'}])).toBeUndefined();
     expect(remapTaskAnchor(source,source,2,a,[{rangeOffset:0,rangeLength:2,text:'- '},{rangeOffset:1,rangeLength:2,text:' ['}])).toBeUndefined();
   });
+});
+it('does not accept tasks inside a fence opened on a list marker', () => {
+  const source = '- ```md\n  - [ ] code\n  ```\n\n- [ ] Real';
+  expect(parseTaskItems(source).map(t => t.text)).toEqual(['- [ ] Real']);
+});
+it('fails closed for unsupported quote/HTML containers rather than shifting task ordinals', () => {
+  expect(parseTaskItems('> - [ ] quoted\n- [ ] real')).toEqual([]);
+  expect(parseTaskItems('<div>\n\n- [ ] not markdown\n</div>\n\n- [ ] real')).toEqual([]);
 });

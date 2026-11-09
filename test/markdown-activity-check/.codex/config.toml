@@ -1,0 +1,4 @@
+[mcp_servers.projectmind]
+# Written by ProjectMind. The URL is machine-specific (it encodes this
+# workspace's path) — safe to add .codex/config.toml to .gitignore.
+url = "http://127.0.0.1:9112/mcp/d963fb8c"

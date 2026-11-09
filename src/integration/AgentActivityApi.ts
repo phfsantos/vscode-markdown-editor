@@ -21,8 +21,15 @@ export class AgentActivityApi implements AgentActivityCapability, vscode.Disposa
       }),
       register('update', value => {
         const args = object(value); const session = this.authorize(args); const activity = object(args.activity);
-        if (typeof activity.uri !== 'string' || activity.uri.length > 16384 || !/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(activity.uri)) throw new Error('Invalid serialized activity URI');
-        session.setActivity({ ...activity, uri: vscode.Uri.parse(activity.uri, true) } as unknown as ActivityInput);
+        // Real URI arguments are translated/revived by VS Code command RPC.
+        // Strings retain exact receiving-host identity for JSON compatibility.
+        let uri: vscode.Uri;
+        if (activity.uri instanceof vscode.Uri) uri = activity.uri;
+        else {
+          if (typeof activity.uri !== 'string' || activity.uri.length > 16384 || !/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(activity.uri)) throw new Error('Invalid serialized activity URI');
+          uri = vscode.Uri.parse(activity.uri, true);
+        }
+        session.setActivity({ ...activity, uri } as unknown as ActivityInput);
       }),
       register('clear', value => { const args = object(value); this.authorize(args).clearActivity(args.id as string); }),
       register('heartbeat', value => this.authorize(object(value)).heartbeat()),

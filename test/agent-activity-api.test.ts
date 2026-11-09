@@ -26,6 +26,25 @@ describe('activity API/JSON command parity', () => {
     f.call('heartbeat', credentials); f.call('endSession', credentials);
     direct.dispose(); f.adapter.dispose(); f.registry.dispose(); expect(f.commands.size).toBe(0);
   });
+  it('accepts a revived command URI for cross-host task updates', () => {
+    const uri = vscode.Uri.parse('file:///remote-host/notes/tasks.md');
+    const registry = new AgentActivityRegistry({ getDocument: candidate => candidate.toString() === uri.toString()
+      ? { version: 1, getText: () => '- [ ] Task' } : undefined });
+    const commands = new Map<string, Function>();
+    const adapter = new AgentActivityApi(registry, { registerCommand: (id: string, fn: Function) => {
+      commands.set(id, fn); return { dispose: () => commands.delete(id) };
+    } } as any);
+    try {
+      const credentials = commands.get(prefix + 'startSession')!({ id: 'browser', label: 'Browser' });
+      // VS Code revives/transforms a real URI while routing command args between hosts.
+      commands.get(prefix + 'update')!({ ...credentials, activity: { id: 'task', uri, state: 'working', label: 'Work',
+        task: { documentVersion: 1, line: 0, expectedLineText: '- [ ] Task' } } });
+      expect(registry.getActivities(uri)).toHaveLength(1);
+      expect(registry.getActivities(uri)[0].task?.line).toBe(0);
+      expect(() => commands.get(prefix + 'update')!({ ...credentials, activity: { id: 'bad',
+        uri: { scheme: 'file', path: '/remote-host/notes/tasks.md' }, state: 'working', label: 'Bad' } })).toThrow(/URI/);
+    } finally { adapter.dispose(); registry.dispose(); }
+  });
   it('rejects invalid credentials, malformed JSON and late sessions', () => {
     vi.useFakeTimers(); const f = fixture();
     const c = f.call('startSession', { id: 'a', label: 'A' });

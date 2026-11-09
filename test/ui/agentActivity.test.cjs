@@ -51,6 +51,10 @@ const original='- [ ] Same\n- [ ] Same\n';
 describe('Markdown Studio activity API in real VS Code',function(){
   this.timeout(155000);
   afterEach(async function(){if(this.currentTest.state==='failed')await VSBrowser.instance.takeScreenshot(this.currentTest.title);});
+  it('cold JSON command activates the provider before explicit API activation',async()=>{
+    await command('Activity UI: Snapshot','snapshot');
+    await eventually(()=>assert.deepEqual(report().coldActivation,{wasActive:false,activated:true,ended:true}));
+  });
   it('independent exports producer decorates only the second duplicate checkbox without changing source',async()=>{
     await command('Activity UI: Open Tasks','open');
     await eventually(async()=>assert.equal((await editorState()).boxes.length,2));
@@ -77,6 +81,8 @@ describe('Markdown Studio activity API in real VS Code',function(){
     await command('Activity UI: Report Commands','commands');
     await command('Activity UI: Report Second Producer','two');
     await eventually(async()=>{const s=await editorState();assert.equal(s.markers.length,1);assert.match(s.status,/Command Agent/);assert.match(s.status,/Second Agent/);});
+    await command('Activity UI: Clear Command Producer','clearCommands');
+    await eventually(async()=>{const s=await editorState();assert.equal(s.markers.length,1);assert.match(s.status,/Second Agent/);assert.doesNotMatch(s.status,/Command Agent/);});
     await command('Activity UI: Clear Producers','clear');
     await eventually(async()=>{assert.equal((await editorState()).markers.length,0);assert.equal(await statusVisible(),false);assert.equal(await badgePresent(),false);});
   });
@@ -125,6 +131,66 @@ describe('Markdown Studio activity API in real VS Code',function(){
     await eventually(async()=>assert.equal(await statusVisible(),false),125000);
     assert.ok(Date.now()-start<125000);
     await eventually(async()=>assert.equal((await editorState()).markers.length,0));
+    await command('Activity UI: Clear Producers','clear');
+  });
+  it('compact sticky custom/native tabs retain fallbacks while real Git competes',async()=>{
+    await command('Activity UI: Open Tasks','open');
+    await command('Activity UI: Compact Sticky Tabs','compact');
+    await command('Activity UI: Inspect Git','git');
+    assert.ok(report().git.changes.some(c=>c.uri.endsWith('/tasks.md')));
+    assert.equal(report().settings['workbench.editor.pinnedTabSizing'],'compact');
+    assert.ok(report().tabs.some(t=>t.pinned&&t.custom&&t.uri.endsWith('/tasks.md')));
+    assert.ok(report().tabs.some(t=>t.pinned&&!t.custom&&t.uri.endsWith('/tasks.md')));
+    const before=report().document;
+    const settings=fs.readFileSync(path.join(process.env.TEST_RESOURCES,'settings/User/settings.json'),'utf8');
+    await command('Activity UI: Report Exports','exports');
+    await eventually(async()=>{const s=await editorState();assert.equal(s.markers.length,1);assert.match(s.header,/working/);assert.equal(await statusVisible(),true);});
+    await command('Activity UI: Snapshot','snapshot');
+    assert.deepEqual(report().document,before);
+    assert.equal(fs.readFileSync(path.join(process.env.TEST_RESOURCES,'settings/User/settings.json'),'utf8'),settings);
+    await VSBrowser.instance.takeScreenshot('activity-compact-sticky-git');
+    await command('Activity UI: Clear Producers','clear');
+  });
+  it('Save As does not transfer old task activity and requires a report for the new URI',async()=>{
+    // Avoid duplicate editor groups so the Save As action has one clear target.
+    await command('Activity UI: Clear Producers','clear');
+    await command('Activity UI: Reset Tabs','resetTabs');
+    await command('Activity UI: Report Exports','exports');
+    await eventually(async()=>assert.equal((await editorState()).markers.length,1));
+    await command('Activity UI: Save As Tasks');
+    const input=await driver().wait(async()=>{
+      for(const e of await driver().findElements(By.css('.quick-input-widget .quick-input-box input')))if(await e.isDisplayed())return e;
+      return false;
+    },10000);
+    await input.sendKeys(Key.chord(Key.META,'a'),path.join(workspace,'saved.md'),Key.ENTER);
+    await eventually(()=>{assert.equal(report().operation,'saveAs');assert.equal(report().error,undefined);assert.ok(report().context.uri.endsWith('/saved.md'));});
+    await eventually(async()=>{assert.equal((await editorState()).markers.length,0);assert.equal(await statusVisible(),false);});
+    await command('Activity UI: Snapshot','snapshot');
+    const savedDocument=report().activeDocument;
+    assert.equal(savedDocument.dirty,false);
+    const saved=fs.readFileSync(path.join(workspace,'saved.md'),'utf8');
+    await VSBrowser.instance.takeScreenshot('activity-save-as-no-inherited-task');
+    await command('Activity UI: Report Saved','exportsSaved');
+    await eventually(async()=>{assert.equal((await editorState()).markers.length,1);assert.equal(await statusVisible(),true);});
+    await command('Activity UI: Snapshot','snapshot');
+    assert.deepEqual(report().activeDocument,savedDocument);
+    assert.equal(fs.readFileSync(path.join(workspace,'saved.md'),'utf8'),saved);
+    await VSBrowser.instance.takeScreenshot('activity-save-as-new-report');
+    await command('Activity UI: Open Tasks','open');
+    // Save As copies the resource; VS Code keeps the unchanged original document live.
+    await eventually(async()=>assert.equal((await editorState()).markers.length,1));
+    assert.notEqual(report().activeDocument.uri,savedDocument.uri);
+    assert.equal(report().activeDocument.text,savedDocument.text);
+    await VSBrowser.instance.takeScreenshot('activity-save-as-original-retained');
+    await command('Activity UI: Clear Producers','clear');
+  });
+  it('renaming a document clears its old URI activity and requires a fresh report',async()=>{
+    await command('Activity UI: Open Tasks','open');
+    await command('Activity UI: Report Exports','exports');
+    await eventually(async()=>assert.equal(await statusVisible(),true));
+    await command('Activity UI: Rename Tasks','rename');
+    await eventually(async()=>{assert.equal(await statusVisible(),false);assert.equal(await badgePresent(),false);});
+    assert.ok(fs.existsSync(path.join(workspace,'renamed.md')));
     await command('Activity UI: Clear Producers','clear');
   });
 });

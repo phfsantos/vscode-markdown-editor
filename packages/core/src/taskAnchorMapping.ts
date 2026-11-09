@@ -12,28 +12,34 @@ export function parseTaskItems(source: string): ParsedTask[] {
   const lines = source.split(/\r\n|\n|\r/);
   let offset = 0;
   let fence: { marker: string; length: number } | undefined;
-  let html = false;
   const containers: number[] = [];
   for (let line = 0; line < lines.length; line++) {
     const text = lines[line]; const start = offset;
     offset += text.length + (source.slice(offset + text.length).startsWith('\r\n') ? 2 : 1);
     const indent = /^ */.exec(text)![0].length;
     const stripped = text.slice(indent);
-    // Quote/tab contexts are deliberately unsupported; never infer a checkbox.
-    if (/^\s*>|^\s*\t/.test(text)) continue;
     const marker = /^(`{3,}|~{3,})(.*)$/.exec(stripped);
     if (fence) {
       if (marker && marker[1][0] === fence.marker && marker[1].length >= fence.length && !marker[2].trim()) fence = undefined;
       continue;
     }
-    if (html) { if (!text.trim()) html = false; else continue; }
-    if (/^</.test(stripped)) { html = true; continue; }
+    // These containers require a richer parser. Reject the entire projection so
+    // an omitted rendered checkbox cannot shift a later task's ordinal.
+    if (/^\s*>|^\s*\t/.test(text) || /^</.test(stripped)) return [];
     while (containers.length && indent < containers[containers.length - 1]) containers.pop();
     const base = containers[containers.length - 1] ?? 0;
     if (indent - base >= 4) continue;
     if (marker && !(marker[1][0] === '`' && marker[2].includes('`'))) { fence = { marker: marker[1][0], length: marker[1].length }; continue; }
     const list = /^(?:[-+*]|\d{1,9}[.)])([ \t]+)(.*)$/.exec(stripped);
     if (!list) { if (text.trim() && indent === 0) containers.length = 0; continue; }
+    // A fence may start on the same line as one or more list markers.
+    let body = list[2];
+    while (/^(?:[-+*]|\d{1,9}[.)])[ \t]+/.test(body)) body = body.replace(/^(?:[-+*]|\d{1,9}[.)])[ \t]+/, '');
+    if (body.startsWith('<') || body.startsWith('>') || /\t/.test(list[1])) return [];
+    const listFence = /^(`{3,}|~{3,})(.*)$/.exec(body);
+    if (listFence && !(listFence[1][0] === '`' && listFence[2].includes('`'))) {
+      fence = { marker: listFence[1][0], length: listFence[1].length }; continue;
+    }
     const prefixLength = list[0].length - list[2].length;
     containers.push(indent + prefixLength);
     const checkbox = /^\[([ xX])\](?:[ \t]+|$)/.exec(list[2]);

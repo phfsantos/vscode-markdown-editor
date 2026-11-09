@@ -1,0 +1,101 @@
+First 100 lines of the isolated extension-host sample; excerpt only.
+Analysis of sampling Code Helper (Plugin) (pid 2350) every 1 millisecond
+Process:         Code Helper (Plugin) [2350]
+Path:            /private/tmp/*/Visual Studio Code.app/Contents/Frameworks/Code Helper (Plugin).app/Contents/MacOS/Code Helper (Plugin)
+Load Address:    0x10a8fd000
+Identifier:      Code Helper (Plugin)
+Version:         ???
+Code Type:       X86-64
+Platform:        macOS
+Parent Process:  Electron [2087]
+Target Type:     live task
+
+Date/Time:       2026-11-05 03:00:26.098 -0800
+Launch Time:     2026-11-05 03:00:01.992 -0800
+OS Version:      macOS 15.8.1 (24H32)
+Report Version:  7
+Analysis Tool:   /usr/bin/sample
+
+Physical footprint:         64.2M
+Physical footprint (peak):  64.2M
+Idle exit:                  untracked
+----
+
+Call graph:
+    867 Thread_558981778   DispatchQueue_1: com.apple.main-thread  (serial)
+    + 867 start  (in dyld) + 3056  [0x7ff80d262530]
+    +   867 ???  (in Code Helper (Plugin))  load address 0x10a8fd000 + 0xa40  [0x10a8fda40]
+    +     867 ElectronMain  (in Electron Framework) + 245  [0x114af9045]
+    +       867 v8::CodeEvent::GetScriptLine()  (in Electron Framework) + 516866  [0x114e8fb52]
+    +         867 v8::CodeEvent::GetScriptLine()  (in Electron Framework) + 516629  [0x114e8fa65]
+    +           867 v8::CodeEvent::GetScriptLine()  (in Electron Framework) + 522301  [0x114e9108d]
+    +             867 v8::CodeEvent::GetScriptLine()  (in Electron Framework) + 519195  [0x114e9046b]
+    +               867 node::AsyncResource::get_async_id() const  (in Electron Framework) + 6186499  [0x117fe61c3]
+    +                 867 node::AsyncResource::get_async_id() const  (in Electron Framework) + 9419716  [0x1182fb784]
+    +                   867 node::AsyncResource::get_async_id() const  (in Electron Framework) + 9679321  [0x11833ad99]
+    +                     867 node::AsyncResource::get_async_id() const  (in Electron Framework) + 9250369  [0x1182d2201]
+    +                       867 node::AsyncResource::get_async_id() const  (in Electron Framework) + 9517708  [0x11831364c]
+    +                         867 node::AsyncResource::get_async_id() const  (in Electron Framework) + 10010291  [0x11838ba73]
+    +                           867 mach_msg  (in libsystem_kernel.dylib) + 19  [0x7ff80d5c5e3b]
+    +                             867 mach_msg_overwrite  (in libsystem_kernel.dylib) + 574  [0x7ff80d5ccbc3]
+    +                               867 mach_msg2_internal  (in libsystem_kernel.dylib) + 83  [0x7ff80d5d46bc]
+    +                                 867 mach_msg2_trap  (in libsystem_kernel.dylib) + 10  [0x7ff80d5c5b4a]
+    867 Thread_558981781
+    + 867 start_wqthread  (in libsystem_pthread.dylib) + 15  [0x7ff80d603843]
+    +   867 _pthread_wqthread  (in libsystem_pthread.dylib) + 387  [0x7ff80d6048ba]
+    +     867 __workq_kernreturn  (in libsystem_kernel.dylib) + 10  [0x7ff80d5c7286]
+    867 Thread_558981784: ThreadPoolServiceThread
+    + 867 thread_start  (in libsystem_pthread.dylib) + 15  [0x7ff80d603857]
+    +   867 _pthread_start  (in libsystem_pthread.dylib) + 115  [0x7ff80d607e05]
+    +     867 node::AsyncResource::get_async_id() const  (in Electron Framework) + 9909583  [0x11837310f]
+    +       867 node::AsyncResource::get_async_id() const  (in Electron Framework) + 9830812  [0x11835fd5c]
+    +         867 node::AsyncResource::get_async_id() const  (in Electron Framework) + 9720349  [0x118344ddd]
+    +           867 node::AsyncResource::get_async_id() const  (in Electron Framework) + 9830360  [0x11835fb98]
+    +             867 node::AsyncResource::get_async_id() const  (in Electron Framework) + 9419716  [0x1182fb784]
+    +               867 node::AsyncResource::get_async_id() const  (in Electron Framework) + 9679321  [0x11833ad99]
+    +                 867 node::AsyncResource::get_async_id() const  (in Electron Framework) + 10034925  [0x118391aad]
+    +                   867 node::AsyncResource::get_async_id() const  (in Electron Framework) + 10035559  [0x118391d27]
+    +                     867 kevent64  (in libsystem_kernel.dylib) + 10  [0x7ff80d5cf54a]
+    867 Thread_558981785: ThreadPoolForegroundWorker
+    + 867 thread_start  (in libsystem_pthread.dylib) + 15  [0x7ff80d603857]
+    +   867 _pthread_start  (in libsystem_pthread.dylib) + 115  [0x7ff80d607e05]
+    +     867 node::AsyncResource::get_async_id() const  (in Electron Framework) + 9909583  [0x11837310f]
+    +       867 node::AsyncResource::get_async_id() const  (in Electron Framework) + 9795986  [0x118357552]
+    +         867 node::AsyncResource::get_async_id() const  (in Electron Framework) + 9796269  [0x11835766d]
+    +           867 node::AsyncResource::get_async_id() const  (in Electron Framework) + 9797156  [0x1183579e4]
+    +             867 node::AsyncResource::get_async_id() const  (in Electron Framework) + 9794086  [0x118356de6]
+    +               867 node::AsyncResource::get_async_id() const  (in Electron Framework) + 9799517  [0x11835831d]
+    +                 867 node::AsyncResource::get_async_id() const  (in Electron Framework) + 9517708  [0x11831364c]
+    +                   867 node::AsyncResource::get_async_id() const  (in Electron Framework) + 10010291  [0x11838ba73]
+    +                     867 mach_msg  (in libsystem_kernel.dylib) + 19  [0x7ff80d5c5e3b]
+    +                       867 mach_msg_overwrite  (in libsystem_kernel.dylib) + 574  [0x7ff80d5ccbc3]
+    +                         867 mach_msg2_internal  (in libsystem_kernel.dylib) + 83  [0x7ff80d5d46bc]
+    +                           867 mach_msg2_trap  (in libsystem_kernel.dylib) + 10  [0x7ff80d5c5b4a]
+    867 Thread_558981786: ThreadPoolBackgroundWorker
+    + 867 thread_start  (in libsystem_pthread.dylib) + 15  [0x7ff80d603857]
+    +   867 _pthread_start  (in libsystem_pthread.dylib) + 115  [0x7ff80d607e05]
+    +     867 node::AsyncResource::get_async_id() const  (in Electron Framework) + 9909583  [0x11837310f]
+    +       867 node::AsyncResource::get_async_id() const  (in Electron Framework) + 9796032  [0x118357580]
+    +         867 node::AsyncResource::get_async_id() const  (in Electron Framework) + 9796125  [0x1183575dd]
+    +           867 node::AsyncResource::get_async_id() const  (in Electron Framework) + 9797156  [0x1183579e4]
+    +             867 node::AsyncResource::get_async_id() const  (in Electron Framework) + 9794086  [0x118356de6]
+    +               867 node::AsyncResource::get_async_id() const  (in Electron Framework) + 9799517  [0x11835831d]
+    +                 867 node::AsyncResource::get_async_id() const  (in Electron Framework) + 9517708  [0x11831364c]
+    +                   867 node::AsyncResource::get_async_id() const  (in Electron Framework) + 10010291  [0x11838ba73]
+    +                     867 mach_msg  (in libsystem_kernel.dylib) + 19  [0x7ff80d5c5e3b]
+    +                       867 mach_msg_overwrite  (in libsystem_kernel.dylib) + 574  [0x7ff80d5ccbc3]
+    +                         867 mach_msg2_internal  (in libsystem_kernel.dylib) + 83  [0x7ff80d5d46bc]
+    +                           867 mach_msg2_trap  (in libsystem_kernel.dylib) + 10  [0x7ff80d5c5b4a]
+    867 Thread_558981787: ThreadPoolForegroundWorker
+    + 867 thread_start  (in libsystem_pthread.dylib) + 15  [0x7ff80d603857]
+    +   867 _pthread_start  (in libsystem_pthread.dylib) + 115  [0x7ff80d607e05]
+    +     867 node::AsyncResource::get_async_id() const  (in Electron Framework) + 9909583  [0x11837310f]
+    +       867 node::AsyncResource::get_async_id() const  (in Electron Framework) + 9795986  [0x118357552]
+    +         867 node::AsyncResource::get_async_id() const  (in Electron Framework) + 9796269  [0x11835766d]
+    +           867 node::AsyncResource::get_async_id() const  (in Electron Framework) + 9797156  [0x1183579e4]
+    +             867 node::AsyncResource::get_async_id() const  (in Electron Framework) + 9794086  [0x118356de6]
+    +               867 node::AsyncResource::get_async_id() const  (in Electron Framework) + 9799517  [0x11835831d]
+    +                 867 node::AsyncResource::get_async_id() const  (in Electron Framework) + 9517708  [0x11831364c]
+    +                   867 node::AsyncResource::get_async_id() const  (in Electron Framework) + 10010291  [0x11838ba73]
+    +                     867 mach_msg  (in libsystem_kernel.dylib) + 19  [0x7ff80d5c5e3b]
+    +                       867 mach_msg_overwrite  (in libsystem_kernel.dylib) + 574  [0x7ff80d5ccbc3]

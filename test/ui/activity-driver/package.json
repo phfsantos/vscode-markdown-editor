@@ -66,6 +66,30 @@
       {
         "command": "activity-ui.rename",
         "title": "Activity UI: Rename Tasks"
+      },
+      {
+        "command": "activity-ui.clearCommands",
+        "title": "Activity UI: Clear Command Producer"
+      },
+      {
+        "command": "activity-ui.compact",
+        "title": "Activity UI: Compact Sticky Tabs"
+      },
+      {
+        "command": "activity-ui.git",
+        "title": "Activity UI: Inspect Git"
+      },
+      {
+        "command": "activity-ui.saveAs",
+        "title": "Activity UI: Save As Tasks"
+      },
+      {
+        "command": "activity-ui.exportsSaved",
+        "title": "Activity UI: Report Saved"
+      },
+      {
+        "command": "activity-ui.resetTabs",
+        "title": "Activity UI: Reset Tabs"
       }
     ]
   }

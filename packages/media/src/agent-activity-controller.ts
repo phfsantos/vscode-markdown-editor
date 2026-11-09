@@ -26,7 +26,7 @@ export class AgentActivityController {
   private readonly input = (event: Event) => {
     if ((event.target as Element)?.closest?.('.vditor-reset')) { this.pendingEdit = true; this.schedule(); }
   };
-  public constructor(private readonly dependencies: { scope?: Document; getMarkdown(): string }) {
+  public constructor(private readonly dependencies: { scope?: Document; getMarkdown(): string; renderSource?(source: string): string }) {
     this.scope = dependencies.scope ?? document;
     const create = (className: string) => { const el = this.scope.createElement('div'); el.className = className; el.dataset.agentActivity = 'true'; this.scope.body.append(el); return el; };
     this.layer = create('md-agent-activity-layer'); this.layer.setAttribute('aria-hidden', 'true');
@@ -65,7 +65,7 @@ export class AgentActivityController {
     if (this.header.textContent !== summary) this.header.textContent = summary;
     this.header.hidden = !summary;
     const announce = (text: string) => { if (this.status.textContent !== text) this.status.textContent = text; };
-    if (!current || this.pendingEdit || canonical(snapshot.content) !== canonical(this.dependencies.getMarkdown())) { announce(summary); return; }
+    if (!current || this.pendingEdit || canonical(this.dependencies.renderSource?.(snapshot.content) ?? snapshot.content) !== canonical(this.dependencies.getMarkdown())) { announce(summary); return; }
     const roots = Array.from(this.scope.querySelectorAll<HTMLElement>('.vditor-ir .vditor-reset, .vditor-wysiwyg .vditor-reset')).filter(root => root.getBoundingClientRect().width > 0 && getComputedStyle(root).display !== 'none');
     if (roots.length !== 1) { announce(summary); return; }
     const root = roots[0];

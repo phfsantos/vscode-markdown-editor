@@ -69,6 +69,7 @@ export class ExtensionRuntime implements vscode.Disposable {
       });
       this.disposables.push(
         vscode.workspace.onDidChangeTextDocument(event => agentActivity.documentChanged(event.document.uri, event.document, event.contentChanges)),
+        vscode.workspace.onDidCloseTextDocument(document => agentActivity.documentClosed(document.uri)),
         vscode.workspace.onDidDeleteFiles(event => event.files.forEach(uri => agentActivity.clearUri(uri))),
         vscode.workspace.onDidRenameFiles(event => event.files.forEach(file => agentActivity.clearUri(file.oldUri))),
       );

@@ -33,6 +33,10 @@ import {
 
 const agentActivity = new AgentActivityController({
   getMarkdown: () => window.vditor?.getValue() ?? '',
+  renderSource: source => {
+    const lute = (window.vditor as any)?.vditor?.lute;
+    return lute ? lute.VditorIRDOM2Md(lute.Md2VditorIRDOM(source)) : source;
+  },
 });
 window.addEventListener('beforeunload', () => agentActivity.dispose(), { once: true });
 

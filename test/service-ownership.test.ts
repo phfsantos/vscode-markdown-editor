@@ -86,7 +86,7 @@ vi.mock('../src/navigation/MarkdownEditorNavigation', () => ({
   MarkdownEditorNavigation: class { public dispose(): void {} },
 }));
 vi.mock('../src/runtime/ActiveDocumentContext', () => ({
-  ActiveDocumentContext: class { public dispose(): void {} },
+  ActiveDocumentContext: class { public readonly onDidChangeActiveDocument = () => ({ dispose() {} }); public dispose(): void {} },
 }));
 
 function listSourceFiles(directory: string): string[] {

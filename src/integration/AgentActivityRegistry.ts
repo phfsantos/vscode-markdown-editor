@@ -39,7 +39,7 @@ interface SessionState {
   expires: number;
 }
 export function validateText(value: unknown, name: string, max: number): asserts value is string {
-  if (typeof value !== 'string' || !value.trim() || value.length > max || /[\x00-\x1f\x7f]/.test(value)) {
+  if (typeof value !== 'string' || !value.trim() || value.length > max || [...value].some(character => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127)) {
     throw new Error(`Invalid ${name}: expected plain text of 1-${max} characters`);
   }
 }
@@ -85,7 +85,7 @@ export class AgentActivityRegistry implements AgentActivityCapability, vscode.Di
       dispose: () => this.remove(sessionId),
     });
   }
-  public isSessionLive(id: string): boolean { return Boolean(this.live(id, false)); }
+  public isSessionLive(id: string): boolean { const session = this.sessions.get(id); return Boolean(session && session.expires > this.now()); }
   private live(id: string, required = true): SessionState | undefined {
     const state = this.sessions.get(id);
     if (state && state.expires <= this.now()) this.remove(id);
@@ -143,6 +143,18 @@ export class AgentActivityRegistry implements AgentActivityCapability, vscode.Di
     this.documents.set(uri.toString(), { text, version: document.version });
     if (changed) this.changed(uri);
   }
+  public documentClosed(uri: vscode.Uri): void {
+    // Reopened TextDocuments can reuse version 1; old anchors cannot cross that
+    // lifetime boundary even if a duplicate task happens to occupy the same line.
+    let changed = false;
+    for (const session of this.sessions.values()) for (const [id, activity] of session.activities) {
+      if (activity.uri.toString() !== uri.toString() || !activity.task) continue;
+      const { task: _task, ...fileActivity } = activity;
+      session.activities.set(id, Object.freeze(fileActivity)); changed = true;
+    }
+    this.documents.delete(uri.toString());
+    if (changed) this.changed(uri);
+  }
   public clearUri(uri: vscode.Uri): void {
     let changed = false;
     for (const s of this.sessions.values()) for (const [id, a] of s.activities) if (a.uri.toString() === uri.toString()) { s.activities.delete(id); changed = true; }
@@ -161,7 +173,17 @@ export class AgentActivityRegistry implements AgentActivityCapability, vscode.Di
     const uris = new Map([...session.activities.values()].map(a => [a.uri.toString(), a.uri]));
     uris.forEach(uri => this.changed(uri));
   }
-  private sweep(): void { for (const [id, s] of this.sessions) if (s.expires <= this.now()) this.remove(id); }
+  private sweep(): void {
+    // Remove the whole expired batch before notifying synchronous projections.
+    // A subscriber may read a snapshot from its change callback.
+    const uris = new Map<string, vscode.Uri>();
+    const now = this.now();
+    for (const [id, session] of this.sessions) if (session.expires <= now) {
+      this.sessions.delete(id);
+      session.activities.forEach(activity => uris.set(activity.uri.toString(), activity.uri));
+    }
+    uris.forEach(uri => this.changed(uri));
+  }
   public dispose(): void {
     if (this.disposed) return;
     this.disposed = true; clearInterval(this.timer);

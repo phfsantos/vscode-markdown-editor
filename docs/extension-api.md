@@ -206,7 +206,8 @@ file activity; submit a fresh anchor to restore it. Reports never edit Markdown.
 Leases last 120 seconds, renewed by successful updates or heartbeat. Heartbeat
 every 30 seconds. Expiry clears owned reports within one additional second of
 timer scheduling; disposal clears immediately. Tab closure only unsubscribes
-renderers. Window reload/deactivation clears all reports; activity is not saved.
+renderers. If the shared TextDocument itself closes, task anchors invalidate
+(version numbers can restart on reopen); file activity remains until cleared. Window reload/deactivation clears all reports; activity is not saved.
 
 For JSON integrations, execute these commands (all activate the extension):
 
@@ -217,7 +218,15 @@ For JSON integrations, execute these commands (all activate the extension):
 | `clear` | `{sessionId, token, id}` |
 | `heartbeat` / `endSession` | `{sessionId, token}` |
 
-`uri` in JSON is a full URI string, preserving schemes and remote authorities.
+`uri` in JSON is a full URI string interpreted exactly in the receiving host.
+For callers and provider in separate extension hosts, pass a real `vscode.Uri`
+as `activity.uri` to `executeCommand` instead; VS Code translates and revives it
+across command RPC. Obtain it from the custom tab or from
+`markdown-editor.getActiveContext` with `{ uriFormat: 'object' }`. Keep the
+consumer's full URI, including authority, until command transport handles it.
+Do not strip remote authorities or guess a receiving-host filesystem path.
+Plain JSON URI-shaped objects are rejected; JSON-only callers must already use
+the receiving host's exact resource identity. Existing string calls are unchanged.
 Tokens are opaque ownership credentials: retain privately and never log them.
 Unknown, expired or mismatched command sessions are rejected. Tokens are not an
 extension-host security boundary. Direct clear/dispose are idempotent; command
@@ -226,3 +235,10 @@ VS Code badge settings and decoration competition. Status/header fallbacks show
 activity even when tab badges are hidden. No native animated file badge or
 third-party agent support is implied. The independent producer fixture lives in
 `test/fixtures/agent-activity-consumer`.
+
+Task projection currently supports ordinary/nested Markdown lists with `-`, `*`,
+`+` or ordered markers, checked tasks, and fenced-code exclusion. Documents with
+block quotes, HTML blocks or tab-indented containers deliberately use file-only
+activity: their task anchors are rejected rather than approximated. Checkbox
+projection also hides when Vditor's task count, checked states, or deterministic
+source serialization differ. Full-source coordinates remain authoritative.

@@ -4,61 +4,61 @@
     "SessionStart": [
       {
         "type": "command",
-        "osx": "./.projectmind/hooks/session-start.sh copilot",
-        "linux": "./.projectmind/hooks/session-start.sh copilot",
-        "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File .projectmind\\hooks\\session-start.ps1 copilot",
+        "osx": "./.projectmind/hooks/session-start.sh copilot --host copilot-chat",
+        "linux": "./.projectmind/hooks/session-start.sh copilot --host copilot-chat",
+        "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File .projectmind\\hooks\\session-start.ps1 copilot --host copilot-chat",
         "timeout": 30
       }
     ],
     "UserPromptSubmit": [
       {
         "type": "command",
-        "osx": "./.projectmind/hooks/prompt-submitted.sh copilot",
-        "linux": "./.projectmind/hooks/prompt-submitted.sh copilot",
-        "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File .projectmind\\hooks\\prompt-submitted.ps1 copilot",
+        "osx": "./.projectmind/hooks/prompt-submitted.sh copilot --host copilot-chat",
+        "linux": "./.projectmind/hooks/prompt-submitted.sh copilot --host copilot-chat",
+        "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File .projectmind\\hooks\\prompt-submitted.ps1 copilot --host copilot-chat",
         "timeout": 10
       }
     ],
     "PreToolUse": [
       {
         "type": "command",
-        "osx": "./.projectmind/hooks/pre-tool-use.sh copilot",
-        "linux": "./.projectmind/hooks/pre-tool-use.sh copilot",
-        "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File .projectmind\\hooks\\pre-tool-use.ps1 copilot",
+        "osx": "./.projectmind/hooks/pre-tool-use.sh copilot --host copilot-chat",
+        "linux": "./.projectmind/hooks/pre-tool-use.sh copilot --host copilot-chat",
+        "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File .projectmind\\hooks\\pre-tool-use.ps1 copilot --host copilot-chat",
         "timeout": 15
       }
     ],
     "PostToolUse": [
       {
         "type": "command",
-        "osx": "./.projectmind/hooks/post-tool-use.sh copilot",
-        "linux": "./.projectmind/hooks/post-tool-use.sh copilot",
-        "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File .projectmind\\hooks\\post-tool-use.ps1 copilot",
+        "osx": "./.projectmind/hooks/post-tool-use.sh copilot --host copilot-chat",
+        "linux": "./.projectmind/hooks/post-tool-use.sh copilot --host copilot-chat",
+        "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File .projectmind\\hooks\\post-tool-use.ps1 copilot --host copilot-chat",
         "timeout": 15
       }
     ],
     "Stop": [
       {
         "type": "command",
-        "osx": "./.projectmind/hooks/session-end.sh copilot",
-        "linux": "./.projectmind/hooks/session-end.sh copilot",
-        "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File .projectmind\\hooks\\session-end.ps1 copilot",
+        "osx": "./.projectmind/hooks/session-end.sh copilot --host copilot-chat",
+        "linux": "./.projectmind/hooks/session-end.sh copilot --host copilot-chat",
+        "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File .projectmind\\hooks\\session-end.ps1 copilot --host copilot-chat",
         "timeout": 30
       },
       {
         "type": "command",
-        "osx": "./.projectmind/hooks/delivery-gate.sh copilot",
-        "linux": "./.projectmind/hooks/delivery-gate.sh copilot",
-        "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File .projectmind\\hooks\\delivery-gate.ps1 copilot",
+        "osx": "./.projectmind/hooks/delivery-gate.sh copilot --host copilot-chat",
+        "linux": "./.projectmind/hooks/delivery-gate.sh copilot --host copilot-chat",
+        "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File .projectmind\\hooks\\delivery-gate.ps1 copilot --host copilot-chat",
         "timeout": 15
       }
     ],
     "PreCompact": [
       {
         "type": "command",
-        "osx": "./.projectmind/hooks/pre-compact.sh copilot",
-        "linux": "./.projectmind/hooks/pre-compact.sh copilot",
-        "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File .projectmind\\hooks\\pre-compact.ps1 copilot",
+        "osx": "./.projectmind/hooks/pre-compact.sh copilot --host copilot-chat",
+        "linux": "./.projectmind/hooks/pre-compact.sh copilot --host copilot-chat",
+        "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File .projectmind\\hooks\\pre-compact.ps1 copilot --host copilot-chat",
         "timeout": 15
       }
     ]

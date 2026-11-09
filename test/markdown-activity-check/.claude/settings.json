@@ -1,0 +1,81 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -n \"$CLAUDE_PROJECT_DIR\" ] && { [ -n \"$CLAUDECODE\" ] || [ -z \"$COPILOT_PROJECT_DIR\" ]; }; then bash \"$CLAUDE_PROJECT_DIR/.projectmind/hooks/session-start.sh\" claude --host claude-code; fi",
+            "windows": "if ($env:CLAUDE_PROJECT_DIR -and ($env:CLAUDECODE -or -not $env:COPILOT_PROJECT_DIR)) { & (Join-Path $env:CLAUDE_PROJECT_DIR '.projectmind/hooks/session-start.ps1') claude --host claude-code }"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -n \"$CLAUDE_PROJECT_DIR\" ] && { [ -n \"$CLAUDECODE\" ] || [ -z \"$COPILOT_PROJECT_DIR\" ]; }; then bash \"$CLAUDE_PROJECT_DIR/.projectmind/hooks/prompt-submitted.sh\" claude --host claude-code; fi",
+            "windows": "if ($env:CLAUDE_PROJECT_DIR -and ($env:CLAUDECODE -or -not $env:COPILOT_PROJECT_DIR)) { & (Join-Path $env:CLAUDE_PROJECT_DIR '.projectmind/hooks/prompt-submitted.ps1') claude --host claude-code }"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -n \"$CLAUDE_PROJECT_DIR\" ] && { [ -n \"$CLAUDECODE\" ] || [ -z \"$COPILOT_PROJECT_DIR\" ]; }; then bash \"$CLAUDE_PROJECT_DIR/.projectmind/hooks/pre-tool-use.sh\" claude --host claude-code; fi",
+            "windows": "if ($env:CLAUDE_PROJECT_DIR -and ($env:CLAUDECODE -or -not $env:COPILOT_PROJECT_DIR)) { & (Join-Path $env:CLAUDE_PROJECT_DIR '.projectmind/hooks/pre-tool-use.ps1') claude --host claude-code }"
+          }
+        ],
+        "matcher": "*"
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -n \"$CLAUDE_PROJECT_DIR\" ] && { [ -n \"$CLAUDECODE\" ] || [ -z \"$COPILOT_PROJECT_DIR\" ]; }; then bash \"$CLAUDE_PROJECT_DIR/.projectmind/hooks/post-tool-use.sh\" claude --host claude-code; fi",
+            "windows": "if ($env:CLAUDE_PROJECT_DIR -and ($env:CLAUDECODE -or -not $env:COPILOT_PROJECT_DIR)) { & (Join-Path $env:CLAUDE_PROJECT_DIR '.projectmind/hooks/post-tool-use.ps1') claude --host claude-code }"
+          }
+        ],
+        "matcher": "*"
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -n \"$CLAUDE_PROJECT_DIR\" ] && { [ -n \"$CLAUDECODE\" ] || [ -z \"$COPILOT_PROJECT_DIR\" ]; }; then bash \"$CLAUDE_PROJECT_DIR/.projectmind/hooks/session-end.sh\" claude --host claude-code; fi",
+            "windows": "if ($env:CLAUDE_PROJECT_DIR -and ($env:CLAUDECODE -or -not $env:COPILOT_PROJECT_DIR)) { & (Join-Path $env:CLAUDE_PROJECT_DIR '.projectmind/hooks/session-end.ps1') claude --host claude-code }"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -n \"$CLAUDE_PROJECT_DIR\" ] && { [ -n \"$CLAUDECODE\" ] || [ -z \"$COPILOT_PROJECT_DIR\" ]; }; then bash \"$CLAUDE_PROJECT_DIR/.projectmind/hooks/delivery-gate.sh\" claude --host claude-code; fi",
+            "windows": "if ($env:CLAUDE_PROJECT_DIR -and ($env:CLAUDECODE -or -not $env:COPILOT_PROJECT_DIR)) { & (Join-Path $env:CLAUDE_PROJECT_DIR '.projectmind/hooks/delivery-gate.ps1') claude --host claude-code }"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -n \"$CLAUDE_PROJECT_DIR\" ] && { [ -n \"$CLAUDECODE\" ] || [ -z \"$COPILOT_PROJECT_DIR\" ]; }; then bash \"$CLAUDE_PROJECT_DIR/.projectmind/hooks/pre-compact.sh\" claude --host claude-code; fi",
+            "windows": "if ($env:CLAUDE_PROJECT_DIR -and ($env:CLAUDECODE -or -not $env:COPILOT_PROJECT_DIR)) { & (Join-Path $env:CLAUDE_PROJECT_DIR '.projectmind/hooks/pre-compact.ps1') claude --host claude-code }"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "version": "1.95.0",
+  "status": null,
+  "signal": "SIGKILL",
+  "error": "spawnSync /private/tmp/markdown-studio-vscode195/Visual Studio Code.app/Contents/MacOS/Electron ETIMEDOUT",
+  "report": "/private/tmp/markdown-studio-ui-baseline195-pVqoQK/context-report.json",
+  "hostLog": "/private/tmp/markdown-studio-ui-baseline195-pVqoQK/host.log",
+  "coldCommandActivation": {
+    "wasActive": false,
+    "activated": true
+  },
+  "notes": [
+    "Error: Timed out after 15s: openTextDocument"
+  ]
+}

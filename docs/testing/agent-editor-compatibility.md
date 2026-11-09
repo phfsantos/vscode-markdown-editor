@@ -5,7 +5,18 @@ The implementation's automated assertions and an actual VS Code Development Host
 run provide different evidence. This report does not claim automatic adoption by
 Codex, Claude Code, Copilot Chat, or built-in chat.
 
-## Latest outcome (2026-11-04)
+## Activity compatibility follow-up (2026-11-05)
+
+The [activity compatibility matrix](agent-activity-compatibility-matrix.md) records
+real compact sticky/Git, Save As, and separate browser-worker/Node-host activity
+checks. Command updates now accept a real `vscode.Uri` for host translation;
+JSON-only strings retain receiver-host identity. Baseline 1.95 activity contract
+checks pass, while document opening stalls before task/editor visuals. Native
+chat decoration competition remains unavailable in the isolated profile.
+Save As requires a fresh report for the new URI and preserves a valid report for
+the unchanged original; no automatic activity transfer or agent adoption occurs.
+
+## Context API outcome (2026-11-04)
 
 All five API acceptance criteria are now verified. A packaged VS Code1.140
 ExTester run passed six real-window checks, including exact source selection,
@@ -355,3 +366,11 @@ acceptance criteria are verified, with the1.95/nativeAIbadge limitations above.
 | [test/ui/package.json](../../test/ui/package.json) |
 
 Open **Source Control** (`Ctrl/Cmd+Shift+G`) to review each diff. The user-provided UI skill files are untouched.
+
+## Explicit activity API verification (November 4, 2026)
+
+The separate activity feature is now implemented and verified with an independent
+producer extension. See [agent-activity-verification.md](agent-activity-verification.md)
+for exact host versions, screenshots, source-fidelity/lifecycle regression tests,
+release gates and untested environments. These are explicit producer reports;
+this does not establish native chat activity observation or agent adoption.

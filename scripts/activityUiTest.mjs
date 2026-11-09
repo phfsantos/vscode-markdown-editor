@@ -16,6 +16,13 @@ const sandbox = mkdtempSync(path.join(os.tmpdir(), 'md-ui-'));
 const workspace = path.join(sandbox, 'workspace');
 mkdirSync(workspace); mkdirSync(path.join(sandbox, 'home'));
 for (const [name, content] of Object.entries({ 'tasks.md': '- [ ] Same\n- [ ] Same\n', 'other.md': 'Other document.\n', 'unrelated.txt': 'Unrelated.\n' })) writeFileSync(path.join(workspace, name), content);
+// A disposable repository supplies real built-in Git decorations.
+writeFileSync(path.join(workspace,'tasks.md'), '- [ ] Same\n- [ ] Same\nCommitted text.\n');
+for (const args of [['init','--quiet'],['add','.'],['-c','user.name=Activity Test','-c','user.email=activity@example.invalid','commit','--quiet','-m','fixture']]) {
+  const result=spawnSync('git',args,{cwd:workspace,encoding:'utf8'});
+  if(result.status!==0) throw new Error(result.stderr);
+}
+writeFileSync(path.join(workspace,'tasks.md'), '- [ ] Same\n- [ ] Same\n');
 mkdirSync(storage, { recursive: true });
 process.env.TEST_RESOURCES = storage;
 process.env.EXTENSIONS_FOLDER = path.join(storage, 'extensions');
@@ -76,6 +83,7 @@ const browser = new VSBrowser(appMetadata.version, ReleaseQuality.Stable, {
   'workbench.startupEditor': 'none', 'security.workspace.trust.enabled': false,
   'workbench.editor.decorations.badges': true, 'workbench.editor.tabSizing': 'fit',
   'markdown-editor.ai.enable': false, 'markdown-editor.ai.enableInlineSuggestions': false,
+  'files.simpleDialog.enable': true, 'git.decorations.enabled': false,
   'window.restoreWindows': 'none', 'update.mode': 'none', 'telemetry.telemetryLevel': 'off',
 });
 const mocha = new Mocha({ timeout: 60000, grep: process.argv.includes('--grep') ? process.argv[process.argv.indexOf('--grep') + 1] : undefined });

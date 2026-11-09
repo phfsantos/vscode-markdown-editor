@@ -1,0 +1,27 @@
+[Extension Development Host] workspace
+Sign In
+EXPLORER
+WORKSPACE
+tasks.md
+OUTLINE
+TIMELINE
+Open Chat
+⌃
+⌘
+I
+Show All Commands
+⇧
+⌘
+P
+Start Debugging
+F5
+CHAT
+Build with Agent
+AI responses may be inaccurate
+Generate Agent Instructions to onboard AI onto your codebase.
+Agent
+Models
+Local
+Default permissions
+ 0 
+ 0

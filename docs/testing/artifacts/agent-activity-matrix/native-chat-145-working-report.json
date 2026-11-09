@@ -1,0 +1,89 @@
+{
+  "timestamp": "2026-11-05T15:54:30.834Z",
+  "vscode": "1.145.0-insider",
+  "uri": "file:///Users/pedrosantos/www/vscode-markdown-editor/test/markdown-activity-check/tasks.md",
+  "markdownStudioVersion": "0.5.11",
+  "copilotChatVersion": "0.73.2026102902",
+  "nativeChatCompetition": "Requires screenshots of actual pending native Chat edits; this probe cannot certify that session.",
+  "taskLineZeroBased": 2,
+  "before": {
+    "textSha256": "6ff274a223f45c425cacb2c2e0318b6b83e47a3d48cc4954e39bb598bfa47ca5",
+    "version": 1,
+    "dirty": false,
+    "diskSha256": "6ff274a223f45c425cacb2c2e0318b6b83e47a3d48cc4954e39bb598bfa47ca5",
+    "settings": {
+      "workbench.editor.decorations.badges": {
+        "key": "workbench.editor.decorations.badges",
+        "defaultValue": true
+      },
+      "workbench.editor.decorations.colors": {
+        "key": "workbench.editor.decorations.colors",
+        "defaultValue": true
+      },
+      "workbench.editor.tabSizing": {
+        "key": "workbench.editor.tabSizing",
+        "defaultValue": "fit"
+      },
+      "explorer.decorations.badges": {
+        "key": "explorer.decorations.badges",
+        "defaultValue": true
+      },
+      "git.decorations.enabled": {
+        "key": "git.decorations.enabled",
+        "defaultValue": true
+      },
+      "markdown-editor.ai.enable": {
+        "key": "markdown-editor.ai.enable",
+        "defaultValue": true
+      },
+      "markdown-editor.ai.showEditorActionBar": {
+        "key": "markdown-editor.ai.showEditorActionBar"
+      },
+      "markdown-editor.ai.enableInlineSuggestions": {
+        "key": "markdown-editor.ai.enableInlineSuggestions",
+        "defaultValue": false
+      }
+    }
+  },
+  "reported": true,
+  "after": {
+    "textSha256": "6ff274a223f45c425cacb2c2e0318b6b83e47a3d48cc4954e39bb598bfa47ca5",
+    "version": 1,
+    "dirty": false,
+    "diskSha256": "6ff274a223f45c425cacb2c2e0318b6b83e47a3d48cc4954e39bb598bfa47ca5",
+    "settings": {
+      "workbench.editor.decorations.badges": {
+        "key": "workbench.editor.decorations.badges",
+        "defaultValue": true
+      },
+      "workbench.editor.decorations.colors": {
+        "key": "workbench.editor.decorations.colors",
+        "defaultValue": true
+      },
+      "workbench.editor.tabSizing": {
+        "key": "workbench.editor.tabSizing",
+        "defaultValue": "fit"
+      },
+      "explorer.decorations.badges": {
+        "key": "explorer.decorations.badges",
+        "defaultValue": true
+      },
+      "git.decorations.enabled": {
+        "key": "git.decorations.enabled",
+        "defaultValue": true
+      },
+      "markdown-editor.ai.enable": {
+        "key": "markdown-editor.ai.enable",
+        "defaultValue": true
+      },
+      "markdown-editor.ai.showEditorActionBar": {
+        "key": "markdown-editor.ai.showEditorActionBar"
+      },
+      "markdown-editor.ai.enableInlineSuggestions": {
+        "key": "markdown-editor.ai.enableInlineSuggestions",
+        "defaultValue": false
+      }
+    }
+  },
+  "preserved": true
+}

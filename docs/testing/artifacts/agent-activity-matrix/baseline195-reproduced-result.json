@@ -1,0 +1,20 @@
+{
+  "version": "1.95.0",
+  "status": null,
+  "signal": "SIGKILL",
+  "error": "spawnSync /private/tmp/markdown-studio-vscode195/Visual Studio Code.app/Contents/MacOS/Electron ETIMEDOUT",
+  "report": "/private/tmp/markdown-studio-activity-baseline195-xfbX1v/activity-report.json",
+  "hostLog": "/private/tmp/markdown-studio-activity-baseline195-xfbX1v/host.log",
+  "coldCommandActivation": {
+    "wasActive": false,
+    "activated": true
+  },
+  "checks": [
+    "cold activation and JSON start/update/heartbeat/clear/end stable APIs",
+    "exports activity session stable APIs"
+  ],
+  "editorRuntime": "blocked",
+  "notes": [
+    "Error: Timed out after 15s: openTextDocument"
+  ]
+}

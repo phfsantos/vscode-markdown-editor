@@ -69,3 +69,18 @@ it('validates live documents and retains file activity after task invalidation',
   expect(r.getSnapshot(uri).state).toBe('working');
   r.clearUri(uri); expect(r.getActivities(uri)).toHaveLength(0); r.dispose();
 });
+it('expires simultaneous sessions safely when snapshot subscribers refresh synchronously', () => {
+  let now = 0; const r = new AgentActivityRegistry({now:()=>now});
+  for (let i=0;i<1000;i++) r.createSession({id:String(i),label:'A'}).setActivity({id:'1',uri,state:'working',label:'Work'});
+  r.onDidChange(() => r.getSnapshot(uri));
+  now = 120001;
+  expect(() => r.getSnapshot(uri)).not.toThrow();
+  expect(r.getActivities(uri)).toHaveLength(0); r.dispose();
+});
+it('invalidates task identity when the shared document closes while retaining file work', () => {
+  const r = new AgentActivityRegistry({getDocument:()=>({version:1,getText:()=>'- [ ] Same\n- [ ] Same\n'})});
+  r.createSession({id:'a',label:'A'}).setActivity({id:'1',uri,state:'working',label:'Work',task:{documentVersion:1,line:1,expectedLineText:'- [ ] Same'}});
+  r.documentClosed(uri);
+  expect(r.getActivities(uri)[0].task).toBeUndefined();
+  expect(r.getSnapshot(uri).state).toBe('working'); r.dispose();
+});

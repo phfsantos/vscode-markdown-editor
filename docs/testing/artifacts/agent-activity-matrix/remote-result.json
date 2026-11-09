@@ -1,0 +1,83 @@
+{
+  "vscodeVersion": "1.115.0",
+  "checks": [
+    "browser worker starts remote Node session through command RPC",
+    "remote full-URI task update accepted without changing document",
+    "one exact remote checkbox indicator, working→review update, clear and 120-second expiry visible across actual hosts"
+  ],
+  "host": {
+    "nodeRuntime": false,
+    "remoteName": "127.0.0.1:59612",
+    "uiKind": 2
+  },
+  "expectedUri": "vscode-remote://127.0.0.1:59612/private/tmp/markdown-studio-activity-remote-T3gz4w/workspace/tasks.md",
+  "providerInBrowser": {},
+  "before": {
+    "text": "- [ ] **Ship**\n\nAnother paragraph.\n",
+    "version": 1,
+    "dirty": false
+  },
+  "badgesBefore": true,
+  "attemptedActivity": {
+    "id": "remote",
+    "uri": "vscode-remote://127.0.0.1:59612/private/tmp/markdown-studio-activity-remote-T3gz4w/workspace/tasks.md",
+    "state": "working",
+    "label": "Remote work",
+    "task": {
+      "documentVersion": 1,
+      "line": 0,
+      "expectedLineText": "- [ ] **Ship**"
+    }
+  },
+  "objectContextUri": "vscode-remote://127.0.0.1:59612/private/tmp/markdown-studio-activity-remote-T3gz4w/workspace/tasks.md",
+  "after": {
+    "text": "- [ ] **Ship**\n\nAnother paragraph.\n",
+    "version": 1,
+    "dirty": false
+  },
+  "status": "reported",
+  "expiryElapsedMs": 121471,
+  "final": {
+    "vscodeVersion": "1.115.0",
+    "checks": [
+      "browser worker starts remote Node session through command RPC",
+      "remote full-URI task update accepted without changing document"
+    ],
+    "host": {
+      "nodeRuntime": false,
+      "remoteName": "127.0.0.1:59612",
+      "uiKind": 2
+    },
+    "expectedUri": "vscode-remote://127.0.0.1:59612/private/tmp/markdown-studio-activity-remote-T3gz4w/workspace/tasks.md",
+    "providerInBrowser": {},
+    "before": {
+      "text": "- [ ] **Ship**\n\nAnother paragraph.\n",
+      "version": 1,
+      "dirty": false
+    },
+    "badgesBefore": true,
+    "attemptedActivity": {
+      "id": "remote",
+      "uri": "vscode-remote://127.0.0.1:59612/private/tmp/markdown-studio-activity-remote-T3gz4w/workspace/tasks.md",
+      "state": "working",
+      "label": "Remote work",
+      "task": {
+        "documentVersion": 1,
+        "line": 0,
+        "expectedLineText": "- [ ] **Ship**"
+      }
+    },
+    "objectContextUri": "vscode-remote://127.0.0.1:59612/private/tmp/markdown-studio-activity-remote-T3gz4w/workspace/tasks.md",
+    "after": {
+      "text": "- [ ] **Ship**\n\nAnother paragraph.\n",
+      "version": 1,
+      "dirty": false
+    },
+    "status": "expire",
+    "badgesAfter": true
+  },
+  "browserErrors": [
+    "Cannot read properties of undefined (reading 'ir')",
+    "Failed to execute 'send' on 'XMLHttpRequest': Failed to load 'https://vscode-remote+127-002e0-002e0-002e1-003a59612.vscode-resource.vscode-cdn.net/private/tmp/markdown-studio-activity-remote-T3gz4w/extensions/phfsantos.markdown-editor-0.5.11/out/media/dist/js/icons/ant.js'."
+  ]
+}

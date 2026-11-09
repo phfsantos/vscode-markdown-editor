@@ -64,6 +64,8 @@ export const workspace = {
   onDidOpenTextDocument() {
     return { dispose() {} };
   },
+  onDidDeleteFiles() { return { dispose() {} }; },
+  onDidRenameFiles() { return { dispose() {} }; },
   onDidCloseTextDocument() {
     return { dispose() {} };
   },
@@ -170,6 +172,8 @@ export const window = {
   },
   activeTextEditor: undefined as any,
   onDidChangeActiveTextEditor() { return { dispose() {} }; },
+  createStatusBarItem() { return { name: '', text: '', tooltip: '', show() {}, hide() {}, dispose() {} }; },
+  registerFileDecorationProvider() { return { dispose() {} }; },
   createOutputChannel() {
     return {
       appendLine() {},
@@ -278,3 +282,5 @@ export class TabInputCustom {
 export class TabInputText {
   constructor(public uri: Uri) {}
 }
+
+export const StatusBarAlignment = { Left: 1, Right: 2 };

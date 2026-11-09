@@ -1,0 +1,31 @@
+{
+  "vscodeVersion": "1.115.0",
+  "checks": [
+    "browser worker starts remote Node session through command RPC"
+  ],
+  "host": {
+    "nodeRuntime": false,
+    "remoteName": "127.0.0.1:59443",
+    "uiKind": 2
+  },
+  "expectedUri": "vscode-remote://127.0.0.1:59443/private/tmp/markdown-studio-remote-ui-Qph3Wc/workspace/tasks.md",
+  "providerInBrowser": {},
+  "before": {
+    "text": "- [ ] **Ship**\n\nAnother paragraph.\n",
+    "version": 1,
+    "dirty": false
+  },
+  "attemptedActivity": {
+    "id": "remote",
+    "uri": "vscode-remote://127.0.0.1:59443/private/tmp/markdown-studio-remote-ui-Qph3Wc/workspace/tasks.md",
+    "state": "working",
+    "label": "Remote work",
+    "task": {
+      "documentVersion": 1,
+      "line": 0,
+      "expectedLineText": "- [ ] **Ship**"
+    }
+  },
+  "status": "failed",
+  "error": "Error: Task document is unavailable\n\tat Sg._executeContributedCommand (file:///private/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/markdown-studio-remote-web-raVXfT/cli/serve-web/41dd792b5e652393e7787322889ed5fdc58bd75b/out/vs/workbench/api/node/extensionHostProcess.js:501:49053)\n\tat Sg.$executeContributedCommand (file:///private/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/markdown-studio-remote-web-raVXfT/cli/serve-web/41dd792b5e652393e7787322889ed5fdc58bd75b/out/vs/workbench/api/node/extensionHostProcess.js:501:49654)\n\tat i._doInvokeHandler (file:///private/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/markdown-studio-remote-web-raVXfT/cli/serve-web/41dd792b5e652393e7787322889ed5fdc58bd75b/out/vs/workbench/api/node/extensionHostProcess.js:407:154937)\n\tat i._invokeHandler (file:///private/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/markdown-studio-remote-web-raVXfT/cli/serve-web/41dd792b5e652393e7787322889ed5fdc58bd75b/out/vs/workbench/api/node/extensionHostProcess.js:407:154685)\n\tat i._receiveRequest (file:///private/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/markdown-studio-remote-web-raVXfT/cli/serve-web/41dd792b5e652393e7787322889ed5fdc58bd75b/out/vs/workbench/api/node/extensionHostProcess.js:407:153467)\n\tat i._receiveOneMessage (file:///private/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/markdown-studio-remote-web-raVXfT/cli/serve-web/41dd792b5e652393e7787322889ed5fdc58bd75b/out/vs/workbench/api/node/extensionHostProcess.js:407:152305)\n\tat rp.value (file:///private/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/markdown-studio-remote-web-raVXfT/cli/serve-web/41dd792b5e652393e7787322889ed5fdc58bd75b/out/vs/workbench/api/node/extensionHostProcess.js:407:150380)\n\tat E._deliver (file:///private/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/markdown-studio-remote-web-raVXfT/cli/serve-web/41dd792b5e652393e7787322889ed5fdc58bd75b/out/vs/workbench/api/node/extensionHostProcess.js:403:3043)\n\tat E.fire (file:///private/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/markdown-studio-remote-web-raVXfT/cli/serve-web/41dd792b5e652393e7787322889ed5fdc58bd75b/out/vs/workbench/api/node/extensionHostProcess.js:403:3361)\n\tat ls.fire (file:///private/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/markdown-studio-remote-web-raVXfT/cli/serve-web/41dd792b5e652393e7787322889ed5fdc58bd75b/out/vs/workbench/api/node/extensionHostProcess.js:405:8437)\n\tat rp.value (file:///private/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/markdown-studio-remote-web-raVXfT/cli/serve-web/41dd792b5e652393e7787322889ed5fdc58bd75b/out/vs/workbench/api/node/extensionHostProcess.js:822:9911)\n\tat E._deliver (file:///private/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/markdown-studio-remote-web-raVXfT/cli/serve-web/41dd792b5e652393e7787322889ed5fdc58bd75b/out/vs/workbench/api/node/extensionHostProcess.js:403:3043)\n\tat E.fire (file:///private/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/markdown-studio-remote-web-raVXfT/cli/serve-web/41dd792b5e652393e7787322889ed5fdc58bd75b/out/vs/workbench/api/node/extensionHostProcess.js:403:3361)\n\tat ls.fire (file:///private/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/markdown-studio-remote-web-raVXfT/cli/serve-web/41dd792b5e652393e7787322889ed5fdc58bd75b/out/vs/workbench/api/node/extensionHostProcess.js:405:8437)\n\tat lc._receiveMessage (file:///private/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/markdown-studio-remote-web-raVXfT/cli/serve-web/41dd792b5e652393e7787322889ed5fdc58bd75b/out/vs/workbench/api/node/extensionHostProcess.js:405:13337)\n\tat rp.value (file:///private/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/markdown-studio-remote-web-raVXfT/cli/serve-web/41dd792b5e652393e7787322889ed5fdc58bd75b/out/vs/workbench/api/node/extensionHostProcess.js:405:10642)\n\tat E._deliver (file:///private/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/markdown-studio-remote-web-raVXfT/cli/serve-web/41dd792b5e652393e7787322889ed5fdc58bd75b/out/vs/workbench/api/node/extensionHostProcess.js:403:3043)\n\tat E.fire (file:///private/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/markdown-studio-remote-web-raVXfT/cli/serve-web/41dd792b5e652393e7787322889ed5fdc58bd75b/out/vs/workbench/api/node/extensionHostProcess.js:403:3361)\n\tat NI.acceptChunk (file:///private/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/markdown-studio-remote-web-raVXfT/cli/serve-web/41dd792b5e652393e7787322889ed5fdc58bd75b/out/vs/workbench/api/node/extensionHostProcess.js:405:6237)\n\tat rp.value (file:///private/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/markdown-studio-remote-web-raVXfT/cli/serve-web/41dd792b5e652393e7787322889ed5fdc58bd75b/out/vs/workbench/api/node/extensionHostProcess.js:405:5370)\n\tat E._deliver (file:///private/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/markdown-studio-remote-web-raVXfT/cli/serve-web/41dd792b5e652393e7787322889ed5fdc58bd75b/out/vs/workbench/api/node/extensionHostProcess.js:403:3043)\n\tat E.fire (file:///private/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/markdown-studio-remote-web-raVXfT/cli/serve-web/41dd792b5e652393e7787322889ed5fdc58bd75b/out/vs/workbench/api/node/extensionHostProcess.js:403:3361)\n\tat G_._processReadQueue (file:///private/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/markdown-studio-remote-web-raVXfT/cli/serve-web/41dd792b5e652393e7787322889ed5fdc58bd75b/out/vs/workbench/api/node/extensionHostProcess.js:405:24786)"
+}

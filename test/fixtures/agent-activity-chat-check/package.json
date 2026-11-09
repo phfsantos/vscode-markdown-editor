@@ -1,0 +1,17 @@
+{
+  "name": "agent-activity-chat-check",
+  "displayName": "Markdown Activity Check (Test Fixture)",
+  "publisher": "markdown-studio-tests",
+  "version": "0.0.2",
+  "private": true,
+  "description": "Manual cooperating activity probe for a disposable native Chat test workspace.",
+  "engines": { "vscode": "^1.95.0" },
+  "main": "./extension.js",
+  "extensionKind": ["workspace", "ui"],
+  "activationEvents": ["onCommand:markdown-activity-check.start", "onCommand:markdown-activity-check.clear", "onCommand:markdown-activity-check.report"],
+  "contributes": { "commands": [
+    { "command": "markdown-activity-check.start", "title": "Markdown Activity Check: Start on tasks.md" },
+    { "command": "markdown-activity-check.clear", "title": "Markdown Activity Check: Clear Activity" },
+    { "command": "markdown-activity-check.report", "title": "Markdown Activity Check: Show Report" }
+  ] }
+}

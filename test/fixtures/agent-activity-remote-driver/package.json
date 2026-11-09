@@ -1,0 +1,33 @@
+{
+  "name": "agent-activity-remote-driver",
+  "publisher": "markdown-studio-tests",
+  "version": "0.0.1",
+  "private": true,
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "browser": "./extension.js",
+  "extensionKind": [
+    "ui"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "markdown-studio-activity-remote.run",
+        "title": "Remote Activity Test: Run"
+      },
+      {
+        "command": "markdown-studio-activity-remote.update",
+        "title": "Remote Activity Test: Update"
+      },
+      {
+        "command": "markdown-studio-activity-remote.clear",
+        "title": "Remote Activity Test: Clear"
+      },
+      {
+        "command": "markdown-studio-activity-remote.expire",
+        "title": "Remote Activity Test: Expire"
+      }
+    ]
+  }
+}
