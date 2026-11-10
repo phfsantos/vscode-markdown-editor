@@ -168,8 +168,8 @@ export class GoogleCalendarProvider implements CalendarProvider {
     this._clientId = config.get<string>('googleClientId') || DEFAULT_CLIENT_ID;
     this._clientSecret = config.get<string>('googleClientSecret') || DEFAULT_CLIENT_SECRET;
     
-    // Load saved token data
-    this._loadTokenData();
+    // Secret storage can block the host on a cold profile. Read tokens only
+    // when a calendar operation needs them, not during editor activation.
   }
   
   /**
@@ -560,6 +560,9 @@ export class GoogleCalendarProvider implements CalendarProvider {
    * Ensure we have a valid access token
    */
   private async _ensureValidToken(): Promise<string | null> {
+    if (!this._tokenData && this._context) {
+      await this._loadTokenData();
+    }
     if (!this._tokenData) {
       return null;
     }
@@ -578,15 +581,6 @@ export class GoogleCalendarProvider implements CalendarProvider {
    * Check if user has a valid session
    */
   public async isAuthenticated(): Promise<boolean> {
-    // Load token data if not already loaded
-    if (!this._tokenData && this._context) {
-      await this._loadTokenData();
-    }
-    
-    if (!this._tokenData) {
-      return false;
-    }
-    
     // Try to ensure token is valid
     const token = await this._ensureValidToken();
     return !!token;

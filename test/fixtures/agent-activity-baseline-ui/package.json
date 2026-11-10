@@ -1,0 +1,17 @@
+{
+  "name": "agent-activity-baseline-ui",
+  "publisher": "markdown-studio-tests",
+  "version": "0.0.1",
+  "engines": { "vscode": "^1.95.0" },
+  "main": "extension.js",
+  "activationEvents": ["onStartupFinished"],
+  "contributes": { "commands": [
+    { "command": "baseline195.open", "title": "Baseline Activity: Open Both Editors" },
+    { "command": "baseline195.snapshot", "title": "Baseline Activity: Snapshot" },
+    { "command": "baseline195.exports", "title": "Baseline Activity: Report Exports" },
+    { "command": "baseline195.commands", "title": "Baseline Activity: Report Commands" },
+    { "command": "baseline195.clear", "title": "Baseline Activity: Clear" },
+    { "command": "baseline195.badgesOff", "title": "Baseline Activity: Disable Badges" },
+    { "command": "baseline195.badgesOn", "title": "Baseline Activity: Enable Badges" }
+  ] }
+}

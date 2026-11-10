@@ -1,0 +1,53 @@
+{
+  "version": "1.95.0",
+  "commit": "912bb683695358a54ae0c670461738984cbb5b95",
+  "platform": "darwin",
+  "arch": "x64",
+  "providerBundleSha256": "75244fb9620c708894fe92d945560cfde310dcf9b15cce5e251a970944a5edb0",
+  "hostOnly": false,
+  "documentOnly": true,
+  "status": null,
+  "signal": "SIGKILL",
+  "error": "spawnSync /private/tmp/markdown-studio-vscode195-fresh/Visual Studio Code.app/Contents/MacOS/Electron ETIMEDOUT",
+  "report": "/private/tmp/markdown-studio-activity-baseline195-Fo2SMl/activity-report.json",
+  "hostLog": "/private/tmp/markdown-studio-activity-baseline195-Fo2SMl/host.log",
+  "checks": [
+    "Markdown Studio present; no activity calls"
+  ],
+  "editorRuntime": "blocked",
+  "notes": [],
+  "hostProbe": [
+    {
+      "label": "provider.activate (no activity calls)",
+      "status": "passed",
+      "elapsedMs": 1441
+    },
+    {
+      "label": "workspace.fs.readFile control.txt",
+      "status": "passed",
+      "elapsedMs": 212
+    },
+    {
+      "label": "openTextDocument control.txt",
+      "status": "failed",
+      "error": "Error: Timed out after 15s: openTextDocument control.txt",
+      "elapsedMs": 15003
+    },
+    {
+      "label": "workspace.fs.readFile control.md",
+      "status": "passed",
+      "elapsedMs": 12
+    },
+    {
+      "label": "openTextDocument control.md",
+      "status": "failed",
+      "error": "Error: Timed out after 15s: openTextDocument control.md",
+      "elapsedMs": 15003
+    },
+    {
+      "label": "openTextDocument untitled",
+      "status": "passed",
+      "elapsedMs": 19
+    }
+  ]
+}

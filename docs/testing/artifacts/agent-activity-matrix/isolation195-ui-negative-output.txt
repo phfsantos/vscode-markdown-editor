@@ -1,0 +1,34 @@
+Detected user defined code settings
+[33mWARNING: Custom settings override framework defaults: extensions.autoUpdate ("off" -> false)[0m
+Writing code settings to /private/tmp/md-baseline195-ui-OEP0rl/settings/User/settings.json
+Launching browser... (ChromeDriver log: /private/tmp/md-baseline195-ui-OEP0rl/chromedriver.log)
+
+
+  VS Code1.95 baseline activity visuals
+    ✔ opens the same source in native and custom editor tabs (12774ms)
+    1) exports producer preserves source while both tabs and the exact task show activity
+
+
+  1 passing (42s)
+  1 failing
+
+  1) VS Code1.95 baseline activity visuals
+       exports producer preserves source while both tabs and the exact task show activity:
+
+      AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+1 !== 0
+
+      + expected - actual
+
+      -1
+      +0
+      
+      at /Users/pedrosantos/www/vscode-markdown-editor/test/ui/activityBaseline195.test.cjs:77:12
+      at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at async /Users/pedrosantos/www/vscode-markdown-editor/test/ui/activityBaseline195.test.cjs:15:49
+
+
+
+Shutting down the browser
+{"sandbox":"/private/tmp/md-baseline195-ui-OEP0rl","status":1,"signal":null}

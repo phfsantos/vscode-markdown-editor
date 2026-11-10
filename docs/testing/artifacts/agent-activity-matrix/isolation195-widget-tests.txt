@@ -1,0 +1,23 @@
+yarn run v1.22.22
+warning Skipping preferred cache folder "/Users/pedrosantos/Library/Caches/Yarn" because it is not writable.
+warning Selected the next writable cache folder in the list, will be "/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/.yarn-cache-1133671539".
+warning markdown-editor@0.5.11: The engine "vscode" appears to be invalid.
+$ yarn --cwd packages/widgets vitest run --config vitest.config.ts
+warning Cannot find a suitable global folder. Tried these: "/usr/local, /Users/pedrosantos/.yarn"
+warning Skipping preferred cache folder "/Users/pedrosantos/Library/Caches/Yarn" because it is not writable.
+warning Selected the next writable cache folder in the list, will be "/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/.yarn-cache-1133671539".
+$ /Users/pedrosantos/www/vscode-markdown-editor/node_modules/.bin/vitest run --config vitest.config.ts
+warning Cannot find a suitable global folder. Tried these: "/usr/local, /Users/pedrosantos/.yarn"
+10:17:10 AM [vite] warning: `esbuild` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `oxc` instead.
+10:17:10 AM [vite] warning: `optimizeDeps.esbuildOptions` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `optimizeDeps.rolldownOptions` instead.
+Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic', jsxImportSource: undefined }`
+
+ RUN  v4.1.10 /Users/pedrosantos/www/vscode-markdown-editor/packages/widgets
+
+
+ Test Files  4 passed (4)
+      Tests  35 passed (35)
+   Start at  10:17:10
+   Duration  6.46s (transform 1.81s, setup 178ms, import 3.00s, tests 3.64s, environment 9.13s)
+
+Done in 9.67s.

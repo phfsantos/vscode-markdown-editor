@@ -1,8 +1,8 @@
 ---
+name: newwidget
 description: New Widget Creation Implementation Plan for VSCode Markdown Editor
-tools: ['vscode', 'execute', 'read', 'agent', 'edit', 'search', 'web', 'azure-mcp/search', 'github/get_commit', 'github/get_file_contents', 'github/get_me', 'github/get_tag', 'github/list_branches', 'github/list_commits', 'github/list_issues', 'github/list_pull_requests', 'github/list_tags', 'github/search_code', 'github/search_issues', 'github/search_pull_requests', 'github/search_repositories', 'github/search_users', 'memory/*', 'microsoft/markitdown/*', 'sequentialthinking/*', 'upstash/context7/*', 'todo']
+disable-model-invocation: true
 ---
-
 # Widget Creation Implementation Plan
 
 **Document Version:** 1.2

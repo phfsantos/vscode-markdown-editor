@@ -1,0 +1,56 @@
+yarn run v1.22.22
+warning Skipping preferred cache folder "/Users/pedrosantos/Library/Caches/Yarn" because it is not writable.
+warning Selected the next writable cache folder in the list, will be "/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/.yarn-cache-1133671539".
+warning markdown-editor@0.5.11: The engine "vscode" appears to be invalid.
+$ /Users/pedrosantos/www/vscode-markdown-editor/node_modules/.bin/vitest run test/calendar-token-loading.test.ts
+warning Cannot find a suitable global folder. Tried these: "/usr/local, /Users/pedrosantos/.yarn"
+
+ RUN  v4.1.10 /Users/pedrosantos/www/vscode-markdown-editor
+
+stdout | test/calendar-token-loading.test.ts
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+
+ ❯ test/calendar-token-loading.test.ts (4 tests | 2 failed) 22ms
+     × restores a stored session before a direct event request 7ms
+     × restores a stored session before a direct event request 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/calendar-token-loading.test.ts > Google token loading > restores a stored session before a direct event request
+AssertionError: expected "vi.fn()" to be called with arguments: [ 'google-calendar-token' ]
+
+Number of calls: 0
+
+ ❯ test/calendar-token-loading.test.ts:45:17
+     43|     // Observe early rejections even when the storage assertion fails …
+     44|     void events.catch(() => {});
+     45|     expect(get).toHaveBeenCalledWith(`${provider.id}-calendar-token`);
+       |                 ^
+     46|     expect(request).not.toHaveBeenCalled();
+     47|     resolveToken(JSON.stringify({ accessToken: 'stored-fixture-token',…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  test/calendar-token-loading.test.ts > Outlook token loading > restores a stored session before a direct event request
+AssertionError: expected "vi.fn()" to be called with arguments: [ 'outlook-calendar-token' ]
+
+Number of calls: 0
+
+ ❯ test/calendar-token-loading.test.ts:45:17
+     43|     // Observe early rejections even when the storage assertion fails …
+     44|     void events.catch(() => {});
+     45|     expect(get).toHaveBeenCalledWith(`${provider.id}-calendar-token`);
+       |                 ^
+     46|     expect(request).not.toHaveBeenCalled();
+     47|     resolveToken(JSON.stringify({ accessToken: 'stored-fixture-token',…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 2 passed (4)
+   Start at  10:12:44
+   Duration  827ms (transform 206ms, setup 0ms, import 338ms, tests 22ms, environment 0ms)
+
+error Command failed with exit code 1.
+info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.

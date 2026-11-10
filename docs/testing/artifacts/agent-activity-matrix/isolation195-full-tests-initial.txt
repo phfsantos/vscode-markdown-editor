@@ -1,0 +1,103 @@
+yarn run v1.22.22
+warning Skipping preferred cache folder "/Users/pedrosantos/Library/Caches/Yarn" because it is not writable.
+warning Selected the next writable cache folder in the list, will be "/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/.yarn-cache-1133671539".
+warning markdown-editor@0.5.11: The engine "vscode" appears to be invalid.
+$ yarn check-types && yarn test:core && yarn test:unit && yarn test:widgets
+warning Cannot find a suitable global folder. Tried these: "/usr/local, /Users/pedrosantos/.yarn"
+warning Skipping preferred cache folder "/Users/pedrosantos/Library/Caches/Yarn" because it is not writable.
+warning Selected the next writable cache folder in the list, will be "/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/.yarn-cache-1133671539".
+warning markdown-editor@0.5.11: The engine "vscode" appears to be invalid.
+$ yarn check-types:core && tsc --noEmit -p ./ --skipLibCheck && yarn --cwd packages/media type-check && yarn check-types:widgets
+warning Cannot find a suitable global folder. Tried these: "/usr/local, /Users/pedrosantos/.yarn"
+warning Skipping preferred cache folder "/Users/pedrosantos/Library/Caches/Yarn" because it is not writable.
+warning Selected the next writable cache folder in the list, will be "/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/.yarn-cache-1133671539".
+warning markdown-editor@0.5.11: The engine "vscode" appears to be invalid.
+$ yarn --cwd packages/core type-check
+warning Cannot find a suitable global folder. Tried these: "/usr/local, /Users/pedrosantos/.yarn"
+warning Skipping preferred cache folder "/Users/pedrosantos/Library/Caches/Yarn" because it is not writable.
+warning Selected the next writable cache folder in the list, will be "/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/.yarn-cache-1133671539".
+$ tsc --noEmit -p .
+warning Cannot find a suitable global folder. Tried these: "/usr/local, /Users/pedrosantos/.yarn"
+warning Skipping preferred cache folder "/Users/pedrosantos/Library/Caches/Yarn" because it is not writable.
+warning Selected the next writable cache folder in the list, will be "/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/.yarn-cache-1133671539".
+$ tsc --noEmit -p .
+warning Cannot find a suitable global folder. Tried these: "/usr/local, /Users/pedrosantos/.yarn"
+warning Skipping preferred cache folder "/Users/pedrosantos/Library/Caches/Yarn" because it is not writable.
+warning Selected the next writable cache folder in the list, will be "/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/.yarn-cache-1133671539".
+warning markdown-editor@0.5.11: The engine "vscode" appears to be invalid.
+$ yarn --cwd packages/widgets type-check
+warning Cannot find a suitable global folder. Tried these: "/usr/local, /Users/pedrosantos/.yarn"
+warning Skipping preferred cache folder "/Users/pedrosantos/Library/Caches/Yarn" because it is not writable.
+warning Selected the next writable cache folder in the list, will be "/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/.yarn-cache-1133671539".
+$ tsc --noEmit --skipLibCheck
+warning Cannot find a suitable global folder. Tried these: "/usr/local, /Users/pedrosantos/.yarn"
+warning Skipping preferred cache folder "/Users/pedrosantos/Library/Caches/Yarn" because it is not writable.
+warning Selected the next writable cache folder in the list, will be "/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/.yarn-cache-1133671539".
+warning markdown-editor@0.5.11: The engine "vscode" appears to be invalid.
+$ yarn --cwd packages/core test
+warning Cannot find a suitable global folder. Tried these: "/usr/local, /Users/pedrosantos/.yarn"
+warning Skipping preferred cache folder "/Users/pedrosantos/Library/Caches/Yarn" because it is not writable.
+warning Selected the next writable cache folder in the list, will be "/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/.yarn-cache-1133671539".
+$ vitest run --config vitest.config.ts
+warning Cannot find a suitable global folder. Tried these: "/usr/local, /Users/pedrosantos/.yarn"
+
+ RUN  v4.1.10 /Users/pedrosantos/www/vscode-markdown-editor/packages/core
+
+
+ Test Files  6 passed (6)
+      Tests  91 passed (91)
+   Start at  10:15:17
+   Duration  1.59s (transform 1.14s, setup 0ms, import 1.77s, tests 106ms, environment 2ms)
+
+warning Skipping preferred cache folder "/Users/pedrosantos/Library/Caches/Yarn" because it is not writable.
+warning Selected the next writable cache folder in the list, will be "/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/.yarn-cache-1133671539".
+warning markdown-editor@0.5.11: The engine "vscode" appears to be invalid.
+$ vitest run --coverage
+warning Cannot find a suitable global folder. Tried these: "/usr/local, /Users/pedrosantos/.yarn"
+
+ RUN  v4.1.10 /Users/pedrosantos/www/vscode-markdown-editor
+      Coverage enabled with v8
+
+ ❯ test/extension-runtime.test.ts (2 tests | 1 failed) 8983ms
+     × disposes every runtime-owned port and registration exactly once 5295ms
+ ❯ test/agent-activity-registry.test.ts (7 tests | 1 failed) 10106ms
+   × expires simultaneous sessions safely when snapshot subscribers refresh synchronously 5161ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/agent-activity-registry.test.ts > expires simultaneous sessions safely when snapshot subscribers refresh synchronously
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ test/agent-activity-registry.test.ts:72:1
+     70|   r.clearUri(uri); expect(r.getActivities(uri)).toHaveLength(0); r.dis…
+     71| });
+     72| it('expires simultaneous sessions safely when snapshot subscribers ref…
+       | ^
+     73|   let now = 0; const r = new AgentActivityRegistry({now:()=>now});
+     74|   for (let i=0;i<1000;i++) r.createSession({id:String(i),label:'A'}).s…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  test/extension-runtime.test.ts > ExtensionRuntime public lifecycle > disposes every runtime-owned port and registration exactly once
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ test/extension-runtime.test.ts:42:3
+     40|
+     41| describe('ExtensionRuntime public lifecycle', () => {
+     42|   it('disposes every runtime-owned port and registration exactly once'…
+       |   ^
+     43|     const ExtensionRuntime = await loadRuntimeConstructor();
+     44|     const options = runtimeOptions();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed | 70 passed (72)
+      Tests  2 failed | 633 passed (635)
+   Start at  10:15:25
+   Duration  64.78s (transform 24.17s, setup 0ms, import 59.54s, tests 145.03s, environment 39ms)
+
+error Command failed with exit code 1.
+info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.
+error Command failed with exit code 1.
+info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.

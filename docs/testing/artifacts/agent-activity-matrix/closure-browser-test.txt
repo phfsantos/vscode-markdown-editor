@@ -1,0 +1,13 @@
+yarn run v1.22.22
+warning markdown-editor@0.5.11: The engine "vscode" appears to be invalid.
+$ vitest run --config vitest.browser.config.ts --maxWorkers=2
+
+ RUN  v4.1.10 /Users/pedrosantos/www/vscode-markdown-editor
+
+
+ Test Files  13 passed (13)
+      Tests  146 passed (146)
+   Start at  09:58:31
+   Duration  13.69s (transform 0ms, setup 0ms, import 3.04s, tests 15.10s, environment 0ms)
+
+Done in 18.40s.

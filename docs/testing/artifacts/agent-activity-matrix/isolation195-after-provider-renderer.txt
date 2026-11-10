@@ -1,0 +1,6 @@
+2026-11-09 10:13:23.497 [info] Started local extension host with pid 7548.
+2026-11-09 10:13:23.577 [info] Started initializing default profile extensions in extensions installation folder. file:///private/tmp/markdown-studio-activity-baseline195-77pOww/extensions
+2026-11-09 10:13:24.213 [info] Completed initializing default profile extensions in extensions installation folder. file:///private/tmp/markdown-studio-activity-baseline195-77pOww/extensions
+2026-11-09 10:13:24.436 [info] Loading development extension at /Users/pedrosantos/www/vscode-markdown-editor/test/fixtures/agent-activity-consumer
+2026-11-09 10:13:24.436 [info] Loading development extension at /Users/pedrosantos/www/vscode-markdown-editor
+2026-11-09 10:13:25.352 [info] ◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }

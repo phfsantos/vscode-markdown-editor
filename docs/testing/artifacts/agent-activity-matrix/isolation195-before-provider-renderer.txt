@@ -1,0 +1,8 @@
+2026-11-09 10:07:32.359 [info] Started local extension host with pid 75980.
+2026-11-09 10:07:32.461 [info] Started initializing default profile extensions in extensions installation folder. file:///private/tmp/markdown-studio-activity-baseline195-OBG6Qn/extensions
+2026-11-09 10:07:33.112 [info] Completed initializing default profile extensions in extensions installation folder. file:///private/tmp/markdown-studio-activity-baseline195-OBG6Qn/extensions
+2026-11-09 10:07:33.389 [info] Loading development extension at /Users/pedrosantos/www/vscode-markdown-editor/test/fixtures/agent-activity-consumer
+2026-11-09 10:07:33.390 [info] Loading development extension at /Users/pedrosantos/www/vscode-markdown-editor
+2026-11-09 10:07:34.957 [error] [network] #2: https://az764295.vo.msecnd.net/extensions/chat.json - error GET Failed to fetch
+2026-11-09 10:07:34.960 [warning] Failed to fetch chat participant registry Failed to fetch
+2026-11-09 10:07:36.075 [info] ◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }

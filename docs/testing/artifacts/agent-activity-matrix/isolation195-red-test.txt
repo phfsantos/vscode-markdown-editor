@@ -1,0 +1,946 @@
+yarn run v1.22.22
+warning Skipping preferred cache folder "/Users/pedrosantos/Library/Caches/Yarn" because it is not writable.
+warning Selected the next writable cache folder in the list, will be "/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/.yarn-cache-1133671539".
+warning markdown-editor@0.5.11: The engine "vscode" appears to be invalid.
+$ /Users/pedrosantos/www/vscode-markdown-editor/node_modules/.bin/vitest run test/calendar-token-loading.test.ts
+warning Cannot find a suitable global folder. Tried these: "/usr/local, /Users/pedrosantos/.yarn"
+
+ RUN  v4.1.10 /Users/pedrosantos/www/vscode-markdown-editor
+
+stdout | test/calendar-token-loading.test.ts
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+
+ ❯ test/calendar-token-loading.test.ts (2 tests | 2 failed) 36ms
+     × leaves secret storage untouched until a calendar operation needs it 26ms
+     × leaves secret storage untouched until a calendar operation needs it 7ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/calendar-token-loading.test.ts > class GoogleCalendarProvider {
+	constructor() {
+		this.id = "google";
+		this.displayName = "Google Calendar";
+		this.scopes = GOOGLE_SCOPES;
+		this._clientId = DEFAULT_CLIENT_ID;
+		this._clientSecret = DEFAULT_CLIENT_SECRET;
+	}
+	/**
+	* Initialize the provider with extension context for secure token storage
+	*/
+	initialize(context) {
+		this._context = context;
+		// Load client ID and optional secret from settings
+		const config = __vite_ssr_import_0__.workspace.getConfiguration("markdown-editor.calendar");
+		this._clientId = config.get("googleClientId") || DEFAULT_CLIENT_ID;
+		this._clientSecret = config.get("googleClientSecret") || DEFAULT_CLIENT_SECRET;
+		// Load saved token data
+		this._loadTokenData();
+	}
+	/**
+	* Load token data from secure storage
+	*/
+	async _loadTokenData() {
+		if (!this._context) return;
+		try {
+			const stored = await this._context.secrets.get("google-calendar-token");
+			if (stored) {
+				this._tokenData = JSON.parse(stored);
+				__vite_ssr_import_6__.logger.debug("📅 Google: Loaded saved token data");
+			}
+		} catch {
+			__vite_ssr_import_6__.logger.debug("📅 Google: No saved token data");
+		}
+	}
+	/**
+	* Save token data to secure storage
+	*/
+	async _saveTokenData() {
+		if (!this._context || !this._tokenData) return;
+		try {
+			await this._context.secrets.store("google-calendar-token", JSON.stringify(this._tokenData));
+			__vite_ssr_import_6__.logger.debug("📅 Google: Saved token data");
+		} catch (error) {
+			__vite_ssr_import_6__.logger.error("📅 Google: Failed to save token data", error);
+		}
+	}
+	/**
+	* Clear token data from storage
+	*/
+	async _clearTokenData() {
+		this._tokenData = undefined;
+		if (this._context) {
+			await this._context.secrets.delete("google-calendar-token");
+		}
+	}
+	/**
+	* Authenticate with Google using custom OAuth flow with PKCE
+	* Uses local HTTP server for redirect since Google doesn't support custom URI schemes
+	*/
+	async authenticate() {
+		try {
+			__vite_ssr_import_6__.logger.debug("📅 Google: Starting authentication...");
+			// Generate PKCE code verifier and challenge
+			const codeVerifier = this._generateCodeVerifier();
+			const codeChallenge = this._generateCodeChallenge(codeVerifier);
+			const state = __vite_ssr_import_3__.randomBytes(16).toString("hex");
+			// Start local server to receive OAuth callback
+			// Google doesn't support custom URI schemes - must use localhost
+			const { authCode, port, cleanup } = await this._startOAuthServer(state);
+			const redirectUri = `http://localhost:${port}/callback`;
+			// Build authorization URL
+			const authUrl = `${OAUTH_AUTHORIZE_URL}?` + new URLSearchParams({
+				client_id: this._clientId,
+				response_type: "code",
+				redirect_uri: redirectUri,
+				scope: this.scopes.join(" "),
+				state,
+				code_challenge: codeChallenge,
+				code_challenge_method: "S256",
+				access_type: "offline",
+				prompt: "consent"
+			});
+			// Open browser for user to authenticate
+			__vite_ssr_import_6__.logger.debug("📅 Google: Opening browser for authentication...");
+			await __vite_ssr_import_0__.env.openExternal(__vite_ssr_import_0__.Uri.parse(authUrl));
+			// Wait for the auth code from callback
+			const code = await authCode;
+			cleanup();
+			if (!code) {
+				__vite_ssr_import_6__.logger.error("📅 Google: No auth code received");
+				return false;
+			};
+			// Exchange code for tokens
+			__vite_ssr_import_6__.logger.debug("📅 Google: Exchanging code for tokens...");
+			const tokens = await this._exchangeCodeForTokens(code, redirectUri, codeVerifier);
+			if (!tokens) {
+				return false;
+			};
+			// Get user info
+			const userInfo = await this._getUserInfo(tokens.accessToken);
+			// Store token data
+			this._tokenData = {
+				accessToken: tokens.accessToken,
+				refreshToken: tokens.refreshToken,
+				expiresAt: Date.now() + tokens.expiresIn * 1e3,
+				email: userInfo?.email
+			};
+			await this._saveTokenData();
+			__vite_ssr_import_6__.logger.debug(`📅 Google: Authenticated as ${this._tokenData.email || "user"}`);
+			__vite_ssr_import_0__.window.showInformationMessage(`Connected to Google Calendar as ${this._tokenData.email || "user"}`);
+			return true;
+		} catch (error) {
+			__vite_ssr_import_6__.logger.error("📅 Google: Authentication failed", error);
+			return false;
+		}
+	}
+	/**
+	* Start a local HTTP server to receive OAuth callback
+	* Google requires http://localhost for desktop OAuth apps
+	*/
+	_startOAuthServer(expectedState) {
+		return new Promise((resolve, reject) => {
+			let authCodeResolve;
+			const authCode = new Promise((r) => {
+				authCodeResolve = r;
+			});
+			const server = __vite_ssr_import_2__.createServer((req, res) => {
+				const url = new URL(req.url || "", `http://localhost`);
+				if (url.pathname === "/callback") {
+					const code = url.searchParams.get("code");
+					const state = url.searchParams.get("state");
+					const error = url.searchParams.get("error");
+					if (error) {
+						const errorMsg = url.searchParams.get("error_description") || error;
+						const vscodeErrorUri = (0,__vite_ssr_import_5__.getOAuthRedirectUri)() + "?provider=google&error=" + encodeURIComponent(errorMsg);
+						res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+						res.end(`
+              <!DOCTYPE html>
+              <html><head>
+                <meta charset="utf-8">
+                <title>Authentication Failed</title>
+              </head>
+              <body style="font-family: system-ui; padding: 40px; text-align: center;">
+                <h1 style="color: #ef4444;">&#10008; Authentication Failed</h1>
+                <p>${errorMsg}</p>
+                <p style="color: #666; font-size: 14px;">Redirecting back to VS Code...</p>
+                <script>
+                  setTimeout(function() {
+                    window.location.href = '${vscodeErrorUri}';
+                    setTimeout(function() { window.close(); }, 500);
+                  }, 1000);
+                <\/script>
+              </body></html>
+            `);
+						authCodeResolve(null);
+					} else if (state !== expectedState) {
+						res.writeHead(400, { "Content-Type": "text/html" });
+						res.end("<html><body><h1>Invalid state</h1></body></html>");
+						authCodeResolve(null);
+					} else {
+						// Build VS Code redirect URI with success indicator
+						const vscodeRedirectUri = (0,__vite_ssr_import_5__.getOAuthRedirectUri)() + "?provider=google&success=true";
+						res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+						res.end(`
+              <!DOCTYPE html>
+              <html><head>
+                <meta charset="utf-8">
+                <title>Authentication Successful</title>
+              </head>
+              <body style="font-family: system-ui; padding: 40px; text-align: center;">
+                <h1 style="color: #22c55e;">&#10004; Authentication Successful!</h1>
+                <p>Redirecting back to VS Code...</p>
+                <p style="color: #666; font-size: 14px;">If you're not redirected automatically, <a href="${vscodeRedirectUri}">click here</a> or close this window.</p>
+                <script>
+                  // Redirect to VS Code URI handler and close the tab
+                  setTimeout(function() {
+                    window.location.href = '${vscodeRedirectUri}';
+                    setTimeout(function() { window.close(); }, 500);
+                  }, 500);
+                <\/script>
+              </body></html>
+            `);
+						authCodeResolve(code);
+					}
+				}
+			});
+			server.listen(0, "localhost", () => {
+				const address = server.address();
+				const port = typeof address === "object" ? address?.port || 0 : 0;
+				__vite_ssr_import_6__.logger.debug(`📅 Google: OAuth callback server listening on port ${port}`);
+				const cleanup = () => {
+					server.close();
+				};
+				resolve({
+					authCode,
+					port,
+					cleanup
+				});
+			});
+			server.on("error", reject);
+			// Timeout after 5 minutes
+			setTimeout(() => {
+				server.close();
+				authCodeResolve(null);
+			}, 5 * 60 * 1e3);
+		});
+	}
+	/**
+	* Generate PKCE code verifier
+	*/
+	_generateCodeVerifier() {
+		return __vite_ssr_import_3__.randomBytes(32).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+	}
+	/**
+	* Generate PKCE code challenge from verifier
+	*/
+	_generateCodeChallenge(verifier) {
+		return __vite_ssr_import_3__.createHash("sha256").update(verifier).digest("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+	}
+	/**
+	* Convert Date to ISO string with local timezone offset
+	* This ensures Google Calendar API interprets the date in the user's local timezone
+	*/
+	_toLocalISOString(date) {
+		const tzOffset = -date.getTimezoneOffset();
+		const sign = tzOffset >= 0 ? "+" : "-";
+		const pad = (n) => String(Math.floor(Math.abs(n))).padStart(2, "0");
+		return date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate()) + "T" + pad(date.getHours()) + ":" + pad(date.getMinutes()) + ":" + pad(date.getSeconds()) + sign + pad(tzOffset / 60) + ":" + pad(tzOffset % 60);
+	}
+	/**
+	* Exchange authorization code for tokens
+	*/
+	async _exchangeCodeForTokens(code, redirectUri, codeVerifier) {
+		try {
+			const bodyParams = {
+				client_id: this._clientId,
+				grant_type: "authorization_code",
+				code,
+				redirect_uri: redirectUri,
+				code_verifier: codeVerifier
+			};
+			// Include client_secret if provided (needed for Web application type OAuth clients)
+			if (this._clientSecret) {
+				bodyParams.client_secret = this._clientSecret;
+			};
+			const body = new URLSearchParams(bodyParams);
+			const response = await httpsRequest(OAUTH_TOKEN_URL, {
+				method: "POST",
+				headers: { "Content-Type": "application/x-www-form-urlencoded" },
+				body: body.toString()
+			});
+			if (!response.ok) {
+				const errorData = await response.json();
+				__vite_ssr_import_6__.logger.error("📅 Google: Token exchange failed", errorData);
+				__vite_ssr_import_0__.window.showErrorMessage(`Google auth failed: ${errorData.error_description || errorData.error}`);
+				return null;
+			};
+			const data = await response.json();
+			return {
+				accessToken: data.access_token,
+				refreshToken: data.refresh_token,
+				expiresIn: data.expires_in || 3600
+			};
+		} catch (error) {
+			__vite_ssr_import_6__.logger.error("📅 Google: Token exchange error", error);
+			return null;
+		}
+	}
+	/**
+	* Refresh the access token using refresh token
+	*/
+	async _refreshAccessToken() {
+		if (!this._tokenData?.refreshToken || !this._clientId) {
+			return false;
+		};
+		try {
+			__vite_ssr_import_6__.logger.debug("📅 Google: Refreshing access token...");
+			const bodyParams = {
+				client_id: this._clientId,
+				grant_type: "refresh_token",
+				refresh_token: this._tokenData.refreshToken
+			};
+			// Include client_secret if provided (needed for Web application type OAuth clients)
+			if (this._clientSecret) {
+				bodyParams.client_secret = this._clientSecret;
+			};
+			const body = new URLSearchParams(bodyParams);
+			const response = await httpsRequest(OAUTH_TOKEN_URL, {
+				method: "POST",
+				headers: { "Content-Type": "application/x-www-form-urlencoded" },
+				body: body.toString()
+			});
+			if (!response.ok) {
+				__vite_ssr_import_6__.logger.error("📅 Google: Token refresh failed");
+				await this._clearTokenData();
+				return false;
+			};
+			const data = await response.json();
+			this._tokenData = {
+				...this._tokenData,
+				accessToken: data.access_token,
+				// Google doesn't always return a new refresh token
+				refreshToken: data.refresh_token || this._tokenData.refreshToken,
+				expiresAt: Date.now() + (data.expires_in || 3600) * 1e3
+			};
+			await this._saveTokenData();
+			__vite_ssr_import_6__.logger.debug("📅 Google: Token refreshed successfully");
+			return true;
+		} catch (error) {
+			__vite_ssr_import_6__.logger.error("📅 Google: Token refresh error", error);
+			await this._clearTokenData();
+			return false;
+		}
+	}
+	/**
+	* Get user info from Google
+	*/
+	async _getUserInfo(accessToken) {
+		try {
+			const response = await httpsRequest(USERINFO_URL, { headers: { "Authorization": `Bearer ${accessToken}` } });
+			if (response.ok) {
+				const data = await response.json();
+				return { email: data.email };
+			}
+		} catch (error) {
+			__vite_ssr_import_6__.logger.debug("📅 Google: Failed to get user info", error);
+		};
+		return null;
+	}
+	/**
+	* Ensure we have a valid access token
+	*/
+	async _ensureValidToken() {
+		if (!this._tokenData) {
+			return null;
+		};
+		// Check if token is expired or about to expire (within 5 minutes)
+		if (this._tokenData.expiresAt < Date.now() + 5 * 60 * 1e3) {
+			if (!await this._refreshAccessToken()) {
+				return null;
+			}
+		};
+		return this._tokenData.accessToken;
+	}
+	/**
+	* Check if user has a valid session
+	*/
+	async isAuthenticated() {
+		// Load token data if not already loaded
+		if (!this._tokenData && this._context) {
+			await this._loadTokenData();
+		};
+		if (!this._tokenData) {
+			return false;
+		};
+		// Try to ensure token is valid
+		const token = await this._ensureValidToken();
+		return !!token;
+	}
+	/**
+	* Get current auth state
+	*/
+	async getAuthState() {
+		const authenticated = await this.isAuthenticated();
+		return {
+			authenticated,
+			email: this._tokenData?.email
+		};
+	}
+	/**
+	* Get events for a specific date
+	*/
+	async getEvents(date) {
+		const accessToken = await this._ensureValidToken();
+		if (!accessToken) {
+			throw new Error("Not authenticated with Google");
+		};
+		try {
+			// Calculate start and end of day in LOCAL timezone
+			const startOfDay = new Date(date);
+			startOfDay.setHours(0, 0, 0, 0);
+			const endOfDay = new Date(date);
+			endOfDay.setHours(23, 59, 59, 999);
+			// Format with timezone offset for accurate local date queries
+			const timeMin = this._toLocalISOString(startOfDay);
+			const timeMax = this._toLocalISOString(endOfDay);
+			__vite_ssr_import_6__.logger.debug(`📅 Google: Querying ${timeMin} to ${timeMax}`);
+			// Build Google Calendar API URL
+			const url = `${CALENDAR_API_BASE}/calendars/primary/events?` + new URLSearchParams({
+				timeMin,
+				timeMax,
+				singleEvents: "true",
+				orderBy: "startTime",
+				maxResults: "50"
+			});
+			const response = await httpsRequest(url, { headers: {
+				"Authorization": `Bearer ${accessToken}`,
+				"Content-Type": "application/json"
+			} });
+			if (!response.ok) {
+				const errorText = await response.text();
+				__vite_ssr_import_6__.logger.error(`📅 Google: API error ${response.status}: ${errorText}`);
+				throw new Error(`Failed to fetch Google events: ${response.status}`);
+			};
+			const data = await response.json();
+			const events = (data.items || []).map((event) => this._convertEvent(event));
+			__vite_ssr_import_6__.logger.debug(`📅 Google: Fetched ${events.length} events`);
+			return events;
+		} catch (error) {
+			__vite_ssr_import_6__.logger.error("📅 Google: Failed to fetch events", error);
+			throw error;
+		}
+	}
+	/**
+	* Sign out from Google
+	*/
+	async signOut() {
+		try {
+			await this._clearTokenData();
+			__vite_ssr_import_6__.logger.debug("📅 Google: Signed out");
+			__vite_ssr_import_0__.window.showInformationMessage("Disconnected from Google Calendar");
+		} catch (error) {
+			__vite_ssr_import_6__.logger.error("📅 Google: Sign out failed", error);
+			throw error;
+		}
+	}
+	/**
+	* Convert Google Calendar event to our CalendarEvent format
+	*/
+	_convertEvent(event) {
+		// Handle all-day events (have date instead of dateTime)
+		const allDay = !!event.start.date && !event.start.dateTime;
+		let startTime;
+		let endTime;
+		if (allDay) {
+			startTime = new Date(event.start.date);
+			endTime = new Date(event.end.date);
+		} else {
+			startTime = new Date(event.start.dateTime);
+			endTime = new Date(event.end.dateTime);
+		};
+		const time = allDay ? "All day" : this._formatTimeRange(startTime, endTime);
+		const color = event.colorId ? GOOGLE_COLOR_MAP[event.colorId] || "#0e639c" : "#0e639c";
+		const hasVideo = !!(event.hangoutLink || event.conferenceData?.entryPoints?.some((e) => e.entryPointType === "video"));
+		const videoLink = event.hangoutLink || event.conferenceData?.entryPoints?.find((e) => e.entryPointType === "video")?.uri;
+		const link = videoLink || event.htmlLink;
+		return {
+			id: event.id,
+			title: event.summary || "(No title)",
+			time,
+			startTime: startTime.toISOString(),
+			endTime: endTime.toISOString(),
+			color,
+			hasVideo,
+			link,
+			location: event.location,
+			description: event.description?.substring(0, 200),
+			source: "google",
+			allDay,
+			organizer: event.organizer?.email
+		};
+	}
+	/**
+	* Format time range for display
+	*/
+	_formatTimeRange(start, end) {
+		const options = {
+			hour: "numeric",
+			minute: "2-digit",
+			hour12: true
+		};
+		const startStr = start.toLocaleTimeString("en-US", options);
+		const endStr = end.toLocaleTimeString("en-US", options);
+		return `${startStr} - ${endStr}`;
+	}
+} token loading > leaves secret storage untouched until a calendar operation needs it
+AssertionError: expected "vi.fn()" to not be called at all, but actually been called 1 times
+
+Received:
+
+  1st vi.fn() call:
+
+    Array [
+      "google-calendar-token",
+    ]
+
+
+Number of calls: 1
+
+ ❯ test/calendar-token-loading.test.ts:12:21
+     10|     provider.initialize({ secrets: { get } } as unknown as vscode.Exte…
+     11|
+     12|     expect(get).not.toHaveBeenCalled();
+       |                     ^
+     13|     await expect(provider.getAuthState()).resolves.toEqual({ authentic…
+     14|     expect(get).toHaveBeenCalledWith(`${provider.id}-calendar-token`);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  test/calendar-token-loading.test.ts > class OutlookCalendarProvider {
+	constructor() {
+		this.id = "outlook";
+		this.displayName = "Microsoft Outlook";
+		this.scopes = OUTLOOK_SCOPES;
+		this._clientId = DEFAULT_CLIENT_ID;
+	}
+	/**
+	* Initialize the provider with extension context for secure token storage
+	*/
+	initialize(context) {
+		this._context = context;
+		// Load client ID from settings
+		const config = __vite_ssr_import_0__.workspace.getConfiguration("markdown-editor.calendar");
+		this._clientId = config.get("outlookClientId") || DEFAULT_CLIENT_ID;
+		// Load saved token data
+		this._loadTokenData();
+	}
+	/**
+	* Load token data from secure storage
+	*/
+	async _loadTokenData() {
+		if (!this._context) return;
+		try {
+			const stored = await this._context.secrets.get("outlook-calendar-token");
+			if (stored) {
+				this._tokenData = JSON.parse(stored);
+				__vite_ssr_import_4__.logger.debug("📅 Outlook: Loaded saved token data");
+			}
+		} catch {
+			__vite_ssr_import_4__.logger.debug("📅 Outlook: No saved token data");
+		}
+	}
+	/**
+	* Save token data to secure storage
+	*/
+	async _saveTokenData() {
+		if (!this._context || !this._tokenData) return;
+		try {
+			await this._context.secrets.store("outlook-calendar-token", JSON.stringify(this._tokenData));
+			__vite_ssr_import_4__.logger.debug("📅 Outlook: Saved token data");
+		} catch (error) {
+			__vite_ssr_import_4__.logger.error("📅 Outlook: Failed to save token data", error);
+		}
+	}
+	/**
+	* Clear token data from storage
+	*/
+	async _clearTokenData() {
+		this._tokenData = undefined;
+		if (this._context) {
+			await this._context.secrets.delete("outlook-calendar-token");
+		}
+	}
+	/**
+	* Authenticate with Microsoft using custom OAuth flow with PKCE
+	* Uses VS Code URI handler for redirect (vscode://phfsantos.markdown-editor/oauth/callback)
+	*/
+	async authenticate() {
+		try {
+			__vite_ssr_import_4__.logger.debug("📅 Outlook: Starting authentication...");
+			// Generate PKCE code verifier and challenge
+			const codeVerifier = this._generateCodeVerifier();
+			const codeChallenge = this._generateCodeChallenge(codeVerifier);
+			const state = __vite_ssr_import_2__.randomBytes(16).toString("hex");
+			// Build authorization URL with VS Code URI as redirect
+			const authUrl = `${OAUTH_AUTHORIZE_URL}?` + new URLSearchParams({
+				client_id: this._clientId,
+				response_type: "code",
+				redirect_uri: (0,__vite_ssr_import_3__.getOAuthRedirectUri)(),
+				scope: this.scopes.join(" "),
+				state,
+				code_challenge: codeChallenge,
+				code_challenge_method: "S256",
+				prompt: "select_account"
+			});
+			// Start waiting for callback before opening browser
+			const authCodePromise = __vite_ssr_import_3__.OAuthCallbackHandler.waitForCallback("outlook", state, codeVerifier);
+			// Open browser for user to authenticate
+			__vite_ssr_import_4__.logger.debug("📅 Outlook: Opening browser for authentication...");
+			await __vite_ssr_import_0__.env.openExternal(__vite_ssr_import_0__.Uri.parse(authUrl));
+			// Wait for the auth code from URI handler callback
+			const code = await authCodePromise;
+			if (!code) {
+				__vite_ssr_import_4__.logger.error("📅 Outlook: No auth code received");
+				return false;
+			};
+			// Exchange code for tokens
+			__vite_ssr_import_4__.logger.debug("📅 Outlook: Exchanging code for tokens...");
+			const tokens = await this._exchangeCodeForTokens(code, codeVerifier);
+			if (!tokens) {
+				return false;
+			};
+			// Get user info
+			const userInfo = await this._getUserInfo(tokens.accessToken);
+			// Store token data
+			this._tokenData = {
+				accessToken: tokens.accessToken,
+				refreshToken: tokens.refreshToken,
+				expiresAt: Date.now() + tokens.expiresIn * 1e3,
+				email: userInfo?.email
+			};
+			await this._saveTokenData();
+			__vite_ssr_import_4__.logger.debug(`📅 Outlook: Authenticated as ${this._tokenData.email || "user"}`);
+			__vite_ssr_import_0__.window.showInformationMessage(`Connected to Outlook Calendar as ${this._tokenData.email || "user"}`);
+			return true;
+		} catch (error) {
+			__vite_ssr_import_4__.logger.error("📅 Outlook: Authentication failed", error);
+			return false;
+		}
+	}
+	/**
+	* Generate PKCE code verifier
+	*/
+	_generateCodeVerifier() {
+		// Convert base64 to base64url (URL-safe)
+		return __vite_ssr_import_2__.randomBytes(32).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+	}
+	/**
+	* Generate PKCE code challenge from verifier
+	*/
+	_generateCodeChallenge(verifier) {
+		// Convert base64 to base64url (URL-safe)
+		return __vite_ssr_import_2__.createHash("sha256").update(verifier).digest("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+	}
+	/**
+	* Convert Date to ISO string with local timezone offset
+	* This ensures Microsoft Graph API interprets the date in the user's local timezone
+	*/
+	_toLocalISOString(date) {
+		const tzOffset = -date.getTimezoneOffset();
+		const sign = tzOffset >= 0 ? "+" : "-";
+		const pad = (n) => String(Math.floor(Math.abs(n))).padStart(2, "0");
+		return date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate()) + "T" + pad(date.getHours()) + ":" + pad(date.getMinutes()) + ":" + pad(date.getSeconds()) + sign + pad(tzOffset / 60) + ":" + pad(tzOffset % 60);
+	}
+	/**
+	* Exchange authorization code for tokens
+	*/
+	async _exchangeCodeForTokens(code, codeVerifier) {
+		try {
+			const body = new URLSearchParams({
+				client_id: this._clientId,
+				grant_type: "authorization_code",
+				code,
+				redirect_uri: (0,__vite_ssr_import_3__.getOAuthRedirectUri)(),
+				code_verifier: codeVerifier
+			});
+			const response = await httpsRequest(OAUTH_TOKEN_URL, {
+				method: "POST",
+				headers: { "Content-Type": "application/x-www-form-urlencoded" },
+				body: body.toString()
+			});
+			if (!response.ok) {
+				const errorData = await response.json();
+				__vite_ssr_import_4__.logger.error("📅 Outlook: Token exchange failed", errorData);
+				__vite_ssr_import_0__.window.showErrorMessage(`Outlook auth failed: ${errorData.error_description || errorData.error}`);
+				return null;
+			};
+			const data = await response.json();
+			return {
+				accessToken: data.access_token,
+				refreshToken: data.refresh_token,
+				expiresIn: data.expires_in || 3600
+			};
+		} catch (error) {
+			__vite_ssr_import_4__.logger.error("📅 Outlook: Token exchange error", error);
+			return null;
+		}
+	}
+	/**
+	* Refresh the access token using refresh token
+	*/
+	async _refreshAccessToken() {
+		if (!this._tokenData?.refreshToken || !this._clientId) {
+			return false;
+		};
+		try {
+			__vite_ssr_import_4__.logger.debug("📅 Outlook: Refreshing access token...");
+			const body = new URLSearchParams({
+				client_id: this._clientId,
+				grant_type: "refresh_token",
+				refresh_token: this._tokenData.refreshToken,
+				scope: this.scopes.join(" ")
+			});
+			const response = await httpsRequest(OAUTH_TOKEN_URL, {
+				method: "POST",
+				headers: { "Content-Type": "application/x-www-form-urlencoded" },
+				body: body.toString()
+			});
+			if (!response.ok) {
+				__vite_ssr_import_4__.logger.error("📅 Outlook: Token refresh failed");
+				await this._clearTokenData();
+				return false;
+			};
+			const data = await response.json();
+			this._tokenData = {
+				...this._tokenData,
+				accessToken: data.access_token,
+				refreshToken: data.refresh_token || this._tokenData.refreshToken,
+				expiresAt: Date.now() + (data.expires_in || 3600) * 1e3
+			};
+			await this._saveTokenData();
+			__vite_ssr_import_4__.logger.debug("📅 Outlook: Token refreshed successfully");
+			return true;
+		} catch (error) {
+			__vite_ssr_import_4__.logger.error("📅 Outlook: Token refresh error", error);
+			await this._clearTokenData();
+			return false;
+		}
+	}
+	/**
+	* Get user info from Microsoft Graph
+	*/
+	async _getUserInfo(accessToken) {
+		try {
+			const response = await httpsRequest(`${GRAPH_API_BASE}/me`, { headers: { "Authorization": `Bearer ${accessToken}` } });
+			if (response.ok) {
+				const data = await response.json();
+				return { email: data.mail || data.userPrincipalName };
+			}
+		} catch (error) {
+			__vite_ssr_import_4__.logger.debug("📅 Outlook: Failed to get user info", error);
+		};
+		return null;
+	}
+	/**
+	* Ensure we have a valid access token
+	*/
+	async _ensureValidToken() {
+		if (!this._tokenData) {
+			return null;
+		};
+		// Check if token is expired or about to expire (within 5 minutes)
+		if (this._tokenData.expiresAt < Date.now() + 5 * 60 * 1e3) {
+			if (!await this._refreshAccessToken()) {
+				return null;
+			}
+		};
+		return this._tokenData.accessToken;
+	}
+	/**
+	* Check if user has a valid session
+	*/
+	async isAuthenticated() {
+		// Load token data if not already loaded
+		if (!this._tokenData && this._context) {
+			await this._loadTokenData();
+		};
+		if (!this._tokenData) {
+			return false;
+		};
+		// Try to ensure token is valid
+		const token = await this._ensureValidToken();
+		return !!token;
+	}
+	/**
+	* Get current auth state
+	*/
+	async getAuthState() {
+		const authenticated = await this.isAuthenticated();
+		return {
+			authenticated,
+			email: this._tokenData?.email
+		};
+	}
+	/**
+	* Get events for a specific date
+	*/
+	async getEvents(date) {
+		const accessToken = await this._ensureValidToken();
+		if (!accessToken) {
+			throw new Error("Not authenticated with Outlook");
+		};
+		try {
+			// Calculate start and end of day in LOCAL timezone
+			// Then format as ISO string with timezone offset for Microsoft Graph
+			const startOfDay = new Date(date);
+			startOfDay.setHours(0, 0, 0, 0);
+			const endOfDay = new Date(date);
+			endOfDay.setHours(23, 59, 59, 999);
+			// Format with timezone offset for accurate local date queries
+			// Microsoft Graph API accepts ISO 8601 with timezone
+			const startDateTime = this._toLocalISOString(startOfDay);
+			const endDateTime = this._toLocalISOString(endOfDay);
+			__vite_ssr_import_4__.logger.debug(`📅 Outlook: Querying ${startDateTime} to ${endDateTime}`);
+			// Build Graph API URL for calendarView
+			const url = `${GRAPH_API_BASE}/me/calendarView?` + new URLSearchParams({
+				startDateTime,
+				endDateTime,
+				"$orderby": "start/dateTime",
+				"$select": "id,subject,start,end,location,isOnlineMeeting,onlineMeeting,webLink,bodyPreview,organizer,categories,showAs",
+				"$top": "50"
+			});
+			__vite_ssr_import_4__.logger.debug(`📅 Outlook: Fetching events for ${date.toDateString()}`);
+			const response = await httpsRequest(url, { headers: {
+				"Authorization": `Bearer ${accessToken}`,
+				"Content-Type": "application/json"
+			} });
+			if (!response.ok) {
+				const errorText = await response.text();
+				__vite_ssr_import_4__.logger.error(`📅 Outlook: API error ${response.status}: ${errorText}`);
+				throw new Error(`Failed to fetch Outlook events: ${response.status}`);
+			};
+			const data = await response.json();
+			const events = data.value.map((event) => this._convertEvent(event));
+			__vite_ssr_import_4__.logger.debug(`📅 Outlook: Fetched ${events.length} events`);
+			return events;
+		} catch (error) {
+			__vite_ssr_import_4__.logger.error("📅 Outlook: Failed to fetch events", error);
+			throw error;
+		}
+	}
+	/**
+	* Sign out from Microsoft
+	*/
+	async signOut() {
+		try {
+			await this._clearTokenData();
+			__vite_ssr_import_4__.logger.debug("📅 Outlook: Signed out");
+			__vite_ssr_import_0__.window.showInformationMessage("Disconnected from Outlook Calendar");
+		} catch (error) {
+			__vite_ssr_import_4__.logger.error("📅 Outlook: Sign out failed", error);
+			throw error;
+		}
+	}
+	/**
+	* Convert Outlook event to our CalendarEvent format
+	*/
+	_convertEvent(event) {
+		const startTime = new Date(event.start.dateTime + "Z");
+		const endTime = new Date(event.end.dateTime + "Z");
+		const allDay = event.isAllDay ?? this._isAllDay(startTime, endTime);
+		const time = allDay ? "All day" : this._formatTimeRange(startTime, endTime);
+		const color = this._getEventColor(event);
+		const hasVideo = event.isOnlineMeeting || !!event.onlineMeeting?.joinUrl;
+		const link = event.onlineMeeting?.joinUrl || event.webLink;
+		return {
+			id: event.id,
+			title: event.subject || "(No title)",
+			time,
+			startTime: startTime.toISOString(),
+			endTime: endTime.toISOString(),
+			color,
+			hasVideo,
+			link,
+			location: event.location?.displayName,
+			description: event.bodyPreview,
+			source: "outlook",
+			allDay,
+			organizer: event.organizer?.emailAddress?.address
+		};
+	}
+	/**
+	* Format time range for display
+	*/
+	_formatTimeRange(start, end) {
+		const options = {
+			hour: "numeric",
+			minute: "2-digit",
+			hour12: true
+		};
+		const startStr = start.toLocaleTimeString("en-US", options);
+		const endStr = end.toLocaleTimeString("en-US", options);
+		return `${startStr} - ${endStr}`;
+	}
+	/**
+	* Check if event spans the full day
+	*/
+	_isAllDay(start, end) {
+		const startHour = start.getHours();
+		const startMin = start.getMinutes();
+		const endHour = end.getHours();
+		const endMin = end.getMinutes();
+		return startHour === 0 && startMin === 0 && endHour === 0 && endMin === 0;
+	}
+	/**
+	* Get event color from categories or showAs
+	*/
+	_getEventColor(event) {
+		if (event.categories && event.categories.length > 0) {
+			const category = event.categories[0].toLowerCase();
+			for (const [key, color] of Object.entries(OUTLOOK_COLOR_MAP)) {
+				if (category.includes(key.toLowerCase())) {
+					return color;
+				}
+			}
+		};
+		switch (event.showAs) {
+			case "busy": return "#3b82f6";
+			case "tentative": return "#eab308";
+			case "oof": return "#a855f7";
+			case "free": return "#22c55e";
+			case "workingElsewhere": return "#14b8a6";
+			default: return "#0e639c";
+		}
+	}
+} token loading > leaves secret storage untouched until a calendar operation needs it
+AssertionError: expected "vi.fn()" to not be called at all, but actually been called 1 times
+
+Received:
+
+  1st vi.fn() call:
+
+    Array [
+      "outlook-calendar-token",
+    ]
+
+
+Number of calls: 1
+
+ ❯ test/calendar-token-loading.test.ts:12:21
+     10|     provider.initialize({ secrets: { get } } as unknown as vscode.Exte…
+     11|
+     12|     expect(get).not.toHaveBeenCalled();
+       |                     ^
+     13|     await expect(provider.getAuthState()).resolves.toEqual({ authentic…
+     14|     expect(get).toHaveBeenCalledWith(`${provider.id}-calendar-token`);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed (2)
+   Start at  10:11:31
+   Duration  651ms (transform 248ms, setup 0ms, import 340ms, tests 36ms, environment 0ms)
+
+error Command failed with exit code 1.
+info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.

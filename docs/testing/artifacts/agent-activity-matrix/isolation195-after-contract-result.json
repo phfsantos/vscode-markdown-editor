@@ -1,0 +1,24 @@
+{
+  "version": "1.95.0",
+  "commit": "912bb683695358a54ae0c670461738984cbb5b95",
+  "platform": "darwin",
+  "arch": "x64",
+  "providerBundleSha256": "cf3835c4a0b57a5a407a6c778d387967fe5510244c6b74e9250238e95cb80166",
+  "hostOnly": false,
+  "documentOnly": false,
+  "status": 0,
+  "signal": null,
+  "report": "/private/tmp/markdown-studio-activity-baseline195-p9MoiC/activity-report.json",
+  "hostLog": "/private/tmp/markdown-studio-activity-baseline195-p9MoiC/host.log",
+  "coldCommandActivation": {
+    "wasActive": false,
+    "activated": true
+  },
+  "checks": [
+    "cold activation and JSON start/update/heartbeat/clear/end stable APIs",
+    "exports activity session stable APIs",
+    "independent task consumer exports and JSON preserve source/version/dirty",
+    "custom editor command completed (visual projection requires separate UI check)"
+  ],
+  "notes": []
+}

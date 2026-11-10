@@ -1,0 +1,7 @@
+yarn run v1.22.22
+warning Skipping preferred cache folder "/Users/pedrosantos/Library/Caches/Yarn" because it is not writable.
+warning Selected the next writable cache folder in the list, will be "/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/.yarn-cache-1133671539".
+warning markdown-editor@0.5.11: The engine "vscode" appears to be invalid.
+$ eslint src --ext .ts
+warning Cannot find a suitable global folder. Tried these: "/usr/local, /Users/pedrosantos/.yarn"
+Done in 7.48s.

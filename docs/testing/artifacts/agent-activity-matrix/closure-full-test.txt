@@ -1,0 +1,120 @@
+yarn run v1.22.22
+warning Skipping preferred cache folder "/Users/pedrosantos/Library/Caches/Yarn" because it is not writable.
+warning Selected the next writable cache folder in the list, will be "/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/.yarn-cache-1133671539".
+warning markdown-editor@0.5.11: The engine "vscode" appears to be invalid.
+$ yarn check-types && yarn test:core && yarn test:unit && yarn test:widgets
+warning Cannot find a suitable global folder. Tried these: "/usr/local, /Users/pedrosantos/.yarn"
+warning Skipping preferred cache folder "/Users/pedrosantos/Library/Caches/Yarn" because it is not writable.
+warning Selected the next writable cache folder in the list, will be "/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/.yarn-cache-1133671539".
+warning markdown-editor@0.5.11: The engine "vscode" appears to be invalid.
+$ yarn check-types:core && tsc --noEmit -p ./ --skipLibCheck && yarn --cwd packages/media type-check && yarn check-types:widgets
+warning Cannot find a suitable global folder. Tried these: "/usr/local, /Users/pedrosantos/.yarn"
+warning Skipping preferred cache folder "/Users/pedrosantos/Library/Caches/Yarn" because it is not writable.
+warning Selected the next writable cache folder in the list, will be "/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/.yarn-cache-1133671539".
+warning markdown-editor@0.5.11: The engine "vscode" appears to be invalid.
+$ yarn --cwd packages/core type-check
+warning Cannot find a suitable global folder. Tried these: "/usr/local, /Users/pedrosantos/.yarn"
+warning Skipping preferred cache folder "/Users/pedrosantos/Library/Caches/Yarn" because it is not writable.
+warning Selected the next writable cache folder in the list, will be "/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/.yarn-cache-1133671539".
+$ tsc --noEmit -p .
+warning Cannot find a suitable global folder. Tried these: "/usr/local, /Users/pedrosantos/.yarn"
+warning Skipping preferred cache folder "/Users/pedrosantos/Library/Caches/Yarn" because it is not writable.
+warning Selected the next writable cache folder in the list, will be "/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/.yarn-cache-1133671539".
+$ tsc --noEmit -p .
+warning Cannot find a suitable global folder. Tried these: "/usr/local, /Users/pedrosantos/.yarn"
+warning Skipping preferred cache folder "/Users/pedrosantos/Library/Caches/Yarn" because it is not writable.
+warning Selected the next writable cache folder in the list, will be "/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/.yarn-cache-1133671539".
+warning markdown-editor@0.5.11: The engine "vscode" appears to be invalid.
+$ yarn --cwd packages/widgets type-check
+warning Cannot find a suitable global folder. Tried these: "/usr/local, /Users/pedrosantos/.yarn"
+warning Skipping preferred cache folder "/Users/pedrosantos/Library/Caches/Yarn" because it is not writable.
+warning Selected the next writable cache folder in the list, will be "/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/.yarn-cache-1133671539".
+$ tsc --noEmit --skipLibCheck
+warning Cannot find a suitable global folder. Tried these: "/usr/local, /Users/pedrosantos/.yarn"
+warning Skipping preferred cache folder "/Users/pedrosantos/Library/Caches/Yarn" because it is not writable.
+warning Selected the next writable cache folder in the list, will be "/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/.yarn-cache-1133671539".
+warning markdown-editor@0.5.11: The engine "vscode" appears to be invalid.
+$ yarn --cwd packages/core test
+warning Cannot find a suitable global folder. Tried these: "/usr/local, /Users/pedrosantos/.yarn"
+warning Skipping preferred cache folder "/Users/pedrosantos/Library/Caches/Yarn" because it is not writable.
+warning Selected the next writable cache folder in the list, will be "/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/.yarn-cache-1133671539".
+$ vitest run --config vitest.config.ts
+warning Cannot find a suitable global folder. Tried these: "/usr/local, /Users/pedrosantos/.yarn"
+
+ RUN  v4.1.10 /Users/pedrosantos/www/vscode-markdown-editor/packages/core
+
+
+ Test Files  6 passed (6)
+      Tests  91 passed (91)
+   Start at  09:57:06
+   Duration  452ms (transform 364ms, setup 0ms, import 586ms, tests 87ms, environment 1ms)
+
+warning Skipping preferred cache folder "/Users/pedrosantos/Library/Caches/Yarn" because it is not writable.
+warning Selected the next writable cache folder in the list, will be "/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/.yarn-cache-1133671539".
+warning markdown-editor@0.5.11: The engine "vscode" appears to be invalid.
+$ vitest run --coverage
+warning Cannot find a suitable global folder. Tried these: "/usr/local, /Users/pedrosantos/.yarn"
+
+ RUN  v4.1.10 /Users/pedrosantos/www/vscode-markdown-editor
+      Coverage enabled with v8
+
+
+ Test Files  71 passed (71)
+      Tests  631 passed (631)
+   Start at  09:57:09
+   Duration  16.93s (transform 9.18s, setup 0ms, import 20.71s, tests 37.06s, environment 24ms)
+
+ % Coverage report from v8
+-------------------|---------|----------|---------|---------|-------------------
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-------------------|---------|----------|---------|---------|-------------------
+All files          |   63.87 |     66.6 |   73.78 |   62.29 |                   
+ packages/core/src |   94.76 |     91.2 |     100 |    96.8 |                   
+  ...orProtocol.ts |   97.01 |    86.66 |     100 |   96.66 | 430-432           
+  ...ionMapping.ts |   92.44 |    85.85 |     100 |   93.19 | ...24,263-266,332 
+  ...ionMapping.ts |   93.54 |    92.98 |     100 |     100 | ...49,75,84-88,97 
+  ...horMapping.ts |    94.8 |    93.97 |     100 |     100 | 38,53-60,66-71    
+ ...ages/media/src |   46.62 |    44.35 |   56.25 |   46.69 |                   
+  ...-selection.js |    70.9 |    64.34 |   85.71 |   72.16 | ...77-184,189,195 
+  ...dom-mapper.ts |      85 |    67.85 |     100 |      85 | 52,60,69-70,83-84 
+  ...r-renderer.ts |   34.74 |    29.91 |   37.73 |   35.15 | ...03-430,457-840 
+ src/app           |   95.23 |    94.44 |     100 |   95.23 |                   
+  ...ditingDiff.ts |   95.23 |    94.44 |     100 |   95.23 | 27                
+ src/diff          |    39.9 |     46.6 |   56.25 |   39.02 |                   
+  ...LineParser.ts |   89.18 |    71.42 |     100 |   89.18 | ...03,124,140,158 
+  ...ffProvider.ts |       0 |        0 |       0 |       0 | 8-610             
+  ...iewSupport.ts |   71.42 |    73.21 |   71.42 |   70.83 | ...99-311,340-353 
+  ...cificStats.ts |     100 |    83.33 |     100 |     100 | 23-31             
+ src/services      |   95.45 |       75 |     100 |   95.19 |                   
+  ...wnDetector.ts |     100 |       80 |     100 |     100 | 38-39             
+  ...lowService.ts |    94.5 |    72.58 |     100 |   94.11 | ...99,409,413-415 
+-------------------|---------|----------|---------|---------|-------------------
+
+=============================== Coverage summary ===============================
+Statements   : 63.87% ( 983/1539 )
+Branches     : 66.6% ( 764/1147 )
+Functions    : 73.78% ( 197/267 )
+Lines        : 62.29% ( 869/1395 )
+================================================================================
+warning Skipping preferred cache folder "/Users/pedrosantos/Library/Caches/Yarn" because it is not writable.
+warning Selected the next writable cache folder in the list, will be "/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/.yarn-cache-1133671539".
+warning markdown-editor@0.5.11: The engine "vscode" appears to be invalid.
+$ yarn --cwd packages/widgets vitest run --config vitest.config.ts
+warning Cannot find a suitable global folder. Tried these: "/usr/local, /Users/pedrosantos/.yarn"
+warning Skipping preferred cache folder "/Users/pedrosantos/Library/Caches/Yarn" because it is not writable.
+warning Selected the next writable cache folder in the list, will be "/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/.yarn-cache-1133671539".
+$ /Users/pedrosantos/www/vscode-markdown-editor/node_modules/.bin/vitest run --config vitest.config.ts
+warning Cannot find a suitable global folder. Tried these: "/usr/local, /Users/pedrosantos/.yarn"
+9:57:29 AM [vite] warning: `esbuild` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `oxc` instead.
+9:57:29 AM [vite] warning: `optimizeDeps.esbuildOptions` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `optimizeDeps.rolldownOptions` instead.
+Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic', jsxImportSource: undefined }`
+
+ RUN  v4.1.10 /Users/pedrosantos/www/vscode-markdown-editor/packages/widgets
+
+
+ Test Files  4 passed (4)
+      Tests  35 passed (35)
+   Start at  09:57:29
+   Duration  8.16s (transform 2.98s, setup 291ms, import 2.52s, tests 5.31s, environment 8.65s)
+
+Done in 49.31s.

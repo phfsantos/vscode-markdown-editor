@@ -1,0 +1,43 @@
+{
+  "version": "1.95.0",
+  "checks": [
+    "Markdown Studio present; no activity calls"
+  ],
+  "hostProbe": [
+    {
+      "label": "provider.activate (no activity calls)",
+      "status": "passed",
+      "elapsedMs": 1441
+    },
+    {
+      "label": "workspace.fs.readFile control.txt",
+      "status": "passed",
+      "elapsedMs": 212
+    },
+    {
+      "label": "openTextDocument control.txt",
+      "status": "failed",
+      "error": "Error: Timed out after 15s: openTextDocument control.txt",
+      "elapsedMs": 15003
+    },
+    {
+      "label": "workspace.fs.readFile control.md",
+      "status": "passed",
+      "elapsedMs": 12
+    },
+    {
+      "label": "openTextDocument control.md",
+      "status": "failed",
+      "error": "Error: Timed out after 15s: openTextDocument control.md",
+      "elapsedMs": 15003
+    },
+    {
+      "label": "openTextDocument untitled",
+      "status": "passed",
+      "elapsedMs": 19
+    }
+  ],
+  "notes": [],
+  "editorRuntime": "blocked",
+  "providerActive": true
+}

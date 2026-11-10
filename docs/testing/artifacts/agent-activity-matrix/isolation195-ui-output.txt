@@ -1,0 +1,17 @@
+Detected user defined code settings
+[33mWARNING: Custom settings override framework defaults: extensions.autoUpdate ("off" -> false)[0m
+Writing code settings to /private/tmp/md-baseline195-ui-1rWOKF/settings/User/settings.json
+Launching browser... (ChromeDriver log: /private/tmp/md-baseline195-ui-1rWOKF/chromedriver.log)
+
+
+  VS Code1.95 baseline activity visuals
+    ✔ opens the same source in native and custom editor tabs (12150ms)
+    ✔ exports producer preserves source while both tabs and the exact task show activity (9264ms)
+    ✔ commands producer preserves source while both tabs and the exact task show activity (14746ms)
+    ✔ retains task and header/status fallbacks with tab badges disabled (19126ms)
+
+
+  4 passing (55s)
+
+Shutting down the browser
+{"sandbox":"/private/tmp/md-baseline195-ui-1rWOKF","status":0,"signal":null}

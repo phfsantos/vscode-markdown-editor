@@ -1,0 +1,10 @@
+2026-11-09 10:14:03.462 [warning] Creation of workbench contribution 'workbench.contrib.multiDiffEditorResolver' took 50ms.
+2026-11-09 10:14:03.497 [warning] Creation of workbench contribution 'workbench.contrib.textMateTokenizationInstantiator' took 22ms.
+2026-11-09 10:14:04.828 [info] Started local extension host with pid 15872.
+2026-11-09 10:14:05.146 [info] Started initializing default profile extensions in extensions installation folder. file:///private/tmp/markdown-studio-activity-baseline195-p9MoiC/extensions
+2026-11-09 10:14:06.038 [info] Completed initializing default profile extensions in extensions installation folder. file:///private/tmp/markdown-studio-activity-baseline195-p9MoiC/extensions
+2026-11-09 10:14:06.451 [info] Loading development extension at /Users/pedrosantos/www/vscode-markdown-editor/test/fixtures/agent-activity-consumer
+2026-11-09 10:14:06.452 [info] Loading development extension at /Users/pedrosantos/www/vscode-markdown-editor
+2026-11-09 10:14:09.289 [error] [network] #2: https://az764295.vo.msecnd.net/extensions/chat.json - error GET Failed to fetch
+2026-11-09 10:14:09.290 [warning] Failed to fetch chat participant registry Failed to fetch
+2026-11-09 10:14:09.414 [info] ◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }

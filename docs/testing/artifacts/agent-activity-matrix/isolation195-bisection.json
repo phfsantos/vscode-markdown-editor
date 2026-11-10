@@ -1,0 +1,103 @@
+{
+  "version": "1.95.0",
+  "commit": "912bb683695358a54ae0c670461738984cbb5b95",
+  "bundleSha256Before": "75244fb9620c708894fe92d945560cfde310dcf9b15cce5e251a970944a5edb0",
+  "deadlineMs": 6000,
+  "probe": "const vscode=require('vscode');\nconst fs=require('node:fs');\nexports.run=async()=>{\n const r={version:vscode.version,checks:[]};\n const save=()=>fs.writeFileSync(process.env.ISOLATION_REPORT,JSON.stringify(r,null,2));\n try {\n  const ext=vscode.extensions.getExtension('phfsantos.markdown-editor');\n  await ext.activate();r.activated=ext.isActive;save();\n  const uri=vscode.Uri.joinPath(vscode.workspace.workspaceFolders[0].uri,'control.txt');\n  fs.writeFileSync(uri.fsPath,'Host control.\\n');\n  const t=Date.now();let timer;\n  try {const doc=await Promise.race([vscode.workspace.openTextDocument(uri),new Promise((_,rej)=>timer=setTimeout(()=>rej(Error('file open timeout')),6000))]);r.open={text:doc.getText(),dirty:doc.isDirty,version:doc.version};}finally{clearTimeout(timer);r.elapsedMs=Date.now()-t;}\n }catch(e){r.error=String(e.stack||e);}\n r.done=true;save();\n};\n",
+  "variantDefinitions": "const fs=require('node:fs'),path=require('node:path'),cp=require('node:child_process');\nconst root='/Users/pedrosantos/www/vscode-markdown-editor';\nconst esbuild=require(root+'/node_modules/esbuild');\nconst dir=fs.mkdtempSync('/private/tmp/markdown195-isolation/run-');\nconst variant=process.argv[2]||'full';\nlet source=fs.readFileSync(root+'/src/extension.ts','utf8');\nconst cuts={uri:'  // Initialize VS Code integrator',imports:'  const runtime = new ExtensionRuntime(context);',runtime:'  // Log activation',calendar:'  // Register OAuth callback handler',language:'  // Initialize diagnostic provider',providers:'  // Initialize widget commands',commands:'  // Register custom editor with enhanced provider'};\nif(!['full','no-token-load','secret-read'].includes(variant)) {if(!cuts[variant])throw Error('Unknown cut'); source=source.replace(cuts[variant],'  return undefined;\\n'+cuts[variant]);}\nif(variant==='secret-read') source=source.replace('  return runtime.api;',\"  void context.secrets.get('markdown-studio-test-baseline-empty');\\n  return runtime.api;\");\n(async()=>{\n const ext=dir+'/provider';fs.mkdirSync(ext);fs.mkdirSync(dir+'/workspace');fs.mkdirSync(dir+'/user/User',{recursive:true});fs.mkdirSync(dir+'/extensions');fs.mkdirSync(dir+'/home');\n const manifest=JSON.parse(fs.readFileSync(root+'/package.json'));manifest.main='./extension.js';fs.writeFileSync(ext+'/package.json',JSON.stringify(manifest));\n await esbuild.build({stdin:{contents:source,resolveDir:root+'/src',sourcefile:root+'/src/extension.ts',loader:'ts'},bundle:true,format:'cjs',platform:'node',target:'node12',outfile:ext+'/extension.js',external:['vscode'],logLevel:'silent',plugins:['no-token-load','secret-read'].includes(variant)?[{name:'no-eager-secret-read',setup(build){build.onLoad({filter:/(Google|Outlook)CalendarProvider\\.ts$/},args=>({contents:fs.readFileSync(args.path,'utf8').replace('this._loadTokenData();','// Temporary diagnostic: omit eager secret read.'),loader:'ts'}));}}]:[]});\n fs.writeFileSync(dir+'/user/User/settings.json',JSON.stringify({'workbench.startupEditor':'none','security.workspace.trust.enabled':false,'update.mode':'none','telemetry.telemetryLevel':'off','markdown-editor.ai.enable':false,'markdown-editor.ai.enableInlineSuggestions':false}));\n const report=dir+'/report.json';\n const env=Object.fromEntries(Object.entries(process.env).filter(([k])=>k!=='ELECTRON_RUN_AS_NODE'&&!k.startsWith('VSCODE_')));\n Object.assign(env,{HOME:dir+'/home',USERPROFILE:dir+'/home',ISOLATION_REPORT:report});\n const child=cp.spawn('/private/tmp/markdown-studio-vscode195-fresh/Visual Studio Code.app/Contents/MacOS/Electron',['--new-window','--skip-welcome','--skip-release-notes','--disable-workspace-trust','--user-data-dir='+dir+'/user','--extensions-dir='+dir+'/extensions','--extensionDevelopmentPath='+ext,'--extensionDevelopmentPath='+root+'/test/fixtures/agent-activity-consumer','--extensionTestsPath=/private/tmp/markdown195-isolation/probe.js',dir+'/workspace'],{env,detached:true,stdio:['ignore','pipe','pipe']});\n const log=fs.createWriteStream(dir+'/host.txt');child.stdout.pipe(log);child.stderr.pipe(log);\n const start=Date.now();let result;\n while(Date.now()-start<45000){try{result=JSON.parse(fs.readFileSync(report));if(result.done)break;}catch{}await new Promise(r=>setTimeout(r,200));}\n try{process.kill(-child.pid,'SIGKILL');}catch{}\n console.log(JSON.stringify({variant,dir,result},null,2));process.exitCode=result?.done&&!result.error&&result.open?0:1;\n})();\n",
+  "results": [
+    {
+      "variant": "full",
+      "providerBundleSha256": "7380b4ad325e25cc1efd490f0cc7ae500196263ee207434e906fecb1c96b00ad",
+      "report": {
+        "version": "1.95.0",
+        "checks": [],
+        "activated": true,
+        "elapsedMs": 6001,
+        "error": "Error: file open timeout\n\tat Timeout.<anonymous> (/private/tmp/markdown195-isolation/probe.js:12:123)\n\tat listOnTimeout (node:internal/timers:581:17)\n\tat process.processTimers (node:internal/timers:519:7)",
+        "done": true
+      }
+    },
+    {
+      "variant": "runtime",
+      "providerBundleSha256": "1965a6d79688a42708ec188ad31f8fe99109bb734adc7a627e074eb8c11f7703",
+      "report": {
+        "version": "1.95.0",
+        "checks": [],
+        "activated": true,
+        "open": {
+          "text": "Host control.\n",
+          "dirty": false,
+          "version": 1
+        },
+        "elapsedMs": 17,
+        "done": true
+      }
+    },
+    {
+      "variant": "providers",
+      "providerBundleSha256": "850d385b34460132f2146f55cfec90b0822d3c170bfab3099a5156c07cbf15dc",
+      "report": {
+        "version": "1.95.0",
+        "checks": [],
+        "activated": true,
+        "elapsedMs": 6002,
+        "error": "Error: file open timeout\n\tat Timeout.<anonymous> (/private/tmp/markdown195-isolation/probe.js:12:123)\n\tat listOnTimeout (node:internal/timers:581:17)\n\tat process.processTimers (node:internal/timers:519:7)",
+        "done": true
+      }
+    },
+    {
+      "variant": "language",
+      "providerBundleSha256": "b4992a7ed45c2b69da0de1b9d3582195b33e3b627d0b0ba8983808997dd35962",
+      "report": {
+        "version": "1.95.0",
+        "checks": [],
+        "activated": true,
+        "elapsedMs": 6004,
+        "error": "Error: file open timeout\n\tat Timeout.<anonymous> (/private/tmp/markdown195-isolation/probe.js:12:123)\n\tat listOnTimeout (node:internal/timers:581:17)\n\tat process.processTimers (node:internal/timers:519:7)",
+        "done": true
+      }
+    },
+    {
+      "variant": "calendar",
+      "providerBundleSha256": "312a3491d02f6d07b236177d7e26aad8e02f20a83c2178a4678e61db3e41789c",
+      "report": {
+        "version": "1.95.0",
+        "checks": [],
+        "activated": true,
+        "elapsedMs": 6005,
+        "error": "Error: file open timeout\n\tat Timeout.<anonymous> (/private/tmp/markdown195-isolation/probe.js:12:123)\n\tat listOnTimeout (node:internal/timers:581:17)\n\tat process.processTimers (node:internal/timers:519:7)",
+        "done": true
+      }
+    },
+    {
+      "variant": "no-token-load",
+      "providerBundleSha256": "25a0ca9386c90afaadc35a8f35758986f18b9061e8ba834ab315e549d44c43b2",
+      "report": {
+        "version": "1.95.0",
+        "checks": [],
+        "activated": true,
+        "open": {
+          "text": "Host control.\n",
+          "dirty": false,
+          "version": 1
+        },
+        "elapsedMs": 13,
+        "done": true
+      }
+    },
+    {
+      "variant": "secret-read",
+      "providerBundleSha256": "97fc2a56d02daa232b78f887794a5da99cf1ee7f0d2549d05188c8f959c782f1",
+      "report": {
+        "version": "1.95.0",
+        "checks": [],
+        "activated": true,
+        "elapsedMs": 6005,
+        "error": "Error: file open timeout\n\tat Timeout.<anonymous> (/private/tmp/markdown195-isolation/probe.js:12:123)\n\tat listOnTimeout (node:internal/timers:581:17)\n\tat process.processTimers (node:internal/timers:519:7)",
+        "done": true
+      }
+    }
+  ],
+  "limits": "Disposable extension copies and profiles. Harness kills its own isolated process group after report completion; these results do not certify editor visuals. No stored secret values are reported. secret-read reads only an empty test key."
+}

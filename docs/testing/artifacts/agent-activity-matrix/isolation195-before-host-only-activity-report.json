@@ -1,0 +1,35 @@
+{
+  "version": "1.95.0",
+  "checks": [
+    "Markdown Studio absent from extension registry"
+  ],
+  "hostProbe": [
+    {
+      "label": "workspace.fs.readFile control.txt",
+      "status": "passed",
+      "elapsedMs": 205
+    },
+    {
+      "label": "openTextDocument control.txt",
+      "status": "passed",
+      "elapsedMs": 140
+    },
+    {
+      "label": "workspace.fs.readFile control.md",
+      "status": "passed",
+      "elapsedMs": 80
+    },
+    {
+      "label": "openTextDocument control.md",
+      "status": "passed",
+      "elapsedMs": 170
+    },
+    {
+      "label": "openTextDocument untitled",
+      "status": "passed",
+      "elapsedMs": 1415
+    }
+  ],
+  "notes": [],
+  "editorRuntime": "document-control-passed"
+}

@@ -1,0 +1,332 @@
+{
+  "version": "1.95.0",
+  "commit": "912bb683695358a54ae0c670461738984cbb5b95",
+  "failures": 0,
+  "timestamp": "2026-11-09T18:19:54.484Z",
+  "workspace": "/private/tmp/md-baseline195-ui-1rWOKF/workspace",
+  "providerBundleSha256": "cf3835c4a0b57a5a407a6c778d387967fe5510244c6b74e9250238e95cb80166",
+  "states": [
+    {
+      "label": "opened",
+      "version": "1.95.0",
+      "sequence": 1,
+      "operation": "open",
+      "uri": "file:///private/tmp/md-baseline195-ui-1rWOKF/workspace/tasks.md",
+      "context": {
+        "panelId": "tasks.md-1794248346376-mr35hkh90",
+        "uri": "file:///private/tmp/md-baseline195-ui-1rWOKF/workspace/tasks.md",
+        "documentVersion": 1,
+        "selectionStatus": "unavailable"
+      },
+      "document": {
+        "text": "- [ ] Same\n- [ ] Same\n",
+        "textSha256": "e151edc833515a1d1ee0d9070f726acd9492ec7f45a9d9a112622f89deb79019",
+        "version": 1,
+        "dirty": false
+      },
+      "diskSha256": "e151edc833515a1d1ee0d9070f726acd9492ec7f45a9d9a112622f89deb79019",
+      "settings": {
+        "workbench.editor.decorations.badges": true,
+        "workbench.editor.decorations.colors": true,
+        "explorer.decorations.badges": true,
+        "git.decorations.enabled": false,
+        "markdown-editor.ai.enable": false,
+        "markdown-editor.ai.enableInlineSuggestions": false
+      },
+      "tabs": [
+        {
+          "uri": "file:///private/tmp/md-baseline195-ui-1rWOKF/workspace/tasks.md",
+          "custom": false,
+          "active": true,
+          "groupActive": false
+        },
+        {
+          "uri": "file:///private/tmp/md-baseline195-ui-1rWOKF/workspace/tasks.md",
+          "custom": true,
+          "viewType": "markdown-editor",
+          "active": true,
+          "groupActive": true
+        }
+      ],
+      "nativeEditors": [
+        "file:///private/tmp/md-baseline195-ui-1rWOKF/workspace/tasks.md"
+      ]
+    },
+    {
+      "label": "exports-working",
+      "version": "1.95.0",
+      "sequence": 4,
+      "operation": "snapshot",
+      "uri": "file:///private/tmp/md-baseline195-ui-1rWOKF/workspace/tasks.md",
+      "context": {
+        "panelId": "tasks.md-1794248346376-mr35hkh90",
+        "uri": "file:///private/tmp/md-baseline195-ui-1rWOKF/workspace/tasks.md",
+        "documentVersion": 1,
+        "selectionStatus": "unavailable"
+      },
+      "document": {
+        "text": "- [ ] Same\n- [ ] Same\n",
+        "textSha256": "e151edc833515a1d1ee0d9070f726acd9492ec7f45a9d9a112622f89deb79019",
+        "version": 1,
+        "dirty": false
+      },
+      "diskSha256": "e151edc833515a1d1ee0d9070f726acd9492ec7f45a9d9a112622f89deb79019",
+      "settings": {
+        "workbench.editor.decorations.badges": true,
+        "workbench.editor.decorations.colors": true,
+        "explorer.decorations.badges": true,
+        "git.decorations.enabled": false,
+        "markdown-editor.ai.enable": false,
+        "markdown-editor.ai.enableInlineSuggestions": false
+      },
+      "tabs": [
+        {
+          "uri": "file:///private/tmp/md-baseline195-ui-1rWOKF/workspace/tasks.md",
+          "custom": false,
+          "active": true,
+          "groupActive": false
+        },
+        {
+          "uri": "file:///private/tmp/md-baseline195-ui-1rWOKF/workspace/tasks.md",
+          "custom": true,
+          "viewType": "markdown-editor",
+          "active": true,
+          "groupActive": true
+        }
+      ],
+      "nativeEditors": [
+        "file:///private/tmp/md-baseline195-ui-1rWOKF/workspace/tasks.md"
+      ]
+    },
+    {
+      "label": "exports-cleared",
+      "version": "1.95.0",
+      "sequence": 5,
+      "operation": "clear",
+      "uri": "file:///private/tmp/md-baseline195-ui-1rWOKF/workspace/tasks.md",
+      "context": {
+        "panelId": "tasks.md-1794248346376-mr35hkh90",
+        "uri": "file:///private/tmp/md-baseline195-ui-1rWOKF/workspace/tasks.md",
+        "documentVersion": 1,
+        "selectionStatus": "unavailable"
+      },
+      "document": {
+        "text": "- [ ] Same\n- [ ] Same\n",
+        "textSha256": "e151edc833515a1d1ee0d9070f726acd9492ec7f45a9d9a112622f89deb79019",
+        "version": 1,
+        "dirty": false
+      },
+      "diskSha256": "e151edc833515a1d1ee0d9070f726acd9492ec7f45a9d9a112622f89deb79019",
+      "settings": {
+        "workbench.editor.decorations.badges": true,
+        "workbench.editor.decorations.colors": true,
+        "explorer.decorations.badges": true,
+        "git.decorations.enabled": false,
+        "markdown-editor.ai.enable": false,
+        "markdown-editor.ai.enableInlineSuggestions": false
+      },
+      "tabs": [
+        {
+          "uri": "file:///private/tmp/md-baseline195-ui-1rWOKF/workspace/tasks.md",
+          "custom": false,
+          "active": true,
+          "groupActive": false
+        },
+        {
+          "uri": "file:///private/tmp/md-baseline195-ui-1rWOKF/workspace/tasks.md",
+          "custom": true,
+          "viewType": "markdown-editor",
+          "active": true,
+          "groupActive": true
+        }
+      ],
+      "nativeEditors": [
+        "file:///private/tmp/md-baseline195-ui-1rWOKF/workspace/tasks.md"
+      ]
+    },
+    {
+      "label": "commands-working",
+      "version": "1.95.0",
+      "sequence": 8,
+      "operation": "snapshot",
+      "uri": "file:///private/tmp/md-baseline195-ui-1rWOKF/workspace/tasks.md",
+      "context": {
+        "panelId": "tasks.md-1794248346376-mr35hkh90",
+        "uri": "file:///private/tmp/md-baseline195-ui-1rWOKF/workspace/tasks.md",
+        "documentVersion": 1,
+        "selectionStatus": "unavailable"
+      },
+      "document": {
+        "text": "- [ ] Same\n- [ ] Same\n",
+        "textSha256": "e151edc833515a1d1ee0d9070f726acd9492ec7f45a9d9a112622f89deb79019",
+        "version": 1,
+        "dirty": false
+      },
+      "diskSha256": "e151edc833515a1d1ee0d9070f726acd9492ec7f45a9d9a112622f89deb79019",
+      "settings": {
+        "workbench.editor.decorations.badges": true,
+        "workbench.editor.decorations.colors": true,
+        "explorer.decorations.badges": true,
+        "git.decorations.enabled": false,
+        "markdown-editor.ai.enable": false,
+        "markdown-editor.ai.enableInlineSuggestions": false
+      },
+      "tabs": [
+        {
+          "uri": "file:///private/tmp/md-baseline195-ui-1rWOKF/workspace/tasks.md",
+          "custom": false,
+          "active": true,
+          "groupActive": false
+        },
+        {
+          "uri": "file:///private/tmp/md-baseline195-ui-1rWOKF/workspace/tasks.md",
+          "custom": true,
+          "viewType": "markdown-editor",
+          "active": true,
+          "groupActive": true
+        }
+      ],
+      "nativeEditors": [
+        "file:///private/tmp/md-baseline195-ui-1rWOKF/workspace/tasks.md"
+      ]
+    },
+    {
+      "label": "commands-cleared",
+      "version": "1.95.0",
+      "sequence": 9,
+      "operation": "clear",
+      "uri": "file:///private/tmp/md-baseline195-ui-1rWOKF/workspace/tasks.md",
+      "context": {
+        "panelId": "tasks.md-1794248346376-mr35hkh90",
+        "uri": "file:///private/tmp/md-baseline195-ui-1rWOKF/workspace/tasks.md",
+        "documentVersion": 1,
+        "selectionStatus": "unavailable"
+      },
+      "document": {
+        "text": "- [ ] Same\n- [ ] Same\n",
+        "textSha256": "e151edc833515a1d1ee0d9070f726acd9492ec7f45a9d9a112622f89deb79019",
+        "version": 1,
+        "dirty": false
+      },
+      "diskSha256": "e151edc833515a1d1ee0d9070f726acd9492ec7f45a9d9a112622f89deb79019",
+      "settings": {
+        "workbench.editor.decorations.badges": true,
+        "workbench.editor.decorations.colors": true,
+        "explorer.decorations.badges": true,
+        "git.decorations.enabled": false,
+        "markdown-editor.ai.enable": false,
+        "markdown-editor.ai.enableInlineSuggestions": false
+      },
+      "tabs": [
+        {
+          "uri": "file:///private/tmp/md-baseline195-ui-1rWOKF/workspace/tasks.md",
+          "custom": false,
+          "active": true,
+          "groupActive": false
+        },
+        {
+          "uri": "file:///private/tmp/md-baseline195-ui-1rWOKF/workspace/tasks.md",
+          "custom": true,
+          "viewType": "markdown-editor",
+          "active": true,
+          "groupActive": true
+        }
+      ],
+      "nativeEditors": [
+        "file:///private/tmp/md-baseline195-ui-1rWOKF/workspace/tasks.md"
+      ]
+    },
+    {
+      "label": "badges-disabled-working",
+      "version": "1.95.0",
+      "sequence": 13,
+      "operation": "snapshot",
+      "uri": "file:///private/tmp/md-baseline195-ui-1rWOKF/workspace/tasks.md",
+      "context": {
+        "panelId": "tasks.md-1794248346376-mr35hkh90",
+        "uri": "file:///private/tmp/md-baseline195-ui-1rWOKF/workspace/tasks.md",
+        "documentVersion": 1,
+        "selectionStatus": "unavailable"
+      },
+      "document": {
+        "text": "- [ ] Same\n- [ ] Same\n",
+        "textSha256": "e151edc833515a1d1ee0d9070f726acd9492ec7f45a9d9a112622f89deb79019",
+        "version": 1,
+        "dirty": false
+      },
+      "diskSha256": "e151edc833515a1d1ee0d9070f726acd9492ec7f45a9d9a112622f89deb79019",
+      "settings": {
+        "workbench.editor.decorations.badges": false,
+        "workbench.editor.decorations.colors": true,
+        "explorer.decorations.badges": true,
+        "git.decorations.enabled": false,
+        "markdown-editor.ai.enable": false,
+        "markdown-editor.ai.enableInlineSuggestions": false
+      },
+      "tabs": [
+        {
+          "uri": "file:///private/tmp/md-baseline195-ui-1rWOKF/workspace/tasks.md",
+          "custom": false,
+          "active": true,
+          "groupActive": false
+        },
+        {
+          "uri": "file:///private/tmp/md-baseline195-ui-1rWOKF/workspace/tasks.md",
+          "custom": true,
+          "viewType": "markdown-editor",
+          "active": true,
+          "groupActive": true
+        }
+      ],
+      "nativeEditors": [
+        "file:///private/tmp/md-baseline195-ui-1rWOKF/workspace/tasks.md"
+      ]
+    },
+    {
+      "label": "badges-disabled-cleared",
+      "version": "1.95.0",
+      "sequence": 14,
+      "operation": "clear",
+      "uri": "file:///private/tmp/md-baseline195-ui-1rWOKF/workspace/tasks.md",
+      "context": {
+        "panelId": "tasks.md-1794248346376-mr35hkh90",
+        "uri": "file:///private/tmp/md-baseline195-ui-1rWOKF/workspace/tasks.md",
+        "documentVersion": 1,
+        "selectionStatus": "unavailable"
+      },
+      "document": {
+        "text": "- [ ] Same\n- [ ] Same\n",
+        "textSha256": "e151edc833515a1d1ee0d9070f726acd9492ec7f45a9d9a112622f89deb79019",
+        "version": 1,
+        "dirty": false
+      },
+      "diskSha256": "e151edc833515a1d1ee0d9070f726acd9492ec7f45a9d9a112622f89deb79019",
+      "settings": {
+        "workbench.editor.decorations.badges": false,
+        "workbench.editor.decorations.colors": true,
+        "explorer.decorations.badges": true,
+        "git.decorations.enabled": false,
+        "markdown-editor.ai.enable": false,
+        "markdown-editor.ai.enableInlineSuggestions": false
+      },
+      "tabs": [
+        {
+          "uri": "file:///private/tmp/md-baseline195-ui-1rWOKF/workspace/tasks.md",
+          "custom": false,
+          "active": true,
+          "groupActive": false
+        },
+        {
+          "uri": "file:///private/tmp/md-baseline195-ui-1rWOKF/workspace/tasks.md",
+          "custom": true,
+          "viewType": "markdown-editor",
+          "active": true,
+          "groupActive": true
+        }
+      ],
+      "nativeEditors": [
+        "file:///private/tmp/md-baseline195-ui-1rWOKF/workspace/tasks.md"
+      ]
+    }
+  ]
+}

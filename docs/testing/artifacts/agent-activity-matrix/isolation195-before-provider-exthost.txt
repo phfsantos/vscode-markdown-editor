@@ -1,0 +1,13 @@
+2026-11-09 10:07:33.965 [info] Extension host with pid 75980 started
+2026-11-09 10:07:33.965 [info] Skipping acquiring lock for /private/tmp/markdown-studio-activity-baseline195-OBG6Qn/user/User/workspaceStorage/1d41b154182db3d15afdb85f8a1200bf.
+2026-11-09 10:07:34.098 [info] ExtensionService#_doActivateExtension vscode.git-base, startup: true, activationEvent: '*', root cause: vscode.git
+2026-11-09 10:07:34.204 [info] ExtensionService#_doActivateExtension vscode.git, startup: true, activationEvent: '*'
+2026-11-09 10:07:34.757 [info] ExtensionService#_doActivateExtension vscode.github, startup: true, activationEvent: '*'
+2026-11-09 10:07:35.263 [warning] [vscode.git] Accessing a resource scoped configuration without providing a resource is not expected. To get the effective value for 'git.openRepositoryInParentFolders', provide the URI of a resource or 'null' for any resource.
+2026-11-09 10:07:35.264 [warning] [vscode.git] Accessing a resource scoped configuration without providing a resource is not expected. To get the effective value for 'git.showProgress', provide the URI of a resource or 'null' for any resource.
+2026-11-09 10:07:35.383 [info] Eager extensions activated
+2026-11-09 10:07:35.409 [info] ExtensionService#_doActivateExtension vscode.debug-auto-launch, startup: false, activationEvent: 'onStartupFinished'
+2026-11-09 10:07:35.413 [info] ExtensionService#_doActivateExtension vscode.merge-conflict, startup: false, activationEvent: 'onStartupFinished'
+2026-11-09 10:07:35.498 [info] ExtensionService#_doActivateExtension markdown-studio-tests.agent-activity-consumer, startup: false, activationEvent: 'onStartupFinished'
+2026-11-09 10:07:35.499 [info] ExtensionService#_doActivateExtension phfsantos.markdown-editor, startup: false, activationEvent: 'api', root cause: markdown-studio-tests.agent-activity-consumer
+2026-11-09 10:07:36.201 [info] Extension 'phfsantos.markdown-editor' uses a document selector without scheme. Learn more about this: https://go.microsoft.com/fwlink/?linkid=872305

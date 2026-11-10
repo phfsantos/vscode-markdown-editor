@@ -1,6 +1,6 @@
 # Agent activity compatibility matrix
 
-Verified November 5, 2026 (America/Los_Angeles), using Markdown Studio 0.5.11,
+Updated November 9, 2026 (America/Los_Angeles), using Markdown Studio 0.5.11,
 Vditor 3.11.2 and independent cooperating fixture 0.0.1. These checks exercise
 public APIs and commands; they do not establish adoption by installed AI agents.
 
@@ -8,7 +8,7 @@ public APIs and commands; they do not establish adoption by installed AI agents.
 
 | Environment | Setup and result | Evidence |
 | --- | --- | --- |
-| Baseline VS Code 1.95.0, macOS x64, commit `912bb683695358a54ae0c670461738984cbb5b95` | Cold activation, API v1, JSON file activity start/update/heartbeat/clear/end, exported session APIs pass. **Editor/task visuals blocked:** reproduced on a fresh profile. Narrowed to document opening after provider activation, even for plain text without activity calls. Provider-free control passes. | `node scripts/activityBaselineTest.mjs`, `--document-only`, and `--host-only`; diagnostic reports and host logs below. No editor/task screenshot or preservation claim is made for the blocked case. |
+| Baseline VS Code 1.95.0, macOS x64, commit `912bb683695358a54ae0c670461738984cbb5b95` | **Pass after calendar token-loading fix:** cold activation, file/session APIs, both independent producer transports, native/custom tab badges, exact second-checkbox projection, disabled-badge fallbacks and clear. Source/disk bytes, version, clean state and settings preserved. The earlier activation/document-open failure is retained below with its isolated cause. | [Fixed document control](artifacts/agent-activity-matrix/isolation195-after-provider-result.json), [activity contract](artifacts/agent-activity-matrix/isolation195-after-contract-result.json), [live UI result](artifacts/agent-activity-matrix/isolation195-ui-result.json) and screenshots in the isolation section below. |
 | VS Code 1.140.0, macOS x64, compact sticky tabs | Separate pinned native-text and custom-editor tabs use the same resource; actual built-in Git changes compete with activity. Header/status and exact checkbox projection remain available. | `scripts/activityUiTest.mjs`; screenshots below. |
 | Native chat decoration competition, VS Code 1.140.0, commit `07f806f999227108933c2e30515b26eecc1fda74` | **Session prerequisite unavailable:** fresh disposable profile opens native Chat to an empty **Build with Agent** view with **Sign In** in the title bar. No authenticated edit session was supplied or created and no model requests were submitted. | Fresh prerequisite screenshot/report below. Actual decoration competition remains unverified; Git competition and command availability do not prove native chat decoration behavior. |
 | User-assisted native Copilot session, VS Code 1.145.0-insider over SSH; Copilot Chat 0.73.2026102902 | **Working and clear pass alongside pending native Chat edits:** both visible `tasks.md` tabs, Open Editors and Explorer show `A` during activity; the active Markdown Studio editor shows the first-task indicator and working fallback. These clear while Chat retains **1 file changed / Keep / Undo**. Start and clear preserve source/disk hashes, version 1, dirty=false and inspected settings. | [Successful working report](artifacts/agent-activity-matrix/native-chat-145-working-report.json), [successful clear report](artifacts/agent-activity-matrix/native-chat-145-cleared-report.json), following the [initial failed helper report](artifacts/agent-activity-matrix/native-chat-145-failed-probe-report.json). User screenshots supplied in conversation; no retained screenshot files are claimed. |
@@ -159,7 +159,7 @@ sticky tabs; an earlier run was interrupted at the resulting save prompt. This
 fixture correction does not change the production activity behavior. All listed
 local screenshots were refreshed from the final passing run.
 
-## Follow-up: narrowed baseline failure and Chat prerequisite
+## Follow-up: narrowed baseline failure and Chat prerequisite (November 5)
 
 Fresh isolated 1.95 activity run again passes the two file/session contract checks,
 then reports `Timed out after 15s: openTextDocument` and reaches the 180-second
@@ -232,8 +232,10 @@ Follow-up source files:
 Evidence files are linked above. Open **Source Control** (`Ctrl/Cmd+Shift+G`) to
 review the changes; pre-existing production and UI harness edits are preserved.
 
-Baseline editor visuals remain blocked; verified native Chat results are tracked in
-[the active follow-up plan](../../.projectmind/plans/plan-verify-blocked-baseline-editor-and-native-chat-a.md).
+At verification-plan closure, baseline editor visuals remained blocked. That plan
+closed under its explicit narrowed-defect acceptance fallback. The subsequent
+[baseline investigation](../../.projectmind/plans/completed/plan-isolate-vs-code-1-95-activated-provider-file-doc.md)
+resolved document opening and supplied live visual evidence, as recorded below.
 
 ### User-assisted 1.145 follow-up
 
@@ -280,6 +282,151 @@ and activity fallback gone, while Chat still displays **1 file changed / Keep /
 Undo**. The document heading and both unchecked tasks remain intact.
 
 The successful clear report is retained above. No further user-assisted checks
-are required for this observed native Chat/activity scenario. Baseline 1.95
-editor visuals remain the outstanding authored plan step; broader host versions,
-native diff overlays, automatic adoption and badge priority are not implied.
+are required for this observed native Chat/activity scenario. Broader host
+versions, native diff overlays, automatic adoption and badge priority are not
+implied. Baseline 1.95 results from the later investigation are separate below.
+
+### November 9 verification closure
+
+This records the historical closure before the isolation and fix below.
+
+Fresh controls used a newly downloaded official VS Code **1.95.0** macOS x64
+archive, commit `912bb683695358a54ae0c670461738984cbb5b95`, and a fresh
+`yarn build:extension`. The earlier temporary app was incomplete and could not
+start the runner; no compatibility result is inferred from that setup failure.
+
+With Markdown Studio absent, both file reads and opening plain text, Markdown
+and untitled documents pass. With Markdown Studio activated and **no activity
+API calls**, activation, both file reads and untitled creation pass, but
+`openTextDocument` for `control.txt` and `control.md` each times out after 15s. The runner exits 1 after its 180-second
+host termination bound (SIGKILL); this is a failing compatibility check.
+Unlike the November 5 control, subsequent filesystem and untitled operations
+remain responsive. This narrows the reproducible symptom to file-backed document
+opening in the activated-provider case. The renderer and extension-host logs
+do not identify the responsible registration or establish an upstream defect.
+
+- [Fresh provider-free report](artifacts/agent-activity-matrix/closure-baseline195-host-only-report.json),
+  [result](artifacts/agent-activity-matrix/closure-baseline195-host-only-result.json)
+- [Fresh activated-provider report](artifacts/agent-activity-matrix/closure-baseline195-activated-provider-report.json),
+  [result](artifacts/agent-activity-matrix/closure-baseline195-activated-provider-result.json),
+  [host output](artifacts/agent-activity-matrix/closure-baseline195-activated-provider-host.txt),
+  [renderer log](artifacts/agent-activity-matrix/closure-baseline195-activated-provider-renderer.txt),
+  [extension-host log](artifacts/agent-activity-matrix/closure-baseline195-activated-provider-exthost.txt)
+
+The diagnosis portion of authored step 1 is complete under acceptance criterion
+1's explicit **narrower reproducible host defect** alternative. Its conditional
+independent-producer/editor visual and source/version/dirty preservation checks
+were **not executed then**, because file-backed document opening still failed.
+Closing that verification plan did not certify baseline editor compatibility or
+resolve the defect. The subsequent investigation below completes those checks.
+
+The retained native Chat working/clear reports were independently rechecked:
+all start/clear snapshots match, version remains 1, dirty remains false, inspected
+settings match, and the current fixture disk hash matches the reports. Native
+Chat visual coexistence remains the historical November 5 user-screenshot
+observation described above; this closure did not create a new Chat edit session.
+
+Fresh regression gates passed: type checks, core **91 tests / 6 files**, root
+**631 / 71** (including core), widgets **35 / 4**, and real Chromium **146 / 13**.
+Production extension build, lint, diagnostic JavaScript syntax and whitespace
+checks also passed. The browser suite required execution outside the process
+sandbox for its local listener; its initial sandbox run executed no tests.
+See [full test output](artifacts/agent-activity-matrix/closure-full-test.txt),
+[browser output](artifacts/agent-activity-matrix/closure-browser-test.txt) and
+[lint output](artifacts/agent-activity-matrix/closure-lint.txt).
+No production source or activity settings were changed during that closure.
+
+### November 9 isolation and baseline visual verification
+
+The activation bisection isolated eager calendar `SecretStorage.get` calls.
+Full activation, and prefixes through calendar initialization, timed out opening
+the same plain-text file. Runtime-only activation opened it in **17 ms**.
+Keeping full activation but omitting only the Google and Outlook providers'
+eager `_loadTokenData()` calls opened it in **13 ms**. Reintroducing a single read
+of an empty test secret key reproduced the **6-second** isolation-probe timeout.
+These controls demonstrate the secret-storage boundary on this isolated host;
+they do not identify an underlying OS/keychain or upstream VS Code defect.
+
+Both calendar providers now leave secret storage untouched during initialization.
+Their common token-validation path awaits saved-token loading when an explicit
+calendar authentication check or event request needs it. This also preserves
+direct `getEvents` restoration without relying on an earlier authentication
+check. Secret storage, credential contents and encryption settings are unchanged.
+Calendar operations themselves still depend on the host's secret-storage backend;
+this run does not certify interactive calendar authentication.
+
+The original controls and independent producer probe were rerun against production
+bundle SHA-256 `cf3835c4a0b57a5a407a6c778d387967fe5510244c6b74e9250238e95cb80166`:
+
+- Provider-free document control: **exit 0**, all five checks pass.
+- Activated-provider/no-activity control: **exit 0**, all six checks pass;
+  plain-text and Markdown documents open in **15 ms** and **17 ms**.
+- Original activity probe: **exit 0**; cold activation, session contracts,
+  independent exports/JSON-command producers, source/version/dirty preservation
+  and custom-editor opening all pass.
+
+The real-window baseline harness uses official **1.95.0** and matching
+ChromeDriver **128.0.6613.137**, with a fresh isolated installation/profile.
+It verifies both native and custom tabs for the same resource, `A` badges on both
+tabs, one working indicator at the **second duplicate checkbox** (zero-based
+line 1), visible header/status fallbacks and immediate clear for both producer
+transports. With tab badges disabled, the exact task and working fallback remain
+visible. Reporting and clearing preserve document/disk hash
+`e151edc833515a1d1ee0d9070f726acd9492ec7f45a9d9a112622f89deb79019`,
+version **1**, dirty **false**, inspected settings and exact settings-file bytes.
+The harness changes badge settings only inside its disposable test profile.
+All **four** scenarios passed on the final fresh-profile replay. A separate
+negative run deliberately expected task line 0 and failed with `1 !== 0` at the
+task-line assertion, rather than a locator error; restoring the default line 1
+passed again.
+
+Reproduce with complete local host/driver binaries and the optional tools from
+`test/ui/package.json`:
+
+```sh
+MARKDOWN_UI_CODE='/path/to/1.95/Visual Studio Code.app/Contents/MacOS/Electron' \
+MARKDOWN_UI_DRIVER=/path/to/chromedriver128 \
+MARKDOWN_UI_TOOLS="$PWD/test/ui" \
+node scripts/activityBaselineUiTest.mjs
+```
+
+`--skip-build` copies the current `dist`/`out` assets into a fresh installation;
+use it only when those assets match the source being verified. The default builds
+the extension and media first. GUI and local IPC require execution outside this
+machine's process sandbox. This does not change remote URI transport semantics,
+establish automatic third-party adoption, or certify badge priority.
+
+Evidence:
+
+- [Bisection definitions, reports and hashes](artifacts/agent-activity-matrix/isolation195-bisection.json)
+- Before fix: [provider-free result](artifacts/agent-activity-matrix/isolation195-before-host-only-result.json),
+  [activated-provider result](artifacts/agent-activity-matrix/isolation195-before-provider-result.json),
+  [renderer log](artifacts/agent-activity-matrix/isolation195-before-provider-renderer.txt),
+  [extension-host log](artifacts/agent-activity-matrix/isolation195-before-provider-exthost.txt)
+- After fix: [document result](artifacts/agent-activity-matrix/isolation195-after-provider-result.json),
+  [document report](artifacts/agent-activity-matrix/isolation195-after-provider-activity-report.json),
+  [activity result](artifacts/agent-activity-matrix/isolation195-after-contract-result.json),
+  [activity report](artifacts/agent-activity-matrix/isolation195-after-contract-activity-report.json)
+- Live [result and preservation snapshots](artifacts/agent-activity-matrix/isolation195-ui-result.json),
+  [output](artifacts/agent-activity-matrix/isolation195-ui-output.txt),
+  [exports working](artifacts/agent-activity-matrix/isolation195-ui-exports-working.png),
+  [commands working](artifacts/agent-activity-matrix/isolation195-ui-commands-working.png),
+  [disabled-badge fallback](artifacts/agent-activity-matrix/isolation195-ui-badges-disabled-fallback.png),
+  [cleared](artifacts/agent-activity-matrix/isolation195-ui-cleared.png)
+- [Driver version](artifacts/agent-activity-matrix/isolation195-ui-driver-version.txt),
+  [negative-check result](artifacts/agent-activity-matrix/isolation195-ui-negative-result.json),
+  [negative assertion output](artifacts/agent-activity-matrix/isolation195-ui-negative-output.txt)
+
+The regression tests first failed on activation's eager secret reads, then on
+direct event retrieval failing to await saved tokens. Both provider regressions
+pass after the fix. Fresh type checks, core **91 / 6 files**, root **635 / 72**
+(including core), widgets **35 / 4**, real Chromium **146 / 13**, production
+extension build and lint pass. The unrestricted root run hit two 5-second test
+timeouts under concurrent host/browser load; its complete rerun with
+`--maxWorkers=2` passes without changing test timeouts or product behavior.
+
+- [Initial type/core/full-suite output](artifacts/agent-activity-matrix/isolation195-full-tests-initial.txt)
+- [Passing bounded root suite](artifacts/agent-activity-matrix/isolation195-unit-tests.txt),
+  [widgets](artifacts/agent-activity-matrix/isolation195-widget-tests.txt),
+  [browser](artifacts/agent-activity-matrix/isolation195-browser-tests.txt),
+  [lint](artifacts/agent-activity-matrix/isolation195-lint.txt)

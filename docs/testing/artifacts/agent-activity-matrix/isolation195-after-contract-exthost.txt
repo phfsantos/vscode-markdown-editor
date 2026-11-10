@@ -1,0 +1,18 @@
+2026-11-09 10:14:07.100 [info] Extension host with pid 15872 started
+2026-11-09 10:14:07.100 [info] Skipping acquiring lock for /private/tmp/markdown-studio-activity-baseline195-p9MoiC/user/User/workspaceStorage/5a629a086bc937bb67edf07b9edc07e7.
+2026-11-09 10:14:07.238 [info] ExtensionService#_doActivateExtension vscode.git-base, startup: true, activationEvent: '*', root cause: vscode.git
+2026-11-09 10:14:07.862 [info] ExtensionService#_doActivateExtension vscode.git, startup: true, activationEvent: '*'
+2026-11-09 10:14:08.287 [info] ExtensionService#_doActivateExtension vscode.github, startup: true, activationEvent: '*'
+2026-11-09 10:14:08.728 [warning] [vscode.git] Accessing a resource scoped configuration without providing a resource is not expected. To get the effective value for 'git.openRepositoryInParentFolders', provide the URI of a resource or 'null' for any resource.
+2026-11-09 10:14:08.728 [warning] [vscode.git] Accessing a resource scoped configuration without providing a resource is not expected. To get the effective value for 'git.showProgress', provide the URI of a resource or 'null' for any resource.
+2026-11-09 10:14:08.813 [info] Eager extensions activated
+2026-11-09 10:14:08.926 [info] ExtensionService#_doActivateExtension vscode.debug-auto-launch, startup: false, activationEvent: 'onStartupFinished'
+2026-11-09 10:14:08.930 [info] ExtensionService#_doActivateExtension vscode.merge-conflict, startup: false, activationEvent: 'onStartupFinished'
+2026-11-09 10:14:09.003 [info] ExtensionService#_doActivateExtension markdown-studio-tests.agent-activity-consumer, startup: false, activationEvent: 'onStartupFinished'
+2026-11-09 10:14:09.024 [info] ExtensionService#_doActivateExtension phfsantos.markdown-editor, startup: false, activationEvent: 'onCommand:markdown-editor.agentActivity.startSession'
+2026-11-09 10:14:09.432 [info] Extension 'phfsantos.markdown-editor' uses a document selector without scheme. Learn more about this: https://go.microsoft.com/fwlink/?linkid=872305
+2026-11-09 10:14:09.865 [info] ExtensionService#_doActivateExtension vscode.extension-editing, startup: false, activationEvent: 'onLanguage:markdown'
+2026-11-09 10:14:09.890 [info] ExtensionService#_doActivateExtension vscode.markdown-language-features, startup: false, activationEvent: 'onLanguage:markdown'
+2026-11-09 10:14:10.006 [info] ExtensionService#_doActivateExtension vscode.emmet, startup: false, activationEvent: 'onLanguage'
+2026-11-09 10:14:10.150 [info] Extension host terminating: renderer closed the MessagePort
+2026-11-09 10:14:10.160 [info] Extension host with pid 15872 exiting with code 0

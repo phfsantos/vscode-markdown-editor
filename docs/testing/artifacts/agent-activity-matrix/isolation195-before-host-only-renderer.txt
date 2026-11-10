@@ -1,0 +1,4 @@
+2026-11-09 10:06:46.717 [info] Started local extension host with pid 70769.
+2026-11-09 10:06:46.987 [info] Started initializing default profile extensions in extensions installation folder. file:///private/tmp/markdown-studio-activity-baseline195-GuooQ1/extensions
+2026-11-09 10:06:48.158 [info] Completed initializing default profile extensions in extensions installation folder. file:///private/tmp/markdown-studio-activity-baseline195-GuooQ1/extensions
+2026-11-09 10:06:48.341 [info] Loading development extension at /Users/pedrosantos/www/vscode-markdown-editor/test/fixtures/agent-activity-consumer

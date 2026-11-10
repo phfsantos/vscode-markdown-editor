@@ -1,0 +1,16 @@
+yarn run v1.22.22
+warning Skipping preferred cache folder "/Users/pedrosantos/Library/Caches/Yarn" because it is not writable.
+warning Selected the next writable cache folder in the list, will be "/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/.yarn-cache-1133671539".
+warning markdown-editor@0.5.11: The engine "vscode" appears to be invalid.
+$ /Users/pedrosantos/www/vscode-markdown-editor/node_modules/.bin/vitest run test/calendar-token-loading.test.ts
+warning Cannot find a suitable global folder. Tried these: "/usr/local, /Users/pedrosantos/.yarn"
+
+ RUN  v4.1.10 /Users/pedrosantos/www/vscode-markdown-editor
+
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  10:12:56
+   Duration  540ms (transform 171ms, setup 0ms, import 257ms, tests 18ms, environment 0ms)
+
+Done in 1.76s.
