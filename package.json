@@ -3,7 +3,7 @@
   "displayName": "Markdown Studio",
   "icon": "media/logo.png",
   "description": "Visual Markdown editing and connected notes for VS Code: WYSIWYG editing, wiki-links, backlinks, tags, and a graph view.",
-  "version": "0.5.11",
+  "version": "0.5.14",
   "publisher": "phfsantos",
   "private": true,
   "workspaces": {
@@ -652,7 +652,8 @@
     "test:browser": "vitest run --config vitest.browser.config.ts",
     "test:unit": "vitest run --coverage",
     "test:watch": "vitest",
-    "test:ui": "node scripts/uiTest.mjs"
+    "test:ui": "node scripts/uiTest.mjs",
+    "test:ui:release": "node scripts/uiReleaseTest.mjs"
   },
   "devDependencies": {
     "@types/node": "^12.20.55",

@@ -1,0 +1,46 @@
+{
+  "provenance": "Unmodified installed Claude Code 2.1.323 bundle, private handlers invoked by an isolated diagnostic; no model request",
+  "vscodeVersion": "1.115.0",
+  "samples": [
+    {
+      "integration": "extension",
+      "claudeExtensionVersion": "2.1.323",
+      "scheme": "_claude_vscode_fs_right",
+      "path": "/private/tmp/claude-uri-host-92bc0o39/workspace/capture-extension.md",
+      "query": "",
+      "uri": "_claude_vscode_fs_right:/private/tmp/claude-uri-host-92bc0o39/workspace/capture-extension.md",
+      "originalUri": "file:///private/tmp/claude-uri-host-92bc0o39/workspace/capture-extension.md",
+      "rightDocumentInTextDocuments": true,
+      "tabKind": "Pa",
+      "afterRejectDiffTabPresent": true,
+      "originalBytesUnchanged": true
+    },
+    {
+      "integration": "terminal-ide-mcp",
+      "claudeExtensionVersion": "2.1.323",
+      "scheme": "_claude_fs_right",
+      "path": "/private/tmp/claude-uri-host-92bc0o39/workspace/capture-terminal.md",
+      "query": "",
+      "uri": "_claude_fs_right:/private/tmp/claude-uri-host-92bc0o39/workspace/capture-terminal.md",
+      "originalUri": "file:///private/tmp/claude-uri-host-92bc0o39/workspace/capture-terminal.md",
+      "rightDocumentInTextDocuments": true,
+      "tabKind": "Pa"
+    }
+  ],
+  "extensionPath": "/private/tmp/claude-uri-host-92bc0o39/capture-extensions/anthropic.claude-code-2.1.323",
+  "wasActive": false,
+  "stage": "invoke-diff",
+  "fsRead": {
+    "ok": true,
+    "kind": "object"
+  },
+  "memoryDocument": {
+    "ok": true,
+    "kind": "object"
+  },
+  "initialDocument": {
+    "ok": true,
+    "kind": "object"
+  },
+  "limitations": "Diagnostic generated both real diff tabs; cleanup run exited 1 after samples were persisted. Lifecycle completion is not asserted. Disposable manifest suppressed contributions; extension.js bundle unchanged."
+}

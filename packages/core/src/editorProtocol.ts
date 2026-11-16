@@ -21,8 +21,14 @@ export interface ActivityTaskProjection {
   line: number; expectedLineText: string; state: 'working' | 'waiting' | 'review'; producerLabel: string;
 }
 
+/** One host's not-yet-accepted edit: the version of the document the open text is reviewed against. */
+export interface PendingEditProjection {
+  sourceLabel: string; compareContent: string;
+}
+
 type FieldKind =
   | 'activityTasks'
+  | 'pendingEdits'
   | 'sourceRange'
   | 'unsignedInteger'
   | 'navigationTarget'
@@ -39,6 +45,7 @@ type FieldKind =
 
 interface FieldTypes {
   activityTasks: ActivityTaskProjection[];
+  pendingEdits: PendingEditProjection[];
   sourceRange: SourceRange;
   unsignedInteger: number;
   navigationTarget: SourceNavigationTarget;
@@ -245,6 +252,11 @@ const hostToWebviewSchemas = {
   'editor-context-source': {
     panelId: required('string'), documentVersion: required('unsignedInteger'), content: required('string'),
   },
+  // Full state, latest wins: an empty `edits` clears the review markers.
+  'pending-edits': {
+    panelId: required('string'), documentVersion: required('unsignedInteger'), generation: required('unsignedInteger'),
+    content: required('string'), edits: required('pendingEdits'),
+  },
   update: {
     content: required('string'),
     type: optionalOneOf('init', 'update'),
@@ -406,6 +418,11 @@ function validateField(spec: FieldSpec, value: unknown): string | undefined {
         && ['working', 'waiting', 'review'].includes(task.state as string)
         && typeof task.producerLabel === 'string' && task.producerLabel.length <= 120)
         ? undefined : 'must contain validated task projections';
+    case 'pendingEdits':
+      return Array.isArray(value) && value.length <= 8 && value.every(edit => isRecord(edit)
+        && typeof edit.sourceLabel === 'string' && edit.sourceLabel.length <= 120
+        && typeof edit.compareContent === 'string')
+        ? undefined : 'must contain validated pending edits';
     case 'sourceRange':
       return isSourceRange(value) ? undefined : 'must be an ordered source range';
     case 'unsignedInteger':

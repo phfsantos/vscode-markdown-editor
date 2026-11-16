@@ -242,3 +242,54 @@ block quotes, HTML blocks or tab-indented containers deliberately use file-only
 activity: their task anchors are rejected rather than approximated. Checkbox
 projection also hides when Vditor's task count, checked states, or deterministic
 source serialization differ. Full-source coordinates remain authoritative.
+
+### ProjectMind as an activity producer
+
+ProjectMind (a separate extension) reports which step of a saved plan an agent
+is executing. Its plans are rendered to `.projectmind/plans/<id>.md`; each step
+and acceptance criterion is a `- [ ]` / `- [x]` line under `## Steps` and
+`## Acceptance criteria`. ProjectMind is an ordinary producer of the activity
+API above: it creates a session, sets a `working` activity anchored to the
+step's exact line and document version, and clears it when the step is ticked.
+The producer side is ProjectMind's work, not Markdown Studio's; this extension
+only renders what it receives.
+
+The plan file must stay inside the task parser's supported subset, or every
+anchor is rejected (see the paragraph above). Two constructs found in real plan
+files on 2026-11-13 fail closed: the `> Created: … · ID: …` metadata blockquote,
+and any unescaped free-text line (problem, notes or work summary) that starts
+with `<`. With the metadata line rendered as a plain paragraph, 436 of 442
+plan files in the ProjectMind and Markdown Studio repositories parse; the other 6 contain such a `<` line. The fixture in
+`packages/core/test/taskAnchorMapping.test.ts` pins the plan shape that parses.
+
+The checkbox ticks themselves are written directly, never as a pending edit:
+the `.md` is a projection of ProjectMind's plan JSON, and undoing a tick in a
+host's review UI would make the two disagree.
+
+### Pending (not yet kept) agent edits
+
+Markdown Studio also marks, as `review` task indicators, the checkboxes an
+agent's not-yet-accepted edit changes. The host sends a `pending-edits` message
+with the open document's text and, per host, the version it is reviewed
+against. The webview marks only checkbox lines with no unchanged counterpart in
+that version (a line alignment in `findChangedTasks`, `packages/core`), labels
+them by host in the status text (for example `Copilot review on task 2`), and
+clears them when the host's pending state resolves. An agent's `working` or
+`waiting` activity on the same task outranks its `review` marker. The same
+projection rules apply: no markers when the rendered checkboxes, their checked
+state or the serialized source disagree with the reported text.
+
+| Host | Pending state Markdown Studio reads | Notes |
+| --- | --- | --- |
+| VS Code / GitHub Copilot Chat | Private `chat-editing-text-model` (pre-edit baseline) and `chat-editing-snapshot-text-model` documents for the same path (`src/app/chatEditingDiff.ts`). The open document already holds the edit. | Only the host's own agent edit tools enter the working set. Terminal, script, extension, MCP and LM-tool writes are applied immediately and are never pending. |
+| Claude Code | A `TabInputTextDiff` tab whose modified side is `_claude_vscode_fs_right:<same path>` (extension) or `_claude_fs_right:<same path>` (terminal/IDE-MCP integration), with that exact right-hand URI open in `workspace.textDocuments` (`src/app/claudeCodePendingEditSource.ts`). The open document still holds the original; the proposal is the right-hand document. | Both shapes were captured from actual anthropic.claude-code 2.1.323 diff handlers in an isolated VS Code 1.115.0 host; both exact right-hand documents were open. The diagnostic invoked handlers directly, without a model conversation; Windows and Remote-SSH path forms remain unverified. Only proposed Edit/Write diffs enter this path; direct terminal, script and MCP-tool file writes apply immediately. Renamed edited-text-only fragments do not match. |
+| Codex | None. | Codex has no pending state in VS Code; review happens after the write (its Review tab, or Git). |
+| ProjectMind | None. | Every ProjectMind MCP/LM tool write goes through `workspace.fs.writeFile` or a saved `WorkspaceEdit`, so nothing it writes is pending in any host. |
+
+**Private-scheme caveat.** Neither host offers a stable API for pending edits
+(see microsoft/vscode#279040, open with no PR). Both sources recognise private,
+undocumented document schemes and tab shapes that can change in any host
+release. They are compatibility glue that fails closed: when the scheme, the
+path, the `TabInputTextDiff` class or the compared document is missing or
+unrecognised, the source reports no pending edit and no marker is drawn. A host
+change therefore removes the review markers rather than drawing wrong ones.

@@ -1,0 +1,5 @@
+{"telemetry.telemetryLevel":"off","security.workspace.trust.enabled":false,"update.mode":"none","extensions.autoUpdate":false,"workbench.startupEditor":"none","markdown-editor.ai.enable":false,"markdown-editor.ai.enableInlineSuggestions":false,"workbench.editorAssociations":{
+        "*.json": "global.jsonEditor",
+        "*.md": "markdown-editor",
+        "*.markdown": "markdown-editor"
+    }}

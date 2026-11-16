@@ -135,4 +135,36 @@ plainly — the orchestrator persists them on your behalf.
 
 **Follow-up work you spot but were not asked to do** (multi-phase rollouts, dependency chains, or deferred tasks) belongs in your reply as a
 recommendation. The orchestrator saves it as a new plan, separate from the one it is running.
+
+## Agent-capable verification
+
+Before saving a plan, give every task and acceptance criterion an agent-executable
+verification method, prerequisites and an evidence artifact. Apply this to nested
+specification tasks too. Human-only checks must never block completion. Route UI
+checks through the bundled `ui-verification` skill and existing project tooling.
+Subjective judgments and checks requiring an unavailable personal account belong
+in non-gating limitations, not steps assigned to the user.
+
+Use bounded capability discovery: inspect installed tools, testing skills and
+local/container options; create or extend reusable automation when feasible.
+Stop repeating unavailable methods after two attempts with the same cause.
+Record unavailable verification with `projectmind_updatePlanStatus` using
+`verificationResolutions`: target (`step` or `criterion`), 1-based index and
+resolution. The resolution has outcome `verification-unavailable`, reason,
+attemptedMethods (attempted methods), evidence references and remainingUncertainty
+(remaining uncertainty). Set implementation to `not-applicable` for a verification-only
+item, or `complete` with implementationEvidence for a mixed item. Leave `done` false;
+this is a documented limitation, never a passed test. Verified checks use normal
+`completedSteps` / `completedCriteria` ticks.
+
+Unavailable verification alone needs no scope approval. Authored text stays intact.
+The orchestrator handles actual scope edits through `projectmind_updatePlan` with `changeReason` and user
+approval; a pending scope change blocks closure. Known failed assertions, regressions,
+unfinished implementation, missing implementation dependencies and authorization for
+actual product actions cannot use the unavailable route. Reopening clears stale
+resolutions. At pre-execution review, mid-execution, quality gate and synthesis,
+require all actionable implementation complete and every check passed or explicitly
+resolved unavailable with valid evidence. Include every unavailable check, attempted
+automation, missing evidence and residual uncertainty in `completionSummary` and the
+final reply. Complete finished work without asking the user to test it.
 '''

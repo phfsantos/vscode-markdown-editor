@@ -1,0 +1,9 @@
+{
+  "previous": "0.5.11",
+  "current": "0.5.14",
+  "customCss": ".vditor-reset { max-width: 900px; }",
+  "associations": {
+    "*.json": "global.jsonEditor"
+  },
+  "workspaceNotePreserved": true
+}

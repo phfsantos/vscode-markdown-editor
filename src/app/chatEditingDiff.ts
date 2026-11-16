@@ -1,4 +1,8 @@
 import type * as vscode from "vscode";
+import {
+  getComparablePath,
+  type PendingEditSource,
+} from "./pendingEditSource";
 
 export const CHAT_EDITING_TEXT_MODEL_SCHEME = "chat-editing-text-model";
 export const CHAT_EDITING_SNAPSHOT_TEXT_MODEL_SCHEME =
@@ -25,10 +29,6 @@ function getDocumentText(document: ChatEditingDocumentLike): string | undefined 
   }
 
   return undefined;
-}
-
-function getComparablePath(uri: UriLike): string {
-  return uri.scheme === "file" && uri.fsPath ? uri.fsPath : uri.path;
 }
 
 export function isChatEditingTextModelDocument(
@@ -84,5 +84,38 @@ export function findChatEditingStateForDocument<
     lastSnapshotDocument,
     hasPendingEdits,
     targetPath,
+  };
+}
+
+/**
+ * Copilot Chat's pending edits. VS Code applies an agent edit to the document
+ * and keeps the pre-edit text in a private `chat-editing-text-model` document
+ * (with `chat-editing-snapshot-text-model` checkpoints) until the user keeps or
+ * undoes it. These schemes are VS Code internals, not API, so this source
+ * fails closed: without a matching baseline document there is no pending edit.
+ */
+export function createChatEditingPendingEditSource<
+  TDoc extends ChatEditingDocumentLike
+>(textDocuments: () => readonly TDoc[]): PendingEditSource<TDoc> {
+  return {
+    id: "copilot-chat-editing",
+    label: "Copilot",
+    isRelevantDocument(document, candidate) {
+      if (getComparablePath(candidate.uri) !== getComparablePath(document.uri)) {
+        return false;
+      }
+      return candidate.uri.scheme.startsWith("chat-editing-");
+    },
+    findPendingEdit(document) {
+      const state = findChatEditingStateForDocument(document, textDocuments());
+      return state?.hasPendingEdits
+        ? {
+            sourceId: "copilot-chat-editing",
+            sourceLabel: "Copilot",
+            documentRole: "proposed",
+            compareDocument: state.baselineDocument,
+          }
+        : undefined;
+    },
   };
 }

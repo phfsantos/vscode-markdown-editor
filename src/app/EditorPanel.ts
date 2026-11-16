@@ -14,6 +14,7 @@ import { createWebviewMessageRouter, type WebviewMessageRoutes, type WebviewMess
 import { getHtmlForWebview } from "./webviewHtml";
 import { CalendarMessageHandler } from "./CalendarMessageHandler";
 import { DiffViewController } from "./DiffViewController";
+import { collectPendingEdits, createHostPendingEditSources } from "./pendingEdits";
 import { AiMessageHandler } from "./AiMessageHandler";
 import { EditorMessageHandlers } from "./EditorMessageHandlers";
 import {
@@ -85,6 +86,10 @@ export class EditorPanel {
   private _disposed = false;
   private readonly _documentSync: DocumentSyncController;
   private readonly _documentWriteOrigins = createDocumentWriteOriginTracker();
+  /** Host pending-edit sources; Copilot's also drives the single-view diff. */
+  private readonly _pendingEditSources = createHostPendingEditSources();
+  /** Whether the last `pending-edits` sent was non-empty, so an empty state is sent once to clear it. */
+  private _pendingEditsShown = false;
   public readonly instanceId: string; // Unique identifier for debugging webview instances
   private readonly _calendar = new CalendarMessageHandler((message) => {
     this._panel.webview.postMessage(message);
@@ -355,6 +360,26 @@ export class EditorPanel {
     this._panel.webview.postMessage({ command: 'editor-context-source', panelId: this.instanceId,
       documentVersion: this._document.version, content: this._document.getText() });
     this.publishAgentActivity();
+    this.publishPendingEdits();
+  }
+
+  /** Whether `document` is a host's pending-edit document for this panel's file. */
+  private isRelevantPendingEditDocument(document: vscode.TextDocument): boolean {
+    return Object.values(this._pendingEditSources).some(source => source.isRelevantDocument(this._document, document));
+  }
+
+  /** Send the pending edits of every host; the webview marks the checkboxes they change as 'review'. */
+  private publishPendingEdits(): void {
+    if (this._disposed || !this._webviewReady || !this._document || !this._panel) return;
+    const edits = collectPendingEdits(this._document, Object.values(this._pendingEditSources));
+    // A non-empty state is always sent, never deduplicated: the webview drops a
+    // message whose version or generation it has not reached yet, so the
+    // publish after the next context source must be able to repeat it.
+    if (edits.length === 0 && !this._pendingEditsShown) return;
+    this._pendingEditsShown = edits.length > 0;
+    this._panel.webview.postMessage({ command: 'pending-edits', panelId: this.instanceId,
+      documentVersion: this._document.version, generation: this._documentSync.getGeneration(),
+      content: this._document.getText(), edits });
   }
 
   private publishAgentActivity(): void {
@@ -406,7 +431,7 @@ export class EditorPanel {
       },
       relatedFiles: dependencies.relatedFiles,
     });
-    this.diff = new DiffViewController(this, dependencies.diffCoordinator);
+    this.diff = new DiffViewController(this, dependencies.diffCoordinator, this._pendingEditSources.chatEditing);
     this.handlers = new EditorMessageHandlers(this);
     this._sourcePositionDelivery = new SourcePositionDelivery((message) => {
       this._panel.webview.postMessage(message);
@@ -560,14 +585,19 @@ export class EditorPanel {
       const isPrimaryDocument = e.document.uri.toString() === this._document.uri.toString();
       const isRelevantChatEditingDocument =
         !isPrimaryDocument && this.diff.isRelevantChatEditingDocument(e.document);
+      const isRelevantPendingEditDocument =
+        !isPrimaryDocument && this.isRelevantPendingEditDocument(e.document);
 
-      if (!isPrimaryDocument && !isRelevantChatEditingDocument) {
+      if (!isPrimaryDocument && !isRelevantChatEditingDocument && !isRelevantPendingEditDocument) {
         return;
       }
 
       if (isRelevantChatEditingDocument) {
         this.diff.refreshPendingChatEditState();
         void this.diff.applyPendingChatDiffVisualization();
+      }
+      if (!isPrimaryDocument) {
+        this.publishPendingEdits();
         return;
       }
 
@@ -665,23 +695,25 @@ export class EditorPanel {
       }
     }, undefined, this._disposables);
 
-    vscode.workspace.onDidOpenTextDocument((document) => {
-      if (!this.diff.isRelevantChatEditingDocument(document)) {
+    const onPendingEditDocument = (document: vscode.TextDocument) => {
+      const isRelevantChatEditingDocument = this.diff.isRelevantChatEditingDocument(document);
+      if (!isRelevantChatEditingDocument && !this.isRelevantPendingEditDocument(document)) {
         return;
       }
 
-      this.diff.refreshPendingChatEditState();
-      void this.diff.applyPendingChatDiffVisualization();
-    }, undefined, this._disposables);
-
-    vscode.workspace.onDidCloseTextDocument((document) => {
-      if (!this.diff.isRelevantChatEditingDocument(document)) {
-        return;
+      if (isRelevantChatEditingDocument) {
+        this.diff.refreshPendingChatEditState();
+        void this.diff.applyPendingChatDiffVisualization();
       }
-
-      this.diff.refreshPendingChatEditState();
-      void this.diff.applyPendingChatDiffVisualization();
-    }, undefined, this._disposables);
+      this.publishPendingEdits();
+    };
+    vscode.workspace.onDidOpenTextDocument(onPendingEditDocument, undefined, this._disposables);
+    vscode.workspace.onDidCloseTextDocument(onPendingEditDocument, undefined, this._disposables);
+    // Claude Code's proposal lives in a diff tab: opening, accepting or rejecting it changes the tabs.
+    // Subscribed defensively: the review markers are optional glue and must not stop the editor opening.
+    if (typeof vscode.window.tabGroups?.onDidChangeTabs === "function") {
+      vscode.window.tabGroups.onDidChangeTabs(() => this.publishPendingEdits(), undefined, this._disposables);
+    }
 
     // Webview messages are parsed against the shared protocol and dispatched
     // to the feature that owns each command. This panel only routes document

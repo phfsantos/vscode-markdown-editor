@@ -1,0 +1,44 @@
+{
+  "version": "1.140.0",
+  "vsix": "/private/tmp/markdown-studio-prerelease/markdown-studio-0.5.14-ready.vsix",
+  "tests": 9,
+  "failures": 0,
+  "results": [
+    {
+      "title": "upgrades the local predecessor while retaining settings and workspace notes",
+      "state": "passed"
+    },
+    {
+      "title": "loads the installed VSIX with its stable identity and renders the editor",
+      "state": "passed"
+    },
+    {
+      "title": "shows the installed name, version and colored icon in native details",
+      "state": "passed"
+    },
+    {
+      "title": "retains native settings keys and shows the Markdown Studio Output channel",
+      "state": "passed"
+    },
+    {
+      "title": "renders the native sidebar and theme-aware icon in dark, light and contrast themes",
+      "state": "passed"
+    },
+    {
+      "title": "persists checkbox edits, undo and redo without changing custom fenced blocks",
+      "state": "passed"
+    },
+    {
+      "title": "preserves unrelated real settings when the contributed default command runs",
+      "state": "passed"
+    },
+    {
+      "title": "shows connected notes and opens the real graph alongside the editor",
+      "state": "passed"
+    },
+    {
+      "title": "records the native editor-type picker and its provider suffix",
+      "state": "passed"
+    }
+  ]
+}

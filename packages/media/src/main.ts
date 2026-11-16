@@ -71,6 +71,7 @@ initializeRendererSystem();
 
 const documentRoutes: HostMessageRoutes = {
   'agent-activity': message => agentActivity.receive(message),
+  'pending-edits': message => agentActivity.receive(message),
   'editor-context-source': message => { editorContext.setSource(message); agentActivity.setSource(message); },
   ...createDocumentSyncRoutes({
     getContentSync: getWebviewContentSync,

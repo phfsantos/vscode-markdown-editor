@@ -35,3 +35,132 @@ it('fails closed for unsupported quote/HTML containers rather than shifting task
   expect(parseTaskItems('> - [ ] quoted\n- [ ] real')).toEqual([]);
   expect(parseTaskItems('<div>\n\n- [ ] not markdown\n</div>\n\n- [ ] real')).toEqual([]);
 });
+
+/**
+ * A ProjectMind plan `.md` as `renderPlanMarkdown` (ProjectMind
+ * src/plans/planMarkdown.ts) writes it, with the metadata line rendered as a
+ * plain paragraph instead of the `> ...` blockquote that fails this parser
+ * closed. Mirrors the real constructs: spec task bullets with inline code,
+ * numbered substeps, an "added during execution" step, a pending change whose
+ * fenced diff contains checkbox-shaped and quote-shaped lines, and checked
+ * criteria. Steps and criteria are the only checkboxes the plan renders here.
+ */
+const projectMindPlan = [
+  '# Live plan-step progress in Markdown Studio',
+  '',
+  'Created: 2026-11-13 · Priority: **HIGH** · Owner role: `manager` · Category: `feature` · Feature: **architecture-review** (branch) · Branch: `architecture-review` · Status: active · ID: `plan-live-plan-step-progress`',
+  '',
+  '## Problem / Context',
+  '',
+  'Agents tick steps with `projectmind_updatePlanStatus`, but nothing reports which step is in progress.',
+  '',
+  '- **Copilot:** only the host\'s own edit tools enter the working set.',
+  '- **Codex:** there is no pending state; review is a diff after the write.',
+  '',
+  '## Goal',
+  '',
+  'Show which step is running &amp; keep the `.md` a read-only projection.',
+  '',
+  '## Decisions',
+  '',
+  '- Checkbox ticks stay direct writes, never pending.',
+  '',
+  '## Tasks',
+  '',
+  '### Task 1: Parser fixture',
+  '',
+  '- Owner: `qa`',
+  '- Engineering skill: `test-generation`',
+  '- Modify: `packages/core/test/taskAnchorMapping.test.ts`',
+  '',
+  'Substeps:',
+  '',
+  '1. Render a plan with steps, a fenced diff and criteria',
+  '2. Assert every step and criterion parses',
+  '',
+  'Validation:',
+  '',
+  '- `yarn vitest run packages/core/test/taskAnchorMapping.test.ts`',
+  '',
+  '## Dependency order',
+  '',
+  '1. Task 1',
+  '',
+  '## Sibling plans',
+  '',
+  'This plan is one of 2 linked parts, one per project. Each part is updated and completed in its own project; see `projectmind_listPlans` with `project: "all"` for every part\'s status.',
+  '',
+  '- `ProjectMind` — `plan-live-plan-step-progress-in-markdown-projectmind`',
+  '',
+  '## Related plans',
+  '',
+  '- `plan-editor-picker-duplicate-label` — 61/100 — same feature architecture-review; shared terms any, can',
+  '',
+  '## Steps',
+  '',
+  '- [x] [qa · test-generation] Add a ProjectMind plan .md fixture',
+  '- [ ] [code · refactor] Extract the chat-editing detection behind a PendingEditSource',
+  '- [ ] [code · tdd] Add a Claude Code PendingEditSource _(added during execution)_',
+  '',
+  '## Pending change (awaiting user approval)',
+  '',
+  'Requested 2026-11-13 (`chg-1`). Approve or reject it from the notification or the command **ProjectMind: Review Pending Plan Change**; until then the steps and criteria above stand as authored.',
+  '',
+  '**Reason**: The live sample cannot be captured headless.',
+  '',
+  '**Proposed steps**:',
+  '',
+  '````diff',
+  '  [qa · test-generation] Add a ProjectMind plan .md fixture',
+  '- [ ] old shaped like a task',
+  '+ [x] new shaped like a task',
+  '> quote-shaped diff text',
+  '```',
+  '````',
+  '',
+  '## Acceptance criteria',
+  '',
+  '- [x] The fixture parses every step and criterion',
+  '- [ ] yarn lint and yarn test pass',
+  '',
+  '## Files',
+  '',
+  '- `packages/core/src/taskAnchorMapping.ts`',
+  '',
+  '## Notes',
+  '',
+  'Sources: https://github.com/microsoft/vscode/issues/279040',
+  '',
+].join('\n');
+
+describe('ProjectMind plan markdown', () => {
+  it('parses every step and criterion of a generated plan without the meta blockquote', () => {
+    // Checkbox lines under `## Steps` and `## Acceptance criteria` only: the
+    // fenced diff holds checkbox-shaped lines that must NOT become tasks.
+    let section = '';
+    const expected = projectMindPlan.split('\n').flatMap((text, line) => {
+      if (text.startsWith('## ')) section = text;
+      return /^## (Steps|Acceptance criteria)$/.test(section) && /^- \[[ x]\] /.test(text) ? [{ line, text }] : [];
+    });
+    expect(expected).toHaveLength(5);
+    expect(parseTaskItems(projectMindPlan).map(({ line, text, checked }) => ({ line, text, checked })))
+      .toEqual(expected.map(e => ({ ...e, checked: e.text.startsWith('- [x]') })));
+  });
+  it('resolves an anchor for each step line by line number and text', () => {
+    const steps = projectMindPlan.split('\n').flatMap((text, line) => /^- \[[ x]\] \[(qa|code) /.test(text) ? [{ line, text }] : []);
+    expect(steps).toHaveLength(3);
+    for (const step of steps) {
+      expect(resolveTaskAnchor(projectMindPlan, 7, { documentVersion: 7, line: step.line, expectedLineText: step.text })?.line).toBe(step.line);
+    }
+  });
+  it('still fails closed when the plan keeps its `> meta` blockquote', () => {
+    const quoted = projectMindPlan.replace(/^Created: /m, '> Created: ');
+    expect(parseTaskItems(quoted)).toEqual([]);
+  });
+  it('fails closed when raw free text in a plan starts a line with `<`', () => {
+    // Problem, notes and work-summary text are written unescaped; 6 of 442
+    // real plans had such a line (leaked `</invoke>` markup) on 2026-11-13.
+    const leaked = projectMindPlan.replace('## Notes\n\n', '## Notes\n\n</invoke>\n');
+    expect(parseTaskItems(leaked)).toEqual([]);
+  });
+});

@@ -72,3 +72,40 @@ export function remapTaskAnchor(before: string, after: string, version: number, 
   const node = parseTaskItems(after).find(node => node.start === anchor.start + delta && node.text === anchor.text);
   return node ? { ...node, documentVersion: version } : undefined;
 }
+
+/** Changed regions larger than this many line pairs are not aligned; they report no tasks. */
+const MAX_ALIGNED_LINE_PAIRS = 1_000_000;
+
+/**
+ * Tasks of `source` whose line has no unchanged counterpart in `other`, by a
+ * longest-common-subsequence line alignment. Used to mark the checkboxes a
+ * pending edit touches: `other` is the version the open document is reviewed
+ * against. Fails closed (returns no tasks) when `source` has no parseable task
+ * projection or the changed region is too large to align.
+ */
+export function findChangedTasks(source: string, other: string): ParsedTask[] {
+  const tasks = parseTaskItems(source);
+  if (tasks.length === 0) return [];
+  const a = source.split(/\r\n|\n|\r/); const b = other.split(/\r\n|\n|\r/);
+  let start = 0;
+  while (start < a.length && start < b.length && a[start] === b[start]) start++;
+  let endA = a.length; let endB = b.length;
+  while (endA > start && endB > start && a[endA - 1] === b[endB - 1]) { endA--; endB--; }
+  const n = endA - start; const m = endB - start;
+  if (n * m > MAX_ALIGNED_LINE_PAIRS) return [];
+  // lengths[i * (m + 1) + j]: LCS length of a[start+i..endA) and b[start+j..endB).
+  const width = m + 1; const lengths = new Uint32Array((n + 1) * width);
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) {
+    lengths[i * width + j] = a[start + i] === b[start + j]
+      ? lengths[(i + 1) * width + j + 1] + 1
+      : Math.max(lengths[(i + 1) * width + j], lengths[i * width + j + 1]);
+  }
+  const changed = new Set<number>();
+  let i = 0; let j = 0;
+  while (i < n) {
+    if (j < m && a[start + i] === b[start + j]) { i++; j++; }
+    else if (j < m && lengths[i * width + j + 1] >= lengths[(i + 1) * width + j]) j++;
+    else { changed.add(start + i); i++; }
+  }
+  return tasks.filter(task => changed.has(task.line));
+}

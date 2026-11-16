@@ -160,3 +160,24 @@ describe('host to webview protocol', () => {
     expect(parseHostToWebviewMessage(notice)).toEqual({ kind: 'message', message: notice });
   });
 });
+
+describe('pending edits protocol', () => {
+  const message = {
+    command: 'pending-edits', panelId: 'A', documentVersion: 3, generation: 1, content: '- [x] One',
+    edits: [{ sourceLabel: 'Copilot', compareContent: '- [ ] One' }],
+  };
+
+  test('parses the pending edits of one document version', () => {
+    expect(parseHostToWebviewMessage(message)).toEqual({ kind: 'message', message });
+    expect(parseHostToWebviewMessage({ ...message, edits: [] }).kind).toBe('message');
+  });
+
+  test.each([
+    ['a non-string label', [{ sourceLabel: 1, compareContent: '' }]],
+    ['a missing compare text', [{ sourceLabel: 'Copilot' }]],
+    ['an overlong label', [{ sourceLabel: 'x'.repeat(121), compareContent: '' }]],
+    ['too many sources', Array.from({ length: 9 }, () => ({ sourceLabel: 'S', compareContent: '' }))],
+  ])('rejects %s', (_name, edits) => {
+    expect(parseHostToWebviewMessage({ ...message, edits }).kind).toBe('malformed');
+  });
+});

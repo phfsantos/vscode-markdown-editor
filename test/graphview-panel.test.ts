@@ -5,7 +5,8 @@ type Listener<T = unknown> = (value: T) => unknown;
 const host = vi.hoisted(() => ({
   activeTextEditor: undefined as { document: TestDocument } | undefined,
   graphDocument: undefined as TestDocument | undefined,
-  lastPanel: undefined as { webview: { html: string } } | undefined,
+  lastPanel: undefined as { active: boolean; webview: { html: string } } | undefined,
+  viewStateListeners: [] as Listener[],
   graphListeners: [] as Listener<TestDocument | undefined>[],
   editorPanelListeners: [] as Listener<TestDocument | undefined>[],
   activeEditorListeners: [] as Listener<{ document: TestDocument } | undefined>[],
@@ -18,6 +19,7 @@ const host = vi.hoisted(() => ({
     this.activeTextEditor = undefined;
     this.graphDocument = undefined;
     this.graphListeners.splice(0);
+    this.viewStateListeners.splice(0);
     this.editorPanelListeners.splice(0);
     this.activeEditorListeners.splice(0);
     this.webviewMessageListener = undefined;
@@ -113,6 +115,8 @@ vi.mock('vscode', () => {
       },
       createWebviewPanel: () => (host.lastPanel = {
         title: '',
+        active: false,
+        onDidChangeViewState: (listener: Listener) => subscribe(host.viewStateListeners, listener),
         reveal: host.reveal,
         onDidDispose: vi.fn(() => ({ dispose() {} })),
         webview: {
@@ -236,6 +240,38 @@ describe('GraphViewPanel active document behavior', () => {
 
     expect(host.generateSimplifiedGraph).toHaveBeenCalledOnce();
     expect(host.generateSimplifiedGraph).toHaveBeenCalledWith(nextDocument.uri, 2, 100);
+  });
+
+  it('retains its source when focus moves into the graph itself', async () => {
+    const source = document('/workspace/source.md');
+    host.graphDocument = source;
+    await GraphViewPanel.createOrShow(extensionContext as never, undefined, graphDependencies() as never);
+    host.lastPanel!.active = true;
+    await Promise.all(host.graphListeners.map(listener => listener(undefined)));
+    host.generateSimplifiedGraph.mockClear();
+    await host.webviewMessageListener?.({ command: 'ready' });
+    expect(host.generateSimplifiedGraph).toHaveBeenCalledWith(source.uri, 2, 100);
+  });
+
+  it('clears after graph focus when the unrelated editor produces no new context event', async () => {
+    host.graphDocument = document('/workspace/source.md');
+    await GraphViewPanel.createOrShow(extensionContext as never, undefined, graphDependencies() as never);
+    host.lastPanel!.active = true;
+    host.graphDocument = undefined;
+    await Promise.all(host.graphListeners.map(listener => listener(undefined)));
+    host.postMessage.mockClear();
+    host.lastPanel!.active = false;
+    // The active-document service deduplicates undefined -> undefined.
+    await Promise.all(host.viewStateListeners.map(listener => listener({ webviewPanel: host.lastPanel })));
+    expect(host.postMessage).toHaveBeenCalledWith({ type: 'graphData', data: { nodes: [], edges: [] } });
+  });
+
+  it('clears its source when focus moves to an unrelated editor', async () => {
+    host.graphDocument = document('/workspace/source.md');
+    await GraphViewPanel.createOrShow(extensionContext as never, undefined, graphDependencies() as never);
+    host.lastPanel!.active = false;
+    await Promise.all(host.graphListeners.map(listener => listener(undefined)));
+    expect(host.postMessage).toHaveBeenCalledWith({ type: 'graphData', data: { nodes: [], edges: [] } });
   });
 
   it('ignores direct editor events after the sidebar selects the active document', async () => {

@@ -430,3 +430,63 @@ timeouts under concurrent host/browser load; its complete rerun with
   [widgets](artifacts/agent-activity-matrix/isolation195-widget-tests.txt),
   [browser](artifacts/agent-activity-matrix/isolation195-browser-tests.txt),
   [lint](artifacts/agent-activity-matrix/isolation195-lint.txt)
+
+## Plan-step progress and pending-edit review (November 13)
+
+This section adds ProjectMind as an activity producer and per-task `review`
+markers for pending agent edits (see
+[extension-api.md](../extension-api.md#pending-not-yet-kept-agent-edits)). The
+live column records what the maintainer saw on 2026-11-13 in VS Code Insiders
+over Remote-SSH (macOS), with Markdown Studio 0.5.11 to 0.5.14 and ProjectMind
+0.6.52 and 0.6.53. A cell says what was seen and what was not; a partial result
+must not be read as a full pass.
+
+| Scenario | Pending-edit source | Automated evidence | Live verification |
+| --- | --- | --- | --- |
+| ProjectMind reports the step it is executing on `.projectmind/plans/<id>.md` | Not applicable (activity API producer) | `packages/core/test/taskAnchorMapping.test.ts`: a generated plan without the `> meta` blockquote resolves every step and criterion; with the blockquote, or with a raw line starting with `<`, it fails closed | **Seen.** The indicator appeared on the started step, moved between steps, left ticked steps, became a `review` marker on the last open criterion and cleared when it was ticked, driven from Claude Code, Copilot Chat and Codex. Details: ProjectMind `docs/hosts/plan-step-progress-live.md`. After the indicator was redrawn on the checkbox itself (0.5.14) it stayed in place while scrolling. |
+| Copilot Chat agent edit, not yet kept | `chat-editing-text-model` baseline documents | `test/chat-editing-diff.test.js`, `test/diff-view-controller.test.js` (unchanged), `test/pending-edits-panel.integration.test.ts`, `test/agent-pending-edit-review.browser.test.ts` | **Marker not seen; the diff view takes over.** With a Copilot edit pending, Markdown Studio opened the file in its single-view diff (header 'Modified', changed task highlighted) and the tab title showed the pending mark. No `review` marker was drawn on the checkbox in that view. The maintainer judged the diff view the better presentation. Keep and Undo each cleared the pending mark and the diff view. |
+| Claude Code proposed diff, not yet accepted | `TabInputTextDiff` with `_claude_vscode_fs_right:<path>` | `test/claude-code-pending-edit-source.test.ts` (fake tab groups: detection, other path, missing scheme, tab close), `test/agent-pending-edit-review.browser.test.ts` | **Seen.** Claude Code opened its proposal in VS Code's text diff editor; with that tab open, the Markdown Studio tab showed the `review` dot on the changed checkbox, so the bundle-derived `_claude_vscode_fs_right` shape matched. The marker cleared on Accept and on Reject. Not recorded: the URI as VS Code reports it. Switching Claude Code's diff tab itself to Markdown Studio interrupts Claude Code's tool call; leave that tab in the text diff editor. |
+| Claude Code terminal/IDE-MCP proposed diff | `TabInputTextDiff` with `_claude_fs_right:<same path>` and the exact right-hand URI open in `workspace.textDocuments` | `test/claude-code-pending-edit-source.test.ts`: fake-tabGroups detection, other path, unrecognised scheme, tab close, absent proposal, mismatched query, fragment fallback and document relevance | **Captured live through the actual IDE-MCP handler.** See the exact URI metadata and diagnostic scope below. |
+| Codex edit | None: Codex has no pending state in VS Code | Not applicable; no markers by design | Not applicable (review after write) |
+| ProjectMind MCP/LM tool write | None: written directly | Not applicable; no markers by design | Not applicable |
+
+Private schemes caveat: both pending-edit sources read undocumented host
+internals and fail closed. A host release that changes them removes the
+markers; it must not produce wrong ones. Re-run the live rows after Copilot
+Chat or Claude Code updates.
+
+What the live check must record, per row: VS Code and host-extension versions;
+a screenshot of the step indicator or `review` marker on the exact checkbox and
+nowhere else; the status text naming the source; the marker clearing after
+Keep/Undo (Copilot) or Accept/Reject or closing the diff tab (Claude Code); and
+the document bytes unchanged by Markdown Studio. For Claude Code, also record
+the right-hand diff URI (scheme, path, query) as VS Code reports it.
+
+
+### Live Claude URI capture (November 13 implementation run)
+
+Captured in an isolated VS Code 1.115.0 Extension Development Host using the
+installed Claude Code 2.1.323 runtime bundle. The diagnostic invoked the actual
+extension `openDiff` handler and the actual terminal IDE-MCP `openDiff` endpoint;
+no model request or authenticated end-to-end Claude conversation was involved.
+The disposable extension manifest disabled automatic contributions; runtime
+bundle bytes were unchanged. These are real `TabInputTextDiff` tabs and real
+`workspace.textDocuments`, not fake-tabGroups fixtures.
+
+| Integration | Right scheme | Right path | Query | Exact right URI in `workspace.textDocuments` |
+| --- | --- | --- | --- | --- |
+| Extension 2.1.323 | `_claude_vscode_fs_right` | `/private/tmp/claude-uri-host-92bc0o39/workspace/capture-extension.md` | empty | true |
+| Terminal IDE-MCP in extension 2.1.323 | `_claude_fs_right` | `/private/tmp/claude-uri-host-92bc0o39/workspace/capture-terminal.md` | empty | true |
+
+The original side was `file:` with the same path in both cases. Installed CLI
+version was 2.1.318; the diagnostic called the IDE endpoint directly rather than
+launching a CLI model session. The extension sample matches the existing
+scheme/path/query checks, so no extension-shape correction was necessary.
+Windows and Remote-SSH path forms remain unverified. The initial sandboxed
+host aborted; launching the isolated host outside the sandbox and preserving
+the normal HOME resolved the file-document startup issue.
+
+The retained capture metadata is in
+[claude-uri-capture-2026-11-13.json](artifacts/agent-activity-matrix/claude-uri-capture-2026-11-13.json).
+This proves URI compatibility for these runtime handlers; it does not claim
+an end-to-end model workflow or all Accept/Reject lifecycle scenarios.

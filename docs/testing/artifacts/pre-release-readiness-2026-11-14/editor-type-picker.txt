@@ -1,0 +1,5 @@
+Markdown Studio - Markdown Studio
+Text Editor
+Markdown Preview
+Markdown Editor
+Set Default for '*.md'

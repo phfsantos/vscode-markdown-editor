@@ -28,16 +28,25 @@ function report(extra = {}) {
   controller.receive({command:'agent-activity',panelId:'A',documentVersion:1,generation:1,sequence:1,content,
     summary:'Agent A working',tasks:[{line:1,expectedLineText:'- [ ] Same',state:'working',producerLabel:'Agent A'}],...extra});
 }
+/** The checkboxes that carry an indicator: the controller styles them through a generated rule, adding no node. */
+const taskState = (input: Element) => getComputedStyle(input).getPropertyValue('--md-agent-task-state').trim();
+const taskLine = (input: Element) => getComputedStyle(input).getPropertyValue('--md-agent-task-line').trim();
+const markers = () => Array.from(document.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')).filter(input => taskState(input));
 test('only the second duplicate task spins, outside editable DOM with source/selection preserved', async () => {
   await mount(); const before = editor.getValue();
   const li = host.querySelectorAll('li')[0]; const range = document.createRange(); range.selectNodeContents(li);
   const selection = window.getSelection()!; selection.removeAllRanges(); selection.addRange(range); const selected = selection.toString();
+  const inputAttributes = Array.from(host.querySelectorAll('input[type="checkbox"]')[1].attributes).map(attribute => attribute.name).sort();
   report(); await frame();
-  const indicators = document.querySelectorAll<HTMLElement>('.md-agent-task-indicator'); expect(indicators).toHaveLength(1);
+  const indicators = markers(); expect(indicators).toHaveLength(1);
   const input = host.querySelectorAll('input[type="checkbox"]')[1];
-  expect(indicators[0].getBoundingClientRect().top).toBeCloseTo(input.getBoundingClientRect().top - 2,0);
-  expect(indicators[0].closest('.vditor-reset')).toBeNull();
-  expect(getComputedStyle(indicators[0]).pointerEvents).toBe('none');
+  // The indicator is the checkbox's own pseudo-elements, so it scrolls with the page: no overlay node exists.
+  expect(indicators[0]).toBe(input);
+  expect(getComputedStyle(input,'::before').content).not.toBe('none');
+  expect(getComputedStyle(input,'::before').pointerEvents).toBe('none');
+  expect(document.querySelector('.md-agent-task-indicator, .md-agent-activity-layer')).toBeNull();
+  expect(host.querySelector('[data-agent-activity]')).toBeNull();
+  expect(Array.from(input.attributes).map(attribute => attribute.name).sort()).toEqual(inputAttributes);
   expect(document.querySelector('.md-agent-activity-status')?.textContent).toContain('Agent A working on task');
   expect(editor.getValue()).toBe(before); expect(selection.toString()).toBe(selected);
   expect(cleanContentForSave(before)).toBe(before);
@@ -45,21 +54,21 @@ test('only the second duplicate task spins, outside editable DOM with source/sel
 });
 test('coalesces producers, survives rerender, clears invalidated tasks and accepts read-only views', async () => {
   await mount(true); report({tasks:[{line:1,expectedLineText:'- [ ] Same',state:'review',producerLabel:'B'},{line:1,expectedLineText:'- [ ] Same',state:'working',producerLabel:'A'}]}); await frame();
-  expect(document.querySelectorAll('.md-agent-task-indicator')).toHaveLength(1);
-  expect(document.querySelector('.md-agent-task-indicator')?.getAttribute('data-state')).toBe('working');
-  editor.setValue(content); await frame(); expect(document.querySelectorAll('.md-agent-task-indicator')).toHaveLength(1);
-  report({sequence:2,tasks:[]}); await frame(); expect(document.querySelectorAll('.md-agent-task-indicator')).toHaveLength(0);
+  expect(markers()).toHaveLength(1);
+  expect(taskState(markers()[0])).toBe('working');
+  editor.setValue(content); await frame(); expect(markers()).toHaveLength(1);
+  report({sequence:2,tasks:[]}); await frame(); expect(markers()).toHaveLength(0);
   expect(document.querySelector('.md-agent-activity-header')?.textContent).toContain('working');
 });
 test('rejects stale/malformed messages and hides projection during unsynchronized edits', async () => {
   await mount(); const before = editor.getValue(); report(); await frame();
-  report({sequence:0,tasks:[]}); await frame(); expect(document.querySelectorAll('.md-agent-task-indicator')).toHaveLength(1);
+  report({sequence:0,tasks:[]}); await frame(); expect(markers()).toHaveLength(1);
   expect(parseHostToWebviewMessage({command:'agent-activity',tasks:[{line:-1}]}).kind).toBe('malformed');
-  report({sequence:2,documentVersion:0,tasks:[]}); await frame(); expect(document.querySelectorAll('.md-agent-task-indicator')).toHaveLength(1);
+  report({sequence:2,documentVersion:0,tasks:[]}); await frame(); expect(markers()).toHaveLength(1);
   const root = host.querySelector<HTMLElement>('.vditor-ir .vditor-reset')!;
   root.focus(); const caret = document.createRange(); caret.selectNodeContents(root.querySelector('li')!); caret.collapse(false); window.getSelection()?.addRange(caret);
   root.dispatchEvent(new InputEvent('input',{bubbles:true})); await frame();
-  expect(document.querySelectorAll('.md-agent-task-indicator')).toHaveLength(0);
+  expect(markers()).toHaveLength(0);
   expect(editor.getValue()).toBe(before);
 });
 test('does not intercept checkbox click and does not serialize activity on save/copy', async () => {
@@ -68,7 +77,7 @@ test('does not intercept checkbox click and does not serialize activity on save/
   expect(root.innerHTML).not.toContain('md-agent');
   const checkbox = host.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')[1]; checkbox.click(); await frame();
   expect(checkbox.checked).toBe(true);
-  expect(document.querySelectorAll('.md-agent-task-indicator')).toHaveLength(0);
+  expect(markers()).toHaveLength(0);
   expect(editor.getValue()).not.toContain('Agent A');
   expect(cleanContentForSave('<span data-agent-activity="true" class="md-agent-task-indicator">Transient</span>Text')).toBe('Text');
 });
@@ -82,7 +91,7 @@ test('keyboard checkbox toggle and undo remain functional across activity update
   const modifier = /Mac/.test(navigator.platform) ? 'Meta' : 'Control';
   await userEvent.keyboard(`{${modifier}>}{Shift>}j{/Shift}{/${modifier}}`);
   await expect.poll(() => editor.getValue()).toContain('[X]');
-  expect(document.querySelectorAll('.md-agent-task-indicator')).toHaveLength(0);
+  expect(markers()).toHaveLength(0);
   editor.setValue(content, true); await frame();
   internal.undo.addToUndoStack(internal);
   editor.setValue(content + '\nExtra\n'); await frame();
@@ -92,18 +101,47 @@ test('keyboard checkbox toggle and undo remain functional across activity update
   internal.undo.undo(internal); await frame();
   expect(editor.getValue()).toBe(before);
 });
+test('each state draws a checkbox outline with its own glyph: a spinning arc, pause bars or a review dot', async () => {
+  await mount(); report(); await frame();
+  const style = (pseudo: string) => getComputedStyle(markers()[0], pseudo);
+  expect(style('::before').borderTopStyle).toBe('solid');
+  expect(style('::before').backgroundColor).not.toBe('rgba(0, 0, 0, 0)');
+  expect(style('::after').animationName).toBe('md-agent-spin');
+  expect(style('::after').borderTopLeftRadius).toBe('50%');
+  report({sequence:2,tasks:[{line:1,expectedLineText:'- [ ] Same',state:'waiting',producerLabel:'A'}]}); await frame();
+  expect(taskState(markers()[0])).toBe('waiting');
+  expect(style('::after').animationName).toBe('none');
+  expect(style('::after').backgroundImage).toContain('linear-gradient');
+  report({sequence:3,tasks:[{line:1,expectedLineText:'- [ ] Same',state:'review',producerLabel:'A'}]}); await frame();
+  expect(taskState(markers()[0])).toBe('review');
+  expect(style('::after').backgroundImage).toBe('none');
+  expect(style('::after').borderTopLeftRadius).toBe('50%');
+});
+test('the indicator stays on its checkbox while the page scrolls, with no script running', async () => {
+  await mount(); report(); await frame();
+  const input = markers()[0]; const before = input.getBoundingClientRect().top;
+  const spacer = document.createElement('div'); spacer.style.height = '3000px'; document.body.append(spacer);
+  try {
+    window.scrollTo(0, 40);
+    // Read synchronously, before any frame or scroll handler can run: the outline is laid out inside the checkbox.
+    expect(input.getBoundingClientRect().top).toBeCloseTo(before - 40, 0);
+    expect(markers()).toEqual([input]);
+    expect(getComputedStyle(input,'::before').position).toBe('absolute');
+    expect(getComputedStyle(input).position).toBe('relative');
+  } finally { window.scrollTo(0, 0); spacer.remove(); }
+});
 test('working animation honors reduced motion and static states survive viewport resizing', async () => {
   await mount(); report(); await frame();
   const session = cdp();
   try {
     await session.send('Emulation.setEmulatedMedia', {features:[{name:'prefers-reduced-motion',value:'reduce'}]});
-    expect(getComputedStyle(document.querySelector('.md-agent-task-indicator')!).animationName).toBe('none');
+    expect(getComputedStyle(markers()[0],'::after').animationName).toBe('none');
     for (const width of [360,768,1280]) {
       await page.viewport(width,720); await frame();
-      expect(document.querySelectorAll('.md-agent-task-indicator')).toHaveLength(1);
+      expect(markers()).toHaveLength(1);
     }
     report({sequence:2,tasks:[{line:1,expectedLineText:'- [ ] Same',state:'waiting',producerLabel:'A'}]}); await frame();
-    expect(getComputedStyle(document.querySelector('.md-agent-task-indicator')!).animationName).toBe('none');
+    expect(getComputedStyle(markers()[0],'::after').animationName).toBe('none');
   } finally {
     await session.send('Emulation.setEmulatedMedia', {features:[]});
   }

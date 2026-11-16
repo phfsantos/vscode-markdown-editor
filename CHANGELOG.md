@@ -5,7 +5,7 @@ All notable changes to the "Markdown Studio" extension (formerly "Markdown Edito
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.5.0] - Unreleased
+## [Unreleased]
 
 ### Branding
 
@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Keep the link graph's source note when the graph itself receives focus; still clear it when switching to an unrelated editor.
 - "Set Markdown Studio as Default" now writes `*.md` and `*.markdown` to user
   settings only, keeps unrelated `workbench.editorAssociations` entries, no
   longer copies workspace associations into user settings, and reports

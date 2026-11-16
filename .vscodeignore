@@ -28,9 +28,9 @@ coverage/
 *.map
 *.vsix
 *.test.js
+test-usage.json
 demo.gif
 assets/
-media/screenshot-main.png
 media/marketplace-icon.svg
 scripts/
 .gitignore

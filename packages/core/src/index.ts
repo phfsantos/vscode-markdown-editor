@@ -36,6 +36,7 @@ export type {
   HostToWebviewMessage,
   MessageOf,
   MessageRejection,
+  PendingEditProjection,
   ProtocolParseResult,
   WebviewToHostCommand,
   WebviewToHostMessage,
@@ -43,5 +44,5 @@ export type {
 
 export * from './sourceSelectionMapping';
 
-export { parseTaskItems, resolveTaskAnchor, remapTaskAnchor } from './taskAnchorMapping';
+export { findChangedTasks, parseTaskItems, resolveTaskAnchor, remapTaskAnchor } from './taskAnchorMapping';
 export type { TaskAnchor, ParsedTask, SourceChange } from './taskAnchorMapping';

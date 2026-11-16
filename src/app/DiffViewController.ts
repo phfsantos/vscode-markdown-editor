@@ -1,7 +1,8 @@
 import * as vscode from "vscode";
 import * as NodePath from "path";
 import { logger } from "../utils/Logger";
-import { findChatEditingStateForDocument } from "./chatEditingDiff";
+import { createChatEditingPendingEditSource } from "./chatEditingDiff";
+import type { PendingEditSource } from "./pendingEditSource";
 import { calculateRoleSpecificDiffStats } from "../diff/roleSpecificStats";
 import type { DiffCoordinator } from "../contracts/ports";
 import type { WebviewMessageRoutes } from "./webviewMessageRouter";
@@ -56,6 +57,10 @@ export class DiffViewController {
   constructor(
     private readonly host: DiffHost,
     private readonly diffCoordinator?: DiffCoordinator,
+    /** Drives the single-view diff; the textDocuments list is read on every refresh. */
+    private readonly chatEditingSource: PendingEditSource = createChatEditingPendingEditSource(
+      () => vscode.workspace.textDocuments,
+    ),
   ) {}
 
   /**
@@ -318,31 +323,12 @@ export class DiffViewController {
   }
 
   public isRelevantChatEditingDocument(document: vscode.TextDocument): boolean {
-    const currentPath =
-      this.host.document.uri.scheme === "file" && this.host.document.uri.fsPath
-        ? this.host.document.uri.fsPath
-        : this.host.document.uri.path;
-    const candidatePath =
-      document.uri.scheme === "file" && document.uri.fsPath
-        ? document.uri.fsPath
-        : document.uri.path;
-
-    if (candidatePath !== currentPath) {
-      return false;
-    }
-
-    return document.uri.scheme.startsWith("chat-editing-");
+    return this.chatEditingSource.isRelevantDocument(this.host.document, document);
   }
 
   public refreshPendingChatEditState(): void {
-    const chatEditingState = findChatEditingStateForDocument(
-      this.host.document,
-      vscode.workspace.textDocuments
-    );
-
-    this.pendingChatBaselineDocument = chatEditingState?.hasPendingEdits
-      ? chatEditingState.baselineDocument
-      : undefined;
+    this.pendingChatBaselineDocument =
+      this.chatEditingSource.findPendingEdit(this.host.document)?.compareDocument;
   }
 
   public async applyPendingChatDiffVisualization(): Promise<void> {

@@ -18,13 +18,7 @@ Markdown Studio combines **WYSIWYG editing** with **Obsidian-style knowledge man
 
 ![Markdown Studio with its sidebar and graph view](./media/screenshot-main.png)
 
-*Complete workspace view featuring: WYSIWYG editor (center), dedicated sidebar panel (left) with templates, tags, embeds, outgoing links, backlinks, related files, and interactive graph visualization (right) showing note connections and relationships.*
-
-### WYSIWYG Editing Experience
-
-![Demo Animation](./demo.gif)
-
-*Real-time rendering, multiple editing modes, and seamless VS Code integration*
+*Markdown Studio running from an installed VSIX: rich Markdown editing (center), the native notes sidebar (left), and a graph connecting two sample notes (right). Captured by the isolated release-readiness UI test.*
 
 ## ✨ Key Features
 

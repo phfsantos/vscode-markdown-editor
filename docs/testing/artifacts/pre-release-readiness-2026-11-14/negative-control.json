@@ -1,0 +1,13 @@
+{
+  "version": "1.140.0",
+  "vsix": "/private/tmp/markdown-studio-release-2026-11-14/markdown-studio-0.5.14.vsix",
+  "tests": 1,
+  "failures": 1,
+  "results": [
+    {
+      "title": "loads the installed VSIX with its stable identity and renders the editor",
+      "state": "failed",
+      "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'Markdown Studio'\n- 'Wrong'\n"
+    }
+  ]
+}

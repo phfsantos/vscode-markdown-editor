@@ -169,11 +169,27 @@ export class GraphViewPanel {
 
     dependencies.activeDocumentContext?.onDidChangeActiveDocument(
       async (document) => {
+        // Focusing this non-text panel clears the host's active document. Keep
+        // the graph's source while its own controls have focus; unrelated
+        // editors still clear it through the normal context event.
+        if (!document && this._panel.active) {
+          return;
+        }
         await this._setActiveDocument(document?.languageId === 'markdown' ? document : undefined);
       },
       null,
       this._disposables
     );
+
+    this._panel.onDidChangeViewState(async () => {
+      if (!this._panel.active) {
+        // The context service deduplicates undefined -> undefined when focus
+        // moves from the graph to another non-Markdown editor. Reconcile that
+        // transition even when there is no second document-context event.
+        const document = dependencies.activeDocumentContext?.activeDocument;
+        await this._setActiveDocument(document?.languageId === 'markdown' ? document : undefined);
+      }
+    }, null, this._disposables);
   }
 
   private _applyOpenOptions(options?: GraphViewPanelOpenOptions): void {

@@ -1,0 +1,20 @@
+{
+  "version": "0.5.14",
+  "displayName": "Markdown Studio",
+  "id": "phfsantos.markdown-editor",
+  "bytes": 7126700,
+  "sha256": "095cec79acf57a304c1dc5908eaf425323b08012f27bc08fa68f49748b621ea4",
+  "entries": 415,
+  "forbidden": [],
+  "manifestMatchesSource": true,
+  "iconMatchesSource": true,
+  "runtime": true,
+  "images": [
+    "https://github.com/phfsantos/vscode-markdown-editor/raw/HEAD/media/logo.png",
+    "https://img.shields.io/visual-studio-marketplace/v/phfsantos.markdown-editor",
+    "https://img.shields.io/visual-studio-marketplace/i/phfsantos.markdown-editor",
+    "https://img.shields.io/visual-studio-marketplace/r/phfsantos.markdown-editor",
+    "https://github.com/phfsantos/vscode-markdown-editor/raw/HEAD/media/screenshot-main.png",
+    "https://github.com/phfsantos/vscode-markdown-editor/raw/HEAD/demo.gif"
+  ]
+}
