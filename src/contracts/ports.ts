@@ -3,25 +3,6 @@ import type { SourceNavigationTarget, SourceRange } from '@markdown-editor/core'
 
 export interface DiffCoordinator {
   calculateDiffFromHTML(leftHtml: string, rightHtml: string): DiffResultLike;
-  handleScrollSync(
-    sourceInstanceId: string | undefined,
-    sourceUri: vscode.Uri,
-    targetUri: vscode.Uri,
-    scrollPercentage: number,
-  ): void;
-}
-
-export interface DiffPanelTarget {
-  readonly instanceId: string;
-  readonly uri: vscode.Uri;
-  sendScrollSync(scrollPercentage: number): void;
-}
-
-export interface DiffPanelRegistry {
-  findTargetPanel(
-    sourceInstanceId: string | undefined,
-    targetUri: vscode.Uri,
-  ): DiffPanelTarget | undefined;
 }
 
 export interface DiffResultLike {

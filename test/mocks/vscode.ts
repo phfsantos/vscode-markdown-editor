@@ -55,6 +55,12 @@ export const workspace = {
   },
   workspaceFolders: [] as unknown[],
   textDocuments: [] as unknown[],
+  /** Like VS Code: true for writable providers, undefined for schemes with no file system (git:, content providers). */
+  fs: {
+    isWritableFileSystem(scheme: string): boolean | undefined {
+      return scheme === 'file' ? true : undefined;
+    },
+  },
   onDidChangeConfiguration() {
     return { dispose() {} };
   },
@@ -166,7 +172,8 @@ export const extensions = {
 
 export const window = {
   tabGroups: {
-    activeTabGroup: { activeTab: undefined as unknown, viewColumn: 1 },
+    activeTabGroup: { activeTab: undefined as unknown, viewColumn: 1, tabs: [] as unknown[] },
+    all: [] as unknown[],
     onDidChangeTabs() { return { dispose() {} }; },
     onDidChangeTabGroups() { return { dispose() {} }; },
   },
@@ -281,6 +288,18 @@ export class TabInputCustom {
 }
 export class TabInputText {
   constructor(public uri: Uri) {}
+}
+export class TabInputTextDiff {
+  constructor(public original: Uri, public modified: Uri) {}
+}
+export class TabInputNotebook {
+  constructor(public uri: Uri, public notebookType: string) {}
+}
+export class TabInputNotebookDiff {
+  constructor(public original: Uri, public modified: Uri, public notebookType: string) {}
+}
+export class TabInputWebview {
+  constructor(public viewType: string) {}
 }
 
 export const StatusBarAlignment = { Left: 1, Right: 2 };

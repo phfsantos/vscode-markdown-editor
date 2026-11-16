@@ -27,7 +27,7 @@ describe('webview host message router', () => {
     const reportMalformed = vi.fn();
     const route = createHostMessageRouter({ routeGroups: [{ update: vi.fn() }], reportMalformed });
 
-    expect(route({ type: 'diff-scroll-sync', scrollPercentage: 0.5 })).toBe('ignored');
+    expect(route({ type: 'legacy-untyped-message' })).toBe('ignored');
     expect(route({ command: 'widget-to-widget-action' })).toBe('ignored');
     expect(route({ command: 'showFind' })).toBe('ignored');
     expect(reportMalformed).not.toHaveBeenCalled();

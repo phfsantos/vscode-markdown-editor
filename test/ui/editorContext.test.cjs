@@ -101,8 +101,11 @@ describe('Markdown Studio context API in real VS Code', function() {
   it('retains context while focus moves to built-in chat without submitting content', async () => {
     await command('Context UI: Focus Chat');
     await eventually(() => assert.match(report().context.uri, /tasks\.md$/));
-    const chat = await VSBrowser.instance.driver.findElements(By.css('.interactive-session'));
-    assert.ok(chat.length > 0, 'Expected actual built-in chat UI');
+    // The chat view renders asynchronously after the command resolves; poll rather than sample once.
+    await eventually(async () => {
+      const chat = await VSBrowser.instance.driver.findElements(By.css('.interactive-session'));
+      assert.ok(chat.length > 0, 'Expected actual built-in chat UI');
+    });
   });
   it('reconciles a restored custom tab after reloading the isolated window', async () => {
     const previous = report().context;

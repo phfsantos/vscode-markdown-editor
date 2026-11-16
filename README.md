@@ -131,6 +131,35 @@ VS Code's generic `--goto file:line:character` option does not select a custom e
 
 Run `Markdown Studio: Set Markdown Studio as Default` (or use the Status view in the sidebar). It adds `*.md` and `*.markdown` to your user-level `workbench.editorAssociations` and keeps every other association you already have. Workspace settings are never copied into user settings. To cover more extensions, add patterns such as `"*.mdown": "markdown-editor"` yourself.
 
+### 7. Review changes in a diff
+
+Markdown Studio is the default editor for both sides of a Markdown diff. That
+covers Source Control's working-tree and index diffs, **Compare Selected** in
+the Explorer, and other extensions' compare views. To use VS Code's text diff
+for one comparison instead, pick it from the editor-type dropdown in the
+breadcrumb bar.
+
+- **Sides.** The original version is on the left and the modified version on
+  the right. Side detection uses the documents themselves (a Git or other
+  read-only version is always the original), never the tab title.
+- **Status bar.** A slim bar under the toolbar shows the side (`Original`,
+  `Modified` or `Pending changes`), the `+added −deleted ~modified` counts and
+  previous/next change buttons. It also says why a comparison could not be
+  shown, rather than showing nothing.
+- **Highlights.** Changed rows are tinted across the whole editor width,
+  including checkboxes, list markers and line numbers. Lines that exist only
+  on the other side leave a hatched gap, so rows stay aligned.
+- **Scrolling.** Scrolling one side moves the other to the same aligned row.
+  The side you are scrolling always leads.
+- **Read-only side.** On a read-only version (such as a Git `HEAD`), the
+  toolbar is disabled and the content cannot be edited. Toolbar actions on an
+  editable side only change that side's document.
+- **Pending agent edits.** When Copilot has an unaccepted edit to the open
+  file, the single editor shows each line's previous text as a struck-through,
+  read-only row directly above the changed or removed line. These rows are
+  never written to the file, and screen readers announce them as "Previous
+  version" or "Removed line".
+
 ### Custom CSS (custom layout and vditor personalization)
 
 Add CSS rules as a single string in your settings.json:

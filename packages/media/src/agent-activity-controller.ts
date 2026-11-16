@@ -68,7 +68,7 @@ export class AgentActivityController {
     this.scope = dependencies.scope ?? document;
     const create = (className: string) => { const el = this.scope.createElement('div'); el.className = className; el.dataset.agentActivity = 'true'; this.scope.body.append(el); return el; };
     this.sheet = new this.scope.defaultView!.CSSStyleSheet(); this.scope.adoptedStyleSheets = [...this.scope.adoptedStyleSheets, this.sheet];
-    this.header = create('md-agent-activity-header'); this.header.setAttribute('aria-hidden', 'true');
+    this.header = create('md-agent-activity-header'); this.header.hidden = true; this.header.setAttribute('aria-hidden', 'true');
     this.status = create('md-agent-activity-status'); this.status.setAttribute('role', 'status'); this.status.setAttribute('aria-live', 'polite');
     this.observer = new MutationObserver(records => {
       if (records.some(record => !(record.target instanceof Element && record.target.closest(uiSelector)))) this.schedule();
@@ -117,7 +117,12 @@ export class AgentActivityController {
     const pendingEdits = this.isCurrent(this.pendingEdits) && this.pendingEdits!.edits.length > 0 ? this.pendingEdits : undefined;
     const summary = activity ? activity.summary : '';
     if (this.header.textContent !== summary) this.header.textContent = summary;
-    this.header.hidden = !summary;
+    // The controller starts before Vditor: attach when its toolbar arrives, and
+    // reattach if the editor rebuilds it. Skip the internal hidden diff renderer.
+    const toolbar = this.scope.querySelector('.vditor-toolbar:not(.vditor-toolbar--hide)');
+    if (toolbar && this.header.parentElement !== toolbar) toolbar.append(this.header);
+    if (this.header.title !== summary) this.header.title = summary;
+    this.header.hidden = !summary || !toolbar;
     const announce = (text: string) => { if (this.status.textContent !== text) this.status.textContent = text; };
     // Both messages were accepted only for the panel's exact text, so they agree when both are current.
     const content = activity?.content ?? pendingEdits?.content;

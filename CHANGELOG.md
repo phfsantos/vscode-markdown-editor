@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Diff view
+
+- Markdown Studio opens on both sides of Git and file compare diffs again on
+  VS Code 1.133 and later. The custom editor now declares a per-mode priority
+  (`textEditor`/`diffEditor`), which VS Code 1.95 also accepts.
+- Original/modified sides come from document writability, not the tab label.
+  Same-named files compare correctly, and closing or reopening one side no
+  longer breaks the pairing.
+- A single-view pending agent edit shows the previous text of each changed or
+  removed line as a read-only, labelled row above it. Previously this text was
+  only a raw-HTML tooltip.
+- Changed rows are highlighted across the full editor width, including
+  checkboxes and list markers, without moving the text.
+- **Fixed data loss:** saving with a diff open could write deleted content from
+  the other side (nested list items, table rows, code blocks) into the file.
+  Save cleaning now removes diff artifacts from a copy of the document
+  structure, and diff decorations never enter the editable content.
+- Scroll sync works again. It was disconnected; it now aligns to the same diff
+  row in about 25 ms and does not echo.
+- A compact status bar replaces the header that covered the toolbar. On a
+  read-only side the toolbar is disabled.
+- Diffs appear as soon as both sides render (about 300 ms on a 340-line
+  document) instead of after fixed 1-second waits. A failure shows its reason
+  in the status bar.
+- Large documents diff in time proportional to the size of the change.
+- Read-only now follows file-system writability, so chat snapshots and review
+  schemes no longer open editable.
+- The previous version's HTML is sanitised before it is shown.
+- New native UI suite (`yarn test:ui --grep "Diff view"`), also run by the
+  release gate. See `docs/testing/diff-view-findings.md` and
+  `docs/adr/0001-diff-view-architecture.md`.
+
+
 ### Branding
 
 - Renamed the extension's display name from "Markdown Editor" to **Markdown Studio**.

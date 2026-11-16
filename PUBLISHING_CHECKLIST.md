@@ -36,6 +36,7 @@ the Visual Studio Marketplace.
 - [ ] `unzip -p markdown-studio.vsix extension/package.json` shows the expected `displayName`, `version`, and `icon`.
 - [ ] `node scripts/inspect-vsix.cjs markdown-studio.vsix artifact-report.json` verifies identity, exact source manifest/icon/runtime bundles, required assets, and excluded development files.
 - [ ] Run `MARKDOWN_UI_VSIX=/absolute/path/markdown-studio.vsix yarn test:ui:release` with the native prerequisites below. Keep its result, install log and screenshots as pre-release evidence.
+- [ ] Confirm the release gate's `result.json` reports `diffView.failures: 0` with `diffView.tests` > 0. The diff view suite (Git and file↔file diffs, pending-edit single view, status bar, read-only toolbar, scroll sync, save integrity) runs against the same VSIX. Keep `diff/result.json`, `diff/diff-evidence.json` and `diff/screenshots/`.
 - [ ] Install it in a clean profile: `code --profile release-check --install-extension markdown-studio.vsix`
   - [ ] The Extensions view shows "Markdown Studio" with the colored icon.
   - [ ] Opening a `.md` file with "Open in Markdown Studio" works.

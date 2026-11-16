@@ -13,7 +13,7 @@ import "vditor/dist/index.css";
 import { initializeRendererSystem } from "./renderers";
 import "./main.css";
 import "./vscode-integration.css";
-import { diffVisualizer } from "./diff-visualizer";
+import { WebviewDiffView } from "./diff/controller";
 import { initializeWidgetSystem } from "./widget-integration";
 import { inlineSuggestionController } from "./inline-suggestion-ui";
 import { applySelectedTools } from "./tool-selector";
@@ -52,8 +52,10 @@ const sourcePositionNavigation = new SourcePositionNavigationController({
   getMarkdown: () => (window as any).vditor?.getValue?.() ?? "",
 });
 
-// Initialize diff visualizer - must be called to set up message listeners
-diffVisualizer.initialize();
+const diffView = new WebviewDiffView({
+  postScrollAnchor: (anchor) => vscode?.postMessage({ command: "diff-scroll-sync", anchor }),
+  isReadOnly: () => state.isReadOnly,
+});
 
 // Coordination flag to avoid duplicate custom menu builds
 (window as any).__vditorHandledContextMenu = false;
@@ -222,8 +224,19 @@ const calendarRoutes: HostMessageRoutes = {
   "calendar-signout-result": forwardCalendarEvent,
 };
 
+const diffViewRoutes: HostMessageRoutes = {
+  "diff-view-detected": (msg) => {
+    performance.mark("markdown-diff:received");
+    diffView.show(msg.diffInfo);
+  },
+  "diff-view-cleared": () => diffView.clear(),
+  "diff-view-failed": (msg) => diffView.fail(msg.message, state.isReadOnly ? "original" : "modified"),
+  "diff-scroll-sync": (msg) => diffView.applyScrollAnchor(msg.anchor),
+};
+
 const diffHtmlRoutes: HostMessageRoutes = {
   requestIRHtml: (msg) => {
+    performance.mark("markdown-diff:html-requested");
     // Handle request for clean IR HTML content for diff calculation
     (window as any).markdownEditorLog?.(
       `[WEBVIEW] Received requestIRHtml with requestId: ${msg.requestId}`
@@ -348,6 +361,7 @@ const routeHostMessage = createHostMessageRouter({
     aiRoutes,
     aiMarkdownRoutes,
     calendarRoutes,
+    diffViewRoutes,
     diffHtmlRoutes,
     rendererRoutes,
   ],

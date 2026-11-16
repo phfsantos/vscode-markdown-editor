@@ -3,62 +3,8 @@
  * Tests removal of diagnostic and diff decorations from markdown content
  */
 
-/**
- * Clean HTML/markdown content by removing diagnostic and diff decoration artifacts
- * This is a copy of the function from main.ts for testing purposes
- */
-function cleanContentForSave(content) {
-  if (!content) return content;
-
-  // Remove diagnostic decoration spans and attributes
-  let cleaned = content;
-  
-  // Remove diagnostic severity class spans (e.g., vscode-diagnostic-error-underline)
-  // Handles class attribute anywhere in the span tag and diagnostic class anywhere in the class list
-  // Apply multiple times to handle nested spans
-  let prevCleaned = '';
-  while (prevCleaned !== cleaned) {
-    prevCleaned = cleaned;
-    cleaned = cleaned.replace(/<span\s+(?:[^>]*\s+)?class="[^"]*\bvscode-diagnostic-[^"\s]*[^"]*"[^>]*>(.*?)<\/span>/g, '$1');
-  }
-  
-  // Remove diagnostic source attributes
-  cleaned = cleaned.replace(/\s+data-diagnostic-source="[^"]*"/g, '');
-
-  // Remove inline suggestion marker spans before generic attribute cleanup
-  let prevMarkerCleaned = '';
-  while (prevMarkerCleaned !== cleaned) {
-    prevMarkerCleaned = cleaned;
-    cleaned = cleaned.replace(/<span[^>]*\bdata-inline-suggestion-marker="true"[^>]*>[\s\S]*?<\/span>/g, '');
-  }
-
-  cleaned = cleaned.replace(/\s+data-inline-suggestion="[^"]*"/g, '');
-  cleaned = cleaned.replace(/\s+data-inline-suggestion-marker="[^"]*"/g, '');
-  
-  // Remove diff decoration spans (added, removed, modified)
-  // Handles class attribute anywhere in the span tag and diff class anywhere in the class list
-  // Apply multiple times to handle nested spans
-  prevCleaned = '';
-  while (prevCleaned !== cleaned) {
-    prevCleaned = cleaned;
-    cleaned = cleaned.replace(/<span\s+(?:[^>]*\s+)?class="[^"]*\bvscode-diff-(?:added|removed|modified)\b[^"]*"[^>]*>(.*?)<\/span>/g, '$1');
-  }
-  
-  // Remove lightbulb emoji characters
-  cleaned = cleaned.replace(/💡/g, '');
-  
-  // Remove any inline styles added by decorations
-  cleaned = cleaned.replace(/\s+style="[^"]*(?:text-decoration|background-color|border-bottom)[^"]*"/g, '');
-  
-  // Remove diff spacer block markers
-  cleaned = cleaned.replace(/<!--\s*vscode-diff-spacer:\s*\d+\s*-->/g, '');
-  
-  // Remove any empty spans that might be left over
-  cleaned = cleaned.replace(/<span><\/span>/g, '');
-  
-  return cleaned;
-}
-
+// Exercises the shipped function (findings N2: this file used to test a private copy).
+import { cleanContentForSave } from '../packages/media/src/save-cleaning';
 import { test } from 'vitest';
 
 function assertEquals(actual, expected, message) {

@@ -746,13 +746,24 @@ export function initVditor(msg) {
         }
       }, 50); // Very short delay - just enough for editor to be ready
 
-      // Notify extension that Vditor has initialized/reloaded so sidebar can update
-      try {
-        vscode?.postMessage({
-          command: "vditorReady",
-        });
-      } catch (error) {
-        vscodeLog(`❌ Failed to send vditorReady message: ${error}`);
+      // Notify extension that Vditor has initialized/reloaded so sidebar can update.
+      // vditorReady is also the diff view's rendered-ready handshake (ADR 0001 §5):
+      // send it once the post-render work above has run, so the host's follow-up
+      // requests (diff HTML) reach a responsive webview instead of queueing.
+      const announceReady = () => {
+        performance.mark("markdown-diff:rendered");
+        try {
+          vscode?.postMessage({
+            command: "vditorReady",
+          });
+        } catch (error) {
+          vscodeLog(`❌ Failed to send vditorReady message: ${error}`);
+        }
+      };
+      if (typeof window.requestIdleCallback === "function") {
+        window.requestIdleCallback(announceReady, { timeout: 300 });
+      } else {
+        setTimeout(announceReady, 0);
       }
     },
     input(value: string) {

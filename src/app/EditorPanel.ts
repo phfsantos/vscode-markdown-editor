@@ -83,6 +83,7 @@ export class EditorPanel {
   private _lastWebviewEdit = 0;
   private _diffCheckTimeout: NodeJS.Timeout | undefined;
   private _webviewReady = false; // Track if webview has sent ready signal
+  private _renderedReady = false; // Vditor rendered the document (diff handshake)
   private _disposed = false;
   private readonly _documentSync: DocumentSyncController;
   private readonly _documentWriteOrigins = createDocumentWriteOriginTracker();
@@ -338,6 +339,14 @@ export class EditorPanel {
     return this._webviewReady;
   }
 
+  public get renderedReady(): boolean {
+    return this._renderedReady;
+  }
+
+  public get viewColumn(): number | undefined {
+    return this._panel?.viewColumn;
+  }
+
   public get panelVisible(): boolean {
     return this._panel?.visible ?? false;
   }
@@ -491,10 +500,10 @@ export class EditorPanel {
       this._sourcePositionDelivery.reveal(pendingTarget ?? navigationTarget!);
     }
 
-    if (this._isExplicitDiffView && this._tab?.label) {
-      const showModifications =
-        this._document.uri.scheme === "showModifications";
-      this.diff.registerExplicitDiffPanel(showModifications);
+    if (this._isExplicitDiffView) {
+      // Sides follow document writability (ADR 0001); the tab label is never parsed.
+      this.diff.registerExplicitDiffPanel({ uri: this._document.uri.toString(), writable: !this._readOnly });
+      if (this._panel.active) this.diff.onActivated();
     }
 
     // DEFERRED DIFF DETECTION: Check for diff context after a short delay
@@ -533,6 +542,8 @@ export class EditorPanel {
             `[${this.instanceId}] Panel is now ACTIVE, firing document change event`
           );
           this.publishActiveDocument(this._document);
+          // For a compare of two writable files the first focused side is the modified one.
+          this.diff.onActivated();
 
           // CRITICAL: When panel becomes active, ALWAYS re-check diff context
           // This handles switching from individual tab → diff tab
@@ -750,8 +761,9 @@ export class EditorPanel {
   private lifecycleRoutes(): WebviewMessageRoutes {
     return {
       ready: () => {
-        // Mark webview as ready
+        // Mark webview as ready; Vditor has not rendered yet (vditorReady follows).
         this._webviewReady = true;
+        this._renderedReady = false;
         logger.debug(`[${this.instanceId}] 📥 Webview ready signal received`);
 
         // REACTIVE DIFF CHECK: When webview is ready, check if we're in a diff view
@@ -784,6 +796,8 @@ export class EditorPanel {
         });
       },
       vditorReady: () => {
+        this._renderedReady = true;
+        this.diff.onRendered();
         this.publishContextSource();
         this._sourcePositionDelivery.markReady();
         // Vditor has initialized/reloaded - notify sidebar via document change event
@@ -818,18 +832,6 @@ export class EditorPanel {
       irHtmlResponse: () => undefined,
       renderedMarkdownHtmlResponse: () => undefined,
     };
-  }
-
-  /**
-   * Send scroll sync message to this editor's webview
-   */
-  public sendScrollSync(scrollPercentage: number): void {
-    if (this._panel) {
-      this._panel.webview.postMessage({
-        type: "diff-scroll-sync",
-        scrollPercentage: scrollPercentage,
-      });
-    }
   }
 
   /**

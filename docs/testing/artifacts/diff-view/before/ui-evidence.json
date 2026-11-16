@@ -1,0 +1,132 @@
+{
+  "gitDiff.tabs": {
+    "version": "1.140.0",
+    "tabs": [
+      {
+        "group": 0,
+        "label": "diff.md (Working Tree)",
+        "active": true,
+        "input": {
+          "kind": "none"
+        }
+      }
+    ],
+    "openedMs": 3918
+  },
+  "gitDiff.roles": {
+    "left": "original",
+    "right": "modified",
+    "leftStatus": "\ud83d\udcc4 Original +9 -1 ~8",
+    "rightStatus": "\ud83d\udcdd Modified +9 -1 ~8"
+  },
+  "gitDiff.timing": {
+    "rendered": null,
+    "applied": null,
+    "latencyMs": null,
+    "leftMarks": [],
+    "rightMarks": []
+  },
+  "gitDiff.layout.1280.left": {
+    "decorated": 18,
+    "errorState": false,
+    "marks": [],
+    "previousRows": 0,
+    "role": "original",
+    "spacers": 9,
+    "statusBar": {
+      "bottom": 37,
+      "height": 37,
+      "left": 0,
+      "right": 1280,
+      "top": 0,
+      "width": 1280
+    },
+    "statusText": "\ud83d\udcc4 Original +9 -1 ~8",
+    "toolbar": {
+      "bottom": 37,
+      "height": 36,
+      "left": 1,
+      "right": 1279,
+      "top": 1,
+      "width": 1278
+    },
+    "toolbarUsable": true,
+    "viewport": {
+      "height": 918,
+      "width": 1280
+    }
+  },
+  "gitDiff.layout.600.left": {
+    "decorated": 18,
+    "errorState": false,
+    "marks": [],
+    "previousRows": 0,
+    "role": "original",
+    "spacers": 9,
+    "statusBar": {
+      "bottom": 37,
+      "height": 37,
+      "left": 0,
+      "right": 600,
+      "top": 0,
+      "width": 600
+    },
+    "statusText": "\ud83d\udcc4 Original +9 -1 ~8",
+    "toolbar": {
+      "bottom": 37,
+      "height": 36,
+      "left": 1,
+      "right": 599,
+      "top": 1,
+      "width": 598
+    },
+    "toolbarUsable": true,
+    "viewport": {
+      "height": 918,
+      "width": 600
+    }
+  },
+  "gitDiff.readOnlyToolbar": {
+    "button": true,
+    "disabled": false,
+    "hitIsButton": false
+  },
+  "gitDiff.scroll": {
+    "sourceStartedAt": 1794846071265,
+    "leftEvents": 2,
+    "rightEvents": 0,
+    "followerLagMs": null,
+    "followerStartMs": null,
+    "leftFirstRow": "ROW-124",
+    "leftOffset": -31.8984375,
+    "rightOffsetOfSameRow": -1573.3984375,
+    "rowHeight": 48,
+    "leftEchoAfter300ms": 0
+  },
+  "fileCompare.roles": {
+    "left": "original",
+    "right": "modified",
+    "leftX": 348,
+    "rightX": 1014,
+    "tabs": [
+      {
+        "group": 0,
+        "label": "diff.md \u2194 diff.md",
+        "active": true,
+        "input": {
+          "kind": "none"
+        }
+      }
+    ]
+  },
+  "pending.rows": {
+    "decorated": 2,
+    "labelled": false,
+    "legacySpacers": 1,
+    "oldAboveCurrent": false,
+    "oldEditable": null,
+    "removedAboveTail": false,
+    "rows": 0,
+    "tooltip": "Modified from: <p>Old wording here.</p>"
+  }
+}

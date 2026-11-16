@@ -1,0 +1,454 @@
+{
+  "defaultEditor": {
+    "version": "1.140.0",
+    "active": {
+      "group": 0,
+      "label": "second.md",
+      "active": true,
+      "input": {
+        "kind": "TabInputCustom",
+        "uri": "file:///var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/md-ui-bQ0g6o/workspace/second.md",
+        "viewType": "markdown-editor"
+      }
+    }
+  },
+  "gitDiff.tabs": {
+    "version": "1.140.0",
+    "tabs": [
+      {
+        "group": 0,
+        "label": "diff.md (Working Tree)",
+        "active": true,
+        "input": {
+          "kind": "none"
+        }
+      }
+    ],
+    "openedMs": 2195
+  },
+  "gitDiff.roles": {
+    "left": "original",
+    "right": "modified",
+    "leftStatus": "Original Read-only +9 −1 ~8",
+    "rightStatus": "Modified +9 −1 ~8"
+  },
+  "gitDiff.timing": {
+    "rendered": 1794850360892.1,
+    "applied": 1794850361134.1,
+    "latencyMs": 242,
+    "leftMarks": [
+      {
+        "at": 1794850360884.4,
+        "name": "markdown-diff:rendered"
+      },
+      {
+        "at": 1794850360937.7,
+        "name": "markdown-diff:html-requested"
+      },
+      {
+        "at": 1794850361073.8,
+        "name": "markdown-diff:received"
+      },
+      {
+        "at": 1794850361134.1,
+        "name": "markdown-diff:applied"
+      }
+    ],
+    "rightMarks": [
+      {
+        "at": 1794850360892.1,
+        "name": "markdown-diff:rendered"
+      },
+      {
+        "at": 1794850360967.7002,
+        "name": "markdown-diff:html-requested"
+      },
+      {
+        "at": 1794850361075.7002,
+        "name": "markdown-diff:received"
+      },
+      {
+        "at": 1794850361091,
+        "name": "markdown-diff:applied"
+      }
+    ]
+  },
+  "gitDiff.layout.1280.left": {
+    "decorated": 9,
+    "errorState": false,
+    "marks": [
+      {
+        "at": 1794850360884.4,
+        "name": "markdown-diff:rendered"
+      },
+      {
+        "at": 1794850360937.7,
+        "name": "markdown-diff:html-requested"
+      },
+      {
+        "at": 1794850361073.8,
+        "name": "markdown-diff:received"
+      },
+      {
+        "at": 1794850361134.1,
+        "name": "markdown-diff:applied"
+      }
+    ],
+    "paintOnTop": true,
+    "paints": 9,
+    "previousRows": 9,
+    "role": "original",
+    "spacers": 0,
+    "statusBar": {
+      "bottom": 61,
+      "height": 24,
+      "left": 1,
+      "right": 1279,
+      "top": 37,
+      "width": 1278
+    },
+    "statusText": "Original Read-only +9 −1 ~8",
+    "toolbar": {
+      "bottom": 37,
+      "height": 36,
+      "left": 1,
+      "right": 1279,
+      "top": 1,
+      "width": 1278
+    },
+    "toolbarUsable": false,
+    "viewport": {
+      "height": 918,
+      "width": 1280
+    }
+  },
+  "gitDiff.layout.1280.right": {
+    "decorated": 17,
+    "errorState": false,
+    "marks": [
+      {
+        "at": 1794850360892.1,
+        "name": "markdown-diff:rendered"
+      },
+      {
+        "at": 1794850360967.7002,
+        "name": "markdown-diff:html-requested"
+      },
+      {
+        "at": 1794850361075.7002,
+        "name": "markdown-diff:received"
+      },
+      {
+        "at": 1794850361091,
+        "name": "markdown-diff:applied"
+      }
+    ],
+    "paintOnTop": true,
+    "paints": 17,
+    "previousRows": 1,
+    "role": "modified",
+    "spacers": 0,
+    "statusBar": {
+      "bottom": 61,
+      "height": 24,
+      "left": 1,
+      "right": 1279,
+      "top": 37,
+      "width": 1278
+    },
+    "statusText": "Modified +9 −1 ~8",
+    "toolbar": {
+      "bottom": 37,
+      "height": 36,
+      "left": 1,
+      "right": 1279,
+      "top": 1,
+      "width": 1278
+    },
+    "toolbarUsable": true,
+    "viewport": {
+      "height": 918,
+      "width": 1280
+    }
+  },
+  "gitDiff.layout.600.left": {
+    "decorated": 9,
+    "errorState": false,
+    "marks": [
+      {
+        "at": 1794850360884.4,
+        "name": "markdown-diff:rendered"
+      },
+      {
+        "at": 1794850360937.7,
+        "name": "markdown-diff:html-requested"
+      },
+      {
+        "at": 1794850361073.8,
+        "name": "markdown-diff:received"
+      },
+      {
+        "at": 1794850361134.1,
+        "name": "markdown-diff:applied"
+      }
+    ],
+    "paintOnTop": true,
+    "paints": 9,
+    "previousRows": 9,
+    "role": "original",
+    "spacers": 0,
+    "statusBar": {
+      "bottom": 61,
+      "height": 24,
+      "left": 1,
+      "right": 599,
+      "top": 37,
+      "width": 598
+    },
+    "statusText": "Original Read-only +9 −1 ~8",
+    "toolbar": {
+      "bottom": 37,
+      "height": 36,
+      "left": 1,
+      "right": 599,
+      "top": 1,
+      "width": 598
+    },
+    "toolbarUsable": false,
+    "viewport": {
+      "height": 918,
+      "width": 600
+    }
+  },
+  "gitDiff.layout.600.right": {
+    "decorated": 17,
+    "errorState": false,
+    "marks": [
+      {
+        "at": 1794850360892.1,
+        "name": "markdown-diff:rendered"
+      },
+      {
+        "at": 1794850360967.7002,
+        "name": "markdown-diff:html-requested"
+      },
+      {
+        "at": 1794850361075.7002,
+        "name": "markdown-diff:received"
+      },
+      {
+        "at": 1794850361091,
+        "name": "markdown-diff:applied"
+      }
+    ],
+    "paintOnTop": true,
+    "paints": 17,
+    "previousRows": 1,
+    "role": "modified",
+    "spacers": 0,
+    "statusBar": {
+      "bottom": 61,
+      "height": 24,
+      "left": 1,
+      "right": 599,
+      "top": 37,
+      "width": 598
+    },
+    "statusText": "Modified +9 −1 ~8",
+    "toolbar": {
+      "bottom": 37,
+      "height": 36,
+      "left": 1,
+      "right": 599,
+      "top": 1,
+      "width": 598
+    },
+    "toolbarUsable": true,
+    "viewport": {
+      "height": 918,
+      "width": 600
+    }
+  },
+  "gitDiff.toolbarScope": {
+    "original": {
+      "decorated": 9,
+      "errorState": false,
+      "marks": [
+        {
+          "at": 1794850360884.4,
+          "name": "markdown-diff:rendered"
+        },
+        {
+          "at": 1794850360937.7,
+          "name": "markdown-diff:html-requested"
+        },
+        {
+          "at": 1794850361073.8,
+          "name": "markdown-diff:received"
+        },
+        {
+          "at": 1794850361134.1,
+          "name": "markdown-diff:applied"
+        }
+      ],
+      "paintOnTop": true,
+      "paints": 9,
+      "previousRows": 9,
+      "role": "original",
+      "spacers": 0,
+      "statusBar": {
+        "bottom": 61,
+        "height": 24,
+        "left": 1,
+        "right": 515,
+        "top": 37,
+        "width": 514
+      },
+      "statusText": "Original Read-only +9 −1 ~8",
+      "toolbar": {
+        "bottom": 37,
+        "height": 36,
+        "left": 1,
+        "right": 515,
+        "top": 1,
+        "width": 514
+      },
+      "toolbarUsable": false,
+      "viewport": {
+        "height": 918,
+        "width": 516
+      },
+      "button": true,
+      "hitIsButton": false,
+      "width": 25
+    },
+    "modified": {
+      "decorated": 17,
+      "errorState": false,
+      "marks": [
+        {
+          "at": 1794850360892.1,
+          "name": "markdown-diff:rendered"
+        },
+        {
+          "at": 1794850360967.7002,
+          "name": "markdown-diff:html-requested"
+        },
+        {
+          "at": 1794850361075.7002,
+          "name": "markdown-diff:received"
+        },
+        {
+          "at": 1794850361091,
+          "name": "markdown-diff:applied"
+        }
+      ],
+      "paintOnTop": true,
+      "paints": 17,
+      "previousRows": 1,
+      "role": "modified",
+      "spacers": 0,
+      "statusBar": {
+        "bottom": 61,
+        "height": 24,
+        "left": 1,
+        "right": 516,
+        "top": 37,
+        "width": 515
+      },
+      "statusText": "Modified +9 −1 ~8",
+      "toolbar": {
+        "bottom": 37,
+        "height": 36,
+        "left": 1,
+        "right": 516,
+        "top": 1,
+        "width": 515
+      },
+      "toolbarUsable": true,
+      "viewport": {
+        "height": 918,
+        "width": 517
+      },
+      "button": true,
+      "hitIsButton": true,
+      "width": 25
+    }
+  },
+  "gitDiff.save": {
+    "savedLength": 11915,
+    "editorLength": 11915,
+    "equal": true
+  },
+  "gitDiff.scroll": {
+    "sourceStartedAt": 1794850367466,
+    "leftEvents": 2,
+    "rightEvents": 2,
+    "followerLagMs": 24,
+    "followerStartMs": 23,
+    "leftFirstRow": "ROW-125",
+    "leftOffset": 8.1015625,
+    "rightOffsetOfSameRow": 16.1015625,
+    "rowHeight": 48,
+    "leftEchoAfter300ms": 0,
+    "leftPosted": 0,
+    "rightReceived": 2,
+    "rightPosted": 0,
+    "leftReceived": 0,
+    "leftOwner": "true",
+    "rightOwner": "false",
+    "leftPosts": "2",
+    "rightPosts": "2",
+    "leftState": "ready",
+    "rightState": "ready"
+  },
+  "spike.transports": {
+    "leftOrigin": "vscode-webview://121ialabh5mfangg61bb5vnivgeap8ru0t9pv0nqsgeusn6cd23s",
+    "rightOrigin": "vscode-webview://121ialabh5mfangg61bb5vnivgeap8ru0t9pv0nqsgeusn6cd23s",
+    "sameOrigin": true,
+    "broadcastChannel": {
+      "n": 20,
+      "min": 0,
+      "p50": 1,
+      "p95": 1,
+      "max": 1
+    },
+    "hostRelay": {
+      "n": 20,
+      "min": 1,
+      "p50": 2,
+      "p95": 2,
+      "max": 2
+    }
+  },
+  "fileCompare.roles": {
+    "left": "original",
+    "right": "modified",
+    "leftX": 348,
+    "rightX": 864,
+    "tabs": [
+      {
+        "group": 0,
+        "label": "diff.md ↔ diff.md",
+        "active": true,
+        "input": {
+          "kind": "none"
+        }
+      }
+    ]
+  },
+  "pending.rows": {
+    "decorated": 1,
+    "labelled": true,
+    "legacySpacers": 0,
+    "oldAboveCurrent": true,
+    "oldEditable": false,
+    "removedAboveTail": true,
+    "rows": 2,
+    "tooltip": null
+  },
+  "pending.save": {
+    "saved": "# Pending edit\n\nKeep this line.\n\nNew wording here.\n\nTail line.\n",
+    "editorMarkdown": "# Pending edit\n\nKeep this line.\n\nNew wording here.\n\nTail line.\n"
+  }
+}

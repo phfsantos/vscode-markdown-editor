@@ -26,7 +26,39 @@ export interface PendingEditProjection {
   sourceLabel: string; compareContent: string;
 }
 
+/** One aligned diff row as the host computes it (see MarkdownDiffViewSupport.calculateDiffFromHTML). */
+export interface DiffChangeProjection {
+  type: 'added' | 'deleted' | 'modified' | 'spacer';
+  /** Aligned row on this side's display (spacers included). */
+  lineNumber: number;
+  content: string;
+  oldContent?: string;
+  side: 'left' | 'right' | 'both';
+  leftLine?: number;
+  rightLine?: number;
+}
+
+/** Counts shown in the diff status bar; one shape on both ends. */
+export interface DiffStats { added: number; deleted: number; modified: number }
+
+export interface DiffInfoProjection {
+  role: 'left' | 'right';
+  /** side-by-side: one pane of a two-editor diff; inline: a single editor showing pending changes. */
+  mode: 'side-by-side' | 'inline';
+  otherUri: string;
+  instanceId?: string;
+  changes: DiffChangeProjection[];
+  stats: DiffStats;
+  /** Monotonic per panel; a webview skips a re-send with the same version. */
+  version: number;
+}
+
+/** Scroll position as an aligned diff row, not a percentage: `offset` is the fraction of the row above the viewport top. */
+export interface DiffScrollAnchor { row: number; offset: number }
+
 type FieldKind =
+  | 'diffInfo'
+  | 'diffAnchor'
   | 'activityTasks'
   | 'pendingEdits'
   | 'sourceRange'
@@ -44,6 +76,8 @@ type FieldKind =
   | 'requestId';
 
 interface FieldTypes {
+  diffInfo: DiffInfoProjection;
+  diffAnchor: DiffScrollAnchor;
   activityTasks: ActivityTaskProjection[];
   pendingEdits: PendingEditProjection[];
   sourceRange: SourceRange;
@@ -134,7 +168,7 @@ const webviewToHostSchemas = {
   'save-options': { options: optional('unknown') },
   'reset-config': empty,
   upload: { files: required('uploadFiles') },
-  'diff-scroll-sync': { scrollPercentage: required('number') },
+  'diff-scroll-sync': { anchor: required('diffAnchor') },
 
   // Diagnostics and notifications.
   info: { content: required('string') },
@@ -310,6 +344,11 @@ const hostToWebviewSchemas = {
   navigateToHeading: { heading: optional('string') },
   openEmbedPreview: { embed: optional('record') },
   requestIRHtml: { requestId: required('string') },
+  'diff-view-detected': { diffInfo: required('diffInfo') },
+  'diff-view-cleared': empty,
+  /** The diff could not be produced; the status bar shows why instead of silently showing no diff. */
+  'diff-view-failed': { message: required('string') },
+  'diff-scroll-sync': { anchor: required('diffAnchor') },
   requestRenderedMarkdownHtml: {
     requestId: required('string'),
     markdown: optional('string'),
@@ -411,6 +450,12 @@ function validateField(spec: FieldSpec, value: unknown): string | undefined {
   }
 
   switch (spec.kind) {
+    case 'diffInfo':
+      return isDiffInfo(value) ? undefined : 'must be a diff projection (role, mode, otherUri, changes, stats, version)';
+    case 'diffAnchor':
+      return isRecord(value) && Number.isSafeInteger(value.row) && (value.row as number) >= 0
+        && isFiniteNumber(value.offset) && (value.offset as number) >= 0 && (value.offset as number) <= 1
+        ? undefined : 'must be { row: nonnegative integer, offset: 0..1 }';
     case 'activityTasks':
       return Array.isArray(value) && value.length <= 10_000 && value.every(task => isRecord(task)
         && Number.isSafeInteger(task.line) && (task.line as number) >= 0
@@ -464,6 +509,30 @@ function validateField(spec: FieldSpec, value: unknown): string | undefined {
 }
 
 const navigationOrigins = ['command', 'markdown-link', 'uri-handler'];
+const diffChangeTypes = ['added', 'deleted', 'modified', 'spacer'];
+const diffSides = ['left', 'right', 'both'];
+
+function isDiffChange(value: unknown): value is DiffChangeProjection {
+  return isRecord(value)
+    && diffChangeTypes.includes(value.type as string)
+    && Number.isSafeInteger(value.lineNumber) && (value.lineNumber as number) >= 0
+    && typeof value.content === 'string'
+    && (value.oldContent === undefined || typeof value.oldContent === 'string')
+    && diffSides.includes(value.side as string)
+    && (value.leftLine === undefined || Number.isSafeInteger(value.leftLine))
+    && (value.rightLine === undefined || Number.isSafeInteger(value.rightLine));
+}
+
+function isDiffInfo(value: unknown): value is DiffInfoProjection {
+  return isRecord(value)
+    && (value.role === 'left' || value.role === 'right')
+    && (value.mode === 'side-by-side' || value.mode === 'inline')
+    && typeof value.otherUri === 'string'
+    && (value.instanceId === undefined || typeof value.instanceId === 'string')
+    && Array.isArray(value.changes) && value.changes.length <= 200_000 && value.changes.every(isDiffChange)
+    && isRecord(value.stats) && ['added', 'deleted', 'modified'].every(key => Number.isSafeInteger((value.stats as Record<string, unknown>)[key]))
+    && Number.isSafeInteger(value.version);
+}
 
 function isNavigationTarget(value: unknown): value is SourceNavigationTarget {
   return (

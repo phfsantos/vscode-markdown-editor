@@ -1,0 +1,51 @@
+{
+  "version": "1.140.0",
+  "vsix": "/private/tmp/claude-1133671539/-Users-pedrosantos-www-ProjectMind/8859c9e0-1e79-4c1c-9821-de1b2cae8809/scratchpad/release-candidate.vsix",
+  "tests": 9,
+  "failures": 1,
+  "results": [
+    {
+      "title": "upgrades the local predecessor while retaining settings and workspace notes",
+      "state": "pending"
+    },
+    {
+      "title": "loads the installed VSIX with its stable identity and renders the editor",
+      "state": "passed"
+    },
+    {
+      "title": "shows the installed name, version and colored icon in native details",
+      "state": "passed"
+    },
+    {
+      "title": "retains native settings keys and shows the Markdown Studio Output channel",
+      "state": "passed"
+    },
+    {
+      "title": "renders the native sidebar and theme-aware icon in dark, light and contrast themes",
+      "state": "passed"
+    },
+    {
+      "title": "persists checkbox edits, undo and redo without changing custom fenced blocks",
+      "state": "passed"
+    },
+    {
+      "title": "preserves unrelated real settings when the contributed default command runs",
+      "state": "passed"
+    },
+    {
+      "title": "shows connected notes and opens the real graph alongside the editor",
+      "state": "failed",
+      "error": "The expression evaluated to a falsy value:\n\n  assert.ok(labels.length >= 2)\n"
+    },
+    {
+      "title": "records the native editor-type picker and its provider suffix",
+      "state": "passed"
+    }
+  ],
+  "diffView": {
+    "tests": 14,
+    "failures": 0,
+    "result": "/Users/pedrosantos/www/vscode-markdown-editor/.extest/rel/diff/result.json",
+    "screenshots": "/Users/pedrosantos/www/vscode-markdown-editor/.extest/rel/diff/screenshots"
+  }
+}

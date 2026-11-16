@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { EditorPanel, type EditorPanelDependencies } from "./EditorPanel";
-import { findChatEditingStateForDocument } from "./chatEditingDiff";
+import { isDocumentWritable, isOpeningInDiff } from "../diff/diffContext";
 import { getWebviewOptions } from "./_utils";
 import { logger } from "../utils/Logger";
 
@@ -12,116 +12,19 @@ export class PreviewCustomEditorProvider
     private readonly dependencies: EditorPanelDependencies,
   ) {}
 
-  private getTabInputKind(tab: vscode.Tab | undefined): string {
-    if (!tab?.input) {
-      return "undefined";
-    }
-
-    if (tab.input instanceof vscode.TabInputTextDiff) {
-      return "TabInputTextDiff";
-    }
-
-    if (tab.input instanceof vscode.TabInputText) {
-      return "TabInputText";
-    }
-
-    if (tab.input instanceof vscode.TabInputNotebookDiff) {
-      return "TabInputNotebookDiff";
-    }
-
-    if (tab.input instanceof vscode.TabInputNotebook) {
-      return "TabInputNotebook";
-    }
-
-    if (tab.input instanceof vscode.TabInputCustom) {
-      return `TabInputCustom(${tab.input.viewType})`;
-    }
-
-    if (tab.input instanceof vscode.TabInputWebview) {
-      return `TabInputWebview(${tab.input.viewType})`;
-    }
-
-    if (typeof tab.input === "object" && tab.input !== null) {
-      const inputWithConstructor = tab.input as {
-        constructor?: { name?: string };
-      };
-
-      return inputWithConstructor.constructor?.name || "object";
-    }
-
-    return typeof tab.input;
-  }
-
-  /**
-   * Let get the active tab of the active editor
-   * @param document The document being edited
-   */
-  private getActiveTab(): vscode.Tab | undefined {
-    const tabs = vscode.window.tabGroups.activeTabGroup;
-    const activeTab = tabs.tabs.find((tab) => {
-      return tab.isActive;
-    });
-    if (activeTab) {
-      return activeTab;
-    }
-    return undefined;
-  }
-
-  /**
-   * Detect real diff editors from tab input type first.
-   * Label parsing is only kept as a temporary fallback for cases where VS Code
-   * does not surface a typed diff tab input for the active tab.
-   */
-  private isActiveTabCompare(): boolean {
-    const activeTab = this.getActiveTab();
-    if (!activeTab) {
-      return false;
-    }
-
-    const { input, label } = activeTab;
-
-    if (
-      input instanceof vscode.TabInputTextDiff ||
-      input instanceof vscode.TabInputNotebookDiff
-    ) {
-      return true;
-    }
-
-    // Fallback for older or non-standard diff presentations.
-    if (
-      label.includes(".md (Working Tree)") ||
-      label.includes(".md (Index)")
-    ) {
-      return true;
-    }
-
-    return label.includes("↔");
-  }
-
   async resolveCustomTextEditor(
     document: vscode.TextDocument,
     webviewPanel: vscode.WebviewPanel,
     token: vscode.CancellationToken
   ): Promise<void> {
-    const activeTab = this.getActiveTab();
-    const tabInputKind = this.getTabInputKind(activeTab);
-    const isActiveTabCompare = this.isActiveTabCompare();
-    const chatEditingState = findChatEditingStateForDocument(
-      document,
-      vscode.workspace.textDocuments
-    );
-
-    const isVirtualScheme =
-      document.uri.scheme === "showModifications" ||
-      document.uri.scheme === "git";
-
-    const readOnly = isVirtualScheme;
+    // Diff membership and read-only come from the document and its column,
+    // never from the active tab or a parsed tab label (ADR 0001, findings S2/S6).
+    const isDiff = isOpeningInDiff(document.uri, webviewPanel.viewColumn);
+    const readOnly = !isDocumentWritable(document.uri);
     const navigationTarget = this.dependencies.editorNavigation?.consumePendingTarget?.(document.uri);
 
     logger.debug(
-      `[PreviewCustomEditorProvider] resolveCustomTextEditor path=${document.uri.path} scheme=${document.uri.scheme} documentDirty=${document.isDirty} tabInput=${tabInputKind} tabDirty=${activeTab?.isDirty ?? false} isDiffTab=${isActiveTabCompare} pendingChatEdits=${Boolean(
-        chatEditingState
-      )} readOnly=${readOnly}`
+      `[PreviewCustomEditorProvider] resolveCustomTextEditor path=${document.uri.path} scheme=${document.uri.scheme} column=${webviewPanel.viewColumn} isDiff=${isDiff} readOnly=${readOnly}`
     );
 
     try {
@@ -133,9 +36,9 @@ export class PreviewCustomEditorProvider
       await EditorPanel.createOrShow(
         this.context,
         document,
-        activeTab,
+        undefined,
         webviewPanel,
-        isActiveTabCompare,
+        isDiff,
         readOnly,
         this.dependencies,
         navigationTarget,
@@ -163,7 +66,7 @@ export class PreviewCustomEditorProvider
           await EditorPanel.createOrShow(
             this.context,
             document,
-            activeTab,
+            undefined,
             newWebviewPanel,
             false,
             undefined,

@@ -32,6 +32,10 @@ export {
   parseWebviewToHostMessage,
 } from './editorProtocol';
 export type {
+  DiffChangeProjection,
+  DiffInfoProjection,
+  DiffScrollAnchor,
+  DiffStats,
   HostToWebviewCommand,
   HostToWebviewMessage,
   MessageOf,

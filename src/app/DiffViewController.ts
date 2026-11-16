@@ -1,11 +1,32 @@
 import * as vscode from "vscode";
-import * as NodePath from "path";
 import { logger } from "../utils/Logger";
 import { createChatEditingPendingEditSource } from "./chatEditingDiff";
 import type { PendingEditSource } from "./pendingEditSource";
 import { calculateRoleSpecificDiffStats } from "../diff/roleSpecificStats";
 import type { DiffCoordinator } from "../contracts/ports";
 import type { WebviewMessageRoutes } from "./webviewMessageRouter";
+import type { DiffChangeProjection, DiffInfoProjection, DiffScrollAnchor } from "@markdown-editor/core";
+import { DiffSessionRegistry, type DiffSideFacts } from "../diff/DiffSessionRegistry";
+
+/** How long both sides of a diff may take to render before the panes show an error state. */
+export const DIFF_RENDER_TIMEOUT_MS = 5000;
+
+/** Next version stamp for a diff projection; webviews skip a re-send with an unchanged version. */
+let diffVersion = 0;
+const nextDiffVersion = () => ++diffVersion;
+
+/** Keep only the declared change fields so the typed protocol accepts the payload. */
+function toChangeProjections(changes: ReadonlyArray<Record<string, any>>): DiffChangeProjection[] {
+  return changes.map((change) => ({
+    type: change.type,
+    lineNumber: change.lineNumber,
+    content: change.content ?? "",
+    ...(typeof change.oldContent === "string" ? { oldContent: change.oldContent } : {}),
+    side: change.side,
+    ...(Number.isSafeInteger(change.leftLine) ? { leftLine: change.leftLine } : {}),
+    ...(Number.isSafeInteger(change.rightLine) ? { rightLine: change.rightLine } : {}),
+  }));
+}
 
 /**
  * The slice of an editor panel the diff controller needs. EditorPanel
@@ -15,8 +36,11 @@ export interface DiffHost {
   readonly instanceId: string;
   readonly uri: vscode.Uri;
   readonly document: vscode.TextDocument;
-  readonly tab: vscode.Tab | undefined;
+  /** Editor column the panel lives in; both sides of one diff share it. */
+  readonly viewColumn: number | undefined;
   readonly webviewReady: boolean;
+  /** Vditor has rendered the document (the webview's vditorReady): the diff handshake. */
+  readonly renderedReady: boolean;
   readonly panelVisible: boolean;
   readonly panelActive: boolean;
   readonly diff: DiffViewController;
@@ -24,11 +48,6 @@ export interface DiffHost {
   postInlineSuggestionEligibility(): void;
   requestIRHtml(): Promise<string | null>;
   requestRenderedMarkdownHtml(markdown: string): Promise<string | null>;
-}
-
-interface DiffPanelPair {
-  left?: DiffHost;
-  right?: DiffHost;
 }
 
 /**
@@ -40,10 +59,10 @@ interface DiffPanelPair {
  * moved WITH the logic so no diff state lives outside this class.
  */
 export class DiffViewController {
-  /** tab -> panels registered as the left/right side of an explicit diff view */
-  static readonly panelTracking = new Map<vscode.Tab, DiffPanelPair>();
-  /** tab -> in-flight diff calculation, to dedupe concurrent triggers */
-  static readonly calculationInProgress = new Map<vscode.Tab, Promise<void>>();
+  /** Pairs the two editors of each diff tab and decides their sides (ADR 0001). */
+  static readonly sessions = new DiffSessionRegistry<DiffHost>();
+  /** session id -> in-flight diff calculation, to dedupe concurrent triggers */
+  static readonly calculationInProgress = new Map<string, Promise<void>>();
 
   isDiffView = false;
   otherDiffUri: vscode.Uri | undefined;
@@ -53,6 +72,7 @@ export class DiffViewController {
   lastDiffCheckVisible = false;
   pendingChatBaselineDocument: vscode.TextDocument | undefined;
   private updateDebounceTimeout: NodeJS.Timeout | undefined;
+  private renderTimeout: NodeJS.Timeout | undefined;
 
   constructor(
     private readonly host: DiffHost,
@@ -63,263 +83,173 @@ export class DiffViewController {
     ),
   ) {}
 
-  /**
-   * Register this panel as one side of an explicit diff tab (label "a ↔ b").
-   * Mirrors the original EditorPanel constructor logic verbatim.
-   */
-  registerExplicitDiffPanel(showModifications: boolean): void {
-    const tab = this.host.tab;
-    if (!tab?.label) {
-      return;
-    }
-
+  /** Join this panel's diff session. Sides follow document writability, never the tab label. */
+  registerExplicitDiffPanel(facts: DiffSideFacts): void {
     this.isDiffView = true;
-
-    const labelArray = tab.label.split("↔");
-    const fileName = NodePath.basename(this.host.uri.fsPath);
-    const isLeft = labelArray[0].includes(fileName);
-    const isRight = labelArray[1]?.includes(fileName) || true;
-    const tracking = DiffViewController.panelTracking.get(tab) || {};
-    if (
-      (!isLeft && isRight && !tracking.right && !showModifications) ||
-      (!isLeft &&
-        isRight &&
-        tracking.left &&
-        !tracking.right &&
-        !showModifications) ||
-      (isLeft &&
-        isRight &&
-        !tracking.left &&
-        !tracking.right &&
-        !showModifications)
-    ) {
-      DiffViewController.panelTracking.set(tab, {
-        ...tracking,
-        right: this.host,
-      });
-    } else {
-      DiffViewController.panelTracking.set(tab, {
-        ...tracking,
-        left: this.host,
-      });
-    }
+    DiffViewController.sessions.join(this.host, this.host.viewColumn ?? 0, facts);
+    this.armRenderTimeout();
   }
 
-  /** Clear timers and tab tracking when the owning panel is disposed. */
+  /** Clear timers and leave the diff session (only this side). */
   dispose(): void {
-    if (this.updateDebounceTimeout) {
-      clearTimeout(this.updateDebounceTimeout);
-      this.updateDebounceTimeout = undefined;
-    }
-    if (this.host.tab) {
-      DiffViewController.panelTracking.delete(this.host.tab);
-    }
+    if (this.updateDebounceTimeout) clearTimeout(this.updateDebounceTimeout);
+    this.updateDebounceTimeout = undefined;
+    this.clearRenderTimeout();
+    DiffViewController.sessions.leave(this.host);
   }
 
   /**
-   * Reactively check if this editor is part of a diff view and send diff information to webview
-   * Called multiple times: on setTimeout delay, on webview ready, and on viewState changes
-   * This reactive approach works around the fact that tabGroups is not populated at creation time
-   *
-   * OPTIMIZED: Only uses HTML-based diff. Calculates diff once and sends to both panels when both are ready.
+   * This side became the active editor. For two writable files that decides
+   * the sides (VS Code focuses the modified side on open); if it changed them
+   * after a diff was drawn, both sides are recalculated.
+   */
+  onActivated(): void {
+    if (!this.isDiffView || !DiffViewController.sessions.noteActivated(this.host)) return;
+    const partner = DiffViewController.sessions.partnerOf(this.host);
+    for (const side of partner ? [this.host, partner] : [this.host]) side.diff.diffApplied = false;
+    void this.checkDiffViewContextReactive();
+  }
+
+  /** The webview rendered its document: if the partner has too, the diff can be calculated now. */
+  onRendered(): void {
+    if (!this.isDiffView) return;
+    const partner = DiffViewController.sessions.partnerOf(this.host);
+    void this.checkDiffViewContextReactive();
+    if (partner && !partner.diff.diffApplied) void partner.diff.checkDiffViewContextReactive();
+  }
+
+  /**
+   * Apply (or clear) the side-by-side diff for this panel. Runs on the rendered
+   * handshake, on visibility changes and on webview reloads; the calculation is
+   * shared by both sides of a session and starts only once both have rendered.
    */
   public async checkDiffViewContextReactive(): Promise<void> {
-    const fileName = NodePath.basename(this.host.uri.fsPath);
-    logger.debug(
-      `[${this.host.instanceId}] 🔍 DIFF-DEBUG: checkDiffViewContextReactive() for "${fileName}"`
-    );
-    logger.debug(
-      `[${this.host.instanceId}]   State: diffApplied=${this.diffApplied}, visible=${this.host.panelVisible}, active=${this.host.panelActive}`
-    );
+    if (this.diffApplied && this.host.panelVisible) return;
 
-    // OPTIMIZATION: If diff already applied to THIS webview instance, don't re-apply
-    if (this.diffApplied && this.host.panelVisible) {
-      logger.debug(
-        `[${this.host.instanceId}]   ⏭️  Diff already applied to this instance AND panel still visible, skipping`
-      );
-      return;
-    }
-
-    if (!this.host.tab) {
-      logger.debug(
-        `[${this.host.instanceId}]   ⏭️  Not a diff view missing tab info, skipping`
-      );
-      return;
-    }
-
-    // REACTIVE DETECTION: Check tabGroups NOW (should be populated by this point)
-    const isInDiffContext = this.isDiffView;
-    const diffPanels = DiffViewController.panelTracking.get(this.host.tab);
-    const diffContext = {
-      role:
-        diffPanels?.left?.instanceId === this.host.instanceId
-          ? ("left" as const)
-          : ("right" as const),
-      otherUri:
-        diffPanels?.left?.instanceId === this.host.instanceId
-          ? diffPanels?.right?.uri
-          : diffPanels?.left?.uri,
-    };
-
-    if (isInDiffContext && diffContext?.otherUri) {
-      logger.debug(
-        `[${this.host.instanceId}] ✅ Detected diff view! Updating instance state...`
-      );
-
-      // Update instance state dynamically since we started with false
-      this.isDiffView = true;
-      this.otherDiffUri = diffContext.otherUri;
-      this.diffRole = diffContext.role;
-      this.host.postInlineSuggestionEligibility();
-
-      const diffSupport = this.diffCoordinator;
-      if (!diffSupport) {
-        logger.debug(
-          `[${this.host.instanceId}]   ❌ No diffSupport available for diff calculation`
-        );
-        return;
-      }
-
-      // Get the left and right panels for HTML extraction
-      const leftPanel = diffPanels?.left;
-      const rightPanel = diffPanels?.right;
-
-      if (!leftPanel || !rightPanel) {
-        logger.warn(`[${this.host.instanceId}] Cannot calculate HTML diff: missing panel(s)`);
-        return;
-      }
-
-      // Check if both panels already have diff applied
-      if (leftPanel.diff.diffApplied && rightPanel.diff.diffApplied) {
-        logger.debug(`[${this.host.instanceId}]   ⏭️  Both panels already have diff applied, skipping`);
-        return;
-      }
-
-      // Check if a diff calculation is already in progress for this tab
-      const existingCalculation = DiffViewController.calculationInProgress.get(this.host.tab);
-      if (existingCalculation) {
-        logger.debug(`[${this.host.instanceId}]   ⏳ Diff calculation already in progress, waiting...`);
-        await existingCalculation;
-        return;
-      }
-
-      // Start a new diff calculation and track it
-      const calculationPromise = this.calculateAndApplyDiff(leftPanel, rightPanel, diffSupport);
-      DiffViewController.calculationInProgress.set(this.host.tab, calculationPromise);
-
-      try {
-        await calculationPromise;
-      } finally {
-        // Clean up the tracking entry
-        DiffViewController.calculationInProgress.delete(this.host.tab);
-      }
-    } else {
-      logger.debug(
-        `[${this.host.instanceId}]   ℹ️  Not in diff view (isDiffView=${
-          this.isDiffView
-        }, otherDiffUri=${this.otherDiffUri?.toString() || "undefined"})`
-      );
-      // If we're NOT in a diff view but diff was previously applied, we need to clear it
+    const sessions = DiffViewController.sessions;
+    const partner = this.isDiffView ? sessions.partnerOf(this.host) : undefined;
+    const role = sessions.roleOf(this.host);
+    if (!partner || !role) {
       if (this.diffApplied) {
-        logger.debug(
-          `[${this.host.instanceId}]   🧹 Diff was applied but no longer in diff view, sending clear message`
-        );
-        this.host.postMessage({
-          type: "diff-view-cleared",
-        });
+        this.host.postMessage({ command: "diff-view-cleared" });
         this.diffApplied = false;
       }
       this.host.postInlineSuggestionEligibility();
+      return;
+    }
+
+    this.otherDiffUri = partner.uri;
+    this.diffRole = role;
+    this.host.postInlineSuggestionEligibility();
+
+    if (!this.diffCoordinator) {
+      logger.debug(`[${this.host.instanceId}] No diff coordinator; side-by-side diff unavailable`);
+      return;
+    }
+    if (!this.host.renderedReady || !partner.renderedReady) {
+      this.armRenderTimeout();
+      return;
+    }
+    const [left, right] = role === "left" ? [this.host, partner] : [partner, this.host];
+    if (left.diff.diffApplied && right.diff.diffApplied) return;
+    await this.runSessionCalculation(left, right);
+  }
+
+  private async runSessionCalculation(left: DiffHost, right: DiffHost): Promise<void> {
+    const sessionId = DiffViewController.sessions.sessionOf(this.host)!.id;
+    const existing = DiffViewController.calculationInProgress.get(sessionId);
+    if (existing) {
+      await existing;
+      return;
+    }
+    const calculation = this.calculateAndApplyDiff(left, right, this.diffCoordinator!);
+    DiffViewController.calculationInProgress.set(sessionId, calculation);
+    try {
+      await calculation;
+    } finally {
+      DiffViewController.calculationInProgress.delete(sessionId);
     }
   }
 
   /**
-   * Calculate HTML-based diff and send to both panels simultaneously
-   * This method is called once per diff view and updates both panels
+   * Both sides must render within DIFF_RENDER_TIMEOUT_MS of joining, or both
+   * panes say why there is no diff. A side that never found a partner was not a
+   * diff at all (diff detection matched a diff tab of the same file in the
+   * column): it quietly becomes a plain editor instead of showing an error.
+   */
+  private armRenderTimeout(): void {
+    if (this.renderTimeout) return;
+    this.renderTimeout = setTimeout(() => {
+      this.renderTimeout = undefined;
+      if (this.diffApplied) return;
+      const partner = DiffViewController.sessions.partnerOf(this.host);
+      if (!partner) {
+        DiffViewController.sessions.leave(this.host);
+        this.isDiffView = false;
+        this.otherDiffUri = undefined;
+        this.diffRole = undefined;
+        this.host.postInlineSuggestionEligibility();
+        logger.debug(`[${this.host.instanceId}] No diff partner joined; treating the editor as a plain editor`);
+        return;
+      }
+      const reason = "Diff unavailable: an editor did not finish rendering";
+      for (const side of [this.host, partner]) {
+        if (!side.diff.diffApplied) side.postMessage({ command: "diff-view-failed", message: reason });
+      }
+      logger.warn(`[${this.host.instanceId}] ${reason}`);
+    }, DIFF_RENDER_TIMEOUT_MS);
+  }
+
+  private clearRenderTimeout(): void {
+    if (this.renderTimeout) clearTimeout(this.renderTimeout);
+    this.renderTimeout = undefined;
+  }
+
+  /**
+   * Calculate the HTML diff once and send each side its projection. Called only
+   * after both sides rendered, so there is nothing to wait for.
    */
   private async calculateAndApplyDiff(
     leftPanel: DiffHost,
     rightPanel: DiffHost,
-    diffSupport: any
+    diffSupport: DiffCoordinator
   ): Promise<void> {
-    const fileName = NodePath.basename(this.host.uri.fsPath);
-
-    // Wait for BOTH webviews to be ready before proceeding
-    logger.debug(`[${this.host.instanceId}]   Waiting for both panels to be ready...`);
-    await this.waitForBothPanelsReady(leftPanel, rightPanel);
-
-    // Wait additional time for Vditor to fully render content
-    logger.debug(`[${this.host.instanceId}]   Waiting 1s for Vditor to fully render content...`);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    // Request IR HTML content from BOTH panels in parallel
-    logger.debug(`[${this.host.instanceId}]   Requesting IR HTML from both panels (left: ${leftPanel.instanceId}, right: ${rightPanel.instanceId})...`);
     const [leftHtml, rightHtml] = await Promise.all([
       leftPanel.requestIRHtml(),
-      rightPanel.requestIRHtml()
+      rightPanel.requestIRHtml(),
     ]);
 
-    logger.debug(`[${this.host.instanceId}]   HTML received - left: ${leftHtml ? leftHtml.length + ' chars' : 'null'}, right: ${rightHtml ? rightHtml.length + ' chars' : 'null'}`);
-
-    // STRICT: Only use HTML-based diff, no fallback
     if (!leftHtml || !rightHtml) {
-      logger.error(`[${this.host.instanceId}] ❌ Failed to get HTML content from panels. Cannot calculate diff without HTML.`);
+      const message = "Diff unavailable: an editor did not return its rendered content";
+      logger.error(`[${this.host.instanceId}] ${message}`);
+      leftPanel.postMessage({ command: "diff-view-failed", message });
+      rightPanel.postMessage({ command: "diff-view-failed", message });
       return;
     }
 
-    // Calculate diff using HTML content ONCE
-    logger.debug(`[${this.host.instanceId}]   Calculating HTML-based diff...`);
-    const diffResult = await diffSupport.calculateDiffFromHTML(leftHtml, rightHtml);
-    logger.debug(
-      `[${this.host.instanceId}]   HTML diff calculated: ${diffResult.changes.length} changes`
-    );
-
-    // Extract HTML lines for spacer rendering
-    const leftHtmlLines = (diffResult as any).leftHtmlLines || [];
-    const rightHtmlLines = (diffResult as any).rightHtmlLines || [];
+    const diffResult = diffSupport.calculateDiffFromHTML(leftHtml, rightHtml);
     const allChanges = diffResult.changes;
-
-    // Calculate role-specific stats for both panels
     const leftStats = calculateRoleSpecificDiffStats(allChanges, "left");
     const rightStats = calculateRoleSpecificDiffStats(allChanges, "right");
-
-    logger.debug(`[${this.host.instanceId}]   Sending diff-view-detected to BOTH panels simultaneously`);
-
-    // Send to LEFT panel
-    leftPanel.postMessage({
-      type: "diff-view-detected",
-      diffInfo: {
-        role: "left",
-        otherUri: rightPanel.uri.toString(),
-        instanceId: leftPanel.instanceId,
-        changes: allChanges,
-        stats: leftStats,
-        htmlLines: rightHtmlLines, // Left panel gets right's HTML for spacers
-        isHtmlBased: true,
-      },
+    const changes = toChangeProjections(allChanges as any);
+    const project = (role: "left" | "right", self: DiffHost, other: DiffHost): DiffInfoProjection => ({
+      role,
+      mode: "side-by-side",
+      otherUri: other.uri.toString(),
+      instanceId: self.instanceId,
+      changes,
+      stats: role === "left" ? leftStats : rightStats,
+      version: nextDiffVersion(),
     });
-    leftPanel.diff.diffApplied = true;
-    leftPanel.postInlineSuggestionEligibility();
-
-    // Send to RIGHT panel
-    rightPanel.postMessage({
-      type: "diff-view-detected",
-      diffInfo: {
-        role: "right",
-        otherUri: leftPanel.uri.toString(),
-        instanceId: rightPanel.instanceId,
-        changes: allChanges,
-        stats: rightStats,
-        htmlLines: leftHtmlLines, // Right panel gets left's HTML for spacers
-        isHtmlBased: true,
-      },
-    });
-    rightPanel.diff.diffApplied = true;
-    rightPanel.postInlineSuggestionEligibility();
-
-    logger.debug(
-      `[${this.host.instanceId}]   ✅ Diff applied to both panels for "${fileName}"`
-    );
+    for (const [role, self, other] of [["left", leftPanel, rightPanel], ["right", rightPanel, leftPanel]] as const) {
+      self.diff.clearRenderTimeout();
+      self.diff.isDiffView = true;
+      self.diff.diffRole = role;
+      self.diff.otherDiffUri = other.uri;
+      self.postMessage({ command: "diff-view-detected", diffInfo: project(role, self, other) });
+      self.diff.diffApplied = true;
+      self.postInlineSuggestionEligibility();
+    }
   }
 
   public isRelevantChatEditingDocument(document: vscode.TextDocument): boolean {
@@ -343,9 +273,7 @@ export class DiffViewController {
     }
 
     if (!this.pendingChatBaselineDocument) {
-      this.host.postMessage({
-        type: "diff-view-cleared",
-      });
+      this.host.postMessage({ command: "diff-view-cleared" });
       this.singleViewDiffApplied = false;
       return;
     }
@@ -376,7 +304,6 @@ export class DiffViewController {
       baselineHtml,
       currentHtml
     );
-    const leftHtmlLines = (diffResult as any).leftHtmlLines || [];
     const changes = diffResult.changes;
 
     if (changes.length === 0) {
@@ -384,9 +311,7 @@ export class DiffViewController {
         `[${this.host.instanceId}] Pending chat diff cleared - rendered baseline matches current document`
       );
       if (this.singleViewDiffApplied) {
-        this.host.postMessage({
-          type: "diff-view-cleared",
-        });
+        this.host.postMessage({ command: "diff-view-cleared" });
       }
       this.singleViewDiffApplied = false;
       return;
@@ -399,42 +324,19 @@ export class DiffViewController {
     );
 
     this.host.postMessage({
-      type: "diff-view-detected",
+      command: "diff-view-detected",
       diffInfo: {
         role: "right",
+        mode: "inline",
         otherUri: this.pendingChatBaselineDocument.uri.toString(),
         instanceId: this.host.instanceId,
-        changes,
+        changes: toChangeProjections(changes as any),
         stats: rightStats,
-        htmlLines: leftHtmlLines,
-        isHtmlBased: true,
-      },
+        version: nextDiffVersion(),
+      } satisfies DiffInfoProjection,
     });
 
     this.singleViewDiffApplied = true;
-  }
-
-  /**
-   * Wait for both panels to have their webviews ready
-   * Returns when both panels signal they are ready
-   */
-  private async waitForBothPanelsReady(
-    leftPanel: DiffHost,
-    rightPanel: DiffHost
-  ): Promise<void> {
-    const maxAttempts = 30; // 3 seconds max wait
-    let attempts = 0;
-
-    while ((!leftPanel.webviewReady || !rightPanel.webviewReady) && attempts < maxAttempts) {
-      await new Promise(resolve => setTimeout(resolve, 100));
-      attempts++;
-    }
-
-    if (!leftPanel.webviewReady || !rightPanel.webviewReady) {
-      logger.warn(`[${this.host.instanceId}] ⚠️  Timeout waiting for both panels to be ready (left: ${leftPanel.webviewReady}, right: ${rightPanel.webviewReady})`);
-    } else {
-      logger.debug(`[${this.host.instanceId}]   ✅ Both panels are ready`);
-    }
   }
 
   /**
@@ -444,93 +346,37 @@ export class DiffViewController {
    * DEBOUNCED: Waits 500ms after typing stops to prevent constant recalculation
    */
   public async updateDiffVisualization(): Promise<void> {
-    if (!this.isDiffView || !this.otherDiffUri) {
-      logger.debug(
-        `[${this.host.instanceId}] ⚠️  updateDiffVisualization called but not in diff view`
-      );
-      return;
-    }
-
-    const diffSupport = this.diffCoordinator;
-    if (!diffSupport || !this.host.tab) {
-      logger.debug(
-        `[${this.host.instanceId}] ❌ No diffSupport available for diff update`
-      );
-      return;
-    }
-
-    // DEBOUNCING: Cancel any pending diff update and schedule a new one
-    // This prevents constant recalculation while user is typing
-    if (this.updateDebounceTimeout) {
-      clearTimeout(this.updateDebounceTimeout);
-    }
-
+    if (!this.isDiffView || !this.otherDiffUri || !this.diffCoordinator) return;
+    if (this.updateDebounceTimeout) clearTimeout(this.updateDebounceTimeout);
+    // Debounced: recalculating on every keystroke would repaint both panes constantly.
     this.updateDebounceTimeout = setTimeout(async () => {
-      logger.debug(
-        `[${this.host.instanceId}] 🔄 Updating diff visualization after document change`
-      );
-
-      const diffPanels = DiffViewController.panelTracking.get(this.host.tab!);
-      const leftPanel = diffPanels?.left;
-      const rightPanel = diffPanels?.right;
-
-      if (!leftPanel || !rightPanel) {
-        logger.warn(`[${this.host.instanceId}] Cannot update HTML diff: missing panel(s)`);
-        return;
-      }
-
-      // Reset both panels' diff applied flags
-      leftPanel.diff.diffApplied = false;
-      rightPanel.diff.diffApplied = false;
-      leftPanel.postInlineSuggestionEligibility();
-      rightPanel.postInlineSuggestionEligibility();
-
-      // Check if a diff calculation is already in progress for this tab
-      const existingCalculation = DiffViewController.calculationInProgress.get(this.host.tab!);
-      if (existingCalculation) {
-        logger.debug(`[${this.host.instanceId}]   ⏳ Diff update already in progress, waiting...`);
-        await existingCalculation;
-        return;
-      }
-
-      // Start a new diff calculation and track it
-      const calculationPromise = this.calculateAndApplyDiff(leftPanel, rightPanel, diffSupport);
-      DiffViewController.calculationInProgress.set(this.host.tab!, calculationPromise);
-
-      try {
-        await calculationPromise;
-      } finally {
-        // Clean up the tracking entry
-        DiffViewController.calculationInProgress.delete(this.host.tab!);
-      }
-
-      logger.debug(`[${this.host.instanceId}]   ✅ Diff update completed`);
-    }, 500); // Wait 500ms after last change before updating diff
+      this.updateDebounceTimeout = undefined;
+      const partner = DiffViewController.sessions.partnerOf(this.host);
+      const role = DiffViewController.sessions.roleOf(this.host);
+      if (!partner || !role) return;
+      const [left, right] = role === "left" ? [this.host, partner] : [partner, this.host];
+      if (!left.renderedReady || !right.renderedReady) return;
+      left.diff.diffApplied = false;
+      right.diff.diffApplied = false;
+      await this.runSessionCalculation(left, right);
+    }, 500);
   }
 
   /** Diff-view commands owned by this controller. */
   routes(): WebviewMessageRoutes {
     return {
-      "diff-scroll-sync": (message) => this.handleScrollSync(message.scrollPercentage),
+      "diff-scroll-sync": (message) => this.handleScrollSync(message.anchor),
     };
   }
 
-  /** Forward this panel's scroll position to its diff partner. */
-  handleScrollSync(scrollPercentage: number): void {
-    if (!this.otherDiffUri) {
-      logger.warn("⚠️ EDITOR PANEL: No _uri or _otherDiffUri for scroll sync");
-      return;
-    }
-    if (!this.diffCoordinator) {
-      logger.warn("⚠️ EDITOR PANEL: diff coordinator is unavailable");
-      return;
-    }
-    // Pass instance ID to help identify source editor when URIs are identical
-    this.diffCoordinator.handleScrollSync(
-      this.host.instanceId,
-      this.host.uri,
-      this.otherDiffUri,
-      scrollPercentage,
-    );
+  /**
+   * Relay this pane's scroll anchor to its session partner (ADR 0001 §4). The
+   * partner is known from the session, so there is no URI lookup to retry; a
+   * pane without a partner has nobody to follow it.
+   */
+  handleScrollSync(anchor: DiffScrollAnchor): void {
+    const partner = DiffViewController.sessions.partnerOf(this.host);
+    if (!partner?.diff.diffApplied) return;
+    partner.postMessage({ command: "diff-scroll-sync", anchor });
   }
 }

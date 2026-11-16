@@ -1,0 +1,109 @@
+{
+  "version": "1.140.0",
+  "failures": 0,
+  "tests": 20,
+  "results": [
+    {
+      "title": "Markdown Studio context API in real VS Code independent consumer reads exact source selection without a native editor",
+      "state": "passed",
+      "durationMs": 6232
+    },
+    {
+      "title": "Markdown Studio context API in real VS Code clears source range while toolbar UI has focus",
+      "state": "passed",
+      "durationMs": 802
+    },
+    {
+      "title": "Markdown Studio context API in real VS Code switches documents and clears for an unrelated native editor",
+      "state": "passed",
+      "durationMs": 5191
+    },
+    {
+      "title": "Markdown Studio context API in real VS Code retains context with native tab badges disabled and enabled",
+      "state": "passed",
+      "durationMs": 2811
+    },
+    {
+      "title": "Markdown Studio context API in real VS Code retains context while focus moves to built-in chat without submitting content",
+      "state": "passed",
+      "durationMs": 802
+    },
+    {
+      "title": "Markdown Studio context API in real VS Code reconciles a restored custom tab after reloading the isolated window",
+      "state": "passed",
+      "durationMs": 2952
+    },
+    {
+      "title": "Diff view in real VS Code opens a .md file in Markdown Studio by default",
+      "state": "passed",
+      "durationMs": 5315
+    },
+    {
+      "title": "Diff view in real VS Code Git working-tree diff opens Markdown Studio on both sides",
+      "state": "passed",
+      "durationMs": 2519
+    },
+    {
+      "title": "Diff view in real VS Code Git working-tree diff labels original left and modified right",
+      "state": "passed",
+      "durationMs": 150
+    },
+    {
+      "title": "Diff view in real VS Code Git working-tree diff decorates both panes within 500 ms of both rendering",
+      "state": "passed",
+      "durationMs": 165
+    },
+    {
+      "title": "Diff view in real VS Code Git working-tree diff keeps the status bar clear of the toolbar at 1280px",
+      "state": "passed",
+      "durationMs": 930
+    },
+    {
+      "title": "Diff view in real VS Code Git working-tree diff keeps the status bar clear of the toolbar at 600px",
+      "state": "passed",
+      "durationMs": 828
+    },
+    {
+      "title": "Diff view in real VS Code Git working-tree diff leaves the toolbar inoperable on the read-only original side and usable on the modified side",
+      "state": "passed",
+      "durationMs": 235
+    },
+    {
+      "title": "Diff view in real VS Code Git working-tree diff saves exactly the editor markdown with the diff active",
+      "state": "passed",
+      "durationMs": 2321
+    },
+    {
+      "title": "Diff view in real VS Code Git working-tree diff scrolls the other pane to the aligned row within 100 ms without echo",
+      "state": "passed",
+      "durationMs": 1453
+    },
+    {
+      "title": "Diff view in real VS Code transport spike (ADR) measures BroadcastChannel and host-relay delivery between the two panes",
+      "state": "passed",
+      "durationMs": 2962
+    },
+    {
+      "title": "Diff view in real VS Code File compare of same-named files assigns original left and modified right without reading the label",
+      "state": "passed",
+      "durationMs": 2016
+    },
+    {
+      "title": "Diff view in real VS Code File compare of same-named files toolbar save in one pane writes only that pane's file",
+      "state": "passed",
+      "durationMs": 1956
+    },
+    {
+      "title": "Diff view in real VS Code Single-view pending edit renders the previous text as a read-only row above each changed line",
+      "state": "passed",
+      "durationMs": 752
+    },
+    {
+      "title": "Diff view in real VS Code Single-view pending edit cannot type into a previous-version row and saves byte-identical markdown",
+      "state": "passed",
+      "durationMs": 716
+    }
+  ],
+  "workspace": "/var/folders/8f/978wxslx0flgmr5j6ln2bgcj1s4x3l/T/md-ui-bQ0g6o/workspace",
+  "timestamp": "2026-11-16T17:33:03.474Z"
+}

@@ -15,5 +15,26 @@
   :root { --md-agent-task-working-color: Highlight; --md-agent-task-review-color: Highlight; --md-agent-task-waiting-color: Highlight; --md-agent-task-surface: Canvas; }
   .md-agent-activity-header { color: CanvasText; background: Canvas; border-color: Highlight; }
 }
-.md-agent-activity-header { position: fixed; right: 8px; bottom: 8px; z-index: 30; max-width: min(80vw, 420px); padding: 3px 6px; border: 1px solid var(--vscode-contrastBorder, var(--vscode-focusBorder, #007acc)); border-radius: 3px; background: var(--vscode-editor-background, #fff); color: var(--vscode-editor-foreground, #222); font-size: 11px; pointer-events: none; user-select: none; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+/* A trailing, noninteractive toolbar item. Wrap with the controls in split editors
+   instead of covering the document or the floating Add to Chat action. */
+.vditor-toolbar:has(> .md-agent-activity-header:not([hidden])) {
+  flex-wrap: wrap;
+  align-items: center;
+}
+.md-agent-activity-header {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: min(100%, 320px);
+  margin-inline-start: auto;
+  padding: 6px 8px;
+  color: var(--vscode-editor-foreground, #222);
+  font-family: var(--vscode-font-family, sans-serif);
+  font-size: 12px;
+  line-height: 20px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  user-select: none;
+}
+.md-agent-activity-header[hidden] { display: none; }
 .md-agent-activity-status { position: fixed; width: 1px; height: 1px; clip-path: inset(50%); overflow: hidden; white-space: nowrap; pointer-events: none; user-select: none; }

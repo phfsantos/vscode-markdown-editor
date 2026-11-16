@@ -45,7 +45,7 @@ test('only the second duplicate task spins, outside editable DOM with source/sel
   expect(getComputedStyle(input,'::before').content).not.toBe('none');
   expect(getComputedStyle(input,'::before').pointerEvents).toBe('none');
   expect(document.querySelector('.md-agent-task-indicator, .md-agent-activity-layer')).toBeNull();
-  expect(host.querySelector('[data-agent-activity]')).toBeNull();
+  expect(host.querySelector('.vditor-reset [data-agent-activity]')).toBeNull();
   expect(Array.from(input.attributes).map(attribute => attribute.name).sort()).toEqual(inputAttributes);
   expect(document.querySelector('.md-agent-activity-status')?.textContent).toContain('Agent A working on task');
   expect(editor.getValue()).toBe(before); expect(selection.toString()).toBe(selected);

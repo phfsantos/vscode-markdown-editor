@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
-import { logger } from '../utils/Logger';
 import { parseHTMLToLines, ParsedBlock } from './HtmlLineParser';
-import type { DiffPanelRegistry } from '../contracts/ports';
+
 
 /**
  * Pure diff calculation utility - instance-based diff management now happens in EditorPanel
@@ -11,7 +10,6 @@ export class MarkdownDiffViewSupport {
 
   constructor(
     private context: vscode.ExtensionContext,
-    private readonly panelRegistry?: DiffPanelRegistry,
   ) {
     // No global state needed - each EditorPanel manages its own diff state
   }
@@ -124,55 +122,36 @@ export class MarkdownDiffViewSupport {
   }
 
   /**
-   * Compute diff using Longest Common Subsequence algorithm
+   * Line diff. Documents up to LCS_CELL_LIMIT table cells use the exact LCS
+   * table (its tie-breaking is what the alignment tests pin); larger ones trim
+   * the common prefix/suffix and run Myers' O((N+M)·D) diff, so cost follows
+   * the size of the change rather than the size of the document (findings S7).
    */
   private computeLCSDiff(leftLines: string[], rightLines: string[]): LineChange[] {
+    const changes = leftLines.length * rightLines.length <= LCS_CELL_LIMIT
+      ? this.lcsChanges(leftLines, rightLines)
+      : myersChanges(leftLines, rightLines);
+    return this.mergeModifiedLines(changes, leftLines, rightLines);
+  }
+
+  private lcsChanges(leftLines: string[], rightLines: string[]): LineChange[] {
     const changes: LineChange[] = [];
-    
     const lcs = this.buildLCSTable(leftLines, rightLines);
-    
     let i = leftLines.length;
     let j = rightLines.length;
-    
     while (i > 0 || j > 0) {
       if (i > 0 && j > 0 && leftLines[i - 1] === rightLines[j - 1]) {
         i--;
         j--;
       } else if (j > 0 && (i === 0 || lcs[i][j - 1] >= lcs[i - 1][j])) {
-        changes.unshift({
-          type: 'added',
-          lineNumber: j - 1,
-          content: rightLines[j - 1],
-          side: 'right'
-        });
+        changes.push({ type: 'added', lineNumber: j - 1, content: rightLines[j - 1], side: 'right' });
         j--;
-      } else if (i > 0 && (j === 0 || lcs[i][j - 1] < lcs[i - 1][j])) {
-        changes.unshift({
-          type: 'deleted',
-          lineNumber: i - 1,
-          content: leftLines[i - 1],
-          side: 'left'
-        });
+      } else {
+        changes.push({ type: 'deleted', lineNumber: i - 1, content: leftLines[i - 1], side: 'left' });
         i--;
       }
     }
-    
-    logger.debug('[computeLCSDiff] Raw changes from LCS:', JSON.stringify(changes.map(c => ({
-      type: c.type,
-      line: c.lineNumber,
-      content: c.content.substring(0, 50)
-    }))));
-    
-    const merged = this.mergeModifiedLines(changes, leftLines, rightLines);
-    
-    logger.debug('[computeLCSDiff] Merged changes:', JSON.stringify(merged.map(c => ({
-      type: c.type,
-      line: c.lineNumber,
-      content: c.content.substring(0, 50),
-      old: c.oldContent?.substring(0, 50)
-    }))));
-    
-    return merged;
+    return changes.reverse();
   }
 
   /**
@@ -180,12 +159,8 @@ export class MarkdownDiffViewSupport {
    * Strategy: Don't merge at all - let additions and deletions stand on their own
    * The visualization layer will handle displaying them appropriately
    */
-  private mergeModifiedLines(changes: LineChange[], leftLines: string[], rightLines: string[]): LineChange[] {
-    logger.debug('[computeLCSDiff mergeModifiedLines] NOT merging - keeping all changes as-is (additions and deletions separate)');
-    logger.debug('[computeLCSDiff mergeModifiedLines] Result: modified=0, deleted=' + 
-                 changes.filter(r => r.type === 'deleted').length + 
-                 ', added=' + changes.filter(r => r.type === 'added').length);
-    
+  private mergeModifiedLines(changes: LineChange[], _leftLines: string[], _rightLines: string[]): LineChange[] {
+    // Additions and deletions stand on their own; alignment pairs them into modified rows.
     return changes.sort((a, b) => a.lineNumber - b.lineNumber);
   }
 
@@ -212,8 +187,6 @@ export class MarkdownDiffViewSupport {
     let delIdx = 0;
     let addIdx = 0;
     
-    logger.debug(`[alignChangesWithSpacers] Processing ${deletions.length} deletions and ${additions.length} additions`);
-    logger.debug(`[alignChangesWithSpacers] Left lines: ${leftLines.length}, Right lines: ${rightLines.length}`);
     
     while (leftIndex < leftLines.length || rightIndex < rightLines.length) {
       const currentDeletion = delIdx < deletions.length ? deletions[delIdx] : null;
@@ -287,7 +260,6 @@ export class MarkdownDiffViewSupport {
       }
     }
     
-    logger.debug(`[alignChangesWithSpacers] Generated ${result.length} aligned changes (leftOffset: ${leftOffset}, rightOffset: ${rightOffset})`);
     
     return result;
   }
@@ -332,31 +304,68 @@ export class MarkdownDiffViewSupport {
     return lcs;
   }
 
-  /**
-   * Handle scroll sync message from webview
-   * Finds the other editor in the diff pair by matching instance ID (primary) or URI (fallback)
-   */
-  public handleScrollSync(sourceInstanceId: string | undefined, sourceUri: vscode.Uri, targetUri: vscode.Uri, scrollPercentage: number, retryCount: number = 0): void {
-    const targetEditor = this.panelRegistry?.findTargetPanel(sourceInstanceId, targetUri);
-    if (targetEditor) {
-      targetEditor.sendScrollSync(scrollPercentage);
-      return;
-    }
-
-    if (retryCount < 3) {
-      const retryDelay = 50 * Math.pow(2, retryCount);
-      logger.warn(`[MarkdownDiffViewSupport] Target editor not found, retrying in ${retryDelay}ms (attempt ${retryCount + 1}/3)`);
-      setTimeout(() => {
-        this.handleScrollSync(sourceInstanceId, sourceUri, targetUri, scrollPercentage, retryCount + 1);
-      }, retryDelay);
-    } else {
-      logger.warn(`[MarkdownDiffViewSupport] Target editor not found after 3 retries: ${targetUri.toString()}`);
-    }
-  }
-
   public dispose(): void {
     // No disposables needed - all state management happens in EditorPanel instances
   }
+}
+
+/** Exact LCS up to this many table cells (about 1000 x 1000 lines). */
+export const LCS_CELL_LIMIT = 1_000_000;
+/** Beyond this many edits Myers gives up and the middle is reported as replaced. */
+export const MYERS_MAX_EDITS = 4_000;
+
+/**
+ * Myers' diff on the lines between the common prefix and suffix. Returns the
+ * deletions (left indexes) and additions (right indexes) of a shortest edit
+ * script; past MYERS_MAX_EDITS the whole middle counts as replaced.
+ */
+export function myersChanges(left: readonly string[], right: readonly string[]): LineChange[] {
+  let start = 0;
+  while (start < left.length && start < right.length && left[start] === right[start]) start++;
+  let leftEnd = left.length;
+  let rightEnd = right.length;
+  while (leftEnd > start && rightEnd > start && left[leftEnd - 1] === right[rightEnd - 1]) { leftEnd--; rightEnd--; }
+  const a = left.slice(start, leftEnd);
+  const b = right.slice(start, rightEnd);
+  const n = a.length;
+  const m = b.length;
+  const deleted = (i: number): LineChange => ({ type: 'deleted', lineNumber: start + i, content: a[i], side: 'left' });
+  const added = (j: number): LineChange => ({ type: 'added', lineNumber: start + j, content: b[j], side: 'right' });
+  const replaceAll = () => [...a.map((_, i) => deleted(i)), ...b.map((_, j) => added(j))];
+  if (n === 0 || m === 0) return replaceAll();
+
+  const max = Math.min(n + m, MYERS_MAX_EDITS);
+  const offset = max;
+  let v = new Int32Array(2 * max + 2);
+  const trace: Int32Array[] = [];
+  let found = -1;
+  for (let d = 0; d <= max && found < 0; d++) {
+    trace.push(v.slice());
+    for (let k = -d; k <= d; k += 2) {
+      let x = k === -d || (k !== d && v[offset + k - 1] < v[offset + k + 1]) ? v[offset + k + 1] : v[offset + k - 1] + 1;
+      let y = x - k;
+      while (x < n && y < m && a[x] === b[y]) { x++; y++; }
+      v[offset + k] = x;
+      if (x >= n && y >= m) { found = d; break; }
+    }
+  }
+  if (found < 0) return replaceAll();
+
+  const changes: LineChange[] = [];
+  let x = n;
+  let y = m;
+  for (let d = found; d > 0; d--) {
+    v = trace[d];
+    const k = x - y;
+    const prevK = k === -d || (k !== d && v[offset + k - 1] < v[offset + k + 1]) ? k + 1 : k - 1;
+    const prevX = v[offset + prevK];
+    const prevY = prevX - prevK;
+    while (x > prevX && y > prevY) { x--; y--; }
+    if (x === prevX) changes.push(added(prevY)); else changes.push(deleted(prevX));
+    x = prevX;
+    y = prevY;
+  }
+  return changes.reverse();
 }
 
 interface LineChange {

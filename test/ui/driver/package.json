@@ -38,6 +38,42 @@
       {
         "command": "context-ui.chat",
         "title": "Context UI: Focus Chat"
+      },
+      {
+        "command": "context-ui.diffReport",
+        "title": "Diff UI: Record Report"
+      },
+      {
+        "command": "context-ui.diffCloseAll",
+        "title": "Diff UI: Close All"
+      },
+      {
+        "command": "context-ui.diffFileCompare",
+        "title": "Diff UI: Open File Compare"
+      },
+      {
+        "command": "context-ui.diffGit",
+        "title": "Diff UI: Open Git Working Tree Diff"
+      },
+      {
+        "command": "context-ui.diffPending",
+        "title": "Diff UI: Open Pending Edit"
+      },
+      {
+        "command": "context-ui.diffResetFixtures",
+        "title": "Diff UI: Reset Fixtures"
+      },
+      {
+        "command": "context-ui.diffSaveAll",
+        "title": "Diff UI: Save All"
+      },
+      {
+        "command": "context-ui.diffDocuments",
+        "title": "Diff UI: Record Documents"
+      },
+      {
+        "command": "context-ui.diffOpenDefault",
+        "title": "Diff UI: Open Default Editor"
       }
     ]
   }

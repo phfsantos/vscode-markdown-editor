@@ -53,3 +53,19 @@ try {
   fs.writeFileSync(path.join(storage, 'result.json'), JSON.stringify({ version: metadata.version, vsix, tests: count, failures, results }, null, 2));
   process.exitCode = failures || !count ? 1 : 0;
 } finally { await browser.quit(); }
+
+// Diff view suite against the same artifact (docs/testing/diff-view-findings.md). It needs the
+// context-ui driver and a Git fixture workspace, so it runs through scripts/uiTest.mjs in its own
+// storage; its result.json and screenshots are kept beside this gate's evidence.
+const diffStorage = path.join(storage, 'diff');
+fs.mkdirSync(diffStorage, { recursive: true });
+const diff = spawnSync(process.execPath, [path.join(repo, 'scripts/uiTest.mjs'), '--grep', 'Diff view'], {
+  cwd: repo, stdio: 'inherit',
+  env: { ...process.env, MARKDOWN_UI_TEST_VSIX: vsix, MARKDOWN_UI_STORAGE: diffStorage, MARKDOWN_UI_CODE: code, MARKDOWN_UI_DRIVER: driver },
+});
+const diffResultPath = path.join(diffStorage, 'result.json');
+const diffResult = fs.existsSync(diffResultPath) ? JSON.parse(fs.readFileSync(diffResultPath, 'utf8')) : null;
+const release = JSON.parse(fs.readFileSync(path.join(storage, 'result.json'), 'utf8'));
+release.diffView = diffResult ? { tests: diffResult.tests, failures: diffResult.failures, result: diffResultPath, screenshots: path.join(diffStorage, 'screenshots') } : { error: `diff suite exited ${diff.status} without a result` };
+fs.writeFileSync(path.join(storage, 'result.json'), JSON.stringify(release, null, 2));
+if (diff.status !== 0 || !diffResult || diffResult.failures || !diffResult.tests) process.exitCode = 1;

@@ -258,7 +258,10 @@
             "filenamePattern": "*.{md,markdown,mdown,mkdn,mkd,rmd,qmd}"
           }
         ],
-        "priority": "default"
+        "priority": {
+          "textEditor": "default",
+          "diffEditor": "default"
+        }
       }
     ],
     "menus": {

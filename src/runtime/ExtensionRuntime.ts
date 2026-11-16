@@ -24,7 +24,6 @@ import { MarkdownEditorNavigation } from '../navigation/MarkdownEditorNavigation
 import type {
   ActiveDocumentEvents,
   DiffCoordinator,
-  DiffPanelRegistry,
   EditorNavigationPreviewPort,
   EditorOpenOptions,
 } from '../contracts/ports';
@@ -81,16 +80,7 @@ export class ExtensionRuntime implements vscode.Disposable {
       this.disposables.push(apiService);
       const activeDocument = new ActiveDocumentContext(editorContext);
       const relationshipAnalyzer = new RelationshipAnalyzer();
-      const panelRegistry: DiffPanelRegistry = {
-        findTargetPanel: (sourceInstanceId, targetUri) => {
-          return EditorPanel.editors?.find((editor) => {
-            const matchesUri = editor.uri.toString() === targetUri.toString();
-            const isNotSource = !sourceInstanceId || editor.instanceId !== sourceInstanceId;
-            return matchesUri && isNotSource;
-          });
-        },
-      };
-      const diffCoordinator = new MarkdownDiffViewSupport(contextOrOptions, panelRegistry);
+      const diffCoordinator = new MarkdownDiffViewSupport(contextOrOptions);
       // The one relationship index, graph, and AI workflow for this activation.
       // Every consumer receives these instances; none may construct its own.
       const graphGenerator = new LinkGraphGenerator(relationshipAnalyzer);

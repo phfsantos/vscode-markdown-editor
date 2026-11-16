@@ -42,7 +42,9 @@ describe('webview to host protocol', () => {
     ['non-string action', { command: 'requestAiAction', action: 4 }, 'action'],
     ['malformed upload entry', { command: 'upload', files: [{ name: 'a.png' }] }, 'files'],
     ['non-string tool list', { command: 'openNativeToolSelector', selectedTools: ['a', 1] }, 'selectedTools'],
-    ['non-finite scroll', { command: 'diff-scroll-sync', scrollPercentage: Number.NaN }, 'scrollPercentage'],
+    ['percentage scroll instead of an anchor', { command: 'diff-scroll-sync', scrollPercentage: 0.5 }, 'anchor'],
+    ['anchor offset out of range', { command: 'diff-scroll-sync', anchor: { row: 3, offset: 1.5 } }, 'anchor'],
+    ['negative anchor row', { command: 'diff-scroll-sync', anchor: { row: -1, offset: 0 } }, 'anchor'],
   ])('rejects a known command with a %s', (_name, input, field) => {
     const result = parseWebviewToHostMessage(input);
 
@@ -179,5 +181,29 @@ describe('pending edits protocol', () => {
     ['too many sources', Array.from({ length: 9 }, () => ({ sourceLabel: 'S', compareContent: '' }))],
   ])('rejects %s', (_name, edits) => {
     expect(parseHostToWebviewMessage({ ...message, edits }).kind).toBe('malformed');
+  });
+});
+
+describe('diff view messages', () => {
+  const diffInfo = {
+    role: 'right', mode: 'inline', otherUri: 'file:///a.md', instanceId: 'p1', version: 3,
+    changes: [{ type: 'modified', lineNumber: 2, content: '<p>new</p>', oldContent: '<p>old</p>', side: 'both', leftLine: 2, rightLine: 2 }],
+    stats: { added: 0, deleted: 0, modified: 1 },
+  };
+
+  test('accepts a typed diff projection, a clear and an anchor scroll from the host', () => {
+    expect(parseHostToWebviewMessage({ command: 'diff-view-detected', diffInfo })).toEqual({ kind: 'message', message: { command: 'diff-view-detected', diffInfo } });
+    expect(parseHostToWebviewMessage({ command: 'diff-view-cleared' }).kind).toBe('message');
+    expect(parseHostToWebviewMessage({ command: 'diff-scroll-sync', anchor: { row: 4, offset: 0.25 } }).kind).toBe('message');
+    expect(parseWebviewToHostMessage({ command: 'diff-scroll-sync', anchor: { row: 4, offset: 0 } }).kind).toBe('message');
+  });
+
+  test.each([
+    ['legacy spacers stat', { ...diffInfo, stats: { added: 0, deleted: 0, spacers: 1 } }],
+    ['unknown change type', { ...diffInfo, changes: [{ ...diffInfo.changes[0], type: 'moved' }] }],
+    ['missing mode', { ...diffInfo, mode: undefined }],
+    ['non-integer version', { ...diffInfo, version: 1.5 }],
+  ])('rejects a diff projection with %s', (_name, value) => {
+    expect(parseHostToWebviewMessage({ command: 'diff-view-detected', diffInfo: value }).kind).toBe('malformed');
   });
 });

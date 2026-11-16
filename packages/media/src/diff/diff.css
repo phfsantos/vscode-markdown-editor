@@ -1,0 +1,277 @@
+/*
+ * Diff view styles. Every colour is a VS Code theme token with a fallback, so
+ * light, dark and high-contrast themes follow the workbench. Nothing here
+ * targets Vditor's editable nodes except through data attributes the diff view
+ * owns, and none of it reaches the saved Markdown.
+ */
+
+:root {
+  --md-diff-added-bg: var(--vscode-diffEditor-insertedLineBackground, rgba(155, 185, 85, 0.2));
+  --md-diff-deleted-bg: var(--vscode-diffEditor-removedLineBackground, rgba(255, 0, 0, 0.2));
+  --md-diff-modified-bg: var(--vscode-diffEditor-insertedLineBackground, rgba(155, 185, 85, 0.15));
+  --md-diff-added-fg: var(--vscode-gitDecoration-addedResourceForeground, #81b88b);
+  --md-diff-deleted-fg: var(--vscode-gitDecoration-deletedResourceForeground, #c74e39);
+  --md-diff-modified-fg: var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d);
+  --md-diff-statusbar-height: 24px;
+}
+
+/* ---- Pane layering ----------------------------------------------------- */
+.md-diff-host {
+  position: relative;
+}
+
+.md-diff-layer {
+  position: absolute;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.md-diff-layer__content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  will-change: transform;
+}
+
+/* The paint draws translucent full-row tints over the text. It cannot sit behind
+ * it: the app theme gives the content, table rows and code blocks opaque
+ * backgrounds (main.css), so a layer underneath would never show. */
+.md-diff-paint-layer {
+  z-index: 2;
+}
+
+.md-diff-row-layer {
+  z-index: 3;
+}
+
+/* ---- Full-row paint (translucent, over the text, edge to edge of the column) */
+.md-diff-paint {
+  position: absolute;
+  left: 0;
+  top: 0;
+  box-shadow: inset 3px 0 0 var(--md-diff-edge, transparent);
+}
+
+.md-diff-paint--added {
+  background: var(--md-diff-added-bg);
+  --md-diff-edge: var(--md-diff-added-fg);
+}
+
+.md-diff-paint--deleted {
+  background: var(--md-diff-deleted-bg);
+  --md-diff-edge: var(--md-diff-deleted-fg);
+}
+
+.md-diff-paint--modified {
+  background: var(--md-diff-modified-bg);
+  --md-diff-edge: var(--md-diff-modified-fg);
+}
+
+/* ---- Rows above the text: previous version, removed line, ghost -------- */
+.md-diff-row {
+  position: absolute;
+  left: 0;
+  top: 0;
+  box-sizing: border-box;
+  pointer-events: auto;
+  user-select: text;
+  cursor: default;
+  box-shadow: inset 3px 0 0 var(--md-diff-deleted-fg);
+  background: var(--md-diff-deleted-bg);
+  color: var(--vscode-foreground);
+}
+
+.md-diff-row:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder, #007fd4);
+  outline-offset: -1px;
+}
+
+.md-diff-row__body.vditor-reset {
+  margin: 0 !important;
+  padding: 2px 0 !important;
+  min-height: 0 !important;
+  width: auto !important;
+  background: transparent !important;
+}
+
+.md-diff-row__body > :first-child {
+  margin-top: 0;
+}
+
+.md-diff-row__body > :last-child {
+  margin-bottom: 0;
+}
+
+.md-diff-row--previous .md-diff-row__body,
+.md-diff-row--removed .md-diff-row__body {
+  text-decoration: line-through;
+  text-decoration-color: var(--md-diff-deleted-fg);
+}
+
+.md-diff-row--ghost {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--md-diff-deleted-bg) 0 6px,
+    transparent 6px 12px
+  );
+  box-shadow: none;
+}
+
+.md-diff-row--ghost .md-diff-row__body {
+  visibility: hidden;
+}
+
+/* ---- Overview ruler ---------------------------------------------------- */
+.md-diff-ruler {
+  position: absolute;
+  right: 0;
+  width: 6px;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.md-diff-ruler__mark {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  pointer-events: auto;
+  cursor: pointer;
+  opacity: 0.85;
+}
+
+.md-diff-ruler__mark:hover {
+  opacity: 1;
+}
+
+.md-diff-ruler__mark--added { background: var(--md-diff-added-fg); }
+.md-diff-ruler__mark--deleted,
+.md-diff-ruler__mark--gap { background: var(--md-diff-deleted-fg); }
+.md-diff-ruler__mark--modified { background: var(--md-diff-modified-fg); }
+
+/* ---- Status bar: in flow between toolbar and content (never over the toolbar) */
+.md-diff-statusbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--md-diff-statusbar-height);
+  min-height: var(--md-diff-statusbar-height);
+  max-height: var(--md-diff-statusbar-height);
+  box-sizing: border-box;
+  padding: 0 8px 0 12px;
+  overflow: hidden;
+  white-space: nowrap;
+  font-family: var(--vscode-font-family);
+  font-size: 12px;
+  line-height: var(--md-diff-statusbar-height);
+  color: var(--vscode-descriptionForeground, var(--vscode-foreground));
+  background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+  border-bottom: 1px solid var(--vscode-panel-border, var(--vscode-editorGroup-border, transparent));
+}
+
+.md-diff-statusbar__role {
+  font-weight: 600;
+  color: var(--vscode-foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 0 1 auto;
+}
+
+.md-diff-statusbar__readonly {
+  flex: none;
+  padding: 0 6px;
+  height: 16px;
+  line-height: 16px;
+  border-radius: 8px;
+  font-size: 11px;
+  color: var(--vscode-badge-foreground, var(--vscode-foreground));
+  background: var(--vscode-badge-background, transparent);
+  border: 1px solid var(--vscode-contrastBorder, transparent);
+}
+
+.md-diff-statusbar__message {
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+[data-diff-state="error"] .md-diff-statusbar__message {
+  color: var(--vscode-errorForeground, #f48771);
+}
+
+.md-diff-statusbar__counts {
+  display: inline-flex;
+  gap: 8px;
+  margin-left: auto;
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.md-diff-count--added { color: var(--md-diff-added-fg); }
+.md-diff-count--deleted { color: var(--md-diff-deleted-fg); }
+.md-diff-count--modified { color: var(--md-diff-modified-fg); }
+
+.md-diff-statusbar__nav-group {
+  display: inline-flex;
+  flex: none;
+  gap: 2px;
+}
+
+.md-diff-statusbar__counts[hidden] + .md-diff-statusbar__nav-group {
+  margin-left: auto;
+}
+
+.md-diff-statusbar__nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--vscode-icon-foreground, var(--vscode-foreground));
+  cursor: pointer;
+}
+
+.md-diff-statusbar__nav:hover:not(:disabled) {
+  background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
+}
+
+.md-diff-statusbar__nav:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder, #007fd4);
+  outline-offset: -1px;
+}
+
+.md-diff-statusbar__nav:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Narrow panes: drop the read-only text first, keep counts and navigation. */
+@media (max-width: 420px) {
+  .md-diff-statusbar__readonly { display: none; }
+  .md-diff-statusbar { gap: 6px; padding-left: 8px; }
+}
+
+/* Content shrinks by the status bar. */
+body.md-diff-active .vditor-content {
+  height: calc(100vh - 40px - var(--md-diff-statusbar-height)) !important;
+}
+
+/* A read-only side keeps its toolbar row (so both panes start at the same height
+ * and aligned rows sit level) but disables it: dimmed here, inert in status-bar.ts. */
+body.md-diff-active.md-diff-readonly .vditor-toolbar {
+  pointer-events: none !important;
+  opacity: 0.4;
+}
+
+/* High contrast: outline rows and paint edges instead of relying on tint. */
+body.vscode-high-contrast .md-diff-row,
+body.vscode-high-contrast-light .md-diff-row {
+  outline: 1px dashed var(--vscode-contrastBorder, currentColor);
+  outline-offset: -1px;
+}
