@@ -163,14 +163,38 @@ describe('Markdown Studio packaged release readiness', function() {
     await bridge({ op: 'open' }); await hostCommand('workbench.view.extension.markdown-tools');
     await hostCommand('markdown-editor.openGraphView', [{ docUri: `file://${path.join(workspace, 'Markdown Studio.md')}` }]);
     await eventually(async () => { const tabs = await driver().findElements(By.css('.tab')); const text = (await Promise.all(tabs.map(tab => tab.getText()))).join(' '); assert.match(text, /Graph/i); return true; });
-    await inWebview('#graph', async () => { await eventually(async () => { const labels = await driver().findElements(By.css('#graph .node-label')); assert.ok(labels.length >= 2); assert.ok((await driver().findElements(By.css('#graph .edges line'))).length > 0); const text = (await Promise.all(labels.map(label => label.getText()))).join(' '); assert.match(text, /Markdown Studio/); assert.match(text, /Release Notes/); return true; }); });
+    await inWebview('#graph', async () => {
+      try {
+        await eventually(async () => {
+          const state = await driver().executeScript(`return {
+            labels: Array.from(document.querySelectorAll('#graph .node-label'), label => label.textContent).sort(),
+            edges: document.querySelectorAll('#graph .edges line').length,
+            stats: document.querySelector('#stats').textContent,
+            loadingHidden: getComputedStyle(document.querySelector('#loading')).display === 'none',
+          };`);
+          assert.deepEqual(state.labels, ['Markdown Studio', 'Release Notes'], state.stats);
+          assert.ok(state.edges > 0, 'Expected a link between the two graph nodes');
+          assert.ok(state.loadingHidden, 'Expected the graph loading overlay to be hidden');
+          return true;
+        });
+      } catch (error) {
+        try {
+          const html = await driver().executeScript('return document.documentElement.outerHTML');
+          fs.writeFileSync(path.join(storage, 'graph-dom.html'), html);
+        } catch (captureError) {
+          console.warn('Could not capture the graph webview DOM:', captureError.message);
+        }
+        throw error;
+      }
+    });
+    await screenshot('connected-notes-graph');
     await hostCommand('workbench.action.focusFirstEditorGroup');
     await hostCommand('notifications.clearAll');
     for (const name of ['QUICK NOTES','TAGS','OUTGOING LINKS','BACKLINKS']) {
       const headers = await driver().findElements(By.css('.part.sidebar .pane-header'));
       for (const header of headers) { if ((await header.getText()).includes(name)) { const expanded = await header.getAttribute('aria-expanded'); if ((name === 'QUICK NOTES' && expanded === 'true') || (name !== 'QUICK NOTES' && expanded === 'false')) await header.click(); } }
     }
-    await screenshot('connected-notes-graph');
+    await screenshot('connected-notes-sidebar');
   });
   it('records the native editor-type picker and its provider suffix', async () => {
     await bridge({ op: 'open' });

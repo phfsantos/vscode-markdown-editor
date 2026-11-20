@@ -78,7 +78,11 @@ if (suppliedVsix && !process.argv.includes('--skip-setup')) {
     manifest.contributes.customEditors[0].priority = value.startsWith('{') ? JSON.parse(value) : value;
   }
   writeFileSync(path.join(staging, 'package.json'), JSON.stringify(manifest, null, 2));
-  for (const name of ['dist', 'out/media', 'out/widgets/index.js', 'out/sidebar', 'media/logo.png', 'media/sidebar-icon.svg', 'README.md', 'LICENSE']) {
+  for (const name of [
+    'dist', 'out/media', 'out/widgets/index.js', 'out/sidebar',
+    'media/logo.png', 'media/sidebar-icon.svg', 'media/graph-view.js', 'media/graph-view.css',
+    'README.md', 'LICENSE',
+  ]) {
     const source = path.join(root, name);
     if (existsSync(source)) cpSync(source, path.join(staging, name), { recursive: true });
   }

@@ -3,7 +3,7 @@
   "displayName": "Markdown Studio",
   "icon": "media/logo.png",
   "description": "Visual Markdown editing and connected notes for VS Code: WYSIWYG editing, wiki-links, backlinks, tags, and a graph view.",
-  "version": "0.5.14",
+  "version": "0.5.15",
   "publisher": "phfsantos",
   "private": true,
   "workspaces": {
